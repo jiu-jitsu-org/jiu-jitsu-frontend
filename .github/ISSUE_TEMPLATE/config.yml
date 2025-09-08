@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🚀 프로젝트 보드
+    url: https://github.com/orgs/jiu-jitsu-org/projects/1
+    about: 전체 프로젝트 진행 상황을 확인하세요
+  - name: 👾 팀 디스코드
+    url: https://discord.com/channels/1349967166652289094/1349967167453659212
+    about: 빠른 질문이나 논의는 디스코드에서

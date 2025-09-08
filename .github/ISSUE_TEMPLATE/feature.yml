@@ -1,0 +1,105 @@
+name: 🚀 기능 개발
+description: 새로운 기능 개발을 위한 이슈 템플릿
+title: "[FE] 기능명"
+labels: ["type: feature 🚀"]
+assignees: []
+
+body:
+  - type: dropdown
+    id: platform
+    attributes:
+      label: 플랫폼
+      description: 어떤 플랫폼의 작업인가요?
+      options:
+        - '⚙️ Backend'
+        - '💻 Frontend'
+        - '🤖 Android'
+        - '📱 iOS'
+        - '🎯 All'
+      default: 1
+    validations:
+      required: true
+
+  - type: dropdown
+    id: epic
+    attributes:
+      label: Epic (대분류)
+      description: 어떤 Epic에 속하는 작업인가요?
+      options:
+        - '📦 세팅'
+        - '🎨 디자인시스템'
+        - '👤 로그인/회원가입'
+        - '🙍‍♂️ 프로필'
+        - '💬 커뮤니티'
+        - '⚙️ 설정'
+        - '🔮 향후 계획'
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 우선순위
+      description: 이 작업의 우선순위는?
+      options:
+        - '🔥 High'
+        - '⚡ Medium'
+        - '🌱 Low'
+      default: 1
+    validations:
+      required: true
+
+  - type: dropdown
+    id: sprint
+    attributes:
+      label: Sprint
+      description: 이 작업은 어떤 스프린트에 포함되나요?
+      options:
+        - "🏁 Sprint 1 (Current: ~9/14)"
+        - "🗓️ Sprint 2 (Planned)"
+        - "🗓️ Sprint 3 (Planned)"
+        - "🗄️ Backlog"
+      default: 0
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 📝 작업 상세 설명
+      description: 구체적인 작업 내용을 설명해주세요.
+      placeholder: |
+        - 구현할 기능 목록을 작성해주세요.
+        - 디자인/기획서 링크가 있다면 첨부해주세요.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: acceptance_criteria
+    attributes:
+      label: ✅ 완료 조건 (Definition of Done)
+      description: 이 작업이 완료되려면 무엇이 필요한가요?
+      options:
+        - label: 기능 구현 완료
+        - label: 단위 테스트 작성 완료
+        - label: 코드 리뷰 완료
+
+  - type: input
+    id: start_date
+    attributes:
+      label: 시작 예정일
+      description: 언제부터 작업을 시작할 예정인가요? (선택사항)
+      placeholder: "YYYY-MM-DD"
+
+  - type: input
+    id: due_date
+    attributes:
+      label: 완료 예정일
+      description: 언제까지 완료할 예정인가요? (선택사항)
+      placeholder: "YYYY-MM-DD"
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: 추가 정보
+      description: 다른 팀원들이 알아야 할 추가 정보가 있나요? (관련 이슈, 참고 링크 등)

@@ -1,0 +1,72 @@
+name: 🔧 설정 작업
+description: 프로젝트 설정 및 환경 구축
+title: "[PLATFORM] 설정명"
+labels: ["type: setup 🔧", "priority: medium ⚡, "platform: ios 📱"]
+assignees: []
+
+body:
+  - type: dropdown
+    id: platform
+    attributes:
+      label: 🎯 플랫폼
+      options:
+        - Backend (API/서버)
+        - Frontend (웹)
+        - Android (안드로이드 앱)
+        - iOS (아이폰 앱)
+        - All (전체 플랫폼)
+      default: 3
+    validations:
+      required: true
+
+  - type: dropdown
+    id: setup_type
+    attributes:
+      label: 🛠 설정 유형
+      description: 어떤 종류의 설정 작업인가요?
+      options:
+        - 개발 환경 설정
+        - CI/CD 파이프라인 구축
+        - 라이브러리/패키지 설정
+        - 서버/인프라 설정
+        - 데이터베이스 설정
+        - 외부 서비스 연동 (OAuth, Firebase 등)
+        - 기타 설정
+      default: 0
+    validations:
+      required: true
+
+  - type: textarea
+    id: setup_description
+    attributes:
+      label: 📝 설정 내용
+      description: 어떤 설정이 필요한지 구체적으로 설명해주세요
+      placeholder: |
+        ## 설정해야 할 것
+        - Firebase 프로젝트 생성
+        - iOS/Android 앱 등록
+        - OAuth 설정
+        
+        ## 설정 후 기대 결과
+        - 소셜 로그인 기능 사용 가능
+        - 푸시 알림 발송 가능
+      value: |
+        ## 설정해야 할 것
+        
+        
+        ## 설정 후 기대 결과
+        
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: setup_checklist
+    attributes:
+      label: ✅ 설정 체크리스트
+      description: 완료해야 할 설정 항목들을 체크하세요
+      options:
+        - label: 개발 환경 구성 완료
+        - label: 필요한 라이브러리 설치 완료
+        - label: 설정 파일 작성 완료
+        - label: 테스트 실행 및 확인 완료
+        - label: 문서 업데이트 완료
