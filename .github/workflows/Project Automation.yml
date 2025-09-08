@@ -49,7 +49,7 @@ jobs:
               });
             }
 
-  # Job 2: 프로젝트 추가 및 필드 설정 (기존 기능 유지)
+  # Job 2: [수정] 프로젝트 추가 및 필드 설정 (매핑 로직 통일)
   add_to_project_and_set_fields:
     name: Add to Project and Set Fields
     runs-on: ubuntu-latest
@@ -98,9 +98,16 @@ jobs:
             
             const updateFieldMutation = `mutation($pId: ID!, $iId: ID!, $fId: ID!, $val: ProjectV2FieldValue!) { updateProjectV2ItemFieldValue(input: { projectId: $pId, itemId: $iId, fieldId: $fId, value: $val }) { projectV2Item { id } } }`;
             
-            let statusValue = 'Backlog', priorityValue = null, epicValue = null;
-            if (labels.includes('priority: high 🔥')) priorityValue = '🔥 High'; else if (labels.includes('priority: medium ⚡')) priorityValue = '⚡ Medium'; else if (labels.includes('priority: low 🌱')) priorityValue = '🌱 Low';
-            if (labels.includes('epic: auth 👤')) epicValue = '👤 로그인/회원가입'; else if (labels.includes('epic: setup 📦')) epicValue = '📦 세팅'; else if (labels.includes('epic: design-system 🎨')) epicValue = '🎨 디자인시스템'; else if (labels.includes('epic: profile 🙍‍♂️')) epicValue = '🙍‍♂️ 프로필'; else if (labels.includes('epic: community 💬')) epicValue = '💬 커뮤니티'; else if (labels.includes('epic: settings ⚙️')) epicValue = '⚙️ 설정'; else if (labels.includes('epic: future 🔮')) epicValue = '🔮 향후 계획';
+            // --- [오류 수정] 매핑 로직을 Map 기반으로 통일 ---
+            const priorityMap = {'priority: high 🔥': '🔥 High', 'priority: medium ⚡': '⚡ Medium', 'priority: low 🌱': '🌱 Low'};
+            const epicMap = {'epic: setup 📦': '📦 세팅', 'epic: design-system 🎨': '🎨 디자인시스템', 'epic: auth 👤': '👤 로그인/회원가입', 'epic: profile 🙍‍♂️': '🙍‍♂️ 프로필', 'epic: community 💬': '💬 커뮤니티', 'epic: settings ⚙️': '⚙️ 설정', 'epic: future 🔮': '🔮 향후 계획'};
+
+            const priorityLabel = labels.find(l => l.startsWith('priority:'));
+            const epicLabel = labels.find(l => l.startsWith('epic:'));
+
+            const statusValue = 'Backlog';
+            const priorityValue = priorityLabel ? priorityMap[priorityLabel] : null;
+            const epicValue = epicLabel ? epicMap[epicLabel] : null;
 
             async function updateSelectField(field, value) {
               if (field && value) {
@@ -122,7 +129,6 @@ jobs:
               }
             }
 
-            // [오류 수정] 날짜 값이 유효할 때만 업데이트 하도록 조건 추가
             if (startDateField && startDateValue && startDateValue !== '_No response_') { 
               await github.graphql(updateFieldMutation, { pId: project.id, iId: itemId, fId: startDateField.id, val: { date: startDateValue } }); 
             }
@@ -141,7 +147,7 @@ jobs:
         with:
           github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
           script: |
-            const issue = context.payload.issue;
+            const payload_issue = context.payload.issue;
             const addedLabel = context.payload.label?.name;
 
             if (!addedLabel) { return; }
@@ -154,11 +160,20 @@ jobs:
               return;
             }
 
-            const existingLabels = issue.labels.map(l => l.name);
-            const otherLabels = existingLabels.filter(l => !l.startsWith(addedLabelPrefix));
+            // [오류 수정] 이벤트 페이로드의 라벨 목록은 최신 상태가 아닐 수 있으므로,
+            // REST API를 통해 최신 이슈 정보를 가져와서 정확한 라벨 목록을 사용합니다.
+            const { data: issue } = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: payload_issue.number,
+            });
+
+            const currentLabels = issue.labels.map(l => l.name);
+            const otherLabels = currentLabels.filter(l => !l.startsWith(addedLabelPrefix));
             const finalLabels = [...new Set([...otherLabels, addedLabel])];
 
-            if (JSON.stringify(existingLabels.sort()) !== JSON.stringify(finalLabels.sort())) {
+            // setLabels는 labeled 이벤트를 다시 트리거할 수 있으므로, 실제 변경이 있을 때만 호출합니다.
+            if (JSON.stringify(currentLabels.sort()) !== JSON.stringify(finalLabels.sort())) {
               await github.rest.issues.setLabels({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -167,8 +182,7 @@ jobs:
               });
               console.log(`Cleaned up labels for prefix "${addedLabelPrefix}". New labels: ${finalLabels.join(', ')}`);
             }
-
-            // --- 프로젝트 필드 동기화 로직 ---
+            
             const findItemQuery = `query($org: String!, $number: Int!) { organization(login: $org) { projectV2(number: $number) { id, items(first: 100) { nodes { id, content { ... on Issue { id, number, repository { name } } } } }, fields(first: 30) { nodes { ... on ProjectV2Field { id, name } ... on ProjectV2SingleSelectField { id, name, options { id, name } } } } } } }`;
             const projectData = await github.graphql(findItemQuery, { org: context.repo.owner, number: 1 });
             const project = projectData.organization.projectV2;
