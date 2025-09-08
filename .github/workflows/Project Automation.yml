@@ -5,9 +5,10 @@ on:
     types: [opened, edited, assigned, closed, labeled, unlabeled, reopened]
   pull_request:
     types: [opened, ready_for_review, closed, converted_to_draft, reopened]
+  push:
 
 jobs:
-  # Job 1: 이슈 생성/수정 시 자동으로 라벨링
+  # Job 1: 이슈 생성/수정 시 자동으로 라벨링 (기존 기능 유지)
   auto_label:
     name: Auto Label from Issue Body
     runs-on: ubuntu-latest
@@ -23,29 +24,21 @@ jobs:
             const labelsToAdd = [];
             const platformMap = {'⚙️ Backend': 'platform: backend ⚙️', '💻 Frontend': 'platform: frontend 💻', '🤖 Android': 'platform: android 🤖', '📱 iOS': 'platform: ios 📱', '🎯 All': 'platform: all 🎯'};
             const epicMap = {'📦 세팅': 'epic: setup 📦', '🎨 디자인시스템': 'epic: design-system 🎨', '👤 로그인/회원가입': 'epic: auth 👤', '🙍‍♂️ 프로필': 'epic: profile 🙍‍♂️', '💬 커뮤니티': 'epic: community 💬', '⚙️ 설정': 'epic: settings ⚙️', '🔮 향후 계획': 'epic: future 🔮'};
-            const priorityMap = {
-              '🔥 High': 'priority: high 🔥',
-              '🔥 Critical': 'priority: high 🔥', // Critical을 High로 매핑
-              '⚡ Medium': 'priority: medium ⚡',
-              '🌱 Low': 'priority: low 🌱'
-            };
+            const priorityMap = {'🔥 High': 'priority: high 🔥', '🔥 Critical': 'priority: high 🔥', '⚡ Medium': 'priority: medium ⚡', '🌱 Low': 'priority: low 🌱'};
+
             function parseAndAddLabel(fieldName, map) {
-              const regex = new RegExp(`### ${fieldName}\\s*\\n\\s*([^\n]+)`);
+              const escapedFieldName = fieldName.replace(/[()]/g, '\\$&');
+              const regex = new RegExp(`### ${escapedFieldName}\\s*\\n\\s*([^\n]+)`);
               const match = body.match(regex);
               if (match) {
                 const value = match[1].trim();
-                for (const [key, label] of Object.entries(map)) {
-                  if (value.includes(key)) {
-                    labelsToAdd.push(label);
-                    return;
-                  }
-                }
+                for (const [key, label] of Object.entries(map)) { if (value.startsWith(key)) { labelsToAdd.push(label); return; } }
               }
             }
             parseAndAddLabel('플랫폼', platformMap);
-            parseAndAddLabel('Epic \\(대분류\\)', epicMap);
+            parseAndAddLabel('Epic (대분류)', epicMap);
             parseAndAddLabel('우선순위', priorityMap);
-            parseAndAddLabel('심각도 \\(Severity\\)', priorityMap);
+            parseAndAddLabel('심각도 (Severity)', priorityMap);
             
             if (labelsToAdd.length > 0) {
               const existingLabels = issue.labels.map(l => l.name);
@@ -56,7 +49,7 @@ jobs:
               });
             }
 
-  # Job 2: 프로젝트 추가 및 필드 설정 (auto_label 작업이 끝난 후 실행)
+  # Job 2: 프로젝트 추가 및 필드 설정 (기존 기능 유지)
   add_to_project_and_set_fields:
     name: Add to Project and Set Fields
     runs-on: ubuntu-latest
@@ -70,29 +63,15 @@ jobs:
           script: |
             const issue = context.payload.issue;
             const body = issue.body || '';
-            const { data: updated_issue } = await github.rest.issues.get({
-              owner: context.repo.owner, repo: context.repo.repo, issue_number: issue.number
-            });
+            try {
+              await github.rest.issues.addLabels({ owner: context.repo.owner, repo: context.repo.repo, issue_number: issue.number, labels: ['status: backlog 📋'] });
+            } catch (error) { console.log('Could not add "status: backlog 📋" label:', error.message); }
+
+            const { data: updated_issue } = await github.rest.issues.get({ owner: context.repo.owner, repo: context.repo.repo, issue_number: issue.number });
             const labels = updated_issue.labels.map(label => label.name);
-            console.log('Final labels from API:', labels);
             
-            const projectQuery = `
-              query($org: String!, $number: Int!) {
-                organization(login: $org) {
-                  projectV2(number: $number) {
-                    id
-                    fields(first: 30) {
-                      nodes {
-                        ... on ProjectV2Field { id, name, dataType }
-                        ... on ProjectV2SingleSelectField { id, name, options { id, name } }
-                        ... on ProjectV2IterationField { id, name, configuration { iterations { id, title } } }
-                      }
-                    }
-                  }
-                }
-              }`;
-            
-            const projectData = await github.graphql(projectQuery, { org: 'jiu-jitsu-org', number: 1 });
+            const projectQuery = `query($org: String!, $number: Int!) { organization(login: $org) { projectV2(number: $number) { id, fields(first: 30) { nodes { ... on ProjectV2Field { id, name, dataType } ... on ProjectV2SingleSelectField { id, name, options { id, name } } ... on ProjectV2IterationField { id, name, configuration { iterations { id, title } } } } } } } }`;
+            const projectData = await github.graphql(projectQuery, { org: context.repo.owner, number: 1 });
             const project = projectData.organization.projectV2;
             const fields = project.fields.nodes;
             
@@ -106,7 +85,6 @@ jobs:
             const addItemMutation = `mutation($pId: ID!, $cId: ID!) { addProjectV2ItemById(input: { projectId: $pId, contentId: $cId }) { item { id } } }`;
             const addResult = await github.graphql(addItemMutation, { pId: project.id, cId: issue.node_id });
             const itemId = addResult.addProjectV2ItemById.item.id;
-            console.log('Added item to project:', itemId);
             
             function parseValue(fieldName) {
               const regex = new RegExp(`### ${fieldName}\\s*\\n\\s*([^\n]+)`);
@@ -120,7 +98,6 @@ jobs:
             
             const updateFieldMutation = `mutation($pId: ID!, $iId: ID!, $fId: ID!, $val: ProjectV2FieldValue!) { updateProjectV2ItemFieldValue(input: { projectId: $pId, itemId: $iId, fieldId: $fId, value: $val }) { projectV2Item { id } } }`;
             
-            // Single-Select 필드 업데이트
             let statusValue = 'Backlog', priorityValue = null, epicValue = null;
             if (labels.includes('priority: high 🔥')) priorityValue = '🔥 High'; else if (labels.includes('priority: medium ⚡')) priorityValue = '⚡ Medium'; else if (labels.includes('priority: low 🌱')) priorityValue = '🌱 Low';
             if (labels.includes('epic: auth 👤')) epicValue = '👤 로그인/회원가입'; else if (labels.includes('epic: setup 📦')) epicValue = '📦 세팅'; else if (labels.includes('epic: design-system 🎨')) epicValue = '🎨 디자인시스템'; else if (labels.includes('epic: profile 🙍‍♂️')) epicValue = '🙍‍♂️ 프로필'; else if (labels.includes('epic: community 💬')) epicValue = '💬 커뮤니티'; else if (labels.includes('epic: settings ⚙️')) epicValue = '⚙️ 설정'; else if (labels.includes('epic: future 🔮')) epicValue = '🔮 향후 계획';
@@ -128,119 +105,300 @@ jobs:
             async function updateSelectField(field, value) {
               if (field && value) {
                 const option = field.options?.find(o => o.name === value);
-                if (option) { await github.graphql(updateFieldMutation, { pId: project.id, iId: itemId, fId: field.id, val: { singleSelectOptionId: option.id } }); console.log(`Updated ${field.name} to:`, value); }
+                if (option) { await github.graphql(updateFieldMutation, { pId: project.id, iId: itemId, fId: field.id, val: { singleSelectOptionId: option.id } }); }
               }
             }
             await updateSelectField(statusField, statusValue);
             await updateSelectField(priorityField, priorityValue);
             await updateSelectField(epicField, epicValue);
 
-            // Sprint (Iteration) 필드 업데이트
             if (sprintField && sprintValue) {
-              // 이슈 폼의 옵션 값과 실제 프로젝트의 Sprint 필드명을 1:1로 매핑합니다.
-              const sprintMap = {
-                "🏁 Sprint 1 (Current: ~9/14)": "Sprint 1",
-                "🗓️ Sprint 2 (Planned)": "Sprint 2",
-                "🗓️ Sprint 3 (Planned)": "Sprint 3"
-              };
-
+              const sprintMap = {"🏁 Sprint 1 (Current: ~9/14)": "Sprint 1", "🗓️ Sprint 2 (Planned)": "Sprint 2", "🗓️ Sprint 3 (Planned)": "Sprint 3"};
               const targetTitle = sprintMap[sprintValue];
               if (targetTitle) {
                 const iterations = sprintField.configuration.iterations;
                 const targetIteration = iterations.find(it => it.title === targetTitle);
-                
-                if (targetIteration) {
-                  await github.graphql(updateFieldMutation, { pId: project.id, iId: itemId, fId: sprintField.id, val: { iterationId: targetIteration.id } });
-                  console.log('Updated Sprint to:', targetIteration.title);
-                } else {
-                  console.log(`Could not find a project iteration with the exact title: ${targetTitle}`);
-                }
+                if (targetIteration) { await github.graphql(updateFieldMutation, { pId: project.id, iId: itemId, fId: sprintField.id, val: { iterationId: targetIteration.id } }); }
               }
             }
 
-            // Date 필드 업데이트
-            if (startDateField && startDateValue && /^\d{4}-\d{2}-\d{2}$/.test(startDateValue)) {
-              await github.graphql(updateFieldMutation, { pId: project.id, iId: itemId, fId: startDateField.id, val: { date: startDateValue } });
-              console.log('Updated Start date to:', startDateValue);
+            // [오류 수정] 날짜 값이 유효할 때만 업데이트 하도록 조건 추가
+            if (startDateField && startDateValue && startDateValue !== '_No response_') { 
+              await github.graphql(updateFieldMutation, { pId: project.id, iId: itemId, fId: startDateField.id, val: { date: startDateValue } }); 
             }
-            if (dueDateField && dueDateValue && /^\d{4}-\d{2}-\d{2}$/.test(dueDateValue)) {
-              await github.graphql(updateFieldMutation, { pId: project.id, iId: itemId, fId: dueDateField.id, val: { date: dueDateValue } });
-              console.log('Updated Due date to:', dueDateValue);
+            if (dueDateField && dueDateValue && dueDateValue !== '_No response_') { 
+              await github.graphql(updateFieldMutation, { pId: project.id, iId: itemId, fId: dueDateField.id, val: { date: dueDateValue } }); 
             }
 
-  # Job 3: 라벨 변경 시 프로젝트 필드 업데이트
-  update_project_fields_on_label:
-    name: Update Project Fields on Label Change
+  # Job 3: [수정] 라벨 수동 추가 시 중복 제거 및 프로젝트 상태 동기화
+  handle_label_changes:
+    name: Handle Manual Label Changes
     runs-on: ubuntu-latest
-    if: github.event_name == 'issues' && (github.event.action == 'labeled' || github.event.action == 'unlabeled')
+    if: github.event_name == 'issues' && github.event.action == 'labeled'
     steps:
-      - name: Update project fields based on label changes
+      - name: Cleanup duplicate prefix labels and sync project status
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
           script: |
             const issue = context.payload.issue;
-            const labels = issue.labels.map(l => l.name);
-            const labelName = context.payload.label.name;
-            const findItemQuery = `
-              query($org: String!, $number: Int!) {
-                organization(login: $org) {
-                  projectV2(number: $number) {
-                    id
-                    items(first: 100, orderBy: {field: POSITION, direction: DESC}) {
-                      nodes { id, content { ... on Issue { id, number, repository { name } } } }
-                    }
-                    fields(first: 20) {
-                      nodes { ... on ProjectV2SingleSelectField { id, name, options { id, name } } }
-                    }
-                  }
-                }
-              }`;
-            const projectData = await github.graphql(findItemQuery, { org: 'jiu-jitsu-org', number: 1 });
+            const addedLabel = context.payload.label?.name;
+
+            if (!addedLabel) { return; }
+
+            const prefixes = ['status:', 'epic:', 'platform:', 'priority:', 'type:'];
+            const addedLabelPrefix = prefixes.find(p => addedLabel.startsWith(p));
+
+            if (!addedLabelPrefix) {
+              console.log(`Label "${addedLabel}" does not have a managed prefix. Skipping.`);
+              return;
+            }
+
+            const existingLabels = issue.labels.map(l => l.name);
+            const otherLabels = existingLabels.filter(l => !l.startsWith(addedLabelPrefix));
+            const finalLabels = [...new Set([...otherLabels, addedLabel])];
+
+            if (JSON.stringify(existingLabels.sort()) !== JSON.stringify(finalLabels.sort())) {
+              await github.rest.issues.setLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: finalLabels
+              });
+              console.log(`Cleaned up labels for prefix "${addedLabelPrefix}". New labels: ${finalLabels.join(', ')}`);
+            }
+
+            // --- 프로젝트 필드 동기화 로직 ---
+            const findItemQuery = `query($org: String!, $number: Int!) { organization(login: $org) { projectV2(number: $number) { id, items(first: 100) { nodes { id, content { ... on Issue { id, number, repository { name } } } } }, fields(first: 30) { nodes { ... on ProjectV2Field { id, name } ... on ProjectV2SingleSelectField { id, name, options { id, name } } } } } } }`;
+            const projectData = await github.graphql(findItemQuery, { org: context.repo.owner, number: 1 });
             const project = projectData.organization.projectV2;
-            const projectItem = project.items.nodes.find(item => item.content?.repository.name === context.repo.repo && item.content?.number === issue.number);
-            if (!projectItem) { return; }
-            
             const fields = project.fields.nodes;
-            const updateFieldMutation = `mutation($pId: ID!, $iId: ID!, $fId: ID!, $val: ProjectV2FieldValue!) { updateProjectV2ItemFieldValue(input: { projectId: $pId, itemId: $iId, fieldId: $fId, value: $val }) { projectV2Item { id } } }`;
-            
-            async function updateField(fieldName, labelPrefix, valueMap) {
-              if (labelName.startsWith(labelPrefix)) {
-                const field = fields.find(f => f.name === fieldName);
-                if (field) {
-                  let newValue = null;
-                  const currentLabel = labels.find(l => l.startsWith(labelPrefix));
-                  if (currentLabel) {
-                    for (const [key, value] of Object.entries(valueMap)) { if (currentLabel.includes(key)) { newValue = value; break; } }
-                  }
-                  if (newValue) {
-                    const option = field.options?.find(o => o.name === newValue);
-                    if (option) { await github.graphql(updateFieldMutation, { pId: project.id, iId: projectItem.id, fId: field.id, val: { singleSelectOptionId: option.id } }); }
-                  }
+
+            if (!project) {
+              console.log("Project not found.");
+              return;
+            }
+
+            const projectItem = project.items.nodes.find(item => item.content?.repository.name === context.repo.repo && item.content?.number === issue.number);
+
+            if (!projectItem) {
+              console.log(`Issue #${issue.number} not found in the project.`);
+              return;
+            }
+
+            async function updateProjectField(fieldName, fieldValue) {
+              const field = fields.find(f => f.name === fieldName);
+              if (field && fieldValue) {
+                const option = field.options?.find(o => o.name === fieldValue);
+                if (option) {
+                  const updateMutation = `mutation($pId: ID!, $iId: ID!, $fId: ID!, $val: String!) { updateProjectV2ItemFieldValue(input: { projectId: $pId, itemId: $iId, fieldId: $fId, value: { singleSelectOptionId: $val } }) { projectV2Item { id } } }`;
+                  await github.graphql(updateMutation, { pId: project.id, iId: projectItem.id, fId: field.id, val: option.id });
+                  console.log(`Project field "${fieldName}" for issue #${issue.number} updated to "${fieldValue}".`);
+                } else {
+                  console.log(`Option "${fieldValue}" not found for field "${fieldName}".`);
                 }
               }
             }
-            await updateField('Status', 'status:', { 'in-progress': 'In Progress', 'review': 'In Review', 'done': 'Done', 'blocked': 'Blocked' });
-            await updateField('Priority', 'priority:', { 'high': '🔥 High', 'medium': '⚡ Medium', 'low': '🌱 Low' });
-            await updateField('Epic', 'epic:', { 'setup': '📦 세팅', 'design-system': '🎨 디자인시스템', 'auth': '👤 로그인/회원가입' });
 
-  # Job 4: 담당자 할당시 라벨 추가
-  move_assigned_to_progress:
-    name: Add Label on Assign
+            if (addedLabelPrefix === 'status:') {
+              const statusMap = {'status: backlog 📋': 'Backlog', 'status: ready ⚡': 'Ready', 'status: in-progress 🔄': 'In Progress', 'status: review 👀': 'In Review', 'status: done ✅': 'Done', 'status: on-hold ⏸': 'On Hold'};
+              const newStatus = statusMap[addedLabel];
+              if (newStatus) await updateProjectField('Status', newStatus);
+
+            } else if (addedLabelPrefix === 'priority:') {
+              const priorityMap = {'priority: high 🔥': '🔥 High', 'priority: medium ⚡': '⚡ Medium', 'priority: low 🌱': '🌱 Low'};
+              const newPriority = priorityMap[addedLabel];
+              if (newPriority) await updateProjectField('Priority', newPriority);
+
+            } else if (addedLabelPrefix === 'epic:') {
+              const epicMap = {'epic: setup 📦': '📦 세팅', 'epic: design-system 🎨': '🎨 디자인시스템', 'epic: auth 👤': '👤 로그인/회원가입', 'epic: profile 🙍‍♂️': '🙍‍♂️ 프로필', 'epic: community 💬': '💬 커뮤니티', 'epic: settings ⚙️': '⚙️ 설정', 'epic: future 🔮': '🔮 향후 계획'};
+              const newEpic = epicMap[addedLabel];
+              if (newEpic) await updateProjectField('Epic', newEpic);
+            }
+
+  # Job 4: 담당자 할당시 'Ready' 상태로 변경
+  move_assigned_to_ready:
+    name: Handle Assignment (Move to Ready)
     runs-on: ubuntu-latest
     if: github.event_name == 'issues' && github.event.action == 'assigned'
     steps:
-      - name: Add in-progress label
+      - name: Set label and update project status
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
           script: |
-            await github.rest.issues.addLabels({
+            const issue = context.payload.issue;
+            const existingLabels = issue.labels.map(l => l.name);
+            let newLabels = existingLabels.filter(l => !l.startsWith('status:'));
+            newLabels.push('status: ready ⚡');
+            
+            await github.rest.issues.setLabels({
               owner: context.repo.owner, repo: context.repo.repo,
-              issue_number: context.issue.number, labels: ['status: in-progress 🔄']
+              issue_number: issue.number, labels: newLabels
             });
 
-  # PR 관련 자동화 Job들
+            const findItemQuery = `query($org: String!, $number: Int!) { organization(login: $org) { projectV2(number: $number) { id, items(first: 100) { nodes { id, content { ... on Issue { id, number, repository { name } } } } }, fields(first: 20) { nodes { ... on ProjectV2SingleSelectField { id, name, options { id, name } } } } } } }`;
+            const projectData = await github.graphql(findItemQuery, { org: context.repo.owner, number: 1 });
+            const project = projectData.organization.projectV2;
+            const projectItem = project.items.nodes.find(item => item.content?.repository.name === context.repo.repo && item.content?.number === issue.number);
+            if (!projectItem) { return; }
+
+            const statusField = project.fields.nodes.find(f => f.name === 'Status');
+            const statusOption = statusField?.options.find(o => o.name === 'Ready');
+            if (statusField && statusOption) {
+              const updateFieldMutation = `mutation($pId: ID!, $iId: ID!, $fId: ID!, $val: String!) { updateProjectV2ItemFieldValue(input: { projectId: $pId, itemId: $iId, fieldId: $fId, value: { singleSelectOptionId: $val } }) { projectV2Item { id } } }`;
+              await github.graphql(updateFieldMutation, { pId: project.id, iId: projectItem.id, fId: statusField.id, val: statusOption.id });
+            }
+
+  # Job 5: 커밋 연결 시 'In Progress' 상태로 변경
+  move_linked_commit_to_progress:
+    name: Handle Linked Commit (Move to In Progress)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - name: Update status for linked issues
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
+          script: |
+            const issueNumbers = new Set();
+            const issueRegex = /#(\d+)/g;
+            for (const commit of context.payload.commits) {
+              let match;
+              while ((match = issueRegex.exec(commit.message)) !== null) { issueNumbers.add(parseInt(match[1])); }
+            }
+            if (issueNumbers.size === 0) { 
+              console.log('No linked issues found in commits.');
+              return;
+            }
+
+            const findItemQuery = `query($org: String!, $number: Int!) { organization(login: $org) { projectV2(number: $number) { id, items(first: 100) { nodes { id, content { ... on Issue { id, number, repository { name } } } } }, fields(first: 20) { nodes { ... on ProjectV2SingleSelectField { id, name, options { id, name } } } } } } }`;
+            const projectData = await github.graphql(findItemQuery, { org: context.repo.owner, number: 1 });
+            const project = projectData.organization.projectV2;
+            const statusField = project.fields.nodes.find(f => f.name === 'Status');
+            const statusOption = statusField?.options.find(o => o.name === 'In Progress');
+
+            if (!project || !statusField || !statusOption) {
+              console.log('Project, Status field, or "In Progress" option not found. Aborting project updates.');
+              return;
+            }
+
+            for (const issueNumber of issueNumbers) {
+              try {
+                const { data: issue } = await github.rest.issues.get({ owner: context.repo.owner, repo: context.repo.repo, issue_number: issueNumber });
+                const existingLabels = issue.labels.map(l => l.name);
+                if (!existingLabels.includes('status: in-progress 🔄')) {
+                  let newLabels = existingLabels.filter(l => !l.startsWith('status:'));
+                  newLabels.push('status: in-progress 🔄');
+                  await github.rest.issues.setLabels({ owner: context.repo.owner, repo: context.repo.repo, issue_number: issueNumber, labels: newLabels });
+                }
+                
+                const projectItem = project.items.nodes.find(item => item.content?.repository.name === context.repo.repo && item.content?.number === issueNumber);
+                if (projectItem) {
+                  const updateFieldMutation = `mutation($pId: ID!, $iId: ID!, $fId: ID!, $val: String!) { updateProjectV2ItemFieldValue(input: { projectId: $pId, itemId: $iId, fieldId: $fId, value: { singleSelectOptionId: $val } }) { projectV2Item { id } } }`;
+                  await github.graphql(updateFieldMutation, { pId: project.id, iId: projectItem.id, fId: statusField.id, val: statusOption.id });
+                  console.log(`Project status for issue #${issueNumber} updated to 'In Progress'.`);
+                } else {
+                  console.log(`Issue #${issueNumber} not found in the project.`);
+                }
+              } catch (error) { 
+                console.log(`Failed to update issue #${issueNumber}:`, error.message); 
+              }
+            }
+
+  # Job 6: 이슈 Close 시 'Done' 상태로 변경
+  handle_closed_issue:
+    name: Handle Closed Issue (Move to Done)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues' && github.event.action == 'closed'
+    steps:
+      - name: Set label and update project status to Done
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
+          script: |
+            const issue = context.payload.issue;
+            
+            const existingLabels = issue.labels.map(l => l.name);
+            let newLabels = existingLabels.filter(l => !l.startsWith('status:'));
+            newLabels.push('status: done ✅');
+            
+            await github.rest.issues.setLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              labels: newLabels
+            });
+            console.log(`Label for issue #${issue.number} set to 'status: done ✅'.`);
+
+            const findItemQuery = `query($org: String!, $number: Int!) { organization(login: $org) { projectV2(number: $number) { id, items(first: 100) { nodes { id, content { ... on Issue { id, number, repository { name } } } } }, fields(first: 20) { nodes { ... on ProjectV2SingleSelectField { id, name, options { id, name } } } } } } }`;
+            const projectData = await github.graphql(findItemQuery, { org: context.repo.owner, number: 1 });
+            const project = projectData.organization.projectV2;
+            const projectItem = project.items.nodes.find(item => item.content?.repository.name === context.repo.repo && item.content?.number === issue.number);
+
+            if (!projectItem) {
+              console.log(`Issue #${issue.number} not found in the project.`);
+              return;
+            }
+
+            const statusField = project.fields.nodes.find(f => f.name === 'Status');
+            const statusOption = statusField?.options.find(o => o.name === 'Done');
+            
+            if (statusField && statusOption) {
+              const updateFieldMutation = `mutation($pId: ID!, $iId: ID!, $fId: ID!, $val: String!) { updateProjectV2ItemFieldValue(input: { projectId: $pId, itemId: $iId, fieldId: $fId, value: { singleSelectOptionId: $val } }) { projectV2Item { id } } }`;
+              await github.graphql(updateFieldMutation, { pId: project.id, iId: projectItem.id, fId: statusField.id, val: statusOption.id });
+              console.log(`Project status for issue #${issue.number} updated to 'Done'.`);
+            } else {
+              console.log('Could not find "Status" field or "Done" option in the project.');
+            }
+
+  # Job 7: 이슈 Re-open 시 'In Progress' 상태로 변경
+  handle_reopened_issue:
+    name: Handle Reopened Issue (Move to In Progress)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues' && github.event.action == 'reopened'
+    steps:
+      - name: Set label and update project status to In Progress
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
+          script: |
+            const issue = context.payload.issue;
+            
+            const existingLabels = issue.labels.map(l => l.name);
+            let newLabels = existingLabels.filter(l => !l.startsWith('status:'));
+            newLabels.push('status: in-progress 🔄');
+            
+            await github.rest.issues.setLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              labels: newLabels
+            });
+            console.log(`Label for issue #${issue.number} set to 'status: in-progress 🔄'.`);
+
+            const findItemQuery = `query($org: String!, $number: Int!) { organization(login: $org) { projectV2(number: $number) { id, items(first: 100) { nodes { id, content { ... on Issue { id, number, repository { name } } } } }, fields(first: 20) { nodes { ... on ProjectV2SingleSelectField { id, name, options { id, name } } } } } } }`;
+            const projectData = await github.graphql(findItemQuery, { org: context.repo.owner, number: 1 });
+            const project = projectData.organization.projectV2;
+            const projectItem = project.items.nodes.find(item => item.content?.repository.name === context.repo.repo && item.content?.number === issue.number);
+
+            if (!projectItem) {
+              console.log(`Issue #${issue.number} not found in the project.`);
+              return;
+            }
+
+            const statusField = project.fields.nodes.find(f => f.name === 'Status');
+            const statusOption = statusField?.options.find(o => o.name === 'In Progress');
+            
+            if (statusField && statusOption) {
+              const updateFieldMutation = `mutation($pId: ID!, $iId: ID!, $fId: ID!, $val: String!) { updateProjectV2ItemFieldValue(input: { projectId: $pId, itemId: $iId, fieldId: $fId, value: { singleSelectOptionId: $val } }) { projectV2Item { id } } }`;
+              await github.graphql(updateFieldMutation, { pId: project.id, iId: projectItem.id, fId: statusField.id, val: statusOption.id });
+              console.log(`Project status for issue #${issue.number} updated to 'In Progress'.`);
+            } else {
+              console.log('Could not find "Status" field or "In Progress" option in the project.');
+            }
+
+  # PR 관련 자동화 Job
   pr_automation:
     name: Handle PR Status Change
     runs-on: ubuntu-latest
@@ -262,8 +420,6 @@ jobs:
             else if (action === 'reopened') labelsToSet.push('status: in-progress 🔄');
             
             if (JSON.stringify(existingLabels.sort()) !== JSON.stringify(labelsToSet.sort())) {
-              await github.rest.issues.setLabels({
-                owner: context.repo.owner, repo: context.repo.repo,
-                issue_number: pr.number, labels: [...new Set(labelsToSet)]
-              });
+              await github.rest.issues.setLabels({ owner: context.repo.owner, repo: context.repo.repo, issue_number: pr.number, labels: [...new Set(labelsToSet)] });
             }
+
