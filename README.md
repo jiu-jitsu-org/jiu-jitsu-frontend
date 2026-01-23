@@ -20,21 +20,14 @@
 npm install
 ```
 
-### 환경 변수 설정
-
-`.env.example` 파일을 참고하여 `.env` 파일을 생성하고 API 서버 주소를 설정하세요.
-
-```env
-VITE_API_BASE_URL=http://localhost:8080/api
-```
-
 ### 개발 서버 실행
 
 ```bash
+npm run local
 npm run dev
 ```
 
-개발 서버는 `http://localhost:3000`에서 실행됩니다.
+로컬 서버는 `http://localhost:3000`에서 실행됩니다.
 
 ### 빌드
 
