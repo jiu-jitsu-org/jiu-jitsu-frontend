@@ -1,30 +1,146 @@
+```gitignore
+############################################
+# Dependencies
+############################################
+node_modules/
+
+############################################
+# Package Manager
+############################################
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# (권장)
+# 팀에서 하나의 package manager만 사용하세요.
+# 예:
+# npm 사용 -> package-lock.json commit
+# pnpm 사용 -> pnpm-lock.yaml commit
+# yarn 사용 -> yarn.lock commit
+#
+# 위 lock 파일 3개 중 선택한 1개는
+# .gitignore 에서 제거 후 반드시 commit 해야 합니다.
+
+############################################
+# Next.js
+############################################
+.next/
+out/
+build/
+
+############################################
+# Production
+############################################
+dist/
+
+############################################
 # Logs
-logs
+############################################
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# Environment variables
+############################################
+# Environment
+############################################
 .env
 .env.local
-.env.production.local
 .env.development.local
+.env.test.local
+.env.production.local
+
+############################################
+# Cache
+############################################
+.cache/
+.parcel-cache/
+.eslintcache
+*.tsbuildinfo
+
+############################################
+# Testing
+############################################
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+############################################
+# IDE - VSCode
+############################################
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+############################################
+# IDE - JetBrains
+############################################
+.idea/
+*.iml
+
+############################################
+# macOS
+############################################
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+
+############################################
+# Windows
+############################################
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+############################################
+# Linux
+############################################
+*~
+.fuse_hidden*
+.directory
+
+############################################
+# Temporary Files
+############################################
+tmp/
+temp/
+*.tmp
+*.swp
+*.swo
+
+############################################
+# Certificates / Secrets
+############################################
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+############################################
+# Docker
+############################################
+docker-data/
+docker-volume/
+*.pid
+
+############################################
+# Local DB
+############################################
+*.sqlite
+*.sqlite3
+
+############################################
+# Optional
+############################################
+.vercel/
+.turbo/
+```
