@@ -39,7 +39,10 @@ export function getServerEnv(): ServerEnv {
   }
 
   cachedEnv = {
-    apiBaseUrl: requireEnv("API_BASE_URL", process.env.API_BASE_URL),
+    apiBaseUrl: requireEnv(
+      "INTERNAL_API_BASE_URL or API_BASE_URL",
+      process.env.INTERNAL_API_BASE_URL ?? process.env.API_BASE_URL,
+    ),
     apiTimeoutMs: parseNumber(process.env.API_TIMEOUT_MS, 10000),
   };
 
