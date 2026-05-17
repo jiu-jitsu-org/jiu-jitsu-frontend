@@ -1,0 +1,95 @@
+name: Build & Push OSS Front to GHCR
+
+on:
+  # develop에 merge/push되면 운영용 이미지 태그를 만든다.
+  push:
+    branches: ["develop"]
+
+  # PR에서는 Docker build까지만 검증하고 push는 하지 않는다.
+  pull_request:
+    branches: ["develop"]
+
+  # GitHub UI에서 수동 재빌드/재배포 트리거용.
+  workflow_dispatch:
+
+# GITHUB_TOKEN 권한을 최소화한다.
+# contents: read  -> checkout용
+# packages: write -> GHCR 이미지 push용
+permissions:
+  contents: read
+  packages: write
+
+# 같은 브랜치에서 여러 빌드가 겹치면 이전 빌드를 취소한다.
+# develop에 연속 push될 때 오래된 이미지가 늦게 push되는 상황을 줄인다.
+concurrency:
+  group: oss-front-image-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: jiu-jitsu-org/oss-front
+  DOCKERFILE: ./Dockerfile
+  CONTEXT: .
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Dockerfile과 소스 코드를 runner로 가져온다.
+      - name: Checkout source
+        uses: actions/checkout@v6
+
+      # multi-arch 이미지를 만들기 위해 QEMU를 먼저 설정한다.
+      # 배포 서버가 amd64인지 arm64인지 확실하면 platforms를 하나로 줄여도 된다.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      # Docker Buildx builder를 준비한다.
+      # Docker 공식 build-push-action이 이 builder를 사용한다.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      # GHCR 로그인.
+      # 같은 GitHub repo/org의 GHCR에 push할 때는 PAT보다 GITHUB_TOKEN을 우선 사용한다.
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # 배포용 태그와 롤백용 태그를 만든다.
+      # latest-develop은 현재 deploy/docker-compose.yml이 바라보는 태그다.
+      - name: Prepare image tags
+        id: tags
+        shell: bash
+        run: |
+          SHORT_SHA="${GITHUB_SHA::12}"
+
+          {
+            echo "value<<EOF"
+            echo "${REGISTRY}/${IMAGE_NAME}:latest-develop"
+            echo "${REGISTRY}/${IMAGE_NAME}:sha-${SHORT_SHA}"
+            echo "${REGISTRY}/${IMAGE_NAME}:run-${GITHUB_RUN_NUMBER}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      # Docker image build.
+      # PR에서는 push=false라서 빌드 검증만 한다.
+      # develop push 또는 workflow_dispatch에서는 GHCR로 push한다.
+      - name: Build and push image
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ env.CONTEXT }}
+          file: ${{ env.DOCKERFILE }}
+          push: ${{ github.event_name != 'pull_request' }}
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.tags.outputs.value }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.title=oss-front
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
