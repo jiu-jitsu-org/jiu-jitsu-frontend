@@ -40,7 +40,9 @@
     ├── .env.development
     ├── .env.production
     ├── .env.example
+    ├── design-tokens/
     ├── public/
+    ├── scripts/
     ├── src/
     ├── package.json
     ├── tsconfig.json
@@ -67,6 +69,12 @@ oss-frontend/src/
 │   │   └── bootstrap/
 │   │       └── info/
 │   │           └── route.ts
+│   ├── styles/
+│   │   └── tokens/            # 자동 생성 (npm run tokens)
+│   │       ├── primitive.css
+│   │       ├── semantic.css
+│   │       ├── component.css
+│   │       └── theme.css
 │   ├── favicon.ico
 │   ├── globals.css
 │   ├── layout.tsx
@@ -339,6 +347,36 @@ src/app/api/bootstrap/info/route.ts
 - `http-client.ts`
   공통 fetch, timeout, URL 생성, 에러 정규화
 
+## 디자인 토큰 (컬러 시스템)
+
+색상은 코드에 하드코딩하지 않고 디자인 토큰으로 관리한다.
+Figma에서 정의한 색을 JSON으로 내보내 CSS 변수로 변환하는 구조다.
+
+3단 구성으로, 참조 방향은 **Component → Semantic → Primitive** 다.
+
+- `Primitive` — 원시 색상 팔레트
+- `Semantic` — 의미 기반 색상 (primary, text-primary 등)
+- `Component` — 컴포넌트별 색상 (button, dialog 등)
+
+파일 흐름:
+
+```txt
+oss-frontend/design-tokens/*.tokens.json   (Figma 내보내기 원본 = 단일 소스)
+  -> npm run tokens  (scripts/build-tokens.mjs)
+  -> oss-frontend/src/app/styles/tokens/*.css   (자동 생성, 직접 수정 금지)
+  -> src/app/globals.css 에서 import
+```
+
+색을 바꿀 때는 Figma 수정 → JSON 3개를 `design-tokens/`에 덮어쓰기 →
+`npm run tokens` 실행. 생성된 CSS는 직접 수정하지 않는다.
+
+코드에서 색을 쓰는 방법:
+
+- Semantic 색 — Tailwind 클래스: `bg-primary`, `text-text-secondary` 등
+- Component 색 — CSS 변수: `var(--button-filled-default-bg)` 등
+
+상세 사용법은 `oss-frontend/design-tokens/README.md`를 참고한다.
+
 ## 환경 변수 구조
 
 환경 변수 파일은 `oss-frontend/` 루트에 둔다.
@@ -418,6 +456,7 @@ GET /api/products
 - `src/shared/lib/http` 기반 공통 서버 HTTP 클라이언트
 - `bootstrap` feature 기반 예시 BFF 구현
 - `.env.development`, `.env.production` 기반 Base URL 분기
+- `design-tokens/` 기반 컬러 디자인 토큰 파이프라인 (`npm run tokens`)
 
 ## 검증 상태
 

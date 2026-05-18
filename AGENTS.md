@@ -44,7 +44,9 @@
     ├── .env.development
     ├── .env.production
     ├── .env.example
+    ├── design-tokens/
     ├── public/
+    ├── scripts/
     ├── src/
     ├── package.json
     ├── tsconfig.json
@@ -57,6 +59,7 @@
 oss-frontend/src/
 ├── app/
 │   ├── api/
+│   ├── styles/
 │   ├── globals.css
 │   ├── layout.tsx
 │   └── page.tsx
@@ -135,6 +138,21 @@ src/features/<feature>/
 - `src/config/env.ts`
 
 직접 `process.env`를 여러 파일에서 읽기보다 `config`를 통해 읽는 방식을 우선한다.
+
+### 5. `design-tokens/`는 색상의 단일 소스다
+
+색상 디자인 토큰(Primitive → Semantic → Component 3단)의 원본은
+`oss-frontend/design-tokens/*.tokens.json` 이다. (Figma 내보내기 결과)
+
+규칙:
+
+- `npm run tokens`(`scripts/build-tokens.mjs`)가 위 JSON을
+  `src/app/styles/tokens/*.css` 로 변환한다.
+- 생성된 `src/app/styles/tokens/*.css` 는 **직접 수정하지 않는다.**
+  색을 바꾸려면 Figma → JSON 갱신 → `npm run tokens` 경로만 사용한다.
+- 코드에서는 색상 hex를 하드코딩하지 않고 토큰을 쓴다.
+  Semantic은 Tailwind 클래스(`bg-primary` 등), Component는 CSS 변수
+  (`var(--button-...)`)로 참조한다.
 
 ## Clean Architecture 규칙
 
@@ -314,6 +332,7 @@ API_TIMEOUT_MS=10000
 - `shared/lib/http` 기반 공통 서버 HTTP 계층
 - `bootstrap` feature 기반 BFF 예시
 - 개발/운영 `.env` 분리
+- `design-tokens/` 기반 컬러 디자인 토큰 파이프라인 (`npm run tokens`)
 - lint, build, 실제 BFF 호출 검증 완료
 
 ## 작업 전 체크
