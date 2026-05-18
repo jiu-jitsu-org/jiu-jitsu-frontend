@@ -1,13 +1,12 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* 디자인 토큰 (자동 생성 — design-tokens/*.tokens.json + `npm run tokens`) */
+@import "./styles/tokens/primitive.css";
+@import "./styles/tokens/semantic.css";
+@import "./styles/tokens/component.css";
+@import "./styles/tokens/theme.css";
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans:
     "Pretendard", "Noto Sans KR", -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;
@@ -15,15 +14,8 @@
     "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--background-default);
+  color: var(--text-primary);
   font-family: var(--font-sans);
 }
