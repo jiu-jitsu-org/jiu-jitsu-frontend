@@ -1,0 +1,43 @@
+/* Primitive 토큰 — 원시 색상 팔레트
+ * 이 파일은 scripts/build-tokens.mjs 가 자동 생성합니다. 직접 수정하지 마세요.
+ * 수정하려면 design-tokens/*.tokens.json 을 고치고 `npm run tokens` 실행. */
+:root {
+  --blue-50: #e6f5ff;
+  --blue-75: #c2e5ff;
+  --blue-100: #b0ddff;
+  --blue-200: #8accff;
+  --blue-300: #5cb8ff;
+  --blue-400: #2da3fc;
+  --blue-600: #007be0;
+  --blue-700: #0065b8;
+  --blue-800: #004f8f;
+  --blue-900: #033969;
+  --blue-1000: #032645;
+  --blue-500p: #0090ff;
+  --cool-gray-25: #edeff0;
+  --cool-gray-50: #e6e7e8;
+  --cool-gray-75: #d7d8d9;
+  --cool-gray-100: #cecfd1;
+  --cool-gray-200: #b7b9bd;
+  --cool-gray-300: #9c9ea6;
+  --cool-gray-400: #83868f;
+  --cool-gray-500: #70737c;
+  --cool-gray-600: #63666e;
+  --cool-gray-700: #4d4e54;
+  --cool-gray-800: #37383d;
+  --cool-gray-900: #292a2e;
+  --red-500: #ff1d0d;
+  --bw-black: #0d0d0d;
+  --bw-white: #fafafa;
+  --bw-true-black: #000000;
+  --bw-true-white: #ffffff;
+  --opacity-white-20: #ffffff33;
+  --opacity-white-40: #ffffff66;
+  --opacity-white-60: #ffffff99;
+  --opacity-white-80: #ffffffcc;
+  --opacity-blue-10: #009dff1a;
+  --opacity-blue-40: #009dff66;
+  --opacity-black-40: #00000066;
+  --opacity-black-80: #000000cc;
+  --opacity-red-10: #ff1d0d1a;
+}
