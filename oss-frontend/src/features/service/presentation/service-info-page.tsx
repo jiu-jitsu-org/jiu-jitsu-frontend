@@ -13,7 +13,7 @@ export function ServiceInfoPage() {
           <div className="grid gap-10 p-8 lg:grid-cols-[1.1fr_0.9fr] lg:p-12">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.28em] text-amber-700">
-                Jiu-Jitsu Community
+                드디어 도메인 올라갔따!!!!!!! 26.05.18!!!!!
               </p>
               <h1 className="mt-5 text-4xl font-semibold tracking-tight sm:text-5xl">
                 Jiu-Jitsu, a community space for people who live Jiu-Jitsu.
