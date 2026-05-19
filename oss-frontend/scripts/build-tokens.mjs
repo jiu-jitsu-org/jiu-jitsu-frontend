@@ -151,27 +151,36 @@ function buildLayerCss(tokens, title) {
   ].join("\n");
 }
 
-// Semantic 토큰 → Tailwind @theme 블록.
-// 변수 이름은 toVarName 과 같은 규칙을 쓰므로 bg-primary, text-text-secondary
-// 같은 클래스로 바로 쓸 수 있다.
-function buildThemeCss(semanticTokens) {
-  const lines = [];
+// Semantic·Component 토큰 → Tailwind @theme 블록.
+// 변수 이름은 toVarName 과 같은 규칙을 쓰므로 bg-primary,
+// bg-button-filled-default-bg 같은 클래스로 바로 쓸 수 있다.
+function buildThemeCss(semanticTokens, componentTokens) {
   const used = new Set();
-  for (const { path } of semanticTokens) {
-    const name = toVarName(path);
-    if (used.has(name)) {
-      console.warn(`  ⚠️  Tailwind 이름 충돌로 건너뜀: --color-${name}`);
-      continue;
+
+  const toLines = (tokens) => {
+    const lines = [];
+    for (const { path } of tokens) {
+      const name = toVarName(path);
+      if (used.has(name)) {
+        console.warn(`  ⚠️  Tailwind 이름 충돌로 건너뜀: --color-${name}`);
+        continue;
+      }
+      used.add(name);
+      lines.push(`  --color-${name}: var(--${name});`);
     }
-    used.add(name);
-    lines.push(`  --color-${name}: var(--${name});`);
-  }
+    return lines;
+  };
+
   return [
-    `/* Tailwind 연결 — Semantic 토큰을 유틸리티 클래스로 노출`,
+    `/* Tailwind 연결 — Semantic·Component 토큰을 유틸리티 클래스로 노출`,
     ` * 이 파일은 scripts/build-tokens.mjs 가 자동 생성합니다. 직접 수정하지 마세요.`,
     ` * 예) --color-primary → 클래스 bg-primary / text-primary / border-primary */`,
     `@theme inline {`,
-    ...lines,
+    `  /* Semantic 토큰 */`,
+    ...toLines(semanticTokens),
+    ``,
+    `  /* Component 토큰 */`,
+    ...toLines(componentTokens),
     `}`,
     ``,
   ].join("\n");
@@ -184,6 +193,7 @@ function main() {
   mkdirSync(OUT_DIR, { recursive: true });
 
   let semanticTokens = [];
+  let componentTokens = [];
   let total = 0;
 
   for (const { key, title } of LAYERS) {
@@ -203,10 +213,16 @@ function main() {
     total += tokens.length;
 
     if (key === "semantic") semanticTokens = tokens;
+    if (key === "component") componentTokens = tokens;
   }
 
-  writeFileSync(join(OUT_DIR, "theme.css"), buildThemeCss(semanticTokens));
-  console.log(`  ✅ theme.css — Tailwind 연결 ${semanticTokens.length}개`);
+  writeFileSync(
+    join(OUT_DIR, "theme.css"),
+    buildThemeCss(semanticTokens, componentTokens),
+  );
+  console.log(
+    `  ✅ theme.css — Tailwind 연결 ${semanticTokens.length + componentTokens.length}개`,
+  );
 
   console.log(`\n  토큰 ${total}개를 CSS로 변환했습니다.`);
 
