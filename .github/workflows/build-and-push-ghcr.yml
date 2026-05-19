@@ -28,8 +28,8 @@ concurrency:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: jiu-jitsu-org/oss-front
-  DOCKERFILE: ./Dockerfile
-  CONTEXT: .
+  DOCKERFILE: ./oss-frontend/Dockerfile
+  CONTEXT: ./oss-frontend
 
 jobs:
   build-and-push:
