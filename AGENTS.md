@@ -287,13 +287,6 @@ Server Action은 UI 이벤트 adapter에 가깝다.
 - `.env.production`
 - `.env.example`
 
-현재 기준 주요 값:
-
-```env
-API_BASE_URL=https://api.developer-chanq.xyz
-API_TIMEOUT_MS=10000
-```
-
 규칙:
 
 - 브라우저에 필요 없는 값은 `NEXT_PUBLIC_`를 붙이지 않는다.

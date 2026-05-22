@@ -405,13 +405,6 @@ oss-frontend/
 └── .env.production
 ```
 
-현재 사용 값:
-
-```env
-API_BASE_URL=https://api.developer-chanq.xyz
-API_TIMEOUT_MS=10000
-```
-
 규칙:
 
 - 브라우저에 노출할 필요가 없는 값은 `NEXT_PUBLIC_` 없이 서버 전용으로 둔다.
