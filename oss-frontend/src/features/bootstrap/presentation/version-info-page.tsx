@@ -1,4 +1,10 @@
+"use client";
+
+import { useActionState } from "react";
+
 import type { BootstrapInfoResponse } from "@/features/bootstrap/domain/bootstrap-info";
+import { loadBootstrapInfoAction } from "@/features/bootstrap/presentation/actions/load-bootstrap-info-action";
+import type { BootstrapInfoActionState } from "@/features/bootstrap/presentation/actions/bootstrap-info-action-state";
 
 type VersionInfoPageProps = {
   osName: string;
@@ -8,11 +14,11 @@ type VersionInfoPageProps = {
 };
 
 /**
- * Pure presentation component for the version info page.
+ * Client presentation component for the version info page.
  *
- * The route layer fetches from the BFF and passes either data or error state
- * into this component. This keeps rendering logic testable and prevents route
- * files from accumulating page markup.
+ * Initial data still comes from the Server Component route. After hydration,
+ * the "Reload from Server Action" button calls a feature-owned Server Action
+ * and `useActionState` swaps this component's UI state with the new response.
  */
 export function VersionInfoPage({
   osName,
@@ -20,6 +26,30 @@ export function VersionInfoPage({
   error,
   errorDetails,
 }: VersionInfoPageProps) {
+  const initialState: BootstrapInfoActionState = {
+    osName,
+    data,
+    error,
+    errorDetails,
+  };
+
+  /**
+   * `useActionState` is a good fit here because the requested interaction is
+   * action-result driven:
+   * - the button submits a server action
+   * - React exposes a pending flag for button disabling/loading text
+   * - the action response becomes the next render state without a client fetcher
+   */
+  const [state, reloadBootstrapInfo, isPending] = useActionState(
+    loadBootstrapInfoAction,
+    initialState,
+  );
+
+  const currentOsName = state.osName;
+  const currentData = state.data;
+  const currentError = state.error;
+  const currentErrorDetails = state.errorDetails;
+
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#f4f4f5_0%,#fafaf9_45%,#ffffff_100%)] px-6 py-16 text-zinc-950">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
@@ -30,21 +60,26 @@ export function VersionInfoPage({
           <div className="mt-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div className="max-w-3xl">
               <h1 className="text-4xl font-semibold tracking-tight">
-                Bootstrap BFF response viewer
+                Bootstrap version response viewer
               </h1>
               <p className="mt-4 text-lg leading-8 text-zinc-600">
-                This page calls the internal BFF route and renders the upstream
-                bootstrap response for <code>{osName}</code>. It is the
-                reference page for future server-rendered pages that depend on
-                internal REST mediation.
+                This server-rendered page calls the bootstrap application layer
+                directly and renders the upstream response for{" "}
+                <code>{currentOsName}</code>. The JSON BFF route remains available for
+                client-side or external HTTP access.
               </p>
             </div>
-            <a
-              href={`/version-info?osName=${encodeURIComponent(osName)}`}
-              className="inline-flex h-12 items-center justify-center rounded-full border border-zinc-300 bg-zinc-950 px-6 text-sm font-semibold text-white transition hover:bg-zinc-800"
-            >
-              Refresh Data
-            </a>
+            <form action={reloadBootstrapInfo}>
+              {/* Keep the current OS value in the form payload so the Server Action can call the same upstream query. */}
+              <input type="hidden" name="osName" value={currentOsName} />
+              <button
+                type="submit"
+                disabled={isPending}
+                className="inline-flex h-12 items-center justify-center rounded-full border border-zinc-300 bg-zinc-950 px-6 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
+              >
+                {isPending ? "Loading..." : "Reload from Server Action"}
+              </button>
+            </form>
           </div>
         </section>
 
@@ -53,73 +88,81 @@ export function VersionInfoPage({
             <div className="flex items-center justify-between gap-4">
               <h2 className="text-2xl font-semibold">BFF Response</h2>
               <span className="rounded-full bg-zinc-100 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-600">
-                /api/bootstrap/info
+                Application Query
               </span>
             </div>
 
-            {error ? (
-              <div className="mt-8 rounded-3xl border border-red-200 bg-red-50 p-6">
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-red-600">
-                  Request Failed
-                </p>
-                <p className="mt-3 text-lg font-medium text-red-950">{error}</p>
-                {errorDetails ? (
-                  <pre className="mt-5 overflow-x-auto rounded-2xl bg-red-100 p-4 text-sm text-red-950">
-                    {JSON.stringify(errorDetails, null, 2)}
-                  </pre>
-                ) : null}
-              </div>
-            ) : null}
-
-            {data ? (
-              <div className="mt-8 space-y-6">
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <StatCard label="API Success" value={String(data.success)} />
-                  <StatCard label="Code" value={data.code} />
-                  <StatCard label="Message" value={data.message} />
+            <div aria-live="polite">
+              {currentError ? (
+                <div className="mt-8 rounded-3xl border border-red-200 bg-red-50 p-6">
+                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-red-600">
+                    Request Failed
+                  </p>
+                  <p className="mt-3 text-lg font-medium text-red-950">
+                    {currentError}
+                  </p>
+                  {currentErrorDetails ? (
+                    <pre className="mt-5 overflow-x-auto rounded-2xl bg-red-100 p-4 text-sm text-red-950">
+                      {JSON.stringify(currentErrorDetails, null, 2)}
+                    </pre>
+                  ) : null}
                 </div>
+              ) : null}
 
-                <div className="rounded-3xl border border-zinc-200 bg-zinc-50 p-6">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-zinc-500">
-                        App Version Info
-                      </p>
-                      <h3 className="mt-2 text-2xl font-semibold">
-                        Current bootstrap metadata
-                      </h3>
-                    </div>
-                    <ForceUpdateBadge
-                      needForceUpdate={data.data.appVersionInfo.needForceUpdate}
-                    />
+              {currentData ? (
+                <div className="mt-8 space-y-6">
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <StatCard label="API Success" value={String(currentData.success)} />
+                    <StatCard label="Code" value={currentData.code} />
+                    <StatCard label="Message" value={currentData.message} />
                   </div>
 
-                  <dl className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                    <InfoItem
-                      term="Minimum Version"
-                      description={data.data.appVersionInfo.minVersion}
-                    />
-                    <InfoItem
-                      term="Current Version"
-                      description={data.data.appVersionInfo.nowVersion}
-                    />
-                    <InfoItem
-                      term="Force Update"
-                      description={String(data.data.appVersionInfo.needForceUpdate)}
-                    />
-                  </dl>
-                </div>
+                  <div className="rounded-3xl border border-zinc-200 bg-zinc-50 p-6">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-zinc-500">
+                          App Version Info
+                        </p>
+                        <h3 className="mt-2 text-2xl font-semibold">
+                          Current bootstrap metadata
+                        </h3>
+                      </div>
+                      <ForceUpdateBadge
+                        needForceUpdate={
+                          currentData.data.appVersionInfo.needForceUpdate
+                        }
+                      />
+                    </div>
 
-                <div className="rounded-3xl border border-zinc-200 bg-zinc-950 p-6 text-zinc-50">
-                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-zinc-400">
-                    Raw JSON
-                  </p>
-                  <pre className="mt-4 overflow-x-auto text-sm leading-7">
-                    {JSON.stringify(data, null, 2)}
-                  </pre>
+                    <dl className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                      <InfoItem
+                        term="Minimum Version"
+                        description={currentData.data.appVersionInfo.minVersion}
+                      />
+                      <InfoItem
+                        term="Current Version"
+                        description={currentData.data.appVersionInfo.nowVersion}
+                      />
+                      <InfoItem
+                        term="Force Update"
+                        description={String(
+                          currentData.data.appVersionInfo.needForceUpdate,
+                        )}
+                      />
+                    </dl>
+                  </div>
+
+                  <div className="rounded-3xl border border-zinc-200 bg-zinc-950 p-6 text-zinc-50">
+                    <p className="text-sm font-semibold uppercase tracking-[0.18em] text-zinc-400">
+                      Raw JSON
+                    </p>
+                    <pre className="mt-4 overflow-x-auto text-sm leading-7">
+                      {JSON.stringify(currentData, null, 2)}
+                    </pre>
+                  </div>
                 </div>
-              </div>
-            ) : null}
+              ) : null}
+            </div>
           </article>
 
           <aside className="space-y-6">
@@ -131,9 +174,16 @@ export function VersionInfoPage({
                 <InfoItem term="Method" description="GET" />
                 <InfoItem
                   term="BFF Path"
-                  description={`/api/bootstrap/info?osName=${osName}`}
+                  description={`/api/bootstrap/info?osName=${currentOsName}`}
                 />
-                <InfoItem term="Rendering" description="Server page via internal BFF" />
+                <InfoItem
+                  term="Rendering"
+                  description="Initial SSR plus Client Component Server Action"
+                />
+                <InfoItem
+                  term="Last Action"
+                  description={state.requestedAt ?? "Initial server render"}
+                />
               </dl>
             </article>
 
@@ -142,7 +192,7 @@ export function VersionInfoPage({
                 Why this page exists
               </p>
               <ul className="mt-5 space-y-3 text-sm leading-7 text-zinc-600">
-                <li>Shows how a React page consumes an internal BFF route.</li>
+                <li>Shows how a React page consumes a feature application query.</li>
                 <li>Keeps page code unaware of the upstream base URL.</li>
                 <li>Acts as a visual smoke test for bootstrap integration.</li>
               </ul>

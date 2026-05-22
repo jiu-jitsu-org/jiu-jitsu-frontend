@@ -1,26 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { GetBootstrapInfoUseCase } from "@/features/bootstrap/application/get-bootstrap-info";
-import { ExternalBootstrapRepository } from "@/features/bootstrap/infrastructure/external-bootstrap-repository";
-import { createServerHttpClient } from "@/shared/lib/http/create-server-http-client";
+import { createGetBootstrapInfoUseCase } from "@/features/bootstrap/application/bootstrap-use-case-factory";
 import { HttpError } from "@/shared/lib/http/http-error";
 import type {
   ApiErrorResponse,
   ApiSuccessResponse,
 } from "@/shared/types/api";
-
-/**
- * Build the feature dependencies close to the entry point.
- *
- * As the project grows this wiring can move to a dedicated factory or DI module,
- * but keeping it explicit here makes the flow very readable for early-stage teams.
- */
-function createBootstrapInfoUseCase(): GetBootstrapInfoUseCase {
-  const httpClient = createServerHttpClient();
-  const bootstrapRepository = new ExternalBootstrapRepository(httpClient);
-
-  return new GetBootstrapInfoUseCase(bootstrapRepository);
-}
 
 /**
  * GET /api/bootstrap/info?osName=ANDROID
@@ -46,7 +31,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const useCase = createBootstrapInfoUseCase();
+    /**
+     * Keep this endpoint as the JSON-facing BFF contract for browsers or other
+     * HTTP clients, while sharing the same use case as server-rendered pages.
+     */
+    const useCase = createGetBootstrapInfoUseCase();
     const data = await useCase.execute({ osName });
 
     return NextResponse.json<ApiSuccessResponse<typeof data>>(

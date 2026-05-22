@@ -12,7 +12,7 @@ export default function Home() {
           <p className="mt-4 max-w-3xl text-lg leading-8 text-zinc-600">
             This app is prepared for feature-based expansion with a reusable BFF
             pipeline. The first endpoint proxies bootstrap information through
-              the server instead of exposing the upstream base URL to the browser.
+            the server instead of exposing the upstream base URL to the browser.
           </p>
         </section>
 
@@ -31,7 +31,7 @@ export default function Home() {
               <NavCard
                 href="/version-info"
                 title="VersionInfoPage"
-                description="View the live bootstrap BFF response rendered in a dedicated React page."
+                description="View the live bootstrap response, then reload it through a feature-owned Server Action."
               />
               <NavCard
                 href="/service-info"
@@ -45,11 +45,13 @@ export default function Home() {
             <h2 className="text-xl font-semibold">Extension points</h2>
             <p className="mt-3 text-sm leading-7 text-zinc-500">
               Add new APIs by creating a feature under <code>src/features</code>,
-              reusing the shared HTTP client, and exposing the route from{" "}
-              <code>src/app/api</code>.
+              reusing the shared HTTP client, and exposing a Route Handler only
+              when a browser or external HTTP contract needs one.
             </p>
             <ul className="mt-6 space-y-3 text-sm leading-7 text-zinc-600">
               <li>Keep page files thin and move UI into feature presentation.</li>
+              <li>Let Server Components call application queries directly for initial data.</li>
+              <li>Use feature presentation actions for Client Component interactions.</li>
               <li>Keep route handlers thin and move integration into use cases and repositories.</li>
               <li>Centralize environment access through <code>src/config/env.ts</code>.</li>
             </ul>

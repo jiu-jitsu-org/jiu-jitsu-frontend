@@ -150,3 +150,10 @@ docker-volume/
 .claude/
 .omc/
 ```
+
+############################################
+# Private
+############################################
+oss-frontend/.env.example
+# chanq
+AGENTS_ChanQ.md

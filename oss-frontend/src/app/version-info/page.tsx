@@ -1,11 +1,5 @@
-import { headers } from "next/headers";
-
+import { getBootstrapInfoPageData } from "@/features/bootstrap/application/get-bootstrap-info-page-data";
 import { VersionInfoPage } from "@/features/bootstrap/presentation/version-info-page";
-import type { BootstrapInfoResponse } from "@/features/bootstrap/domain/bootstrap-info";
-import type {
-  ApiErrorResponse,
-  ApiSuccessResponse,
-} from "@/shared/types/api";
 
 const DEFAULT_OS_NAME = "ANDROID";
 
@@ -20,45 +14,24 @@ export default async function VersionInfoRoutePage({
 }: VersionInfoRoutePageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const osName = resolvedSearchParams?.osName?.trim() || DEFAULT_OS_NAME;
-  const requestHeaders = await headers();
-  const host =
-    requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
-  const protocol =
-    requestHeaders.get("x-forwarded-proto") ??
-    (host?.includes("localhost") ? "http" : "https");
 
-  if (!host) {
+  /**
+   * Server Components already execute on the server, so this page can call the
+   * feature application query directly. The BFF Route Handler remains available
+   * for browser/client-side JSON access, but initial SSR avoids calling our own
+   * HTTP endpoint.
+   */
+  const result = await getBootstrapInfoPageData(osName);
+
+  if (!result.ok) {
     return (
       <VersionInfoPage
         osName={osName}
-        error="Unable to determine the current host for the internal BFF request."
+        error={result.error}
+        errorDetails={result.errorDetails}
       />
     );
   }
 
-  const response = await fetch(
-    `${protocol}://${host}/api/bootstrap/info?osName=${encodeURIComponent(osName)}`,
-    {
-      cache: "no-store",
-    },
-  );
-  const json = (await response.json()) as
-    | ApiSuccessResponse<BootstrapInfoResponse>
-    | ApiErrorResponse;
-
-  if (!response.ok || !json.success) {
-    return (
-      <VersionInfoPage
-        osName={osName}
-        error={
-          "message" in json
-            ? json.message
-            : "Failed to load bootstrap version info."
-        }
-        errorDetails={"details" in json ? json.details : undefined}
-      />
-    );
-  }
-
-  return <VersionInfoPage osName={osName} data={json.data} />;
+  return <VersionInfoPage osName={osName} data={result.data} />;
 }

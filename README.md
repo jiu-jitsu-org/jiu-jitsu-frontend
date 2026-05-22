@@ -2,12 +2,13 @@
 
 ## 개요
 
-이 저장소는 여러 개발자가 Git 기반으로 협업하기 위한 `Next.js + React + BFF` 프로젝트다.  
+이 저장소는 여러 개발자가 Git 기반으로 협업하기 위한 `Next.js + React + Clean Architecture` 프로젝트다.
+
 핵심 목적은 아래 3가지다.
 
 1. 여러 사람과의 형상 관리 및 협업이 쉬운 구조 유지
-2. Next.js를 통한 React Web 페이지와 REST API(BFF)의 통합 운영
-3. Clean Architecture 기반 구조로 확장성과 유지보수성 확보
+2. Server Component와 Client Component의 책임 분리
+3. 기능 단위 구조로 확장성과 유지보수성 확보
 
 현재 실제 애플리케이션은 `oss-frontend/` 아래에 존재한다.
 
@@ -16,17 +17,18 @@
 이 프로젝트는 단순히 페이지를 빠르게 만드는 것보다, 다음 상황을 버틸 수 있는 구조를 목표로 한다.
 
 - 여러 개발자가 동시에 다른 기능을 개발하는 상황
-- 외부 API가 계속 추가되는 상황
-- 프론트엔드 화면과 서버 중계 로직을 함께 운영해야 하는 상황
+- 외부 REST API가 계속 추가되는 상황
+- 초기 서버 렌더링과 사용자 동작 기반 갱신을 함께 운영해야 하는 상황
 - 인증, 상품, 주문, 사용자 관리처럼 기능이 점점 늘어나는 상황
 
 그래서 아래 원칙을 따른다.
 
-- 화면과 서버 API 진입점은 `app/`에서 관리한다.
+- 화면 라우팅 엔트리는 `app/`에서 관리한다.
 - 비즈니스 책임은 `features/`에서 기능 단위로 분리한다.
+- 초기 조회는 Server Component에서 application layer를 호출한다.
+- 사용자 동작은 Client Component에서 Server Action으로 연결한다.
 - 공통 코드는 `shared/`로 모은다.
 - 환경 변수와 설정은 `config/`에서 중앙 관리한다.
-- 외부 API 직접 호출 대신 BFF를 통해 브라우저와 외부 시스템을 분리한다.
 
 ## 저장소 구조
 
@@ -65,16 +67,16 @@
 ```txt
 oss-frontend/src/
 ├── app/
-│   ├── api/
-│   │   └── bootstrap/
-│   │       └── info/
-│   │           └── route.ts
+│   ├── service-info/
+│   │   └── page.tsx
 │   ├── styles/
 │   │   └── tokens/            # 자동 생성 (npm run tokens)
 │   │       ├── primitive.css
 │   │       ├── semantic.css
 │   │       ├── component.css
 │   │       └── theme.css
+│   ├── version-info/
+│   │   └── page.tsx
 │   ├── favicon.ico
 │   ├── globals.css
 │   ├── layout.tsx
@@ -82,16 +84,24 @@ oss-frontend/src/
 ├── config/
 │   └── env.ts
 ├── features/
-│   └── bootstrap/
-│       ├── application/
-│       │   └── get-bootstrap-info.ts
-│       ├── domain/
-│       │   ├── bootstrap-info.ts
-│       │   └── bootstrap-repository.ts
-│       ├── infrastructure/
-│       │   └── external-bootstrap-repository.ts
+│   ├── bootstrap/
+│   │   ├── application/
+│   │   │   ├── bootstrap-use-case-factory.ts
+│   │   │   ├── get-bootstrap-info-page-data.ts
+│   │   │   └── get-bootstrap-info.ts
+│   │   ├── domain/
+│   │   │   ├── bootstrap-info.ts
+│   │   │   └── bootstrap-repository.ts
+│   │   ├── infrastructure/
+│   │   │   └── external-bootstrap-repository.ts
+│   │   └── presentation/
+│   │       ├── actions/
+│   │       │   ├── bootstrap-info-action-state.ts
+│   │       │   └── load-bootstrap-info-action.ts
+│   │       ├── README.md
+│   │       └── version-info-page.tsx
+│   └── service/
 │       └── presentation/
-│           └── README.md
 └── shared/
     ├── lib/
     │   └── http/
@@ -113,30 +123,17 @@ Next.js App Router의 엔트리 지점이다.
 - 페이지 라우트
 - 레이아웃
 - 글로벌 스타일
-- BFF API route
-
-예시:
-
-```txt
-src/app/
-├── page.tsx
-├── layout.tsx
-└── api/
-    └── bootstrap/
-        └── info/
-            └── route.ts
-```
+- route segment 단위 loading/error 파일
 
 역할 기준:
 
 - 화면 라우팅은 여기서 시작한다.
-- 하지만 기능별 비즈니스 로직은 여기서 직접 구현하지 않는다.
-- `app/api`는 외부 API를 감싸는 BFF 진입점으로 사용한다.
+- 기능별 비즈니스 로직은 여기서 직접 구현하지 않는다.
+- 초기 데이터 조회가 필요하면 feature application layer의 page data query를 호출한다.
 
 ### `src/features`
 
-기능 단위 코드를 모으는 핵심 디렉터리다.  
-협업 시 가장 중요한 폴더다.
+기능 단위 코드를 모으는 핵심 디렉터리다.
 
 기본 형태:
 
@@ -149,22 +146,6 @@ src/features/
     └── infrastructure/
 ```
 
-예시:
-
-```txt
-src/features/bootstrap/
-├── application/
-├── domain/
-├── infrastructure/
-└── presentation/
-```
-
-이 구조를 쓰는 이유:
-
-- 기능별 작업 경계를 명확히 할 수 있다.
-- 한 기능의 코드가 여러 폴더에 흩어지는 문제를 줄일 수 있다.
-- 리뷰어가 기능 기준으로 변경 범위를 빠르게 파악할 수 있다.
-
 ### `src/features/[feature]/presentation`
 
 UI와 사용자 상호작용을 담당한다.
@@ -173,28 +154,40 @@ UI와 사용자 상호작용을 담당한다.
 
 - 컴포넌트
 - 클라이언트 훅
-- 화면 전용 상태 처리
+- Server Action
+- 화면 전용 상태 타입
 - 뷰 모델
 
 들어가면 안 되는 것:
 
-- 외부 API 직접 호출 로직
+- 외부 REST API 직접 호출 로직
 - 환경 변수 접근
 - 핵심 도메인 규칙
+
+현재 예시:
+
+- `bootstrap/presentation/version-info-page.tsx`
+- `bootstrap/presentation/actions/load-bootstrap-info-action.ts`
+- `bootstrap/presentation/actions/bootstrap-info-action-state.ts`
 
 ### `src/features/[feature]/application`
 
 유스케이스와 서비스 흐름을 담당한다.
 
-예:
+현재 bootstrap 기준:
 
-- 어떤 입력을 받아 어떤 repository를 호출할지 결정
-- 여러 repository 결과를 조합
-- 응답을 화면 친화적으로 변환
-
-현재 예시:
-
-- `bootstrap/application/get-bootstrap-info.ts`
+- `get-bootstrap-info.ts`
+  - 단일 application use case다.
+  - `BootstrapRepository` 계약을 통해 bootstrap 정보를 조회한다.
+  - repository 구현체가 무엇인지 알지 않는다.
+- `bootstrap-use-case-factory.ts`
+  - use case 실행에 필요한 concrete dependency를 조립한다.
+  - `createServerHttpClient`, `ExternalBootstrapRepository`, `GetBootstrapInfoUseCase` 연결을 담당한다.
+  - page나 action에 조립 코드가 흩어지는 것을 막는다.
+- `get-bootstrap-info-page-data.ts`
+  - Server Component와 Server Action에서 함께 쓰는 page-level query다.
+  - use case 결과를 화면이 바로 처리할 수 있는 성공/실패 상태로 변환한다.
+  - `HttpError`를 presentation-friendly error state로 변환한다.
 
 ### `src/features/[feature]/domain`
 
@@ -218,7 +211,7 @@ UI와 사용자 상호작용을 담당한다.
 
 예:
 
-- 외부 API repository 구현
+- 외부 REST API repository 구현
 - DB adapter
 - storage adapter
 
@@ -243,7 +236,7 @@ src/shared/
 
 - 공통 HTTP 클라이언트
 - 공통 에러 타입
-- 공통 API 응답 타입
+- 공통 응답 타입
 
 주의:
 
@@ -279,73 +272,95 @@ Presentation -> Application -> Domain
 - `Presentation`
   사용자가 보는 화면과 입력 처리
 - `Application`
-  유스케이스 실행과 비즈니스 흐름 조합
+  유스케이스 실행, page data query, 의존성 조립
 - `Domain`
   핵심 모델, 규칙, 계약
 - `Infrastructure`
-  외부 API, DB, 저장소 등 외부 의존성 구현
+  외부 REST API, DB, 저장소 등 외부 의존성 구현
 
 중요한 점:
 
-- `app/api`에서 직접 외부 fetch를 남발하지 않는다.
-- 외부 API 상세 경로는 가급적 `infrastructure`로 내린다.
-- route handler는 입력 검증, use case 실행, 응답 포맷팅에 집중한다.
+- `app`에 외부 fetch 상세 로직을 두지 않는다.
+- 외부 REST API 상세 경로는 `infrastructure`로 내린다.
+- Server Action은 직접 외부 REST API를 호출하지 않고 application layer를 호출한다.
+- Server Component는 초기 데이터 조회 시 application page data query를 직접 호출한다.
 
-## BFF 구조 설명
+## 실제 파일 흐름
 
-이 프로젝트에서 BFF는 브라우저와 외부 API 사이의 서버 중계 계층이다.
+### 초기 Server Component 조회 후 Client Component 전달
 
-흐름:
+`/version-info`의 첫 렌더링은 아래 흐름을 따른다.
 
 ```txt
-Browser
-  -> Next.js Route Handler (/api/...)
-  -> Use Case
-  -> Repository
-  -> External API
+src/app/version-info/page.tsx
+  -> src/features/bootstrap/application/get-bootstrap-info-page-data.ts
+  -> src/features/bootstrap/application/bootstrap-use-case-factory.ts
+  -> src/features/bootstrap/application/get-bootstrap-info.ts
+  -> src/features/bootstrap/infrastructure/external-bootstrap-repository.ts
+  -> src/shared/lib/http/create-server-http-client.ts
+  -> src/shared/lib/http/http-client.ts
+  -> external REST API
+  -> VersionInfoPage props
+  -> useActionState initialState
 ```
 
-장점:
+각 단계 역할:
 
-- 외부 API Base URL을 브라우저에 노출하지 않는다.
-- 인증 헤더, 토큰, 로깅, 캐싱을 서버에서 제어할 수 있다.
-- 외부 API 에러를 프론트엔드 친화적으로 통일할 수 있다.
-- 여러 외부 API를 하나의 프론트엔드용 응답으로 재구성하기 쉽다.
+- `page.tsx`
+  - `searchParams`에서 `osName`을 읽는다.
+  - 값이 없으면 기본값 `ANDROID`를 사용한다.
+  - `getBootstrapInfoPageData`를 호출한다.
+  - 성공 또는 실패 결과를 `VersionInfoPage` props로 넘긴다.
+- `get-bootstrap-info-page-data.ts`
+  - page/action에서 공통으로 쓰는 화면 단위 조회 함수다.
+  - 성공 시 `BootstrapInfoResponse`를 반환한다.
+  - 실패 시 화면이 표시할 `error`, `errorDetails`로 변환한다.
+- `bootstrap-use-case-factory.ts`
+  - HTTP client와 repository 구현체를 만든다.
+  - `GetBootstrapInfoUseCase`를 생성해 반환한다.
+- `get-bootstrap-info.ts`
+  - bootstrap 정보 조회라는 단일 의도를 가진 use case다.
+  - `BootstrapRepository` interface만 의존한다.
+- `external-bootstrap-repository.ts`
+  - 실제 외부 REST path와 query parameter를 알고 있다.
+  - 공통 `HttpClient`를 사용해 요청한다.
+- `version-info-page.tsx`
+  - Client Component다.
+  - Server Component에서 받은 초기 props를 `useActionState`의 initial state로 사용한다.
 
-## 현재 구현된 BFF 예시
+### Client Component 사용자 동작 후 UI 갱신
 
-기준 외부 API:
+사용자가 `Reload from Server Action` 버튼을 누르면 아래 흐름을 따른다.
 
 ```txt
-GET https://api.developer-chanq.xyz/api/bootstrap/info?osName=ANDROID
-```
-
-프로젝트 내부 BFF 라우트:
-
-```txt
-GET /api/bootstrap/info?osName=ANDROID
-```
-
-실제 파일 흐름:
-
-```txt
-src/app/api/bootstrap/info/route.ts
+VersionInfoPage button click
+  -> useActionState(loadBootstrapInfoAction, initialState)
+  -> src/features/bootstrap/presentation/actions/load-bootstrap-info-action.ts
+  -> src/features/bootstrap/application/get-bootstrap-info-page-data.ts
+  -> src/features/bootstrap/application/bootstrap-use-case-factory.ts
   -> src/features/bootstrap/application/get-bootstrap-info.ts
   -> src/features/bootstrap/infrastructure/external-bootstrap-repository.ts
   -> src/shared/lib/http/http-client.ts
-  -> external API
+  -> external REST API
+  -> BootstrapInfoActionState
+  -> VersionInfoPage rerender
 ```
 
-각 파일 역할:
+각 단계 역할:
 
-- `route.ts`
-  요청 파라미터 검증, use case 실행, 성공/실패 응답 표준화
-- `get-bootstrap-info.ts`
-  bootstrap 정보 조회 유스케이스
-- `external-bootstrap-repository.ts`
-  업스트림 API 경로와 query string 관리
-- `http-client.ts`
-  공통 fetch, timeout, URL 생성, 에러 정규화
+- `version-info-page.tsx`
+  - `"use client"` 컴포넌트다.
+  - `useActionState`로 action state, action dispatcher, pending 상태를 받는다.
+  - pending 동안 버튼을 비활성화하고 `Loading...`을 표시한다.
+  - action 결과가 돌아오면 같은 컴포넌트 안에서 UI를 갱신한다.
+- `load-bootstrap-info-action.ts`
+  - `"use server"` Server Action이다.
+  - form payload의 `osName`을 읽는다.
+  - application page data query를 호출한다.
+  - Client Component가 바로 렌더링할 수 있는 `BootstrapInfoActionState`를 반환한다.
+- `bootstrap-info-action-state.ts`
+  - Client Component에서 사용하는 action state 타입을 정의한다.
+  - upstream response 타입과 UI 상태 타입을 분리한다.
 
 ## 디자인 토큰 (컬러 시스템)
 
@@ -402,21 +417,25 @@ API_TIMEOUT_MS=10000
 - 브라우저에 노출할 필요가 없는 값은 `NEXT_PUBLIC_` 없이 서버 전용으로 둔다.
 - Base URL, timeout, 서버 인증 정보는 `config/env.ts`를 통해 읽는다.
 
-## 새 API를 추가하는 방법
+## 새 외부 REST 연동을 추가하는 방법
 
-예를 들어 `product` API를 추가한다면 다음 순서를 따른다.
+예를 들어 `product` 조회를 추가한다면 다음 순서를 따른다.
 
 1. `src/features/product/domain`에 모델과 repository interface 정의
 2. `src/features/product/application`에 use case 작성
-3. `src/features/product/infrastructure`에 외부 API repository 구현
-4. 필요하면 `src/features/product/presentation`에 UI 작성
-5. `src/app/api/product/.../route.ts`에서 BFF 엔드포인트 노출
+3. 필요하면 `application`에 factory와 page data query 작성
+4. `src/features/product/infrastructure`에 외부 REST repository 구현
+5. 초기 조회가 필요하면 `src/app/products/page.tsx`에서 page data query 호출
+6. 사용자 동작이 필요하면 `src/features/product/presentation/actions`에 Server Action 작성
+7. `src/features/product/presentation`에 UI 작성
 
 예시 구조:
 
 ```txt
 src/features/product/
 ├── application/
+│   ├── get-product-list-page-data.ts
+│   ├── product-use-case-factory.ts
 │   └── get-product-list.ts
 ├── domain/
 │   ├── product.ts
@@ -424,18 +443,8 @@ src/features/product/
 ├── infrastructure/
 │   └── external-product-repository.ts
 └── presentation/
+    ├── actions/
     └── product-list.tsx
-```
-
-예시 흐름:
-
-```txt
-GET /api/products
-  -> route.ts
-  -> GetProductListUseCase
-  -> ExternalProductRepository
-  -> HttpClient
-  -> upstream API
 ```
 
 ## 협업 규칙
@@ -444,8 +453,8 @@ GET /api/products
 - 한 기능의 비즈니스 로직은 되도록 해당 feature 안에서 끝낸다.
 - 공통화는 재사용이 실제로 확인된 뒤에 진행한다.
 - 구조를 바꿨다면 `README.md`와 `AGENTS.md`도 함께 갱신한다.
-- route handler에 비즈니스 로직을 몰아넣지 않는다.
-- 외부 API 호출은 가능한 한 shared HTTP client를 재사용한다.
+- Server Component, Client Component, Server Action의 책임을 섞지 않는다.
+- 외부 REST API 호출은 가능한 한 shared HTTP client를 재사용한다.
 
 ## 현재 상태
 
@@ -454,18 +463,21 @@ GET /api/products
 - `src/app` 기반 Next.js App Router
 - `src/config/env.ts` 기반 환경 변수 관리
 - `src/shared/lib/http` 기반 공통 서버 HTTP 클라이언트
-- `bootstrap` feature 기반 예시 BFF 구현
+- `bootstrap` feature 기반 초기 Server Component 조회 구현
+- `VersionInfoPage` Client Component와 `useActionState` 기반 Server Action 갱신 구현
 - `.env.development`, `.env.production` 기반 Base URL 분기
 - `design-tokens/` 기반 컬러 디자인 토큰 파이프라인 (`npm run tokens`)
 
-## 검증 상태
+## 검증
 
-현재 구현은 아래 검증을 통과했다.
+작업 후 변경 범위에 맞게 아래를 수행한다.
 
-- `npm run lint`
-- `npm run build`
-- `GET /api/bootstrap/info?osName=ANDROID` 런타임 호출 확인
-- `GET /api/bootstrap/info` 유효성 실패 응답 확인
+```bash
+npm run lint
+npm run build
+```
+
+화면 또는 사용자 동작을 바꿨다면 `/version-info?osName=ANDROID`에서 초기 렌더링과 버튼 갱신을 함께 확인한다.
 
 ## 참고
 
