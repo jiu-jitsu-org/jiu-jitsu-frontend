@@ -157,3 +157,4 @@ docker-volume/
 oss-frontend/.env.example
 # chanq
 AGENTS_ChanQ.md
+CLAUDE.md
