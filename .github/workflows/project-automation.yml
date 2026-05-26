@@ -1,0 +1,218 @@
+name: Project Automation
+
+on:
+  issues:
+    types: [opened, closed, reopened]
+  pull_request:
+    types: [opened, ready_for_review, converted_to_draft, closed, reopened]
+
+env:
+  PROJECT_NUMBER: 1
+
+jobs:
+  # ─────────────────────────────────────────────
+  # Job 1: 이슈 생성 → Project 추가 + 필드 세팅
+  # ─────────────────────────────────────────────
+  on_issue_opened:
+    name: Issue Opened → Add to Project
+    if: github.event_name == 'issues' && github.event.action == 'opened'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
+          script: |
+            const issue = context.payload.issue;
+            const body = issue.body || '';
+
+            // 1) 본문 파싱 (Platform, Priority)
+            const parse = (label) => {
+              const re = new RegExp(`### ${label}\\s*\\n\\s*([^\\n]+)`);
+              const m = body.match(re);
+              return m ? m[1].trim() : null;
+            };
+            const platformValue = parse('🎯 Platform');
+            const priorityValue = parse('🔥 Priority');
+
+            const platformLabelMap = {
+              '⚙️ Backend':  'platform: backend ⚙️',
+              '💻 Frontend': 'platform: frontend 💻',
+              '🤖 Android':  'platform: android 🤖',
+              '📱 iOS':      'platform: ios 📱',
+              '🎯 All':      'platform: all 🎯',
+            };
+            const priorityLabelMap = {
+              '🔥 High':   'priority: high 🔥',
+              '⚡ Medium': 'priority: medium ⚡',
+              '🌱 Low':    'priority: low 🌱',
+            };
+
+            // 2) 라벨 부여
+            const labelsToAdd = [];
+            if (platformValue && platformLabelMap[platformValue]) labelsToAdd.push(platformLabelMap[platformValue]);
+            if (priorityValue && priorityLabelMap[priorityValue]) labelsToAdd.push(priorityLabelMap[priorityValue]);
+            if (labelsToAdd.length) {
+              const existing = issue.labels.map(l => l.name);
+              await github.rest.issues.setLabels({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: [...new Set([...existing, ...labelsToAdd])],
+              });
+            }
+
+            // 3) Project에 추가 + 필드 세팅
+            const projectNumber = Number(process.env.PROJECT_NUMBER);
+            const projectQuery = `
+              query($org:String!,$n:Int!){organization(login:$org){projectV2(number:$n){
+                id
+                fields(first:30){nodes{
+                  ... on ProjectV2Field{id name dataType}
+                  ... on ProjectV2SingleSelectField{id name options{id name}}
+                }}
+              }}}`;
+            const data = await github.graphql(projectQuery, { org: context.repo.owner, n: projectNumber });
+            const project = data.organization.projectV2;
+            const fields = project.fields.nodes;
+            const f = (name) => fields.find(x => x.name === name);
+
+            const addItem = `mutation($p:ID!,$c:ID!){addProjectV2ItemById(input:{projectId:$p,contentId:$c}){item{id}}}`;
+            const added = await github.graphql(addItem, { p: project.id, c: issue.node_id });
+            const itemId = added.addProjectV2ItemById.item.id;
+
+            const updateField = `mutation($p:ID!,$i:ID!,$f:ID!,$v:ProjectV2FieldValue!){
+              updateProjectV2ItemFieldValue(input:{projectId:$p,itemId:$i,fieldId:$f,value:$v}){projectV2Item{id}}}`;
+
+            const setSelect = async (field, optionName) => {
+              if (!field || !optionName) return;
+              const opt = field.options?.find(o => o.name === optionName);
+              if (opt) await github.graphql(updateField, { p: project.id, i: itemId, f: field.id, v: { singleSelectOptionId: opt.id } });
+            };
+
+            // Status = Todo
+            await setSelect(f('Status'), 'Todo');
+
+            // Priority
+            const priorityFieldMap = { '🔥 High': '🔥 High', '⚡ Medium': '⚡ Medium', '🌱 Low': '🌱 Low' };
+            await setSelect(f('Priority'), priorityFieldMap[priorityValue]);
+
+            // Platform
+            const platformFieldMap = {
+              '⚙️ Backend':  '⚙️ Backend',
+              '💻 Frontend': '💻 Frontend',
+              '🤖 Android':  '🤖 Android',
+              '📱 iOS':      '📱 iOS',
+              '🎯 All':      '🎯 All',
+            };
+            await setSelect(f('Platform'), platformFieldMap[platformValue]);
+
+            // Milestone: 현재 열린 첫 Milestone에 자동 배정 (예: v1.0 - 1차 배포)
+            try {
+              const { data: milestones } = await github.rest.issues.listMilestones({
+                owner: context.repo.owner, repo: context.repo.repo,
+                state: 'open', sort: 'due_on', direction: 'asc', per_page: 1,
+              });
+              if (milestones.length > 0 && !issue.milestone) {
+                await github.rest.issues.update({
+                  owner: context.repo.owner, repo: context.repo.repo,
+                  issue_number: issue.number, milestone: milestones[0].number,
+                });
+              }
+            } catch (e) {
+              console.log('Milestone auto-assign skipped:', e.message);
+            }
+
+  # ─────────────────────────────────────────────
+  # Job 2: 이슈 close/reopen → Status 동기화
+  # ─────────────────────────────────────────────
+  on_issue_state_change:
+    name: Issue Close/Reopen → Sync Status
+    if: github.event_name == 'issues' && (github.event.action == 'closed' || github.event.action == 'reopened')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
+          script: |
+            const issue = context.payload.issue;
+            const targetStatus = context.payload.action === 'closed' ? 'Done' : 'In Progress';
+            const projectNumber = Number(process.env.PROJECT_NUMBER);
+
+            const q = `
+              query($org:String!,$n:Int!){organization(login:$org){projectV2(number:$n){
+                id
+                items(first:100){nodes{id content{... on Issue{number repository{name}}}}}
+                fields(first:30){nodes{... on ProjectV2SingleSelectField{id name options{id name}}}}
+              }}}`;
+            const data = await github.graphql(q, { org: context.repo.owner, n: projectNumber });
+            const project = data.organization.projectV2;
+            const item = project.items.nodes.find(
+              n => n.content?.repository?.name === context.repo.repo && n.content?.number === issue.number
+            );
+            if (!item) return;
+
+            const statusField = project.fields.nodes.find(f => f.name === 'Status');
+            const opt = statusField?.options?.find(o => o.name === targetStatus);
+            if (!opt) return;
+
+            await github.graphql(
+              `mutation($p:ID!,$i:ID!,$f:ID!,$v:String!){
+                updateProjectV2ItemFieldValue(input:{projectId:$p,itemId:$i,fieldId:$f,value:{singleSelectOptionId:$v}}){projectV2Item{id}}}`,
+              { p: project.id, i: item.id, f: statusField.id, v: opt.id }
+            );
+
+  # ─────────────────────────────────────────────
+  # Job 3: PR 이벤트 → 연결된 이슈 Status 동기화
+  # ─────────────────────────────────────────────
+  on_pr_event:
+    name: PR Event → Sync Linked Issues
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
+          script: |
+            const pr = context.payload.pull_request;
+            const action = context.payload.action;
+
+            let targetStatus = null;
+            if (action === 'opened' && pr.draft)              targetStatus = 'In Progress';
+            else if (action === 'opened' && !pr.draft)        targetStatus = 'In Review';
+            else if (action === 'ready_for_review')           targetStatus = 'In Review';
+            else if (action === 'converted_to_draft')         targetStatus = 'In Progress';
+            else if (action === 'closed' && pr.merged)        targetStatus = 'Done';
+            else if (action === 'reopened')                   targetStatus = 'In Review';
+            if (!targetStatus) return;
+
+            // PR 본문에서 연결된 이슈 번호 추출 (Closes/Fixes/Refs #NN)
+            const body = (pr.body || '') + '\n' + (pr.title || '');
+            const re = /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?|refs?)\s+#(\d+)/gi;
+            const issueNumbers = new Set();
+            let m;
+            while ((m = re.exec(body)) !== null) issueNumbers.add(Number(m[1]));
+            if (!issueNumbers.size) return;
+
+            const projectNumber = Number(process.env.PROJECT_NUMBER);
+            const q = `
+              query($org:String!,$n:Int!){organization(login:$org){projectV2(number:$n){
+                id
+                items(first:100){nodes{id content{... on Issue{number repository{name}}}}}
+                fields(first:30){nodes{... on ProjectV2SingleSelectField{id name options{id name}}}}
+              }}}`;
+            const data = await github.graphql(q, { org: context.repo.owner, n: projectNumber });
+            const project = data.organization.projectV2;
+            const statusField = project.fields.nodes.find(f => f.name === 'Status');
+            const opt = statusField?.options?.find(o => o.name === targetStatus);
+            if (!statusField || !opt) return;
+
+            for (const num of issueNumbers) {
+              const item = project.items.nodes.find(
+                n => n.content?.repository?.name === context.repo.repo && n.content?.number === num
+              );
+              if (!item) continue;
+              await github.graphql(
+                `mutation($p:ID!,$i:ID!,$f:ID!,$v:String!){
+                  updateProjectV2ItemFieldValue(input:{projectId:$p,itemId:$i,fieldId:$f,value:{singleSelectOptionId:$v}}){projectV2Item{id}}}`,
+                { p: project.id, i: item.id, f: statusField.id, v: opt.id }
+              );
+            }

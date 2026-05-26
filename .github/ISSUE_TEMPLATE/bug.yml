@@ -1,0 +1,57 @@
+name: 🐛 Bug
+description: 버그 리포트 / 수정
+labels: ["type: bug 🐛"]
+body:
+  - type: dropdown
+    id: platform
+    attributes:
+      label: 🎯 Platform
+      options:
+        - '⚙️ Backend'
+        - '💻 Frontend'
+        - '🤖 Android'
+        - '📱 iOS'
+        - '🎯 All'
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 🔥 Priority
+      description: Critical한 장애는 High 선택
+      options:
+        - '🔥 High'
+        - '⚡ Medium'
+        - '🌱 Low'
+      default: 1
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: 📝 버그 요약
+      description: 어떤 문제가 발생했나요?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 🔄 재현 단계
+      value: |
+        1.
+        2.
+        3.
+
+        **기대 동작:**
+        **실제 동작:**
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 🖥 환경 (선택)
+      description: 버그가 발생한 환경 (OS / 브라우저·앱 버전 / 디바이스 등)
