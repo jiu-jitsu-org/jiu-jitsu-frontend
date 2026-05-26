@@ -19,6 +19,12 @@ const POLICY_LINKS: PolicyLink[] = [
     description:
       "「OSS」 서비스가 수집·이용·보관하는 개인정보의 처리 기준 및 이용자 권리",
   },
+  {
+    href: "/policies/marketing-consent",
+    title: "마케팅 정보 수신 동의",
+    description:
+      "광고성 정보 수신 여부, 발송 채널, 동의 철회 방법 등에 관한 선택 동의 안내",
+  },
 ];
 
 /**
