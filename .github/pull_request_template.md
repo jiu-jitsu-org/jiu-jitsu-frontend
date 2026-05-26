@@ -1,6 +1,7 @@
 <!--
-PR 제목 컨벤션: [플랫폼] 타입: 50자 이내 제목
-예) [BE] feat: OAuth 로그인 API 구현
+PR 제목 컨벤션: 타입: 50자 이내 제목 (scope optional)
+예) feat: OAuth 로그인 API 구현
+    refactor(policies): service 피처에서 policies 피처로 분리
 -->
 
 ## 📝 변경 사항
