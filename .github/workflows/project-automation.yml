@@ -161,10 +161,10 @@ jobs:
             );
 
   # ─────────────────────────────────────────────
-  # Job 3: PR 이벤트 → 연결된 이슈 Status 동기화
+  # Job 3: PR 이벤트 → 연결된 이슈 Status 동기화 (없으면 PR 자체를 Project에 추가)
   # ─────────────────────────────────────────────
   on_pr_event:
-    name: PR Event → Sync Linked Issues
+    name: PR Event → Sync Project
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
@@ -175,6 +175,7 @@ jobs:
             const pr = context.payload.pull_request;
             const action = context.payload.action;
 
+            // 1. PR action → 목표 Status
             let targetStatus = null;
             if (action === 'opened' && pr.draft)              targetStatus = 'In Progress';
             else if (action === 'opened' && !pr.draft)        targetStatus = 'In Review';
@@ -184,35 +185,95 @@ jobs:
             else if (action === 'reopened')                   targetStatus = 'In Review';
             if (!targetStatus) return;
 
-            // PR 본문에서 연결된 이슈 번호 추출 (Closes/Fixes/Refs #NN)
+            // 2. PR 본문에서 연결된 이슈 번호 추출
             const body = (pr.body || '') + '\n' + (pr.title || '');
             const re = /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?|refs?)\s+#(\d+)/gi;
             const issueNumbers = new Set();
             let m;
             while ((m = re.exec(body)) !== null) issueNumbers.add(Number(m[1]));
-            if (!issueNumbers.size) return;
 
+            // 3. Project 정보 조회
             const projectNumber = Number(process.env.PROJECT_NUMBER);
-            const q = `
+            const projectQuery = `
               query($org:String!,$n:Int!){organization(login:$org){projectV2(number:$n){
                 id
-                items(first:100){nodes{id content{... on Issue{number repository{name}}}}}
-                fields(first:30){nodes{... on ProjectV2SingleSelectField{id name options{id name}}}}
+                fields(first:30){nodes{
+                  ... on ProjectV2Field{id name dataType}
+                  ... on ProjectV2SingleSelectField{id name options{id name}}
+                }}
+                items(first:100){nodes{
+                  id
+                  content{
+                    ... on Issue{number repository{name}}
+                    ... on PullRequest{number repository{name}}
+                  }
+                }}
               }}}`;
-            const data = await github.graphql(q, { org: context.repo.owner, n: projectNumber });
+            const data = await github.graphql(projectQuery, { org: context.repo.owner, n: projectNumber });
             const project = data.organization.projectV2;
-            const statusField = project.fields.nodes.find(f => f.name === 'Status');
-            const opt = statusField?.options?.find(o => o.name === targetStatus);
-            if (!statusField || !opt) return;
+            const fields = project.fields.nodes;
+            const f = (name) => fields.find(x => x.name === name);
 
-            for (const num of issueNumbers) {
-              const item = project.items.nodes.find(
-                n => n.content?.repository?.name === context.repo.repo && n.content?.number === num
-              );
-              if (!item) continue;
-              await github.graphql(
-                `mutation($p:ID!,$i:ID!,$f:ID!,$v:String!){
-                  updateProjectV2ItemFieldValue(input:{projectId:$p,itemId:$i,fieldId:$f,value:{singleSelectOptionId:$v}}){projectV2Item{id}}}`,
-                { p: project.id, i: item.id, f: statusField.id, v: opt.id }
-              );
+            const updateField = `mutation($p:ID!,$i:ID!,$f:ID!,$v:ProjectV2FieldValue!){
+              updateProjectV2ItemFieldValue(input:{projectId:$p,itemId:$i,fieldId:$f,value:$v}){projectV2Item{id}}}`;
+
+            const setSelect = async (itemId, field, optionName) => {
+              if (!field || !optionName) return;
+              const o = field.options?.find(o => o.name === optionName);
+              if (o) await github.graphql(updateField, { p: project.id, i: itemId, f: field.id, v: { singleSelectOptionId: o.id } });
+            };
+
+            // 4a. 연결된 이슈가 있으면 → 이슈들의 Status만 갱신
+            if (issueNumbers.size > 0) {
+              for (const num of issueNumbers) {
+                const item = project.items.nodes.find(
+                  n => n.content?.repository?.name === context.repo.repo && n.content?.number === num
+                );
+                if (item) await setSelect(item.id, f('Status'), targetStatus);
+              }
+              return;
+            }
+
+            // 4b. 연결된 이슈 없음 → PR 자체를 Project에 추가
+            let prItem = project.items.nodes.find(
+              n => n.content?.repository?.name === context.repo.repo && n.content?.number === pr.number
+            );
+
+            // opened 시점에 처음으로 PR을 Project에 추가
+            if (!prItem && action === 'opened') {
+              const addItem = `mutation($p:ID!,$c:ID!){addProjectV2ItemById(input:{projectId:$p,contentId:$c}){item{id}}}`;
+              const added = await github.graphql(addItem, { p: project.id, c: pr.node_id });
+              prItem = { id: added.addProjectV2ItemById.item.id };
+
+              // Platform: 레포 이름에서 추론
+              const platformByRepo = {
+                'jiu-jitsu-backend':  '⚙️ Backend',
+                'jiu-jitsu-frontend': '💻 Frontend',
+                'jiu-jitsu-ios':      '📱 iOS',
+                'jiu-jitsu-android':  '🤖 Android',
+                'project-management': '🎯 All',
+              };
+              await setSelect(prItem.id, f('Platform'), platformByRepo[context.repo.repo] || '🎯 All');
+
+              // Priority: 기본 Medium
+              await setSelect(prItem.id, f('Priority'), '⚡ Medium');
+
+              // Milestone: 첫 번째 열린 Milestone 자동 배정
+              try {
+                const { data: milestones } = await github.rest.issues.listMilestones({
+                  owner: context.repo.owner, repo: context.repo.repo,
+                  state: 'open', sort: 'due_on', direction: 'asc', per_page: 1,
+                });
+                if (milestones.length > 0 && !pr.milestone) {
+                  await github.rest.issues.update({
+                    owner: context.repo.owner, repo: context.repo.repo,
+                    issue_number: pr.number, milestone: milestones[0].number,
+                  });
+                }
+              } catch (e) { console.log('Milestone auto-assign skipped:', e.message); }
+            }
+
+            // PR Status 갱신
+            if (prItem) {
+              await setSelect(prItem.id, f('Status'), targetStatus);
             }
