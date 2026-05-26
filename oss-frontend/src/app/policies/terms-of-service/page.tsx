@@ -1,4 +1,4 @@
-import { TermsOfServicePage } from "@/features/service/presentation/terms-of-service-page";
+import { TermsOfServicePage } from "@/features/policies/presentation/terms-of-service-page";
 
 export default function TermsOfServiceRoutePage() {
   return <TermsOfServicePage />;

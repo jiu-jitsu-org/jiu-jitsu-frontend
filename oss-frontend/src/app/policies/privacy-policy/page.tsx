@@ -1,4 +1,4 @@
-import { PrivacyPolicyPage } from "@/features/service/presentation/privacy-policy-page";
+import { PrivacyPolicyPage } from "@/features/policies/presentation/privacy-policy-page";
 
 export default function PrivacyPolicyRoutePage() {
   return <PrivacyPolicyPage />;
