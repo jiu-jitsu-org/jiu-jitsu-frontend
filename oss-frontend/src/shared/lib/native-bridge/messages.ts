@@ -16,7 +16,11 @@ export const BRIDGE_SCHEMA_VERSION = 1;
 /** 웹 → 네이티브 (window.(webkit.messageHandlers.)AppBridge) */
 export const OutboundMessageType = {
   WEBVIEW_READY: "WEBVIEW_READY",
-  AUTH_LOGIN_REQUEST: "AUTH_LOGIN_REQUEST",
+  // 로그인 유도 2종 (iOS가 단일 AUTH_LOGIN_REQUEST를 분리)
+  //  - PROMPT: 네이티브가 "로그인이 필요해요" 안내 알럿 → 사용자가 동의해야 모달 (소프트 유도)
+  //  - MODAL : 네이티브가 로그인 모달을 즉시 표시 (다이렉트)
+  AUTH_LOGIN_PROMPT: "AUTH_LOGIN_PROMPT",
+  AUTH_LOGIN_MODAL: "AUTH_LOGIN_MODAL",
   AUTH_LOGOUT_REQUEST: "AUTH_LOGOUT_REQUEST",
 } as const;
 export type OutboundMessageType =
@@ -32,8 +36,8 @@ export const InboundMessageType = {
 export type InboundMessageType =
   (typeof InboundMessageType)[keyof typeof InboundMessageType];
 
-/** `AUTH_LOGIN_REQUEST` payload. 로그인 유도 사유(분석/문구용, 선택). */
-export type AuthLoginRequestPayload = {
+/** 로그인 유도(PROMPT/MODAL 공통) payload. 사유(분석/문구용, 선택). */
+export type AuthLoginPayload = {
   reason?: string;
 };
 
