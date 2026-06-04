@@ -121,14 +121,20 @@ export function AuthPlaygroundPage() {
         ) : (
           <ul className="mt-3 space-y-1 font-mono text-xs">
             {events.map((event) => (
-              <li key={event.id} className="flex gap-2">
+              <li
+                key={event.id}
+                className="flex flex-wrap items-baseline gap-2 break-all"
+              >
                 <span className={event.direction === "out" ? "text-blue-600" : "text-emerald-600"}>
                   {event.direction === "out" ? "→ 네이티브" : "← 네이티브"}
                 </span>
                 <span className="text-zinc-400">{event.at}</span>
                 <span className="font-semibold">{event.type}</span>
                 {event.payload ? (
-                  <span className="text-zinc-500">{JSON.stringify(event.payload)}</span>
+                  // payload(공백 없는 긴 JSON)는 전체 폭의 다음 줄로 내려 줄바꿈 → 가로 오버플로 방지
+                  <span className="w-full text-zinc-500">
+                    {JSON.stringify(event.payload)}
+                  </span>
                 ) : null}
               </li>
             ))}
