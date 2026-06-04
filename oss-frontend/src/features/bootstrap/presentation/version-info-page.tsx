@@ -13,6 +13,10 @@ type VersionInfoPageProps = {
   errorDetails?: unknown;
 };
 
+/** 
+ * 260604 Webhooks Test
+ */
+
 /**
  * Client presentation component for the version info page.
  *
@@ -243,11 +247,10 @@ function ForceUpdateBadge({
 }) {
   return (
     <span
-      className={`inline-flex rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] ${
-        needForceUpdate
+      className={`inline-flex rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] ${needForceUpdate
           ? "bg-red-100 text-red-700"
           : "bg-emerald-100 text-emerald-700"
-      }`}
+        }`}
     >
       {needForceUpdate ? "Force Update Required" : "No Forced Update"}
     </span>
