@@ -46,6 +46,13 @@ export type BridgeEvent = {
   payload?: unknown;
 };
 
+export type RequireAuthOptions = {
+  /** 로그인 유도 사유(분석/문구용). */
+  reason?: string;
+  /** true면 AUTH_LOGIN_MODAL(모달 즉시), 기본 false면 AUTH_LOGIN_PROMPT(안내 알럿). */
+  direct?: boolean;
+};
+
 type AuthContextValue = {
   status: AuthStatus;
   events: BridgeEvent[];
@@ -53,9 +60,11 @@ type AuthContextValue = {
   nativeAvailable: boolean;
   /**
    * 보호된 행위를 실행한다. 로그인 상태면 즉시 실행, 아니면 행위를 보관 후 로그인 유도.
+   * - 기본: AUTH_LOGIN_PROMPT (안내 알럿 → 사용자가 동의해야 모달, 소프트 유도)
+   * - options.direct=true: AUTH_LOGIN_MODAL (모달 즉시, 다이렉트)
    * 로그인 성공 시 보관한 행위가 자동 복귀된다.
    */
-  requireAuth: (action: () => void, reason?: string) => void;
+  requireAuth: (action: () => void, options?: RequireAuthOptions) => void;
   /** 서버 세션을 다시 읽어 상태를 갱신한다. */
   refresh: () => Promise<void>;
   /** 로그아웃: 서버 세션 제거 + 네이티브에 로그아웃 요청 통지. */
@@ -203,24 +212,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [applyState, logEvent]);
 
   const requestLogin = useCallback(
-    (reason?: string) => {
+    (direct: boolean, reason?: string) => {
+      const type = direct
+        ? OutboundMessageType.AUTH_LOGIN_MODAL
+        : OutboundMessageType.AUTH_LOGIN_PROMPT;
       const payload = reason ? { reason } : undefined;
-      logEvent("out", OutboundMessageType.AUTH_LOGIN_REQUEST, payload);
-      postToNative({ type: OutboundMessageType.AUTH_LOGIN_REQUEST, payload });
+      logEvent("out", type, payload);
+      postToNative({ type, payload });
     },
     [logEvent],
   );
 
   const requireAuth = useCallback(
-    (action: () => void, reason?: string) => {
+    (action: () => void, options?: RequireAuthOptions) => {
       if (status === "authenticated") {
         action();
         return;
       }
 
-      // 로그인 후 복귀할 행위를 보관하고 네이티브 로그인 팝업을 요청한다.
+      // 로그인 후 복귀할 행위를 보관하고 네이티브에 로그인 유도(프롬프트/모달)를 요청한다.
       pendingActionRef.current = action;
-      requestLogin(reason);
+      requestLogin(options?.direct ?? false, options?.reason);
     },
     [requestLogin, status],
   );

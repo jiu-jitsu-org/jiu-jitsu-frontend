@@ -33,11 +33,15 @@ export function AuthPlaygroundPage() {
 
   const [lastActionAt, setLastActionAt] = useState<string | null>(null);
 
-  const runProtectedAction = () => {
-    requireAuth(() => {
-      // 로그인 상태에서 즉시, 비로그인이면 로그인 성공 후 이 콜백이 실행된다.
-      setLastActionAt(new Date().toLocaleTimeString());
-    }, "harness-demo");
+  // direct=false → AUTH_LOGIN_PROMPT(안내 알럿), true → AUTH_LOGIN_MODAL(모달 즉시)
+  const runProtectedAction = (direct: boolean) => {
+    requireAuth(
+      () => {
+        // 로그인 상태에서 즉시, 비로그인이면 로그인 성공 후 이 콜백이 실행된다.
+        setLastActionAt(new Date().toLocaleTimeString());
+      },
+      { reason: "harness-demo", direct },
+    );
   };
 
   const injectLoginSuccess = () => {
@@ -76,8 +80,11 @@ export function AuthPlaygroundPage() {
         </dl>
 
         <div className="mt-5 flex flex-wrap gap-2">
-          <button type="button" onClick={runProtectedAction} className={primaryButton}>
-            로그인 요청 (보호된 행위 시도)
+          <button type="button" onClick={() => runProtectedAction(false)} className={primaryButton}>
+            로그인 프롬프트 (안내 알럿)
+          </button>
+          <button type="button" onClick={() => runProtectedAction(true)} className={primaryButton}>
+            로그인 모달 (다이렉트)
           </button>
           <button type="button" onClick={() => void refresh()} className={secondaryButton}>
             상태 새로고침
@@ -121,14 +128,20 @@ export function AuthPlaygroundPage() {
         ) : (
           <ul className="mt-3 space-y-1 font-mono text-xs">
             {events.map((event) => (
-              <li key={event.id} className="flex gap-2">
+              <li
+                key={event.id}
+                className="flex flex-wrap items-baseline gap-2 break-all"
+              >
                 <span className={event.direction === "out" ? "text-blue-600" : "text-emerald-600"}>
                   {event.direction === "out" ? "→ 네이티브" : "← 네이티브"}
                 </span>
                 <span className="text-zinc-400">{event.at}</span>
                 <span className="font-semibold">{event.type}</span>
                 {event.payload ? (
-                  <span className="text-zinc-500">{JSON.stringify(event.payload)}</span>
+                  // payload(공백 없는 긴 JSON)는 전체 폭의 다음 줄로 내려 줄바꿈 → 가로 오버플로 방지
+                  <span className="w-full text-zinc-500">
+                    {JSON.stringify(event.payload)}
+                  </span>
                 ) : null}
               </li>
             ))}
