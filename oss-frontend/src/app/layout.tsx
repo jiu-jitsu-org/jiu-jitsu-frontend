@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+
+import { AuthProvider } from "@/features/auth/presentation/auth-provider";
+
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,7 +16,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {/* 전역 인증/세션 + 네이티브 브릿지 소유자 */}
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   );
 }

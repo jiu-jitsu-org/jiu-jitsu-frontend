@@ -1,0 +1,162 @@
+"use client";
+
+import { useState } from "react";
+
+import { useAuth } from "@/features/auth/presentation/auth-provider";
+import { InboundMessageType } from "@/shared/lib/native-bridge/messages";
+
+/**
+ * 인증/세션 테스트 하니스 (개발용).
+ *
+ * 실기기 없이도 브릿지·세션 흐름을 눈으로 확인하기 위한 화면이다.
+ * - 현재 로그인 상태/프로필 표시
+ * - [로그인 요청]: 비로그인 시 보호된 행위를 보관하고 네이티브 로그인 유도 → 성공 후 행위 복귀
+ * - 네이티브 시뮬레이터: 네이티브 없이 인바운드 메시지를 주입해 운영 경로를 그대로 검증
+ * - 브릿지 이벤트 로그
+ *
+ * 커뮤니티 화면 작업 시작 시 이 하니스는 제거하거나 별도 경로로 분리한다.
+ */
+
+/** 시뮬레이터가 주입할 더미 토큰. 실제 토큰 형식과 무관한 테스트용 값. */
+const DUMMY_ACCESS_TOKEN = "dummy-access-token";
+
+export function AuthPlaygroundPage() {
+  const {
+    status,
+    events,
+    nativeAvailable,
+    requireAuth,
+    refresh,
+    logout,
+    simulateInbound,
+  } = useAuth();
+
+  const [lastActionAt, setLastActionAt] = useState<string | null>(null);
+
+  const runProtectedAction = () => {
+    requireAuth(() => {
+      // 로그인 상태에서 즉시, 비로그인이면 로그인 성공 후 이 콜백이 실행된다.
+      setLastActionAt(new Date().toLocaleTimeString());
+    }, "harness-demo");
+  };
+
+  const injectLoginSuccess = () => {
+    simulateInbound({
+      type: InboundMessageType.AUTH_LOGIN_SUCCESS,
+      payload: {
+        accessToken: DUMMY_ACCESS_TOKEN,
+        expiresAt: Date.now() + 1000 * 60 * 60,
+      },
+    });
+  };
+
+  return (
+    <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-6 px-6 py-12 text-zinc-950">
+      <header>
+        <p className="text-sm font-medium uppercase tracking-[0.2em] text-zinc-500">
+          Auth / Session Playground
+        </p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight">
+          인증·브릿지 테스트 하니스
+        </h1>
+        <p className="mt-2 text-sm leading-7 text-zinc-600">
+          네이티브 브릿지 연결: {nativeAvailable ? "있음 (실기기/웹뷰)" : "없음 (브라우저 단독 — 시뮬레이터 사용)"}
+        </p>
+      </header>
+
+      <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold">현재 세션 상태</h2>
+        <dl className="mt-4 grid grid-cols-[7rem_1fr] gap-y-2 text-sm">
+          <dt className="text-zinc-500">상태</dt>
+          <dd>
+            <StatusBadge status={status} />
+          </dd>
+          <dt className="text-zinc-500">보호된 행위</dt>
+          <dd>{lastActionAt ? `실행됨 @ ${lastActionAt}` : "미실행"}</dd>
+        </dl>
+
+        <div className="mt-5 flex flex-wrap gap-2">
+          <button type="button" onClick={runProtectedAction} className={primaryButton}>
+            로그인 요청 (보호된 행위 시도)
+          </button>
+          <button type="button" onClick={() => void refresh()} className={secondaryButton}>
+            상태 새로고침
+          </button>
+          <button type="button" onClick={() => void logout()} className={secondaryButton}>
+            로그아웃
+          </button>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-6">
+        <h2 className="text-lg font-semibold">네이티브 시뮬레이터</h2>
+        <p className="mt-1 text-sm leading-6 text-zinc-600">
+          네이티브가 <code>window.WebBridge.receive</code>로 보낼 인바운드 메시지를 직접 주입합니다.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button type="button" onClick={injectLoginSuccess} className={secondaryButton}>
+            AUTH_LOGIN_SUCCESS 주입
+          </button>
+          <button
+            type="button"
+            onClick={() => simulateInbound({ type: InboundMessageType.AUTH_LOGIN_CANCELLED })}
+            className={secondaryButton}
+          >
+            AUTH_LOGIN_CANCELLED
+          </button>
+          <button
+            type="button"
+            onClick={() => simulateInbound({ type: InboundMessageType.AUTH_SESSION_EXPIRED })}
+            className={secondaryButton}
+          >
+            AUTH_SESSION_EXPIRED
+          </button>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold">브릿지 이벤트 로그</h2>
+        {events.length === 0 ? (
+          <p className="mt-3 text-sm text-zinc-500">아직 이벤트가 없습니다.</p>
+        ) : (
+          <ul className="mt-3 space-y-1 font-mono text-xs">
+            {events.map((event) => (
+              <li key={event.id} className="flex gap-2">
+                <span className={event.direction === "out" ? "text-blue-600" : "text-emerald-600"}>
+                  {event.direction === "out" ? "→ 네이티브" : "← 네이티브"}
+                </span>
+                <span className="text-zinc-400">{event.at}</span>
+                <span className="font-semibold">{event.type}</span>
+                {event.payload ? (
+                  <span className="text-zinc-500">{JSON.stringify(event.payload)}</span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </main>
+  );
+}
+
+function StatusBadge({ status }: { status: "loading" | "authenticated" | "anonymous" }) {
+  const label =
+    status === "authenticated" ? "로그인됨" : status === "anonymous" ? "비로그인" : "확인 중…";
+  const tone =
+    status === "authenticated"
+      ? "bg-emerald-100 text-emerald-700"
+      : status === "anonymous"
+        ? "bg-zinc-200 text-zinc-700"
+        : "bg-amber-100 text-amber-700";
+
+  return (
+    <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${tone}`}>
+      {label}
+    </span>
+  );
+}
+
+const primaryButton =
+  "rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-700";
+const secondaryButton =
+  "rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 transition hover:bg-zinc-100";
