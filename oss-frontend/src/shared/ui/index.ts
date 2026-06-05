@@ -1,0 +1,4 @@
+// 커뮤니티 피드 공통 UI 컴포넌트 barrel.
+// 개발자는 `@/shared/ui`에서 컴포넌트를 한 번에 import 한다.
+// 각 Phase에서 컴포넌트가 추가될 때마다 export를 갱신한다.
+export * from "./icons";

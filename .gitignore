@@ -89,7 +89,7 @@ test-results/
 .DS_Store
 .AppleDouble
 .LSOverride
-Icon?
+Icon[\r]
 ._*
 
 ############################################
