@@ -7,8 +7,12 @@ import { HttpClient } from "@/shared/lib/http/http-client";
  *
  * 레거시: GET /user/profile — Authorization 헤더는 주입된 authed HttpClient가 부착한다.
  * 업스트림 응답이 UserProfile 형태와 동일하므로 그대로 매핑한다.
+ *
+ * 경로 prefix `/api`: 업스트림은 {API_BASE_URL}/api/... 아래에 라우트가 있다.
+ * (동작 중인 bootstrap의 "/api/bootstrap/info"와 동일 규칙. Swagger의 /user/profile은
+ *  base가 이미 /api를 포함한 상대경로다.)
  */
-const PROFILE_ENDPOINT_PATH = "/user/profile";
+const PROFILE_ENDPOINT_PATH = "/api/user/profile";
 
 export class ExternalProfileRepository implements ProfileRepository {
   constructor(private readonly httpClient: HttpClient) {}
