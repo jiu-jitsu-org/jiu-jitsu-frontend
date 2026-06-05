@@ -79,7 +79,18 @@ export class HttpClient {
         );
       }
 
-      throw new HttpError("Unexpected error while calling upstream API.", 500, url);
+      // fetch/parse가 throw한 원본 원인(TLS/DNS/연결/헤더 등)을 노출 — 일반 500에 묻히지 않게
+      const cause = error instanceof Error ? error.cause : undefined;
+      console.error("[http] fetch/parse failed:", url, error, "cause:", cause);
+      const reason =
+        error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+
+      throw new HttpError(
+        `Upstream call failed (${reason}).`,
+        500,
+        url,
+        cause,
+      );
     } finally {
       clearTimeout(timeoutId);
     }

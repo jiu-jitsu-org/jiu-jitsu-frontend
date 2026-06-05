@@ -36,6 +36,8 @@ export async function GET() {
         { status: 401 },
       );
     }
+    // 세션 가드 외 예외(예: 쿠키 접근 실패)도 원인이 보이게 로깅
+    console.error("[profile] session gate error:", error);
     throw error;
   }
 
@@ -50,6 +52,14 @@ export async function GET() {
     );
   } catch (error) {
     if (error instanceof HttpError) {
+      // 업스트림 호출 실패: 상태코드·URL·바디를 남겨 원인 추적 가능하게
+      console.error(
+        "[profile] upstream call failed:",
+        error.status,
+        error.url,
+        error.body,
+      );
+
       // 업스트림 401/403 = 토큰 무효/만료 → 상태코드 그대로 전달
       const message =
         error.status === 401 || error.status === 403
@@ -66,6 +76,9 @@ export async function GET() {
         { status: error.status },
       );
     }
+
+    // HttpError가 아닌 예외(예: getServerEnv의 API_BASE_URL 누락) → 여기가 진짜 500 원인
+    console.error("[profile] unexpected (non-HTTP) error:", error);
 
     return NextResponse.json<ApiErrorResponse>(
       {
