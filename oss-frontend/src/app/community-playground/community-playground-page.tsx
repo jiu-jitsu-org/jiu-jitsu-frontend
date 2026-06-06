@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { FeedCard, type FeedCardProps } from "@/shared/ui";
+import { FeedCard, FeedListEnd, type FeedCardProps } from "@/shared/ui";
 
 const SAMPLE_IMAGE = "https://picsum.photos/seed/oss/800/450";
 
@@ -52,6 +52,9 @@ export function CommunityPlaygroundPage() {
           ]}
           counts={{ comments: 0, likes: 0, bookmarks: 0 }}
         />
+
+        {/* 더 불러올 게시물이 없을 때(피드 최하단) 끝 표식 노출 */}
+        <FeedListEnd />
       </div>
     </main>
   );
