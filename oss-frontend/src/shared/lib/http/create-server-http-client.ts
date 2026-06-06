@@ -1,5 +1,5 @@
 import { getServerEnv } from "@/config/env";
-import { HttpClient } from "@/shared/lib/http/http-client";
+import { HttpClient } from "./http-client";
 
 /**
  * Factory for server-side HTTP clients.

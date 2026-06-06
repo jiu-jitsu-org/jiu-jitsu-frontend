@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { createGetBootstrapInfoUseCase } from "@/features/bootstrap/application/bootstrap-use-case-factory";
-import { HttpError } from "@/shared/lib/http/http-error";
+import { HttpError } from "@/shared/lib/http";
 import type {
   ApiErrorResponse,
   ApiSuccessResponse,

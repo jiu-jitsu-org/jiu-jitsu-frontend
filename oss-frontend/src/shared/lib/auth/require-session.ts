@@ -1,4 +1,4 @@
-import { readSessionToken } from "@/shared/lib/auth/session-cookie";
+import { readSessionToken } from "./session-cookie";
 
 /**
  * 서버측 세션 가드.

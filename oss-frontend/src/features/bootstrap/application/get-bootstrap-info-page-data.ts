@@ -1,6 +1,6 @@
 import { createGetBootstrapInfoUseCase } from "@/features/bootstrap/application/bootstrap-use-case-factory";
 import type { BootstrapInfoResponse } from "@/features/bootstrap/domain/bootstrap-info";
-import { HttpError } from "@/shared/lib/http/http-error";
+import { HttpError } from "@/shared/lib/http";
 
 export type BootstrapInfoPageDataResult =
   | {

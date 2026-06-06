@@ -3,7 +3,7 @@ import type {
   BootstrapInfoResponse,
 } from "@/features/bootstrap/domain/bootstrap-info";
 import type { BootstrapRepository } from "@/features/bootstrap/domain/bootstrap-repository";
-import { HttpClient } from "@/shared/lib/http/http-client";
+import type { HttpClient } from "@/shared/lib/http";
 
 /**
  * Infrastructure implementation that knows the real upstream endpoint.

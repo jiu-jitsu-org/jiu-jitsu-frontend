@@ -1,4 +1,4 @@
-import type { InboundMessage } from "@/shared/lib/native-bridge/messages";
+import type { InboundMessage } from "./messages";
 
 /**
  * 브릿지 interop을 위한 window 전역 타입 선언.

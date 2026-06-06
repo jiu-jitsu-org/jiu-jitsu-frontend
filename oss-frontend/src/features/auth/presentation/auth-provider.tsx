@@ -15,13 +15,11 @@ import type { SessionState } from "@/features/auth/domain/session";
 import {
   InboundMessageType,
   OutboundMessageType,
-  type InboundMessage,
-} from "@/shared/lib/native-bridge/messages";
-import {
   isNativeBridgeAvailable,
   postToNative,
   registerWebBridge,
-} from "@/shared/lib/native-bridge/native-bridge";
+  type InboundMessage,
+} from "@/shared/lib/native-bridge";
 import type { ApiSuccessResponse } from "@/shared/types/api";
 
 /**

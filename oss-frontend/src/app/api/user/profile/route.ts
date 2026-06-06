@@ -4,8 +4,8 @@ import { createGetMyProfileUseCase } from "@/features/profile/application/profil
 import {
   SessionRequiredError,
   requireSessionToken,
-} from "@/shared/lib/auth/require-session";
-import { HttpError } from "@/shared/lib/http/http-error";
+} from "@/shared/lib/auth";
+import { HttpError } from "@/shared/lib/http";
 import type {
   ApiErrorResponse,
   ApiSuccessResponse,

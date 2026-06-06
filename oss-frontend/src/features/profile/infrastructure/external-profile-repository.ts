@@ -1,6 +1,6 @@
 import type { UserProfile } from "@/features/profile/domain/profile";
 import type { ProfileRepository } from "@/features/profile/domain/profile-repository";
-import { HttpClient } from "@/shared/lib/http/http-client";
+import type { HttpClient } from "@/shared/lib/http";
 
 /**
  * 업스트림 프로필 API를 사용하는 infrastructure 구현.

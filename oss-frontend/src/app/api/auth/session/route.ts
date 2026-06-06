@@ -5,7 +5,7 @@ import {
   clearSessionToken,
   readSessionToken,
   writeSessionToken,
-} from "@/shared/lib/auth/session-cookie";
+} from "@/shared/lib/auth";
 import type {
   ApiErrorResponse,
   ApiSuccessResponse,

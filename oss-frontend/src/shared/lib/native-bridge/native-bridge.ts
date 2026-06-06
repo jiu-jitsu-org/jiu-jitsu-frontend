@@ -2,7 +2,7 @@ import {
   BRIDGE_SCHEMA_VERSION,
   type BridgeMessage,
   type InboundMessage,
-} from "@/shared/lib/native-bridge/messages";
+} from "./messages";
 
 /**
  * 네이티브 브릿지 어댑터.
