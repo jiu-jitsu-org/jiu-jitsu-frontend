@@ -1,4 +1,4 @@
-import { HttpError } from "@/shared/lib/http/http-error";
+import { HttpError } from "./http-error";
 
 type PrimitiveQueryValue = string | number | boolean | null | undefined;
 

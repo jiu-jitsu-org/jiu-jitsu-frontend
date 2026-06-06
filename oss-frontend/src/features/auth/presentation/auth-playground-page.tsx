@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { useAuth } from "@/features/auth/presentation/auth-provider";
 import type { UserProfile } from "@/features/profile/domain/profile";
-import { InboundMessageType } from "@/shared/lib/native-bridge/messages";
+import { InboundMessageType } from "@/shared/lib/native-bridge";
 import type {
   ApiErrorResponse,
   ApiSuccessResponse,
