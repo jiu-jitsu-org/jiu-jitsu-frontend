@@ -10,6 +10,8 @@ type RequestOptions = {
   headers?: HeadersInit;
   cache?: RequestCache;
   next?: NextFetchRequestConfig;
+  /** 있으면 JSON 직렬화해 요청 본문으로 전송(GET은 보통 생략). */
+  body?: unknown;
 };
 
 type HttpClientConfig = {
@@ -33,13 +35,23 @@ export class HttpClient {
     return this.request<T>("GET", options);
   }
 
+  async post<T>(options: RequestOptions): Promise<T> {
+    return this.request<T>("POST", options);
+  }
+
+  async delete<T>(options: RequestOptions): Promise<T> {
+    return this.request<T>("DELETE", options);
+  }
+
   private async request<T>(
     method: string,
-    { path, query, headers, cache = "no-store", next }: RequestOptions,
+    { path, query, headers, cache = "no-store", next, body }: RequestOptions,
   ): Promise<T> {
     const url = this.buildUrl(path, query);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
+    // body가 있을 때만 직렬화 + Content-Type 부착 → 기존 GET 호출 동작은 그대로 유지된다.
+    const hasBody = body !== undefined;
 
     try {
       const response = await fetch(url, {
@@ -49,23 +61,25 @@ export class HttpClient {
         signal: controller.signal,
         headers: {
           Accept: "application/json",
+          ...(hasBody ? { "Content-Type": "application/json" } : {}),
           ...this.config.defaultHeaders,
           ...headers,
         },
+        ...(hasBody ? { body: JSON.stringify(body) } : {}),
       });
 
-      const body = await this.parseResponseBody(response);
+      const responseBody = await this.parseResponseBody(response);
 
       if (!response.ok) {
         throw new HttpError(
           `Upstream API request failed with status ${response.status}.`,
           response.status,
           url,
-          body,
+          responseBody,
         );
       }
 
-      return body as T;
+      return responseBody as T;
     } catch (error) {
       if (error instanceof HttpError) {
         throw error;
