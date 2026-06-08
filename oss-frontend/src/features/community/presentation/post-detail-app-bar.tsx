@@ -4,6 +4,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { cn } from "@/shared/lib/cn";
+import {
+  closeNativeSubview,
+  isNativeBridgeAvailable,
+} from "@/shared/lib/native-bridge";
 import { BackArrowIcon, BellIcon, MoreVerticalIcon } from "@/shared/ui/icons";
 
 /**
@@ -21,7 +25,12 @@ export function PostDetailAppBar({ isOwner }: { isOwner: boolean }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   function goBack() {
-    // history가 있으면 뒤로, 없으면(딥링크 진입 등) 커뮤니티 목록으로.
+    // 네이티브 서브뷰(풀 웹뷰)면 CLOSE_SUBVIEW로 네이티브가 pop → 리스트 웹뷰로 복귀.
+    if (isNativeBridgeAvailable()) {
+      closeNativeSubview();
+      return;
+    }
+    // 웹 단독: history가 있으면 뒤로, 없으면(딥링크 진입 등) 커뮤니티 목록으로.
     if (window.history.length > 1) {
       router.back();
       return;

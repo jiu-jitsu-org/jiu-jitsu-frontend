@@ -22,6 +22,9 @@ export const OutboundMessageType = {
   AUTH_LOGIN_PROMPT: "AUTH_LOGIN_PROMPT",
   AUTH_LOGIN_MODAL: "AUTH_LOGIN_MODAL",
   AUTH_LOGOUT_REQUEST: "AUTH_LOGOUT_REQUEST",
+  // 네비게이션: 풀 웹뷰 서브뷰 푸시/팝 (게시글 상세 등). 범용이라 대상은 payload.url로 전달.
+  OPEN_SUBVIEW: "OPEN_SUBVIEW",
+  CLOSE_SUBVIEW: "CLOSE_SUBVIEW",
 } as const;
 export type OutboundMessageType =
   (typeof OutboundMessageType)[keyof typeof OutboundMessageType];
@@ -39,6 +42,17 @@ export type InboundMessageType =
 /** 로그인 유도(PROMPT/MODAL 공통) payload. 사유(분석/문구용, 선택). */
 export type AuthLoginPayload = {
   reason?: string;
+};
+
+/**
+ * `OPEN_SUBVIEW` payload — 네이티브가 풀스크린 웹뷰로 열 대상.
+ * url은 동일 origin 절대경로여야 한다(httpOnly 세션 쿠키 공유 → 로그인 상태 유지).
+ * title은 네이티브가 웹 헤더 렌더 전 표시할 임시 제목(선택). presentation은 표시 방식 힌트(기본 push).
+ */
+export type OpenSubviewPayload = {
+  url: string;
+  title?: string;
+  presentation?: "push" | "modal";
 };
 
 /** `AUTH_LOGIN_SUCCESS` payload. refreshToken은 네이티브가 보관하고 웹엔 accessToken만 전달. */

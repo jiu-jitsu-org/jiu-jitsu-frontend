@@ -1,7 +1,9 @@
 import {
   BRIDGE_SCHEMA_VERSION,
+  OutboundMessageType,
   type BridgeMessage,
   type InboundMessage,
+  type OpenSubviewPayload,
 } from "./messages";
 
 /**
@@ -68,6 +70,27 @@ export function postToNative(message: BridgeMessage): void {
       // 웹 단독(개발) 폴백: 네이티브가 없으므로 콘솔로만 흐름을 확인한다.
       console.info("[native-bridge] (web fallback) → native", envelope);
   }
+}
+
+/**
+ * 풀스크린 웹뷰 서브뷰를 열도록 네이티브에 요청한다(게시글 상세 등).
+ *
+ * url은 동일 origin 절대경로여야 새 웹뷰가 세션 쿠키를 공유한다.
+ * "언제 이걸 쓸지(네이티브 vs 웹 라우터)"는 호출부가 `isNativeBridgeAvailable()`로 판단한다.
+ */
+export function openNativeSubview(
+  url: string,
+  options?: Pick<OpenSubviewPayload, "title" | "presentation">,
+): void {
+  postToNative({
+    type: OutboundMessageType.OPEN_SUBVIEW,
+    payload: { url, ...options },
+  });
+}
+
+/** 현재 서브뷰(풀 웹뷰)를 닫도록 네이티브에 요청한다(pop). 웹 헤더 뒤로가기에서 사용. */
+export function closeNativeSubview(): void {
+  postToNative({ type: OutboundMessageType.CLOSE_SUBVIEW });
 }
 
 /**
