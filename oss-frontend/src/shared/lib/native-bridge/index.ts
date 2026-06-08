@@ -10,8 +10,6 @@ export type {
   AuthLoginSuccessPayload,
   BridgeMessage,
   InboundMessage,
-  InboundMessageType,
-  OutboundMessageType,
 } from "./messages";
 export {
   detectPlatform,
