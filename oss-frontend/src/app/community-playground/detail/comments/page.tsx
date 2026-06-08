@@ -1,6 +1,9 @@
-import { DetailVariantPlaceholder } from "../detail-variant-placeholder";
+import { PostDetailCommentsPlaygroundPage } from "./comments-playground-page";
 
-/** 게시글 상세 (댓글) — 댓글 있는 목업 연결 예정. */
+/**
+ * 게시글 상세 (댓글) — 댓글 여러 개 mock 연결 경로
+ * (`/community-playground/detail/comments`).
+ */
 export default function CommunityDetailCommentsPlayground() {
-  return <DetailVariantPlaceholder title="게시글 상세 (댓글)" />;
+  return <PostDetailCommentsPlaygroundPage />;
 }

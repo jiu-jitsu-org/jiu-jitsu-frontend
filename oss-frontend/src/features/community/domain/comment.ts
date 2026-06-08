@@ -16,8 +16,17 @@ export type Comment = {
   body: string;
   /** 작성 시각(ISO 8601). */
   createdAt: string;
-  /** 작성자 본인 여부 — 삭제 노출 결정. */
+  /** 내 댓글 여부 — 삭제 노출 결정. */
   isOwner: boolean;
+  /** 게시글 작성자가 쓴 댓글인지 — "작성자" 배지 표시. */
+  isPostAuthor: boolean;
+  /** 좋아요 수 / 내가 좋아요 했는지. */
+  likeCount: number;
+  liked: boolean;
+  /** 이 댓글에 달린 답글 수(💬 카운트). 대댓글 UI는 추후 합치며 정의. */
+  replyCount: number;
+  /** 내가 이 댓글에 답글을 단 적 있는지 — 답글 아이콘 fill 표시. */
+  replied: boolean;
 };
 
 /**

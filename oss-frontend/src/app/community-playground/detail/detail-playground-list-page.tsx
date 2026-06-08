@@ -30,14 +30,8 @@ const VARIANTS: VariantEntry[] = [
   {
     href: "/community-playground/detail/comments",
     title: "게시글 상세 (댓글)",
-    description: "댓글 있는 목업 연결 예정",
-    ready: false,
-  },
-  {
-    href: "/community-playground/detail/replies",
-    title: "게시글 상세 (대댓글)",
-    description: "대댓글 있는 목업 연결 예정",
-    ready: false,
+    description: "댓글 여러 개 목업 (초안)",
+    ready: true,
   },
 ];
 

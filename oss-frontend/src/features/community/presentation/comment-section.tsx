@@ -30,7 +30,8 @@ export function CommentSection({
       </div>
 
       {hasComments ? (
-        <div className="px-4">
+        // 최신순 버튼 바텀↔첫 댓글 24 = 정렬 row pb-3(12) + 여기 pt-3(12). 하단 여유 pb-4.
+        <div className="px-4 pb-4 pt-3">
           <CommentList comments={comments.items} />
         </div>
       ) : (

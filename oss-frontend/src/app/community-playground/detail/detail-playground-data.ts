@@ -1,4 +1,4 @@
-import type { CommentList } from "@/features/community/domain/comment";
+import type { Comment, CommentList } from "@/features/community/domain/comment";
 import type { PostDetail, PostImage } from "@/features/community/domain/post";
 
 /**
@@ -42,3 +42,70 @@ export const MOCK_IMAGES: PostImage[] = [
   { id: 2, imageUrl: "https://picsum.photos/seed/oss-detail-2/800/450" },
   { id: 3, imageUrl: "https://picsum.photos/seed/oss-detail-3/800/450" },
 ];
+
+const COMMENT_BODY =
+  "본문 본문 본문 본문 본문 본문 본문 본문 본문 본문 본문 본문 본문 본문 본문 본문 본문 본문 본문 본문 본문 본문 본문 본문";
+
+/** 댓글 변형용 — 여러 개 댓글(초안: 카운트/작성자 배지/좋아요 상태 다양화). */
+const MOCK_COMMENT_ITEMS: Comment[] = [
+  {
+    id: 1,
+    postId: 1,
+    author: { userId: 10, nickname: "안녕안녕" },
+    body: COMMENT_BODY,
+    createdAt: "2026-02-14T10:00:00+09:00",
+    isOwner: false,
+    isPostAuthor: false,
+    likeCount: 0,
+    liked: false,
+    replyCount: 0,
+    replied: false,
+  },
+  {
+    id: 2,
+    postId: 1,
+    author: { userId: 11, nickname: "안녕안녕" },
+    body: COMMENT_BODY,
+    createdAt: "2026-02-14T10:05:00+09:00",
+    isOwner: false,
+    isPostAuthor: false,
+    // 좋아요 있음 + 내가 안 누른 경우(state 2): 빈 하트 + 카운트
+    likeCount: 2,
+    liked: false,
+    replyCount: 1,
+    replied: false,
+  },
+  {
+    id: 3,
+    postId: 1,
+    author: { userId: 12, nickname: "안녕안녕" },
+    body: COMMENT_BODY,
+    createdAt: "2026-02-14T10:10:00+09:00",
+    isOwner: false,
+    isPostAuthor: false,
+    likeCount: 4,
+    liked: true,
+    replyCount: 1,
+    replied: false,
+  },
+  {
+    id: 4,
+    postId: 1,
+    author: { userId: 10, nickname: "안녕안녕" },
+    body: COMMENT_BODY,
+    createdAt: "2026-02-14T10:15:00+09:00",
+    isOwner: false,
+    isPostAuthor: true,
+    likeCount: 0,
+    liked: false,
+    replyCount: 1,
+    // 내가 단 대댓글이 있는 케이스 → 답글 아이콘 fill + 카운트
+    replied: true,
+  },
+];
+
+export const MOCK_COMMENTS_LIST: CommentList = {
+  items: MOCK_COMMENT_ITEMS,
+  total: MOCK_COMMENT_ITEMS.length,
+  nextCursor: null,
+};
