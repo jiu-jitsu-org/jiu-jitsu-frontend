@@ -27,6 +27,12 @@ const NAV_ENTRIES: NavEntry[] = [
     description:
       "커뮤니티 피드 공통 UI(FeedCard) 쇼케이스 — 실제 메인처럼 카드를 세로로 나열",
   },
+  {
+    href: "/community-playground/detail",
+    title: "커뮤니티 게시글 상세 화면",
+    description:
+      "게시글 상세 UI 쇼케이스(mock) — 앱바·본문·액션바·댓글·입력바. 백엔드 없이 레이아웃/인터랙션 확인",
+  },
 ];
 
 export default function Home() {
