@@ -24,8 +24,8 @@ const VARIANTS: VariantEntry[] = [
   {
     href: "/community-playground/detail/photo",
     title: "게시글 상세 (사진)",
-    description: "사진 있는 목업 연결 예정",
-    ready: false,
+    description: "사진 있는 목업 (imageList 1개 이상)",
+    ready: true,
   },
   {
     href: "/community-playground/detail/comments",
