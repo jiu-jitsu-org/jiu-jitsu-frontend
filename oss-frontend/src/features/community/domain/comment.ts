@@ -23,10 +23,12 @@ export type Comment = {
   /** 좋아요 수 / 내가 좋아요 했는지. */
   likeCount: number;
   liked: boolean;
-  /** 이 댓글에 달린 답글 수(💬 카운트). 대댓글 UI는 추후 합치며 정의. */
+  /** 이 댓글에 달린 답글 수(💬 카운트). */
   replyCount: number;
   /** 내가 이 댓글에 답글을 단 적 있는지 — 답글 아이콘 fill 표시. */
   replied: boolean;
+  /** 대댓글 목록(같은 Comment 형태, 1단계 중첩). 없으면 빈 배열. */
+  replies: Comment[];
 };
 
 /**

@@ -46,7 +46,25 @@ export const MOCK_IMAGES: PostImage[] = [
 const COMMENT_BODY =
   "본문 본문 본문 본문 본문 본문 본문 본문 본문 본문 본문 본문 본문 본문 본문 본문 본문 본문 본문 본문 본문 본문 본문 본문";
 
-/** 댓글 변형용 — 여러 개 댓글(초안: 카운트/작성자 배지/좋아요 상태 다양화). */
+/** 대댓글 한 건 생성(같은 Comment 형태, 더 중첩하지 않음 → replies: []). */
+function makeReply(id: number): Comment {
+  return {
+    id,
+    postId: 1,
+    author: { userId: 20 + id, nickname: "안녕안녕" },
+    body: COMMENT_BODY,
+    createdAt: "2026-02-14T11:00:00+09:00",
+    isOwner: false,
+    isPostAuthor: false,
+    likeCount: 0,
+    liked: false,
+    replyCount: 1,
+    replied: false,
+    replies: [],
+  };
+}
+
+/** 댓글 변형용 — 여러 개 댓글(초안: 카운트/작성자 배지/좋아요 상태/대댓글 다양화). */
 const MOCK_COMMENT_ITEMS: Comment[] = [
   {
     id: 1,
@@ -60,6 +78,7 @@ const MOCK_COMMENT_ITEMS: Comment[] = [
     liked: false,
     replyCount: 0,
     replied: false,
+    replies: [],
   },
   {
     id: 2,
@@ -74,6 +93,7 @@ const MOCK_COMMENT_ITEMS: Comment[] = [
     liked: false,
     replyCount: 1,
     replied: false,
+    replies: [],
   },
   {
     id: 3,
@@ -87,6 +107,7 @@ const MOCK_COMMENT_ITEMS: Comment[] = [
     liked: true,
     replyCount: 1,
     replied: false,
+    replies: [],
   },
   {
     id: 4,
@@ -98,9 +119,11 @@ const MOCK_COMMENT_ITEMS: Comment[] = [
     isPostAuthor: true,
     likeCount: 0,
     liked: false,
-    replyCount: 1,
+    replyCount: 4,
     // 내가 단 대댓글이 있는 케이스 → 답글 아이콘 fill + 카운트
     replied: true,
+    // 대댓글 4개 → 최초 2개 노출 + "대댓글 2개 더보기"
+    replies: [makeReply(101), makeReply(102), makeReply(103), makeReply(104)],
   },
 ];
 
