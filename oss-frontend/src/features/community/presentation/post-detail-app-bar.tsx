@@ -11,6 +11,7 @@ import {
   closeNativeSubview,
   isNativeBridgeAvailable,
 } from "@/shared/lib/native-bridge";
+import { ConfirmDialog, useToast } from "@/shared/ui";
 import {
   BackArrowIcon,
   BellIcon,
@@ -30,10 +31,26 @@ import {
  */
 export function PostDetailAppBar({ isOwner }: { isOwner: boolean }) {
   const router = useRouter();
+  const toast = useToast();
   const [menuOpen, setMenuOpen] = useState(false);
-  // 알림 받기 on/off. 디폴트 on, 탭하면 off로 토글(아이콘 변경).
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  // 알림 받기 on/off. 디폴트 on, 탭하면 off로 토글(아이콘 변경 + 토스트).
   // FIXME: 실제 알림 설정 저장/연동은 API 확정 후 추가.
   const [alarmOn, setAlarmOn] = useState(true);
+
+  function toggleAlarm() {
+    const next = !alarmOn;
+    setAlarmOn(next);
+    toast.show(
+      next ? "이제부터 이 글의 알림을 받아요" : "이제부터 이 글의 알림을 받지 않아요",
+    );
+  }
+
+  function confirmDelete() {
+    setDeleteConfirmOpen(false);
+    // FIXME(API): 게시글 삭제(post id) + 성공 시 화면 닫기/목록 복귀.
+    toast.show("게시물이 삭제되었습니다");
+  }
 
   function goBack() {
     // 네이티브 서브뷰(풀 웹뷰)면 CLOSE_SUBVIEW로 네이티브가 pop → 리스트 웹뷰로 복귀.
@@ -64,7 +81,7 @@ export function PostDetailAppBar({ isOwner }: { isOwner: boolean }) {
       <div className="ml-auto flex items-center">
         <button
           type="button"
-          onClick={() => setAlarmOn((value) => !value)}
+          onClick={toggleAlarm}
           aria-label={alarmOn ? "알림 끄기" : "알림 켜기"}
           aria-pressed={alarmOn}
           className="inline-flex size-10 items-center justify-center text-icon-primary"
@@ -89,7 +106,14 @@ export function PostDetailAppBar({ isOwner }: { isOwner: boolean }) {
             {/* 자신 게시글: 삭제/수정 · 타인 게시글: 신고/숨기기 */}
             {isOwner ? (
               <>
-                <MenuItem onClick={() => setMenuOpen(false)}>삭제하기</MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setDeleteConfirmOpen(true);
+                  }}
+                >
+                  삭제하기
+                </MenuItem>
                 <MenuItem onClick={() => setMenuOpen(false)}>수정하기</MenuItem>
               </>
             ) : (
@@ -102,6 +126,17 @@ export function PostDetailAppBar({ isOwner }: { isOwner: boolean }) {
         ) : null}
         </div>
       </div>
+
+      {/* 게시글 삭제 확인 알럿 */}
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        title="게시글 삭제"
+        message="삭제한 게시글은 복구할 수 없어요."
+        confirmText="삭제"
+        destructive
+        onCancel={() => setDeleteConfirmOpen(false)}
+        onConfirm={confirmDelete}
+      />
     </header>
   );
 }
