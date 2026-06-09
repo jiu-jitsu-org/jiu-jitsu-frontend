@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 
+import {
+  MenuBox,
+  MenuItem,
+} from "@/features/community/presentation/menu-box";
 import { MoreVerticalIcon } from "@/shared/ui/icons";
 
 /**
@@ -16,9 +20,7 @@ const OTHER_MENU_ITEMS = ["차단", "신고"] as const;
 /**
  * 댓글 ⋮ 메뉴 (클라이언트 leaf).
  *
- * 정렬 드롭다운(CommentSortSelect)과 유사한 박스 스타일을 재사용하되,
- * 메뉴는 하단이 아니라 **버튼 top에 붙여 위로** 띄운다(bottom-full).
- * 항목은 내 댓글 여부(isOwner)에 따라 분기한다.
+ * 공통 MenuBox를 버튼 top에 붙여 위로(top-right) 띄운다. 항목은 내 댓글 여부(isOwner)로 분기.
  */
 export function CommentMenu({ isOwner }: { isOwner: boolean }) {
   const [open, setOpen] = useState(false);
@@ -39,35 +41,13 @@ export function CommentMenu({ isOwner }: { isOwner: boolean }) {
       </button>
 
       {open ? (
-        <>
-          {/* 바깥 클릭으로 닫기 위한 투명 백드롭 */}
-          <button
-            type="button"
-            aria-label="메뉴 닫기"
-            onClick={() => setOpen(false)}
-            className="fixed inset-0 z-10 cursor-default"
-          />
-          {/* 메뉴 박스: 버튼 top에 붙여 위로(bottom-full) 우측 정렬.
-              fill list/setting/background, stroke CoolGray/50(inside 1px), radius 16, 너비 140,
-              상/하단 여백 4(py-1), 항목 간격 4(gap-1). */}
-          <ul
-            role="menu"
-            className="absolute bottom-full right-0 z-20 flex w-[140px] flex-col gap-1 overflow-hidden rounded-2xl border border-[var(--cool-gray-50)] bg-list-setting-background py-1"
-          >
-            {items.map((label) => (
-              <li key={label} role="menuitem">
-                {/* 항목: 높이 41, Body S(14/21), 색 list/setting/text */}
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  className="flex h-[41px] w-full items-center px-4 text-sm leading-[21px] text-list-setting-text"
-                >
-                  {label}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </>
+        <MenuBox placement="top-right" onClose={() => setOpen(false)}>
+          {items.map((label) => (
+            <MenuItem key={label} onClick={() => setOpen(false)}>
+              {label}
+            </MenuItem>
+          ))}
+        </MenuBox>
       ) : null}
     </div>
   );

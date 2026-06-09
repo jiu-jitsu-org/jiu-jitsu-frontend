@@ -4,6 +4,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 import type { CommentSort } from "@/features/community/domain/post";
+import {
+  MenuBox,
+  MenuItem,
+} from "@/features/community/presentation/menu-box";
 import { ChevronDownIcon } from "@/shared/ui/icons";
 
 const SORT_OPTIONS: { value: CommentSort; label: string }[] = [
@@ -51,34 +55,22 @@ export function CommentSortSelect({ sort }: { sort: CommentSort }) {
       </button>
 
       {open ? (
-        <>
-          {/* 바깥 클릭으로 닫기 위한 투명 백드롭 */}
-          <button
-            type="button"
-            aria-label="정렬 메뉴 닫기"
-            onClick={() => setOpen(false)}
-            className="fixed inset-0 z-10 cursor-default"
-          />
-          {/* 메뉴 박스: 너비 140, fill list/setting/background, stroke CoolGray/50(inside 1px), radius 16.
-              상/하단 여백 4(py-1), 아이템 사이 간격 4(gap-1). */}
-          <ul
-            role="listbox"
-            className="absolute left-0 z-20 mt-1 flex w-[140px] flex-col gap-1 overflow-hidden rounded-2xl border border-[var(--cool-gray-50)] bg-list-setting-background py-1"
-          >
-            {SORT_OPTIONS.map((option) => (
-              <li key={option.value} role="option" aria-selected={option.value === sort}>
-                {/* 항목: 높이 41 고정, 텍스트 Body S(14/21) 좌측, 색 list/setting/text */}
-                <button
-                  type="button"
-                  onClick={() => selectSort(option.value)}
-                  className="flex h-[41px] w-full items-center px-4 text-sm leading-[21px] text-list-setting-text"
-                >
-                  {option.label}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </>
+        <MenuBox
+          placement="bottom-left"
+          role="listbox"
+          onClose={() => setOpen(false)}
+        >
+          {SORT_OPTIONS.map((option) => (
+            <MenuItem
+              key={option.value}
+              role="option"
+              selected={option.value === sort}
+              onClick={() => selectSort(option.value)}
+            >
+              {option.label}
+            </MenuItem>
+          ))}
+        </MenuBox>
       ) : null}
     </div>
   );

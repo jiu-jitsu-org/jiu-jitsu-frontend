@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import type { CommentList as CommentListData } from "@/features/community/domain/comment";
 import type { CommentSort } from "@/features/community/domain/post";
 import { CommentEmpty } from "@/features/community/presentation/comment-empty";
@@ -21,7 +23,11 @@ export function CommentSection({
   return (
     <section className="flex flex-col">
       <div className="flex items-center justify-between px-4 py-3">
-        <CommentSortSelect sort={sort} />
+        {/* useSearchParams() leaf — 정적 prerender에서 빠지도록 Suspense로 감싼다.
+            fallback은 높이 32 자리만 유지해 레이아웃 시프트를 막는다. */}
+        <Suspense fallback={<div className="h-8" />}>
+          <CommentSortSelect sort={sort} />
+        </Suspense>
         {hasComments ? (
           <span className="text-xs text-text-tertiary">
             댓글 {comments.total}

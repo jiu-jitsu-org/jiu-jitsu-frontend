@@ -8,6 +8,7 @@ export { BookmarkIcon } from "./bookmark-icon";
 export { MoreIcon } from "./more-icon";
 export { BackArrowIcon } from "./back-arrow-icon";
 export { BellIcon } from "./bell-icon";
+export { BellOffIcon } from "./bell-off-icon";
 export { MoreVerticalIcon } from "./more-vertical-icon";
 export { ShareIcon } from "./share-icon";
 export { ChevronDownIcon } from "./chevron-down-icon";

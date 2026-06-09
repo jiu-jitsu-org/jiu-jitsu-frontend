@@ -3,12 +3,20 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { cn } from "@/shared/lib/cn";
+import {
+  MenuBox,
+  MenuItem,
+} from "@/features/community/presentation/menu-box";
 import {
   closeNativeSubview,
   isNativeBridgeAvailable,
 } from "@/shared/lib/native-bridge";
-import { BackArrowIcon, BellIcon, MoreVerticalIcon } from "@/shared/ui/icons";
+import {
+  BackArrowIcon,
+  BellIcon,
+  BellOffIcon,
+  MoreVerticalIcon,
+} from "@/shared/ui/icons";
 
 /**
  * 상세 화면 상단 앱바 (클라이언트 leaf).
@@ -23,6 +31,9 @@ import { BackArrowIcon, BellIcon, MoreVerticalIcon } from "@/shared/ui/icons";
 export function PostDetailAppBar({ isOwner }: { isOwner: boolean }) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
+  // 알림 받기 on/off. 디폴트 on, 탭하면 off로 토글(아이콘 변경).
+  // FIXME: 실제 알림 설정 저장/연동은 API 확정 후 추가.
+  const [alarmOn, setAlarmOn] = useState(true);
 
   function goBack() {
     // 네이티브 서브뷰(풀 웹뷰)면 CLOSE_SUBVIEW로 네이티브가 pop → 리스트 웹뷰로 복귀.
@@ -53,10 +64,12 @@ export function PostDetailAppBar({ isOwner }: { isOwner: boolean }) {
       <div className="ml-auto flex items-center">
         <button
           type="button"
-          aria-label="알림"
+          onClick={() => setAlarmOn((value) => !value)}
+          aria-label={alarmOn ? "알림 끄기" : "알림 켜기"}
+          aria-pressed={alarmOn}
           className="inline-flex size-10 items-center justify-center text-icon-primary"
         >
-          <BellIcon size={24} />
+          {alarmOn ? <BellIcon size={24} /> : <BellOffIcon size={24} />}
         </button>
 
         <div className="relative">
@@ -72,62 +85,23 @@ export function PostDetailAppBar({ isOwner }: { isOwner: boolean }) {
           </button>
 
         {menuOpen ? (
-          <>
-            <button
-              type="button"
-              aria-label="메뉴 닫기"
-              onClick={() => setMenuOpen(false)}
-              className="fixed inset-0 z-10 cursor-default"
-            />
-            <ul
-              role="menu"
-              className="absolute right-0 z-20 mt-1 min-w-28 overflow-hidden rounded-xl border border-border-default bg-surface-container py-1 shadow-lg"
-            >
-              {isOwner ? (
-                <>
-                  <MenuItem label="수정" onClick={() => setMenuOpen(false)} />
-                  <MenuItem
-                    label="삭제"
-                    destructive
-                    onClick={() => setMenuOpen(false)}
-                  />
-                </>
-              ) : (
-                <MenuItem label="신고" onClick={() => setMenuOpen(false)} />
-              )}
-            </ul>
-          </>
+          <MenuBox placement="bottom-right" onClose={() => setMenuOpen(false)}>
+            {/* 자신 게시글: 삭제/수정 · 타인 게시글: 신고/숨기기 */}
+            {isOwner ? (
+              <>
+                <MenuItem onClick={() => setMenuOpen(false)}>삭제하기</MenuItem>
+                <MenuItem onClick={() => setMenuOpen(false)}>수정하기</MenuItem>
+              </>
+            ) : (
+              <>
+                <MenuItem onClick={() => setMenuOpen(false)}>신고하기</MenuItem>
+                <MenuItem onClick={() => setMenuOpen(false)}>숨기기</MenuItem>
+              </>
+            )}
+          </MenuBox>
         ) : null}
         </div>
       </div>
     </header>
-  );
-}
-
-/**
- * FIXME: 수정/삭제/신고 동작은 각 API 스펙 확정 후 연결(현재 메뉴 닫기만).
- */
-function MenuItem({
-  label,
-  onClick,
-  destructive = false,
-}: {
-  label: string;
-  onClick: () => void;
-  destructive?: boolean;
-}) {
-  return (
-    <li role="menuitem">
-      <button
-        type="button"
-        onClick={onClick}
-        className={cn(
-          "block w-full px-4 py-2 text-left text-sm",
-          destructive ? "text-error" : "text-text-secondary",
-        )}
-      >
-        {label}
-      </button>
-    </li>
   );
 }

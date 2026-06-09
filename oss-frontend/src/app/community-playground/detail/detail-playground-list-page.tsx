@@ -17,8 +17,14 @@ type VariantEntry = {
 const VARIANTS: VariantEntry[] = [
   {
     href: "/community-playground/detail/default",
-    title: "게시글 상세 (디폴트)",
-    description: "현재 연결된 레이아웃",
+    title: "게시글 상세 (디폴트 · 타인)",
+    description: "현재 연결된 레이아웃 — 타인 게시글(헤더 ⋮: 신고/숨기기)",
+    ready: true,
+  },
+  {
+    href: "/community-playground/detail/default?owner=1",
+    title: "게시글 상세 (자신)",
+    description: "내 게시글 — 헤더 ⋮: 삭제하기/수정하기",
     ready: true,
   },
   {
