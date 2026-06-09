@@ -78,8 +78,11 @@ export function CommentItem({ comment }: { comment: Comment }) {
             label="좋아요"
             count={comment.likeCount}
           />
-          {/* ⋮ 메뉴: 내 댓글=삭제 / 타인 댓글=차단·신고, 버튼 top에 붙여 위로 띄움 */}
-          <CommentMenu isOwner={comment.isOwner} />
+          {/* ⋮ 메뉴: 내 댓글=삭제 / 타인 댓글=차단·신고. 차단 시 닉네임으로 확인 알럿 */}
+          <CommentMenu
+            isOwner={comment.isOwner}
+            authorNickname={comment.author.nickname}
+          />
         </div>
 
         {/* 대댓글: 같은 댓글 폼을 들여쓰기로 재사용(콘텐츠 컬럼 안에 두어 부모 닉네임 기준 정렬).

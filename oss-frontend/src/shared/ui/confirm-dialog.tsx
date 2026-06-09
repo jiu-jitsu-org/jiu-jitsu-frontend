@@ -1,8 +1,10 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { cn } from "@/shared/lib/cn";
+
+const DIALOG_FADE_MS = 200;
 
 /**
  * 공통 확인 알럿(커스텀 다이얼로그).
@@ -29,17 +31,48 @@ export function ConfirmDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
-  if (!open) return null;
+  // 알파 페이드: open이 false가 돼도 페이드 아웃 동안 잠시 마운트 유지 후 언마운트.
+  const [mounted, setMounted] = useState(open);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      // 페이드 아웃 후 언마운트
+      const raf = requestAnimationFrame(() => setVisible(false));
+      const timer = setTimeout(() => setMounted(false), DIALOG_FADE_MS);
+      return () => {
+        cancelAnimationFrame(raf);
+        clearTimeout(timer);
+      };
+    }
+    // 마운트 후 초기 opacity-0 프레임을 그린 뒤 다음 프레임에 1로 전환 → 페이드 인.
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      setMounted(true);
+      raf2 = requestAnimationFrame(() => setVisible(true));
+    });
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
+  }, [open]);
+
+  if (!mounted) return null;
 
   return (
-    // 알럿은 디바이스 좌우 27.5 여백으로 배치(가운데), 높이는 콘텐츠에 따라 가변.
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-[27.5px]">
-      {/* 딤 배경(바깥 탭 시 취소). overlay/scrim = 40% 블랙 반투명 → 뒤 콘텐츠가 어둡게 비친다. */}
+    // 알럿은 디바이스 좌우 27.5 여백으로 배치(가운데), 높이는 콘텐츠에 따라 가변. 전체 알파 페이드.
+    <div
+      className={cn(
+        "fixed inset-0 z-50 flex items-center justify-center px-[27.5px] transition-opacity duration-200",
+        visible ? "opacity-100" : "opacity-0",
+      )}
+    >
+      {/* 딤 배경(바깥 탭 시 취소). dialog/dim-bg 토큰(반투명) → 뒤 콘텐츠가 어둡게 비친다. */}
       <button
         type="button"
         aria-label="닫기"
         onClick={onCancel}
-        className="absolute inset-0 bg-overlay-scrim"
+        className="absolute inset-0 bg-dialog-dim-bg"
       />
 
       <div
