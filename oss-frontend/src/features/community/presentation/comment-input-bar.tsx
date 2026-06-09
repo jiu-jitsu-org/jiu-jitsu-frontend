@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
 import { cn } from "@/shared/lib/cn";
@@ -20,8 +20,17 @@ export const COMMENT_INPUT_ELEMENT_ID = "community-comment-input";
 export function CommentInputBar({ postId }: { postId: number }) {
   const router = useRouter();
   const demo = useIsDemoMode();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [value, setValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // 입력에 따라 높이 자동 확장. 최대 5줄(max-h-[129px])은 CSS가 제한하고 초과분은 스크롤.
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
 
   const canSubmit = value.trim().length > 0 && !submitting;
 
@@ -59,27 +68,21 @@ export function CommentInputBar({ postId }: { postId: number }) {
   }
 
   return (
-    // 배경 navibar/container/background. safe-area bottom(노치)도 같은 배경으로 칠하기 위해
-    // 바깥 컨테이너가 bg + pb(safe-area)를 갖고, 콘텐츠 행은 safe-area 제외 높이 69 고정 + 수직 가운데.
+    // 배경 navibar/container/background. safe-area bottom(노치)도 같은 배경으로 칠한다.
     <div className="bg-navibar-container-background pb-[env(safe-area-inset-bottom)]">
-      {/* 텍스트필드↔버튼 여백 없음(gap 0). 버튼은 우측 고정. */}
-      <div className="flex h-[69px] items-center px-4">
-        <input
-        id={COMMENT_INPUT_ELEMENT_ID}
-        type="text"
-        value={value}
-        onChange={(event) => setValue(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" && !event.nativeEvent.isComposing) {
-            event.preventDefault();
-            void submit();
-          }
-        }}
-        placeholder="댓글을 입력해주세요."
-        // 높이 41 고정 / 좌 16(pl-4) / 상하 12(py-3) / radius 24 / 배경 #EDEDED.
-        // 입력 텍스트 #000000(Body S), 플레이스홀더 #9EA1A5(Body S — input의 text-sm 상속).
-        className="h-[41px] flex-1 rounded-[24px] bg-[#EDEDED] py-3 pl-4 text-sm leading-[21px] text-[#000000] outline-none placeholder:text-[#9EA1A5]"
-      />
+      {/* 바는 내용에 따라 높이 가변(min-h 69), 전송 버튼은 하단 고정(items-end). 좌우 16(px-4). */}
+      <div className="flex min-h-[69px] items-end px-4 py-3">
+        {/* 텍스트 영역: 좌우 16(px-4)/상하 12(py-3), 멀티라인 — 엔터=줄바꿈, 최대 5줄(max-h-[129px]) 후 스크롤.
+            radius 24, 배경 #EDEDED. 입력 #000000(Body S), 플레이스홀더 #9EA1A5. */}
+        <textarea
+          id={COMMENT_INPUT_ELEMENT_ID}
+          ref={textareaRef}
+          rows={1}
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          placeholder="댓글을 입력해주세요."
+          className="max-h-[129px] flex-1 resize-none overflow-y-auto rounded-[24px] bg-[#EDEDED] px-4 py-3 text-sm leading-[21px] text-[#000000] outline-none placeholder:text-[#9EA1A5]"
+        />
       <button
         type="button"
         onClick={() => void submit()}
