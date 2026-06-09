@@ -1,13 +1,9 @@
 import type { ReactNode } from "react";
 
 import type { Comment } from "@/features/community/domain/comment";
+import { CommentMenu } from "@/features/community/presentation/comment-menu";
 import { CommentReplies } from "@/features/community/presentation/comment-replies";
-import {
-  CommentIcon,
-  HeartIcon,
-  MoreVerticalIcon,
-  PersonIcon,
-} from "@/shared/ui/icons";
+import { CommentIcon, HeartIcon, PersonIcon } from "@/shared/ui/icons";
 
 /** ISO → "M월 D일" 간단 라벨. 파싱 실패 시 원문 반환. */
 function formatCommentDate(iso: string): string {
@@ -82,14 +78,8 @@ export function CommentItem({ comment }: { comment: Comment }) {
             label="좋아요"
             count={comment.likeCount}
           />
-          {/* 메뉴 버튼: eclipsis-vertical 16, 아이콘만, 좌우 여백 8(px-2), 높이 28(h-7) */}
-          <button
-            type="button"
-            aria-label="댓글 메뉴"
-            className="inline-flex h-7 items-center justify-center px-2 text-reaction-bar-default-icon"
-          >
-            <MoreVerticalIcon size={16} />
-          </button>
+          {/* ⋮ 메뉴: 내 댓글=삭제 / 타인 댓글=차단·신고, 버튼 top에 붙여 위로 띄움 */}
+          <CommentMenu isOwner={comment.isOwner} />
         </div>
 
         {/* 대댓글: 같은 댓글 폼을 들여쓰기로 재사용(콘텐츠 컬럼 안에 두어 부모 닉네임 기준 정렬).

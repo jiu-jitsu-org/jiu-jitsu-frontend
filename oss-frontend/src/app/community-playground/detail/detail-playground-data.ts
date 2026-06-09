@@ -72,7 +72,8 @@ const MOCK_COMMENT_ITEMS: Comment[] = [
     author: { userId: 10, nickname: "안녕안녕" },
     body: COMMENT_BODY,
     createdAt: "2026-02-14T10:00:00+09:00",
-    isOwner: false,
+    // 내 댓글 케이스 → ⋮ 메뉴에 "삭제" 노출
+    isOwner: true,
     isPostAuthor: false,
     likeCount: 0,
     liked: false,

@@ -1,4 +1,4 @@
-import { DEFAULT_COMMENT_SORT } from "@/features/community/domain/post";
+import type { CommentSort } from "@/features/community/domain/post";
 import { PostDetailView } from "@/features/community/presentation/post-detail-view";
 
 import {
@@ -9,15 +9,24 @@ import {
 /**
  * 게시글 상세 (댓글) 쇼케이스 — 디폴트 하단에 댓글 여러 개가 있는 케이스(초안).
  *
- * 별도 레이아웃 없이, comments.items가 있으면 PostDetailView가 빈 상태 대신 목록을 그린다.
- * 대댓글(중첩)은 제거 — 댓글/대댓글 형태를 합치는 방향이라 현재는 평면 목록만.
+ * 정렬 드롭다운 시연을 위해 sort에 따라 mock을 재정렬한다(최신순=작성 역순, 작성된 순=작성순).
+ * 실제 라우트에선 업스트림이 정렬해 주므로, 이 정렬은 플레이그라운드 전용이다.
  */
-export function PostDetailCommentsPlaygroundPage() {
+export function PostDetailCommentsPlaygroundPage({
+  sort,
+}: {
+  sort: CommentSort;
+}) {
+  const items = [...MOCK_COMMENTS_LIST.items].sort((a, b) => {
+    const ascending = a.createdAt.localeCompare(b.createdAt);
+    return sort === "oldest" ? ascending : -ascending;
+  });
+
   return (
     <PostDetailView
       post={MOCK_POST_BASE}
-      comments={MOCK_COMMENTS_LIST}
-      sort={DEFAULT_COMMENT_SORT}
+      comments={{ ...MOCK_COMMENTS_LIST, items }}
+      sort={sort}
     />
   );
 }
