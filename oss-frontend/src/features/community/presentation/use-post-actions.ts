@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
 import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
 
 /**
@@ -27,6 +28,7 @@ const ENDPOINT: Record<ToggleKind, (postId: number) => string> = {
 };
 
 export function usePostActions(postId: number, initial: PostActionsState) {
+  const demo = useIsDemoMode();
   const [state, setState] = useState<PostActionsState>(initial);
   // 동시 토글 방지 — 종류별 진행 중 플래그.
   const [pending, setPending] = useState<Record<ToggleKind, boolean>>({
@@ -43,6 +45,12 @@ export function usePostActions(postId: number, initial: PostActionsState) {
     // 1) 낙관적 반영
     setPending((p) => ({ ...p, [kind]: true }));
     setState((prev) => applyToggle(prev, kind, !wasActive));
+
+    // 예시(데모)에선 네트워크 없이 낙관적 UI만 유지(롤백 없음).
+    if (demo) {
+      setPending((p) => ({ ...p, [kind]: false }));
+      return;
+    }
 
     try {
       const response = await fetch(ENDPOINT[kind](postId), { method });

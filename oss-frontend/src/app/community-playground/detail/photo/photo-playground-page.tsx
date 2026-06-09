@@ -1,4 +1,5 @@
 import { DEFAULT_COMMENT_SORT } from "@/features/community/domain/post";
+import { DemoModeProvider } from "@/features/community/presentation/community-demo-context";
 import { PostDetailView } from "@/features/community/presentation/post-detail-view";
 
 import {
@@ -15,10 +16,12 @@ import {
  */
 export function PostDetailPhotoPlaygroundPage() {
   return (
-    <PostDetailView
-      post={{ ...MOCK_POST_BASE, images: MOCK_IMAGES }}
-      comments={MOCK_COMMENTS_EMPTY}
-      sort={DEFAULT_COMMENT_SORT}
-    />
+    <DemoModeProvider>
+      <PostDetailView
+        post={{ ...MOCK_POST_BASE, images: MOCK_IMAGES }}
+        comments={MOCK_COMMENTS_EMPTY}
+        sort={DEFAULT_COMMENT_SORT}
+      />
+    </DemoModeProvider>
   );
 }

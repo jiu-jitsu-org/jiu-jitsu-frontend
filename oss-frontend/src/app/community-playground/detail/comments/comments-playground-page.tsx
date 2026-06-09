@@ -1,4 +1,5 @@
 import type { CommentSort } from "@/features/community/domain/post";
+import { DemoModeProvider } from "@/features/community/presentation/community-demo-context";
 import { PostDetailView } from "@/features/community/presentation/post-detail-view";
 
 import {
@@ -23,10 +24,12 @@ export function PostDetailCommentsPlaygroundPage({
   });
 
   return (
-    <PostDetailView
-      post={MOCK_POST_BASE}
-      comments={{ ...MOCK_COMMENTS_LIST, items }}
-      sort={sort}
-    />
+    <DemoModeProvider>
+      <PostDetailView
+        post={MOCK_POST_BASE}
+        comments={{ ...MOCK_COMMENTS_LIST, items }}
+        sort={sort}
+      />
+    </DemoModeProvider>
   );
 }

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
 import { cn } from "@/shared/lib/cn";
 import { CommentIcon } from "@/shared/ui/icons";
 import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
@@ -18,6 +19,7 @@ export const COMMENT_INPUT_ELEMENT_ID = "community-comment-input";
  */
 export function CommentInputBar({ postId }: { postId: number }) {
   const router = useRouter();
+  const demo = useIsDemoMode();
   const [value, setValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -26,6 +28,12 @@ export function CommentInputBar({ postId }: { postId: number }) {
   async function submit() {
     const content = value.trim();
     if (!content || submitting) return;
+
+    // 예시(데모)에선 네트워크 없이 입력만 비운다(목록 갱신/전송 없음).
+    if (demo) {
+      setValue("");
+      return;
+    }
 
     setSubmitting(true);
     try {
