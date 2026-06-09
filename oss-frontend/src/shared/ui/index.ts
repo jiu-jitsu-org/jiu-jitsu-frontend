@@ -14,3 +14,4 @@ export {
   type FeedReactionCounts,
 } from "./feed/feed-card";
 export { FeedListEnd } from "./feed/feed-list-end";
+export { ConfirmDialog } from "./confirm-dialog";
