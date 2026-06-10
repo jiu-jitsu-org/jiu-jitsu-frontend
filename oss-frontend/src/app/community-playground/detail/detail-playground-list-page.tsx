@@ -39,6 +39,12 @@ const VARIANTS: VariantEntry[] = [
     description: "댓글 여러 개 목업 (초안)",
     ready: true,
   },
+  {
+    href: "/community-playground/detail/api-test",
+    title: "게시글 상세 (API 테스트)",
+    description: "실제 데이터 경로(BFF/업스트림) — ?id=로 게시글 지정",
+    ready: true,
+  },
 ];
 
 export function DetailPlaygroundListPage() {
