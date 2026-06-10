@@ -13,3 +13,5 @@ export { MoreVerticalIcon } from "./more-vertical-icon";
 export { ShareIcon } from "./share-icon";
 export { ChevronDownIcon } from "./chevron-down-icon";
 export { EditIcon } from "./edit-icon";
+export { ImageIcon } from "./image-icon";
+export { HashIcon } from "./hash-icon";
