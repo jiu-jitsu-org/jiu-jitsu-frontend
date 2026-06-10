@@ -13,14 +13,14 @@ import type { HttpClient } from "@/shared/lib/http";
  * 있을 때 업스트림이 채워준다. 비로그인(unauthed client)이면 false로 내려온다.
  *
  * 경로 prefix `/api`: 업스트림은 {API_BASE_URL}/api/... 아래에 라우트가 있다.
- * (profile의 "/api/user/profile"과 동일 규칙. Swagger의 /board/{id}는 base가 이미 /api 포함)
+ * (Swagger의 /board/{id}는 base가 이미 /api 포함)
  *
- * 응답 봉투: 이 백엔드는 모든 응답을 { success, code, message, data }로 감싼다(profile 동일 규칙).
- * Swagger의 Example Value는 봉투 안 `data` DTO만 보여준다. 실제 페이로드를 한 겹 벗겨 매핑한다.
+ * 응답 봉투: 이 백엔드는 모든 응답을 { success, code, message, data }로 감싼다(성공/에러 공통).
+ * 성공 시 실제 페이로드는 data 안에 있으므로 한 겹 벗겨 매핑한다. 에러(success:false)의 code 분기는
+ * 공통 ApiError(toApiError)가 처리한다.
  *
- * FIXME: 댓글 목록 경로/쿼리는 가정 계약이다. 백엔드 Swagger 확정 시 정합 확인 필요.
- * FIXME: 단건 조회 응답에서 작성자(닉네임/프로필)·조회수·태그·isOwner 필드가 미확인 →
- *        DTO에 optional로 두고 매핑(없으면 기본값). 실제 필드명 확인 시 보정.
+ * 작성자(author)·isAuthor(본인 여부)는 응답에 포함된다. 조회수·태그 필드는 아직 없어 optional.
+ * FIXME: 댓글 목록 경로/봉투는 미확정(가정). 댓글 API 연동 시 정합 확인 필요.
  */
 const BOARD_ENDPOINT_PATH = "/api/board";
 
@@ -31,7 +31,7 @@ type Envelope<T> = {
   data: T;
 };
 
-/** GET /board/{id} 응답 DTO(확인된 필드 + 미확인 추정 필드는 optional). */
+/** GET /board/{id} 성공 응답 DTO(봉투 data 안의 형태). */
 type BoardDetailDto = {
   id: number;
   categoryId: number;
@@ -47,13 +47,19 @@ type BoardDetailDto = {
   isLiked: boolean;
   isSaved: boolean;
   imageList: { id: number; imageUrl: string }[];
-  // ↓ Swagger 화면에서 미확인 — 응답에 있으면 매핑되도록 optional로 선언.
-  writerId?: number;
-  writerNickname?: string;
-  writerProfileImageUrl?: string | null;
+  /** 미설정이면 null로 오므로 매핑 시 false로 정규화. */
+  noticeEnabled: boolean | null;
+  author: {
+    id: number;
+    nickname: string;
+    /** 프로필 이미지(없으면 null). 객체 형태 { id, imageUrl }. */
+    profileImage: { id: number; imageUrl: string } | null;
+  };
+  /** 본인 게시글 여부(viewer.isOwner). */
+  isAuthor: boolean;
+  // ↓ 응답에 아직 없음. 추가되면 매핑되도록 optional.
   viewCount?: number;
   tagList?: { id: number; name: string }[];
-  isOwner?: boolean;
 };
 
 function toPostDetail(dto: BoardDetailDto): PostDetail {
@@ -62,9 +68,9 @@ function toPostDetail(dto: BoardDetailDto): PostDetail {
     categoryId: dto.categoryId,
     categoryName: dto.categoryName,
     author: {
-      userId: dto.writerId ?? 0,
-      nickname: dto.writerNickname ?? "",
-      avatarUrl: dto.writerProfileImageUrl ?? null,
+      userId: dto.author.id,
+      nickname: dto.author.nickname,
+      avatarUrl: dto.author.profileImage?.imageUrl ?? null,
     },
     title: dto.title,
     body: dto.body,
@@ -79,11 +85,12 @@ function toPostDetail(dto: BoardDetailDto): PostDetail {
       liked: dto.isLiked,
       bookmarked: dto.isSaved,
       commented: dto.isCommented,
-      isOwner: dto.isOwner ?? false,
+      isOwner: dto.isAuthor,
     },
     createdAt: dto.createdAt,
     updatedAt: dto.updatedAt ?? null,
     edited: dto.isUpdated,
+    noticeEnabled: dto.noticeEnabled ?? false,
   };
 }
 
@@ -91,6 +98,7 @@ export class ExternalPostRepository implements PostRepository {
   constructor(private readonly httpClient: HttpClient) {}
 
   async getPostDetail(postId: number): Promise<PostDetail> {
+    // 성공 응답은 { ..., data: BoardDetailDto } 봉투 → data를 한 겹 벗긴다.
     const response = await this.httpClient.get<Envelope<BoardDetailDto>>({
       path: `${BOARD_ENDPOINT_PATH}/${postId}`,
     });

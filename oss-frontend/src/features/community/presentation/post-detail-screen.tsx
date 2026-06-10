@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getPostDetailPageData } from "@/features/community/application/get-post-detail-page-data";
 import type { CommentSort } from "@/features/community/domain/post";
 import { PostDetailView } from "@/features/community/presentation/post-detail-view";
+import { ApiErrorCode } from "@/shared/lib/http";
 
 /**
  * 게시글 상세 화면 루트 (서버 컴포넌트).
@@ -20,8 +21,8 @@ export async function PostDetailScreen({
   const result = await getPostDetailPageData(postId, sort);
 
   if (!result.ok) {
-    // 게시글 없음 → 404. 그 외(401/5xx 등)는 간단한 에러 화면.
-    if (result.status === 404) {
+    // 존재하지 않는 게시글(C0002) → 404. 그 외는 코드별 메시지로 간단한 에러 화면.
+    if (result.code === ApiErrorCode.BOARD_NOT_FOUND || result.status === 404) {
       notFound();
     }
     return <PostDetailError message={result.error} />;

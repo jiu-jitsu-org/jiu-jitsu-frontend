@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
 
 import type { Comment } from "@/features/community/domain/comment";
+import { Avatar } from "@/features/community/presentation/avatar";
 import { CommentMenu } from "@/features/community/presentation/comment-menu";
 import { CommentReplies } from "@/features/community/presentation/comment-replies";
-import { CommentIcon, HeartIcon, PersonIcon } from "@/shared/ui/icons";
+import { CommentIcon, HeartIcon } from "@/shared/ui/icons";
 
 /** ISO → "M월 D일" 간단 라벨. 파싱 실패 시 원문 반환. */
 function formatCommentDate(iso: string): string {
@@ -23,19 +24,8 @@ export function CommentItem({ comment }: { comment: Comment }) {
     // 아바타↔콘텐츠 간격 4(gap-1). 아바타는 프로필 행(닉네임/날짜)과 수직 가운데 정렬.
     // 세로 패딩 없음 — 댓글 사이 간격(12)은 목록(ul gap-3)이 담당.
     <li className="flex gap-1">
-      {/* 프로필 아이콘 24x24 */}
-      <span className="inline-flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-feed-card-header-avatar-bg text-icon-subtle">
-        {comment.author.avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={comment.author.avatarUrl}
-            alt=""
-            className="size-full object-cover"
-          />
-        ) : (
-          <PersonIcon size={16} />
-        )}
-      </span>
+      {/* 프로필 아이콘 24x24, 로드 실패 시 기본 상태 폴백 */}
+      <Avatar src={comment.author.avatarUrl} className="size-6" iconSize={16} />
       <div className="flex min-w-0 flex-1 flex-col">
         {/* 프로필 행: 높이 24(아바타와 동일)로 두고 items-center → 아이콘 기준 수직 가운데.
             닉네임↔날짜 간격 6(gap-1.5). */}

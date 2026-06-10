@@ -67,6 +67,8 @@ export type PostDetail = {
   updatedAt?: string | null;
   /** isUpdated → "수정됨" 표시 여부. */
   edited: boolean;
+  /** noticeEnabled → 이 글의 알림 수신 여부(헤더 종 토글 초기 상태). */
+  noticeEnabled: boolean;
 };
 
 /** 댓글 정렬 기준. 최신순 / 등록순(오래된 순). */

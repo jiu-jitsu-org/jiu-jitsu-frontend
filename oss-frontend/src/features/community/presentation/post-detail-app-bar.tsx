@@ -29,14 +29,20 @@ import {
  * ⋮ 메뉴는 게시글 소유자 여부(isOwner)에 따라 수정/삭제 vs 신고를 노출하므로 웹이 소유한다
  * (네이티브가 그리면 소유자 컨텍스트를 브릿지로 왕복해야 함).
  */
-export function PostDetailAppBar({ isOwner }: { isOwner: boolean }) {
+export function PostDetailAppBar({
+  isOwner,
+  initialNoticeEnabled,
+}: {
+  isOwner: boolean;
+  initialNoticeEnabled: boolean;
+}) {
   const router = useRouter();
   const toast = useToast();
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  // 알림 받기 on/off. 디폴트 on, 탭하면 off로 토글(아이콘 변경 + 토스트).
-  // FIXME: 실제 알림 설정 저장/연동은 API 확정 후 추가.
-  const [alarmOn, setAlarmOn] = useState(true);
+  // 알림 받기 on/off. 초기값은 게시글의 noticeEnabled, 탭하면 토글(아이콘 변경 + 토스트).
+  // FIXME: 실제 알림 설정 저장(PATCH)은 API 확정 후 추가.
+  const [alarmOn, setAlarmOn] = useState(initialNoticeEnabled);
 
   function toggleAlarm() {
     const next = !alarmOn;

@@ -20,3 +20,10 @@
  */
 export { HttpClient } from "./http-client";
 export { HttpError } from "./http-error";
+export {
+  ApiError,
+  ApiErrorCode,
+  isApiErrorBody,
+  toApiError,
+  type ApiErrorBody,
+} from "./api-error";
