@@ -14,8 +14,16 @@
     "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
 }
 
+html {
+  /* 좌우/상하 오버스크롤 바운스·인디케이터 차단 */
+  overscroll-behavior: none;
+}
+
 body {
   background: var(--background-default);
   color: var(--text-primary);
   font-family: var(--font-sans);
+  /* iOS 웹뷰 핀치 줌 제스처 차단 (viewport meta가 무시되는 케이스 보강) */
+  touch-action: pan-x pan-y;
+  overscroll-behavior: none;
 }
