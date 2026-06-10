@@ -19,8 +19,7 @@ import type { HttpClient } from "@/shared/lib/http";
  * 성공 시 실제 페이로드는 data 안에 있으므로 한 겹 벗겨 매핑한다. 에러(success:false)의 code 분기는
  * 공통 ApiError(toApiError)가 처리한다.
  *
- * 단건 조회 응답에 작성자(닉네임/프로필)·조회수·태그·isOwner 필드가 없다(확정). 응답에 있으면 매핑되도록
- * optional로 두되 없으면 기본값. (작성자 등은 별도 API로 채울 가능성)
+ * 작성자(author)·isAuthor(본인 여부)는 응답에 포함된다. 조회수·태그 필드는 아직 없어 optional.
  * FIXME: 댓글 목록 경로/봉투는 미확정(가정). 댓글 API 연동 시 정합 확인 필요.
  */
 const BOARD_ENDPOINT_PATH = "/api/board";
@@ -32,7 +31,7 @@ type Envelope<T> = {
   data: T;
 };
 
-/** GET /board/{id} 성공 응답 DTO(봉투 없이 바로 이 형태). */
+/** GET /board/{id} 성공 응답 DTO(봉투 data 안의 형태). */
 type BoardDetailDto = {
   id: number;
   categoryId: number;
@@ -50,13 +49,17 @@ type BoardDetailDto = {
   imageList: { id: number; imageUrl: string }[];
   /** 미설정이면 null로 오므로 매핑 시 false로 정규화. */
   noticeEnabled: boolean | null;
-  // ↓ /board/{id} 응답엔 없음(확정). 다른 엔드포인트가 줄 수 있어 optional로만 둠.
-  writerId?: number;
-  writerNickname?: string;
-  writerProfileImageUrl?: string | null;
+  author: {
+    id: number;
+    nickname: string;
+    /** 프로필 이미지(없으면 null). 객체 형태 { id, imageUrl }. */
+    profileImage: { id: number; imageUrl: string } | null;
+  };
+  /** 본인 게시글 여부(viewer.isOwner). */
+  isAuthor: boolean;
+  // ↓ 응답에 아직 없음. 추가되면 매핑되도록 optional.
   viewCount?: number;
   tagList?: { id: number; name: string }[];
-  isOwner?: boolean;
 };
 
 function toPostDetail(dto: BoardDetailDto): PostDetail {
@@ -65,9 +68,9 @@ function toPostDetail(dto: BoardDetailDto): PostDetail {
     categoryId: dto.categoryId,
     categoryName: dto.categoryName,
     author: {
-      userId: dto.writerId ?? 0,
-      nickname: dto.writerNickname ?? "",
-      avatarUrl: dto.writerProfileImageUrl ?? null,
+      userId: dto.author.id,
+      nickname: dto.author.nickname,
+      avatarUrl: dto.author.profileImage?.imageUrl ?? null,
     },
     title: dto.title,
     body: dto.body,
@@ -82,7 +85,7 @@ function toPostDetail(dto: BoardDetailDto): PostDetail {
       liked: dto.isLiked,
       bookmarked: dto.isSaved,
       commented: dto.isCommented,
-      isOwner: dto.isOwner ?? false,
+      isOwner: dto.isAuthor,
     },
     createdAt: dto.createdAt,
     updatedAt: dto.updatedAt ?? null,
