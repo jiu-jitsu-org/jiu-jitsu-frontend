@@ -279,7 +279,7 @@ export function PostWriteScreen() {
       {/* 작성 이탈 가드 — 내용이 있을 때만 확인. */}
       <ConfirmDialog
         open={leaveOpen}
-        title="작성을 취소할까요?"
+        title="작성 취소"
         message="작성 중인 내용은 저장되지 않아요."
         cancelText="계속 작성"
         confirmText="나가기"
