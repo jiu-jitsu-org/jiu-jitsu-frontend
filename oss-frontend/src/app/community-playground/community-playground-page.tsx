@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { useOpenPostDetail } from "@/features/community/presentation/use-open-post-detail";
 import { FeedCard, FeedListEnd, type FeedCardProps } from "@/shared/ui";
 
 const SAMPLE_IMAGE = "https://picsum.photos/seed/oss/800/450";
@@ -23,6 +24,7 @@ export function CommunityPlaygroundPage() {
       <div className="flex flex-col gap-4 py-4">
         {/* 글 길이 짧은 경우 (댓글 남긴 상태 = 댓글 아이콘 채움) */}
         <FeedCardDemo
+          postId={1}
           author={{ name: "안녕안녕"}}
           createdAt="2026-02-14"
           title="제목 제목 제목 제목 제목 제목 제목 제목 제목 제목 제목"
@@ -33,6 +35,7 @@ export function CommunityPlaygroundPage() {
 
         {/* 글 길이 3줄 이상 (더보기) */}
         <FeedCardDemo
+          postId={2}
           author={{ name: "안녕안녕"}}
           createdAt="2026-02-14"
           title="제목 제목 제목 제목 제목 제목 제목 제목 제목 제목 제목"
@@ -42,6 +45,7 @@ export function CommunityPlaygroundPage() {
 
         {/* 이미지 포함 게시물 */}
         <FeedCardDemo
+          postId={3}
           author={{ name: "안녕안녕"}}
           createdAt="2026-02-14"
           title="제목 제목 제목 제목 제목 제목 제목 제목 제목 제목 제목"
@@ -67,12 +71,13 @@ export function CommunityPlaygroundPage() {
 function FeedCardDemo(
   props: Omit<
     FeedCardProps,
-    "liked" | "bookmarked" | "onToggleLike" | "onToggleBookmark"
-  >,
+    "liked" | "bookmarked" | "onToggleLike" | "onToggleBookmark" | "onPress"
+  > & { postId: number },
 ) {
   const [liked, setLiked] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
-  const { counts, ...rest } = props;
+  const openPostDetail = useOpenPostDetail();
+  const { counts, postId, ...rest } = props;
 
   return (
     <FeedCard
@@ -84,6 +89,8 @@ function FeedCardDemo(
       }}
       liked={liked}
       bookmarked={bookmarked}
+      // 카드 탭 → 네이티브면 OPEN_SUBVIEW(풀 웹뷰), 웹이면 라우터 이동.
+      onPress={() => openPostDetail(postId)}
       onToggleLike={() => setLiked((v) => !v)}
       onToggleBookmark={() => setBookmarked((v) => !v)}
       onPressMore={() => {}}

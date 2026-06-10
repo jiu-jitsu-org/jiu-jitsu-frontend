@@ -10,10 +10,13 @@ export type {
   AuthLoginSuccessPayload,
   BridgeMessage,
   InboundMessage,
+  OpenSubviewPayload,
 } from "./messages";
 export {
+  closeNativeSubview,
   detectPlatform,
   isNativeBridgeAvailable,
+  openNativeSubview,
   postToNative,
   registerWebBridge,
 } from "./native-bridge";
