@@ -3,11 +3,10 @@
 # Docker layer cache를 더 효율적으로 사용할 수 있습니다.
 FROM node:20-alpine AS deps
 WORKDIR /app
-COPY package.json ./
+COPY package.json package-lock.json ./
 
-# 현재 프로젝트에는 lockfile이 없으므로 npm install을 사용합니다.
-# 나중에 package-lock.json이 추가되면 재현 가능한 설치를 위해 npm ci가 더 적절합니다.
-RUN npm install
+# lockfile 기준으로 의존성을 설치해 CI/Docker build 결과를 재현 가능하게 유지합니다.
+RUN npm ci
 
 # Stage 2: Next.js application을 build합니다.
 # 이 stage는 deps stage에서 설치한 node_modules를 받아오고,

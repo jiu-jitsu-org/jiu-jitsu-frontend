@@ -8,6 +8,7 @@ node_modules/
 # Package Manager
 ############################################
 package-lock.json
+!oss-frontend/package-lock.json
 yarn.lock
 pnpm-lock.yaml
 
