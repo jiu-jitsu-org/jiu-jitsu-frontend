@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
 
 import {
   isNativeBridgeAvailable,
@@ -56,11 +55,6 @@ const VARIANTS: VariantEntry[] = [
 ];
 
 export function DetailPlaygroundListPage() {
-  // 빌드/배포 검증용 마커 — 자동 재배포 확인 후 제거.
-  useEffect(() => {
-    console.info("[detail-list] BUILD_MARKER OPEN_SUBVIEW 20260611");
-  }, []);
-
   return (
     <main className="min-h-screen bg-white px-6 py-12 text-zinc-900">
       <div className="mx-auto w-full max-w-3xl">
