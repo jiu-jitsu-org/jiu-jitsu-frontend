@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { EditIcon } from "@/shared/ui/icons";
+import { PostWriteFab } from "@/features/community/presentation/post-write-fab";
 
 /**
  * 메인 화면(임시): 개발용 진입 허브.
@@ -80,15 +80,8 @@ export default function Home() {
         </ul>
       </div>
 
-      {/* 게시글 작성 진입 FAB — 우측 하단 고정(여백 12px). 작성 화면으로 이동.
-          실제 리스트(웹뷰)에선 네이티브 풀스크린 서브뷰로 띄울 수 있으나, 개발 허브에선 웹 라우팅으로 둔다. */}
-      <Link
-        href="/community/write"
-        aria-label="게시글 작성"
-        className="fixed bottom-3 right-3 flex h-12 w-12 items-center justify-center rounded-full bg-button-filled-default-bg text-button-filled-default-text"
-      >
-        <EditIcon size={20} />
-      </Link>
+      {/* 게시글 작성 진입 FAB — 네이티브면 OPEN_SUBVIEW로 풀스크린 서브뷰, 웹 단독이면 라우터 이동. */}
+      <PostWriteFab />
     </main>
   );
 }
