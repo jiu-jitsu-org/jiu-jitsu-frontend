@@ -1,4 +1,13 @@
 import type { Comment } from "@/features/community/domain/comment";
+import type {
+  ImageUploadAuth,
+  RegisterImageInput,
+  RegisteredImage,
+} from "@/features/community/domain/image";
+import type {
+  CreatePostInput,
+  CreatedPost,
+} from "@/features/community/domain/post";
 import type { CommunityWriteRepository } from "@/features/community/domain/post-repository";
 import type { HttpClient } from "@/shared/lib/http";
 
@@ -14,6 +23,7 @@ import type { HttpClient } from "@/shared/lib/http";
  *        백엔드 확정 시 정합 확인 필요.
  */
 const BOARD_ENDPOINT_PATH = "/api/board";
+const IMAGE_ENDPOINT_PATH = "/api/image";
 
 type Envelope<T> = {
   success: boolean;
@@ -58,5 +68,31 @@ export class ExternalCommunityWriteRepository
     await this.httpClient.delete<Envelope<null>>({
       path: `${BOARD_ENDPOINT_PATH}/${postId}/saves`,
     });
+  }
+
+  async getImageUploadAuth(): Promise<ImageUploadAuth> {
+    const response = await this.httpClient.get<Envelope<ImageUploadAuth>>({
+      path: `${IMAGE_ENDPOINT_PATH}/auth`,
+    });
+
+    return response.data;
+  }
+
+  async registerImage(input: RegisterImageInput): Promise<RegisteredImage> {
+    const response = await this.httpClient.post<Envelope<RegisteredImage>>({
+      path: IMAGE_ENDPOINT_PATH,
+      body: input,
+    });
+
+    return response.data;
+  }
+
+  async createPost(input: CreatePostInput): Promise<CreatedPost> {
+    const response = await this.httpClient.post<Envelope<CreatedPost>>({
+      path: BOARD_ENDPOINT_PATH,
+      body: input,
+    });
+
+    return response.data;
   }
 }

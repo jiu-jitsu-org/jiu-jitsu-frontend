@@ -1,5 +1,8 @@
 import { CreateCommentUseCase } from "@/features/community/application/create-comment";
+import { CreatePostUseCase } from "@/features/community/application/create-post";
 import { GetCommentsUseCase } from "@/features/community/application/get-comments";
+import { GetImageUploadAuthUseCase } from "@/features/community/application/get-image-upload-auth";
+import { RegisterImageUseCase } from "@/features/community/application/register-image";
 import { GetPostDetailUseCase } from "@/features/community/application/get-post-detail";
 import { ToggleBookmarkUseCase } from "@/features/community/application/toggle-bookmark";
 import { ToggleLikeUseCase } from "@/features/community/application/toggle-like";
@@ -66,4 +69,22 @@ export function createToggleBookmarkUseCase(
   accessToken: string,
 ): ToggleBookmarkUseCase {
   return new ToggleBookmarkUseCase(createWriteRepository(accessToken));
+}
+
+export function createGetImageUploadAuthUseCase(
+  accessToken: string,
+): GetImageUploadAuthUseCase {
+  return new GetImageUploadAuthUseCase(createWriteRepository(accessToken));
+}
+
+export function createRegisterImageUseCase(
+  accessToken: string,
+): RegisterImageUseCase {
+  return new RegisterImageUseCase(createWriteRepository(accessToken));
+}
+
+export function createCreatePostUseCase(
+  accessToken: string,
+): CreatePostUseCase {
+  return new CreatePostUseCase(createWriteRepository(accessToken));
 }
