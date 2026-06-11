@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useAuth } from "@/features/auth/presentation/auth-provider";
 import type { UserProfile } from "@/features/profile/domain/profile";
 import { InboundMessageType } from "@/shared/lib/native-bridge";
+import { BackButton } from "@/shared/ui";
 import type {
   ApiErrorResponse,
   ApiSuccessResponse,
@@ -99,7 +100,9 @@ export function AuthPlaygroundPage() {
   };
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-6 px-6 py-12 text-zinc-950">
+    <main className="min-h-screen w-full pb-12 text-zinc-950">
+      <BackButton />
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6">
       <header>
         <p className="text-sm font-medium uppercase tracking-[0.2em] text-zinc-500">
           Auth / Session Playground
@@ -219,6 +222,7 @@ export function AuthPlaygroundPage() {
           </ul>
         )}
       </section>
+      </div>
     </main>
   );
 }

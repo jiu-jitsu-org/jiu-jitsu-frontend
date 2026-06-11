@@ -15,4 +15,5 @@ export {
 } from "./feed/feed-card";
 export { FeedListEnd } from "./feed/feed-list-end";
 export { ConfirmDialog } from "./confirm-dialog";
+export { BackButton } from "./back-button";
 export { ToastProvider, useToast } from "./toast";

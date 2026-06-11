@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { useOpenPostDetail } from "@/features/community/presentation/use-open-post-detail";
-import { FeedCard, FeedListEnd, type FeedCardProps } from "@/shared/ui";
+import { BackButton, FeedCard, FeedListEnd, type FeedCardProps } from "@/shared/ui";
 
 const SAMPLE_IMAGE = "https://picsum.photos/seed/oss/800/450";
 
@@ -20,6 +20,7 @@ const LONG_BODY =
 export function CommunityPlaygroundPage() {
   return (
     <main className="min-h-screen bg-[var(--bw-white)]">
+      <BackButton />
       {/* 카드 좌우 인셋 16은 카드 자체 px-4가 담당(이중 패딩 방지). 카드 사이 간격 16. */}
       <div className="flex flex-col gap-4 py-4">
         {/* 글 길이 짧은 경우 (댓글 남긴 상태 = 댓글 아이콘 채움) */}
