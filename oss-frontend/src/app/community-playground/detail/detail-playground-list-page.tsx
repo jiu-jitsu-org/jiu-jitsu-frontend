@@ -1,10 +1,17 @@
+"use client";
+
 import Link from "next/link";
+
+import {
+  isNativeBridgeAvailable,
+  openNativeSubview,
+} from "@/shared/lib/native-bridge";
 
 /**
  * 게시글 상세 쇼케이스 타입 선택 리스트 (개발용 중간 페이지).
  *
- * 곧바로 상세가 뜨지 않고, 타입별(디폴트/사진/댓글/대댓글)로 들어가 확인할 수 있게 한다.
- * page는 서버 컴포넌트로 유지하고 정적 링크만 둔다(dev hub 패턴과 동일).
+ * 각 항목은 게시글 상세 화면이므로 네이티브 웹뷰에선 OPEN_SUBVIEW(풀 웹뷰)로 열어 헤더/탭바를 덮는다.
+ * 웹 단독에선 일반 Link 라우팅을 유지(브릿지 미연결 시 기본 동작).
  */
 
 type VariantEntry = {
@@ -68,6 +75,13 @@ export function DetailPlaygroundListPage() {
             <li key={entry.href}>
               <Link
                 href={entry.href}
+                onClick={(event) => {
+                  // 네이티브 웹뷰면 기본 라우팅을 막고 OPEN_SUBVIEW(풀 웹뷰)로 연다.
+                  if (isNativeBridgeAvailable()) {
+                    event.preventDefault();
+                    openNativeSubview(`${window.location.origin}${entry.href}`);
+                  }
+                }}
                 className="group flex items-center justify-between gap-4 py-5 transition-colors hover:bg-zinc-50"
               >
                 <div className="min-w-0">
