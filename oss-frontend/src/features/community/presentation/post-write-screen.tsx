@@ -7,9 +7,17 @@ import { cn } from "@/shared/lib/cn";
 import {
   closeNativeSubview,
   isNativeBridgeAvailable,
+  OutboundMessageType,
+  postToNative,
 } from "@/shared/lib/native-bridge";
 import { ConfirmDialog, useToast } from "@/shared/ui";
 import { HashIcon, ImageIcon } from "@/shared/ui/icons";
+
+import {
+  createPost,
+  WriteRequestError,
+} from "./community-write-client";
+import { MAX_IMAGES, useImageAttachments } from "./use-image-attachments";
 
 /** 본문 최대 글자 수. 카운터/입력 제한 단일 출처. */
 const BODY_MAX_LENGTH = 800;
@@ -19,6 +27,11 @@ const TITLE_MAX_LENGTH = 45;
 const MAX_TAGS = 10;
 /** 태그 1개 최대 글자 수. */
 const MAX_TAG_LENGTH = 20;
+/**
+ * 게시글 카테고리 id. 작성 화면에 카테고리 선택 UI가 아직 없어 임시 기본값을 쓴다.
+ * FIXME(UI/API): 카테고리 선택 컴포넌트 추가 후 사용자가 고른 값으로 교체(POST /board 필수 필드).
+ */
+const DEFAULT_CATEGORY_ID = 1;
 
 /**
  * 게시글 작성 화면 초안 (클라이언트 화면 컴포넌트).
@@ -31,8 +44,10 @@ const MAX_TAG_LENGTH = 20;
  * 전 영역이 인터랙티브하고 등록 버튼이 입력 상태에 의존하므로(앱바↔본문 상태 공유),
  * 상세처럼 서버 레이아웃 + 클라이언트 leaf로 쪼개지 않고 하나의 클라이언트 화면으로 둔다.
  *
- * FIXME(API): 생성 엔드포인트(POST /api/community/posts)와 이미지 업로드 계약 미확정.
- *   확정 시 submit에서 { title, body, tags, imageIds } 전송 → 생성된 글 id로 이동.
+ * 작성 흐름은 BFF에 연결돼 있다: ①②③(서명→ImageKit→등록)으로 imageFileIdList 확보 후
+ * ④ POST /api/community/board로 생성. 남은 공백 2가지:
+ * - categoryId: 카테고리 선택 UI가 없어 DEFAULT_CATEGORY_ID 임시 사용(FIXME).
+ * - tags: /board 계약에 태그 필드가 없어 입력은 받되 전송하지 않음(백엔드 확정 시 연결).
  */
 export function PostWriteScreen() {
   const router = useRouter();
@@ -47,12 +62,29 @@ export function PostWriteScreen() {
   const [tagsOpen, setTagsOpen] = useState(false);
   const tagInputRef = useRef<HTMLInputElement>(null);
 
+  // 이미지 첨부(지연 업로드: 고를 땐 로컬 미리보기만, 등록 시점에만 CDN 업로드).
+  // 선택은 표준 <input type=file> — 웹뷰가 네이티브 피커를 띄우고 웹에 File을 돌려준다.
+  const {
+    attachments,
+    canAddMore,
+    remaining,
+    fileInputRef,
+    onFileChange,
+    pick,
+    remove,
+    discardAll,
+    uploadAll,
+  } = useImageAttachments();
+
   // 등록 가능: 제목·본문 모두 공백 아님 + 전송 중 아님.
   const canSubmit =
     title.trim().length > 0 && body.trim().length > 0 && !submitting;
-  // 한 글자라도 적었으면 "작성 중" → 닫기 시 이탈 가드를 띄운다.
+  // 한 글자라도 적었거나 이미지를 담았으면 "작성 중" → 닫기 시 이탈 가드를 띄운다.
   const isDirty =
-    title.trim().length > 0 || body.trim().length > 0 || tags.length > 0;
+    title.trim().length > 0 ||
+    body.trim().length > 0 ||
+    tags.length > 0 ||
+    attachments.length > 0;
 
   // 태그 입력칸이 펼쳐지면 바로 입력할 수 있게 포커스를 옮긴다.
   useEffect(() => {
@@ -111,6 +143,8 @@ export function PostWriteScreen() {
   }
 
   function closeScreen() {
+    // 화면을 떠나므로 로컬 첨부(미리보기 object URL)를 정리한다. 업로드 전이라 원격 자원은 없음.
+    discardAll();
     // 네이티브 서브뷰(풀 웹뷰)면 CLOSE_SUBVIEW로 네이티브가 pop → 리스트 웹뷰로 복귀.
     if (isNativeBridgeAvailable()) {
       closeNativeSubview();
@@ -132,13 +166,34 @@ export function PostWriteScreen() {
     closeScreen();
   }
 
-  function submit() {
+  async function submit() {
     if (!canSubmit) return;
     setSubmitting(true);
     try {
-      // FIXME(API): 실제 생성 POST로 교체. 성공 시 생성된 게시글 상세로 이동(현재는 진입 지점으로 복귀).
+      // 지연 업로드: 작성 직전에만 ①②③(서명→ImageKit→등록) 실행 → 표시 순서대로 imageId 확보.
+      const imageFileIdList = await uploadAll();
+      console.info("[post-write] 이미지 등록 완료 imageFileIdList:", imageFileIdList);
+      // ④ 게시글 생성. tags는 현재 /board 계약에 필드가 없어 전송하지 않는다(FIXME 참고).
+      const created = await createPost({
+        categoryId: DEFAULT_CATEGORY_ID,
+        title: title.trim(),
+        body: body.trim(),
+        imageFileIdList,
+      });
+      // 여기 도달 = 생성 성공(2xx). created.id로 실제 추가 여부를 확인할 수 있다.
+      console.info("[post-write] 게시글 생성 성공:", created);
       toast.show("게시글이 등록되었어요");
+      // 성공일 때만 닫는다(closeScreen이 로컬 미리보기까지 정리).
       closeScreen();
+    } catch (error) {
+      // 실패 경로 — 절대 closeScreen()을 호출하지 않는다(화면 유지 = pop 안 됨).
+      console.error("[post-write] 게시글 작성 실패:", error);
+      // 인증 만료(401)면 네이티브 로그인 유도, 그 외(업로드/생성 실패)는 재시도 안내.
+      if (error instanceof WriteRequestError && error.status === 401) {
+        postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
+        return;
+      }
+      toast.show("등록에 실패했어요. 잠시 후 다시 시도해주세요");
     } finally {
       setSubmitting(false);
     }
@@ -164,7 +219,7 @@ export function PostWriteScreen() {
 
         <button
           type="button"
-          onClick={submit}
+          onClick={() => void submit()}
           disabled={!canSubmit}
           className={cn(
             "ml-auto inline-flex h-10 items-center justify-center rounded-full px-3 text-base font-semibold",
@@ -209,6 +264,31 @@ export function PostWriteScreen() {
         <span className="px-4 pb-3 pt-2 text-right text-xs font-medium text-text-tertiary tabular-nums">
           {body.length}/{BODY_MAX_LENGTH}
         </span>
+
+        {/* 첨부 이미지 미리보기 — 가로 스크롤, ✕로 삭제. 등록 전엔 CDN 업로드 안 됨(지연 업로드).
+            미리보기는 로컬 File의 object URL(blob:)이라 next/image가 아닌 img로 그린다. */}
+        {attachments.length > 0 ? (
+          <ul className="flex gap-2 overflow-x-auto px-4 pb-3">
+            {attachments.map((image) => (
+              <li key={image.localId} className="relative shrink-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={image.preview}
+                  alt="첨부 이미지 미리보기"
+                  className="h-20 w-20 rounded-lg object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => remove(image.localId)}
+                  aria-label="첨부 이미지 삭제"
+                  className="absolute right-1 top-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-xs text-white"
+                >
+                  ✕
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
 
         {/* 태그 입력줄: 평소 숨김 → 하단 "태그" 버튼으로 펼친다(버튼 바로 위에 등장).
             상세가 본문 뒤에 태그를 두므로, 작성도 본문 아래·툴바 위에 배치해 위치 모델을 일치시킨다.
@@ -255,13 +335,33 @@ export function PostWriteScreen() {
         {/* 사진 첨부 · 태그 추가. 아이콘 + 텍스트 라벨로 의미를 명시.
             버튼: 아이콘24 ↔ 텍스트(Body S) 간격 12(gap-3), 좌우 여백 8(px-2). */}
         <div className="flex h-[52px] items-center px-2">
+          {/* 숨겨진 표준 file input — 웹뷰가 탭 시 네이티브 사진/카메라 피커를 열고 File을 돌려준다.
+              사진 버튼이 이 input을 click()으로 연다(버튼 탭 = 사용자 제스처).
+              남은 슬롯이 1장이면 단일 선택으로 전환 → 마지막 한 장에서 초과 선택→잘림을 줄인다.
+              (웹 표준상 "최대 N장" 지정은 불가 — 2장 이상 남았을 때의 초과분은 훅이 잘라내고 토스트) */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple={remaining > 1}
+            onChange={onFileChange}
+            className="hidden"
+          />
           <button
             type="button"
-            className="inline-flex h-9 items-center gap-3 rounded-full px-2 text-text-secondary"
+            onClick={pick}
+            disabled={!canAddMore}
+            className="inline-flex h-9 items-center gap-3 rounded-full px-2 text-text-secondary disabled:text-text-disabled"
           >
-            {/* FIXME(API): 이미지 선택/업로드 미구현(네이티브 피커 or 웹 input[file] 결정 후 연결). */}
+            {/* 사진 첨부(최대 3장). 등록 전까진 로컬 보관 → 등록 시점에만 CDN 업로드. */}
             <ImageIcon size={24} />
-            <span className="text-sm font-medium">사진</span>
+            {/* 제목/본문의 n/max 카운터와 같은 어휘로 한도(최대 3장)를 자연스럽게 노출. */}
+            <span className="flex items-center gap-1 text-sm font-medium">
+              사진
+              <span className="text-xs text-text-tertiary tabular-nums">
+                {attachments.length}/{MAX_IMAGES}
+              </span>
+            </span>
           </button>
           <button
             type="button"
