@@ -11,11 +11,14 @@ export const metadata: Metadata = {
 };
 
 // 네이티브 웹뷰 내 핀치 줌·더블탭 확대 차단 (확대 시 좌우 오버스크롤 인디케이터 발생)
+// viewportFit: "cover" — iOS WKWebView에서 env(safe-area-inset-*)를 활성화한다.
+// 이게 없으면 인셋이 0으로 깔려 sticky 헤더가 상태바를, 하단 바가 홈 인디케이터를 침범한다.
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

@@ -10,7 +10,7 @@ import {
   OutboundMessageType,
   postToNative,
 } from "@/shared/lib/native-bridge";
-import { ConfirmDialog, useToast } from "@/shared/ui";
+import { AppBarShell, ConfirmDialog, useToast } from "@/shared/ui";
 import { HashIcon, ImageIcon } from "@/shared/ui/icons";
 
 import {
@@ -202,7 +202,7 @@ export function PostWriteScreen() {
   return (
     <div className="flex min-h-dvh flex-col bg-[var(--bw-true-white)]">
       {/* 앱바: 높이 44(h-11), 좌우 8(px-2). 좌측 닫기, 우측 등록(텍스트 버튼). */}
-      <header className="sticky top-0 z-30 flex h-11 items-center bg-[var(--bw-true-white)] px-2">
+      <AppBarShell>
         {/* 좌측 "취소": 보조 동작이라 연한 회색(text-secondary)으로 빼 주동작 "등록"과 위계를 둔다. */}
         <button
           type="button"
@@ -229,7 +229,7 @@ export function PostWriteScreen() {
         >
           등록
         </button>
-      </header>
+      </AppBarShell>
 
       <main className="flex flex-1 flex-col">
         {/* 제목: 단행 입력 + 우측 글자수(n/45)로 한도를 자연 노출.
