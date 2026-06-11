@@ -71,6 +71,20 @@ export type PostDetail = {
   noticeEnabled: boolean;
 };
 
+/** 게시글 생성 요청 — POST /board body. */
+export type CreatePostInput = {
+  categoryId: number;
+  title: string;
+  body: string;
+  /** 등록(TEMP)된 이미지의 서버 int imageId 목록. 표시 순서 = 저장 순서. */
+  imageFileIdList: number[];
+};
+
+/** 게시글 생성 결과. 최소한 생성된 글 id를 받는다(상세 이동용). */
+export type CreatedPost = {
+  id: number;
+};
+
 /** 댓글 정렬 기준. 최신순 / 등록순(오래된 순). */
 export type CommentSort = "latest" | "oldest";
 

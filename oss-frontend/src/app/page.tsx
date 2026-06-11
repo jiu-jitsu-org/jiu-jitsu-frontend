@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { PostWriteFab } from "@/features/community/presentation/post-write-fab";
+
 /**
  * 메인 화면(임시): 개발용 진입 허브.
  *
@@ -77,6 +79,9 @@ export default function Home() {
           ))}
         </ul>
       </div>
+
+      {/* 게시글 작성 진입 FAB — 네이티브면 OPEN_SUBVIEW로 풀스크린 서브뷰, 웹 단독이면 라우터 이동. */}
+      <PostWriteFab />
     </main>
   );
 }

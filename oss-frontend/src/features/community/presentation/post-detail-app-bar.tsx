@@ -11,7 +11,7 @@ import {
   closeNativeSubview,
   isNativeBridgeAvailable,
 } from "@/shared/lib/native-bridge";
-import { ConfirmDialog, useToast } from "@/shared/ui";
+import { AppBarShell, ConfirmDialog, useToast } from "@/shared/ui";
 import {
   BackArrowIcon,
   BellIcon,
@@ -73,7 +73,7 @@ export function PostDetailAppBar({
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-11 items-center bg-[var(--bw-true-white)] px-2">
+    <AppBarShell>
       <button
         type="button"
         onClick={goBack}
@@ -143,6 +143,6 @@ export function PostDetailAppBar({
         onCancel={() => setDeleteConfirmOpen(false)}
         onConfirm={confirmDelete}
       />
-    </header>
+    </AppBarShell>
   );
 }

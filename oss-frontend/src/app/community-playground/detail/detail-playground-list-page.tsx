@@ -6,6 +6,7 @@ import {
   isNativeBridgeAvailable,
   openNativeSubview,
 } from "@/shared/lib/native-bridge";
+import { BackButton } from "@/shared/ui";
 
 /**
  * 게시글 상세 쇼케이스 타입 선택 리스트 (개발용 중간 페이지).
@@ -56,8 +57,9 @@ const VARIANTS: VariantEntry[] = [
 
 export function DetailPlaygroundListPage() {
   return (
-    <main className="min-h-screen bg-white px-6 py-12 text-zinc-900">
-      <div className="mx-auto w-full max-w-3xl">
+    <main className="min-h-screen bg-white pb-12 text-zinc-900">
+      <BackButton />
+      <div className="mx-auto w-full max-w-3xl px-6">
         <header className="border-b border-zinc-200 pb-6">
           <p className="text-sm font-medium uppercase tracking-[0.2em] text-zinc-500">
             Community Detail

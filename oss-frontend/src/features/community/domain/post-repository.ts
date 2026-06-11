@@ -1,5 +1,15 @@
 import type { Comment, CommentList } from "@/features/community/domain/comment";
-import type { CommentSort, PostDetail } from "@/features/community/domain/post";
+import type {
+  ImageUploadAuth,
+  RegisterImageInput,
+  RegisteredImage,
+} from "@/features/community/domain/image";
+import type {
+  CommentSort,
+  CreatePostInput,
+  CreatedPost,
+  PostDetail,
+} from "@/features/community/domain/post";
 
 /**
  * 게시글 읽기 도메인 계약.
@@ -29,4 +39,10 @@ export interface CommunityWriteRepository {
   unlikePost(postId: number): Promise<void>;
   bookmarkPost(postId: number): Promise<void>;
   unbookmarkPost(postId: number): Promise<void>;
+  /** ① ImageKit 업로드용 서명 발급(GET /image/auth). */
+  getImageUploadAuth(): Promise<ImageUploadAuth>;
+  /** ③ ImageKit 업로드 결과를 서버에 등록(POST /image) → TEMP 이미지. */
+  registerImage(input: RegisterImageInput): Promise<RegisteredImage>;
+  /** ④ 게시글 생성(POST /board). 등록된 imageId를 imageFileIdList로 연결. */
+  createPost(input: CreatePostInput): Promise<CreatedPost>;
 }
