@@ -40,6 +40,11 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v6
 
+      # multi-arch 이미지를 만들기 위해 QEMU를 먼저 설정한다.
+      # 배포 서버가 amd64인지 arm64인지 확실하면 platforms를 하나로 줄여도 된다.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
       # Docker Buildx builder를 준비한다.
       # Docker 공식 build-push-action이 이 builder를 사용한다.
       - name: Set up Docker Buildx
@@ -74,15 +79,13 @@ jobs:
       # Docker image build.
       # PR에서는 push=false라서 빌드 검증만 한다.
       # develop push 또는 workflow_dispatch에서는 GHCR로 push한다.
-      # 운영 배포 대상이 amd64이므로 QEMU 기반 arm64 에뮬레이션 빌드는 사용하지 않는다.
-      # arm64 이미지가 필요해지면 native arm64 runner에서 별도 job으로 빌드한다.
       - name: Build and push image
         uses: docker/build-push-action@v7
         with:
           context: ${{ env.CONTEXT }}
           file: ${{ env.DOCKERFILE }}
           push: ${{ github.event_name != 'pull_request' }}
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           tags: ${{ steps.tags.outputs.value }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
