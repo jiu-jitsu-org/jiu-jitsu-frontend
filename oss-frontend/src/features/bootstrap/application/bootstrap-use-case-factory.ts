@@ -3,7 +3,7 @@ import { ExternalBootstrapRepository } from "@/features/bootstrap/infrastructure
 import { createServerHttpClient } from "@/shared/lib/http/create-server-http-client";
 
 /**
- * Bootstrap feature composition root.
+ * Bootstrap feature composition root..
  *
  * The app layer should stay focused on framework entry concerns such as:
  * - reading route/search params
