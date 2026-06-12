@@ -1,5 +1,4 @@
 import {
-  BRIDGE_SCHEMA_VERSION,
   OutboundMessageType,
   type BridgeMessage,
   type InboundMessage,
@@ -55,20 +54,18 @@ export function postToNative(message: BridgeMessage): void {
     return;
   }
 
-  const envelope: BridgeMessage = { version: BRIDGE_SCHEMA_VERSION, ...message };
-
   switch (detectPlatform()) {
     case "ios":
       window.webkit?.messageHandlers?.[APP_BRIDGE_HANDLER_NAME]?.postMessage(
-        envelope,
+        message,
       );
       return;
     case "android":
-      window.AppBridge?.postMessage(JSON.stringify(envelope));
+      window.AppBridge?.postMessage(JSON.stringify(message));
       return;
     default:
       // 웹 단독(개발) 폴백: 네이티브가 없으므로 콘솔로만 흐름을 확인한다.
-      console.info("[native-bridge] (web fallback) → native", envelope);
+      console.info("[native-bridge] (web fallback) → native", message);
   }
 }
 
@@ -94,10 +91,46 @@ export function closeNativeSubview(): void {
 }
 
 /**
- * 네이티브 → 웹 수신구를 등록한다.
+ * 인바운드 수신구는 `window.WebBridge` 단 하나뿐(네이티브가 이 경로로만 호출)인데,
+ * 듣고 싶은 주체는 여럿이다(auth 세션 + 서브웹뷰의 BACK_PRESSED 등).
+ * 그래서 수신구는 모듈이 한 번만 설치하고, 들어온 메시지를 등록된 모든 리스너에 fan-out 한다.
+ */
+const inboundListeners = new Set<(message: InboundMessage) => void>();
+
+/** window.WebBridge.receive를 (없으면) 한 번만 설치한다 — 모든 리스너에 분배하는 단일 수신구. */
+function ensureInboundReceiver(): void {
+  if (typeof window === "undefined" || window.WebBridge) {
+    return;
+  }
+
+  window.WebBridge = {
+    // 네이티브는 `window.WebBridge.receive("<json>")`를 호출한다(`evaluateJavaScript`).
+    // 일부 구현이 문자열 대신 객체를 넘길 수 있어 양쪽 모두 허용한다.
+    receive: (raw) => {
+      try {
+        const message = (
+          typeof raw === "string" ? JSON.parse(raw) : raw
+        ) as InboundMessage;
+        // 리스너 하나가 던져도 나머지 분배가 끊기지 않게 개별 보호한다.
+        for (const listener of inboundListeners) {
+          try {
+            listener(message);
+          } catch (error) {
+            console.error("[native-bridge] inbound listener threw", error);
+          }
+        }
+      } catch (error) {
+        console.error("[native-bridge] failed to parse inbound message", error);
+      }
+    },
+  };
+}
+
+/**
+ * 네이티브 → 웹 인바운드 리스너를 등록한다(여러 곳에서 동시 등록 가능).
  *
- * 네이티브는 `window.WebBridge.receive("<json>")`를 호출한다(`evaluateJavaScript`).
- * 일부 구현이 문자열 대신 객체를 넘길 수 있어 양쪽 모두 허용한다.
+ * 첫 등록 시 단일 수신구(window.WebBridge)를 설치하고, 마지막 해제 시 제거한다.
+ * 각 리스너는 모든 메시지를 받으므로 호출부가 `message.type`으로 필요한 것만 분기한다.
  *
  * @returns 등록 해제 함수(useEffect cleanup에서 호출)
  */
@@ -108,21 +141,13 @@ export function registerWebBridge(
     return () => {};
   }
 
-  window.WebBridge = {
-    receive: (raw) => {
-      try {
-        const message = (
-          typeof raw === "string" ? JSON.parse(raw) : raw
-        ) as InboundMessage;
-        handler(message);
-      } catch (error) {
-        console.error("[native-bridge] failed to parse inbound message", error);
-      }
-    },
-  };
+  inboundListeners.add(handler);
+  ensureInboundReceiver();
 
   return () => {
-    if (window.WebBridge) {
+    inboundListeners.delete(handler);
+    // 남은 리스너가 없으면 수신구도 거둔다(테스트/언마운트 시 전역 누수 방지).
+    if (inboundListeners.size === 0 && window.WebBridge) {
       delete window.WebBridge;
     }
   };

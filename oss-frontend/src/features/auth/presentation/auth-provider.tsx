@@ -26,7 +26,8 @@ import type { ApiSuccessResponse } from "@/shared/types/api";
  * 인증/세션 전역 Provider.
  *
  * 책임:
- * - 네이티브 브릿지의 "단일 소유자". 인바운드 수신구(window.WebBridge)를 등록한다.
+ * - 네이티브 브릿지 인바운드 리스너를 등록한다(auth/세션 메시지 담당). 수신구(window.WebBridge)는
+ *   브릿지가 단일 설치·fan-out하므로, 서브웹뷰의 BACK_PRESSED 등 다른 리스너와 공존한다.
  * - 로그인 상태를 BFF(/api/auth/session)와 동기화해 화면 전역에 공유한다.
  * - 비로그인 시 행위를 가로채 로그인을 유도하고(requireAuth), 성공 후 원래 행위를 복귀한다.
  * - (개발용) 송수신 브릿지 이벤트 로그를 노출해 테스트 하니스가 표시할 수 있게 한다.

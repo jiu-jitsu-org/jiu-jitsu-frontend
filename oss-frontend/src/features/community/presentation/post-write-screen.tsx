@@ -10,6 +10,7 @@ import {
   isNativeBridgeAvailable,
   OutboundMessageType,
   postToNative,
+  useNativeBackHandler,
 } from "@/shared/lib/native-bridge";
 import { AppBarShell, ConfirmDialog, useToast } from "@/shared/ui";
 import { HashIcon, ImageIcon } from "@/shared/ui/icons";
@@ -170,6 +171,10 @@ export function PostWriteScreen() {
     closeScreen();
   }
 
+  // 네이티브 뒤로가기 가드: 마운트 시 BACK_GUARD로 통지 → 네이티브가 직접 닫지 않고 BACK_PRESSED를 보낸다.
+  // 작성 중이면 확인 다이얼로그, 아니면 닫기 → "계속 작성" 선택 시 CLOSE_SUBVIEW를 보내지 않아 화면 유지.
+  useNativeBackHandler(requestClose);
+
   async function submit() {
     if (!canSubmit) return;
     setSubmitting(true);
@@ -214,17 +219,9 @@ export function PostWriteScreen() {
         rect ? { top: rect.top, height: rect.height } : { top: 0, height: "100dvh" }
       }
     >
-      {/* 앱바: 높이 44(h-11), 좌우 8(px-2). 좌측 닫기, 우측 등록(텍스트 버튼). */}
+      {/* 앱바: 높이 44(h-11), 좌우 8(px-2). 우측 등록(텍스트 버튼). 닫기/취소는 네이티브 뒤로가기가
+          BACK_PRESSED로 위임 → requestClose가 이탈 가드를 처리한다(웹 버튼 없음). */}
       <AppBarShell>
-        {/* 좌측 "취소": 보조 동작이라 연한 회색(text-secondary)으로 빼 주동작 "등록"과 위계를 둔다. */}
-        <button
-          type="button"
-          onClick={requestClose}
-          className="inline-flex h-10 items-center justify-center px-1 text-base text-text-secondary"
-        >
-          취소
-        </button>
-
         {/* 가운데 타이틀 — 작성 맥락을 명확히. */}
         <h1 className="pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-base font-medium text-text-primary">
           글쓰기 (디자인 미적용 초안)

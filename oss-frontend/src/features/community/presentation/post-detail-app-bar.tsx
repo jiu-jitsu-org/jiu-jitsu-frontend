@@ -1,19 +1,13 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import {
   MenuBox,
   MenuItem,
 } from "@/features/community/presentation/menu-box";
-import {
-  closeNativeSubview,
-  isNativeBridgeAvailable,
-} from "@/shared/lib/native-bridge";
 import { AppBarShell, ConfirmDialog, useToast } from "@/shared/ui";
 import {
-  BackArrowIcon,
   BellIcon,
   BellOffIcon,
   MoreVerticalIcon,
@@ -23,7 +17,7 @@ import {
  * 상세 화면 상단 앱바 (클라이언트 leaf).
  *
  * 높이 44 고정, 하단 디바이더 없음, 배경 True White.
- * 좌측: 뒤로가기(좌 8). 우측: 알림종 + ⋮ 메뉴를 간격 0으로 붙여 우측 정렬(우 8).
+ * 우측: 알림종 + ⋮ 메뉴를 간격 0으로 붙여 우측 정렬(우 8). 뒤로가기는 네이티브 내비게이션이 담당.
  * 제목은 현재 비워둔다(추후 노출 시 가운데 영역에 추가).
  *
  * ⋮ 메뉴는 게시글 소유자 여부(isOwner)에 따라 수정/삭제 vs 신고를 노출하므로 웹이 소유한다
@@ -36,13 +30,15 @@ export function PostDetailAppBar({
   isOwner: boolean;
   initialNoticeEnabled: boolean;
 }) {
-  const router = useRouter();
   const toast = useToast();
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   // 알림 받기 on/off. 초기값은 게시글의 noticeEnabled, 탭하면 토글(아이콘 변경 + 토스트).
   // FIXME: 실제 알림 설정 저장(PATCH)은 API 확정 후 추가.
   const [alarmOn, setAlarmOn] = useState(initialNoticeEnabled);
+
+  // 네이티브 뒤로가기: 상세는 이탈 가드가 없어 BACK_GUARD를 통지하지 않는다 → 네이티브가 직접 닫는다.
+  // (정상/에러 어느 화면이든 네이티브가 처리하므로 웹 측 back 코드가 필요 없다.)
 
   function toggleAlarm() {
     const next = !alarmOn;
@@ -58,31 +54,8 @@ export function PostDetailAppBar({
     toast.show("게시물이 삭제되었습니다");
   }
 
-  function goBack() {
-    // 네이티브 서브뷰(풀 웹뷰)면 CLOSE_SUBVIEW로 네이티브가 pop → 리스트 웹뷰로 복귀.
-    if (isNativeBridgeAvailable()) {
-      closeNativeSubview();
-      return;
-    }
-    // 웹 단독: history가 있으면 뒤로, 없으면(딥링크 진입 등) 커뮤니티 목록으로.
-    if (window.history.length > 1) {
-      router.back();
-      return;
-    }
-    router.push("/community");
-  }
-
   return (
     <AppBarShell>
-      <button
-        type="button"
-        onClick={goBack}
-        aria-label="뒤로 가기"
-        className="inline-flex size-10 items-center justify-center text-icon-primary"
-      >
-        <BackArrowIcon size={24} />
-      </button>
-
       {/* 우측 그룹: 알림종 + ⋮ 를 간격 0으로 붙여 우측 정렬 */}
       <div className="ml-auto flex items-center">
         <button

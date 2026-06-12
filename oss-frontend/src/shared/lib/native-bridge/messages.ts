@@ -10,9 +10,6 @@
  *   그대로 쓸 수 있고 로그에서 grep 하기 쉽다. (전역 고정 상수 → SCREAMING_SNAKE_CASE)
  */
 
-/** 브릿지 스키마 버전. 호환성 분기가 필요해질 때를 대비한 식별자. */
-export const BRIDGE_SCHEMA_VERSION = 1;
-
 /** 웹 → 네이티브 (window.(webkit.messageHandlers.)AppBridge) */
 export const OutboundMessageType = {
   WEBVIEW_READY: "WEBVIEW_READY",
@@ -25,6 +22,9 @@ export const OutboundMessageType = {
   // 네비게이션: 풀 웹뷰 서브뷰 푸시/팝 (게시글 상세 등). 범용이라 대상은 payload.url로 전달.
   OPEN_SUBVIEW: "OPEN_SUBVIEW",
   CLOSE_SUBVIEW: "CLOSE_SUBVIEW",
+  // 뒤로가기 가드 토글. 기본은 네이티브가 back을 직접 처리(닫기)하지만, 이 화면이 가드(작성 중 확인 등)를
+  // 가졌다고 enabled:true로 통지하면 네이티브는 직접 닫지 않고 BACK_PRESSED를 보낸다. 해제 시 enabled:false.
+  BACK_GUARD: "BACK_GUARD",
 } as const;
 export type OutboundMessageType =
   (typeof OutboundMessageType)[keyof typeof OutboundMessageType];
@@ -35,6 +35,9 @@ export const InboundMessageType = {
   AUTH_LOGIN_CANCELLED: "AUTH_LOGIN_CANCELLED",
   AUTH_SESSION_EXPIRED: "AUTH_SESSION_EXPIRED",
   AUTH_LOGOUT: "AUTH_LOGOUT",
+  // 네이티브 뒤로가기. 가드를 등록한(BACK_GUARD enabled:true) 화면에만 보낸다. 웹이 이탈 가드를
+  // 처리한 뒤 닫을 때만 스스로 CLOSE_SUBVIEW를 호출한다(가드 없는 화면은 네이티브가 직접 닫음).
+  BACK_PRESSED: "BACK_PRESSED",
 } as const;
 export type InboundMessageType =
   (typeof InboundMessageType)[keyof typeof InboundMessageType];
@@ -42,6 +45,11 @@ export type InboundMessageType =
 /** 로그인 유도(PROMPT/MODAL 공통) payload. 사유(분석/문구용, 선택). */
 export type AuthLoginPayload = {
   reason?: string;
+};
+
+/** `BACK_GUARD` payload — 현재 화면의 뒤로가기 가드 활성 여부. */
+export type BackGuardPayload = {
+  enabled: boolean;
 };
 
 /**
@@ -66,9 +74,6 @@ export type AuthLoginSuccessPayload = {
 export type BridgeMessage<P = unknown> = {
   type: string;
   payload?: P;
-  /** (선택) 향후 요청-응답 짝맞춤용. 현재 미사용. */
-  requestId?: string;
-  version?: number;
 };
 
 /**
@@ -76,7 +81,8 @@ export type BridgeMessage<P = unknown> = {
  * 핸들러에서 `switch (message.type)`으로 안전하게 좁혀 쓰기 위함.
  */
 export type InboundMessage =
-  | { type: typeof InboundMessageType.AUTH_LOGIN_SUCCESS; payload: AuthLoginSuccessPayload; requestId?: string; version?: number }
-  | { type: typeof InboundMessageType.AUTH_LOGIN_CANCELLED; requestId?: string; version?: number }
-  | { type: typeof InboundMessageType.AUTH_SESSION_EXPIRED; requestId?: string; version?: number }
-  | { type: typeof InboundMessageType.AUTH_LOGOUT; requestId?: string; version?: number };
+  | { type: typeof InboundMessageType.AUTH_LOGIN_SUCCESS; payload: AuthLoginSuccessPayload }
+  | { type: typeof InboundMessageType.AUTH_LOGIN_CANCELLED }
+  | { type: typeof InboundMessageType.AUTH_SESSION_EXPIRED }
+  | { type: typeof InboundMessageType.AUTH_LOGOUT }
+  | { type: typeof InboundMessageType.BACK_PRESSED };
