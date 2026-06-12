@@ -16,5 +16,6 @@ export {
 export { FeedListEnd } from "./feed/feed-list-end";
 export { ConfirmDialog } from "./confirm-dialog";
 export { AppBarShell } from "./app-bar-shell";
+export { KeyboardAwareShell } from "./keyboard-aware-shell";
 export { BackButton } from "./back-button";
 export { ToastProvider, useToast } from "./toast";

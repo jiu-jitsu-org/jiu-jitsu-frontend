@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
 import { cn } from "@/shared/lib/cn";
+import { useViewportRect } from "@/shared/lib/use-viewport-rect";
 import { CommentIcon } from "@/shared/ui/icons";
 import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
 
@@ -23,6 +24,8 @@ export function CommentInputBar({ postId }: { postId: number }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [value, setValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // 키보드가 떠 있는 동안엔 홈 인디케이터(safe-area)가 키보드에 가려 의미가 없으므로 하단 패딩 0.
+  const rect = useViewportRect();
 
   // 입력에 따라 높이 자동 확장. 최대 5줄(max-h-[129px])은 CSS가 제한하고 초과분은 스크롤.
   useEffect(() => {
@@ -68,8 +71,14 @@ export function CommentInputBar({ postId }: { postId: number }) {
   }
 
   return (
-    // 배경 navibar/container/background. safe-area bottom(노치)도 같은 배경으로 칠한다.
-    <div className="bg-navibar-container-background pb-[env(safe-area-inset-bottom)]">
+    // 배경 navibar/container/background. 평소엔 safe-area bottom(노치)도 같은 배경으로 칠하지만,
+    // 키보드가 떠 있는 동안엔 그 영역이 키보드에 가려 의미가 없으므로 패딩을 0으로 줘 키보드에 딱 붙인다.
+    <div
+      className={cn(
+        "bg-navibar-container-background",
+        rect?.keyboardOpen ? "pb-0" : "pb-[env(safe-area-inset-bottom)]",
+      )}
+    >
       {/* 바는 내용에 따라 높이 가변(min-h 69), 전송 버튼은 하단 고정(items-end). 좌우 16(px-4). */}
       <div className="flex min-h-[69px] items-end px-4 py-3">
         {/* 텍스트 영역: 좌우 16(px-4)/상하 12(py-3), 멀티라인 — 엔터=줄바꿈, 최대 5줄(max-h-[129px]) 후 스크롤.

@@ -7,7 +7,7 @@ import { PostAuthorRow } from "@/features/community/presentation/post-author-row
 import { PostDetailAppBar } from "@/features/community/presentation/post-detail-app-bar";
 import { PostDetailBody } from "@/features/community/presentation/post-detail-body";
 import { PostTags } from "@/features/community/presentation/post-tags";
-import { FeedCardImages } from "@/shared/ui";
+import { FeedCardImages, KeyboardAwareShell } from "@/shared/ui";
 
 /**
  * 상세 화면 레이아웃 (순수 표현 서버 컴포넌트).
@@ -25,13 +25,17 @@ export function PostDetailView({
   sort: CommentSort;
 }) {
   return (
-    <div className="flex min-h-dvh flex-col bg-[var(--bw-true-white)]">
-      <PostDetailAppBar
-        isOwner={post.viewer.isOwner}
-        initialNoticeEnabled={post.noticeEnabled}
-      />
-
-      <main className="flex-1">
+    // 고정 높이 셸: 헤더(앱바)는 상단 고정, 본문+댓글만 스크롤, 댓글 입력 바는 키보드 위에 붙는다.
+    <KeyboardAwareShell
+      header={
+        <PostDetailAppBar
+          isOwner={post.viewer.isOwner}
+          initialNoticeEnabled={post.noticeEnabled}
+        />
+      }
+      footer={<CommentInputBar postId={post.id} />}
+    >
+      <div>
         {/* 본문 영역: 헤더와 간격 24(pt-6), 좌우 여백 16(px-4), 섹션 간격 16(gap-4: 프로필 row↔제목 row 등) */}
         <article className="flex flex-col gap-4 px-4 pt-6">
           <PostAuthorRow author={post.author} />
@@ -65,12 +69,7 @@ export function PostDetailView({
 
         {/* 댓글 섹션 */}
         <CommentSection comments={comments} sort={sort} />
-      </main>
-
-      {/* 하단 고정 입력 바 */}
-      <div className="sticky bottom-0">
-        <CommentInputBar postId={post.id} />
       </div>
-    </div>
+    </KeyboardAwareShell>
   );
 }
