@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { cn } from "@/shared/lib/cn";
 import { PersonIcon } from "@/shared/ui/icons";
@@ -21,6 +21,18 @@ export function Avatar({
   iconSize: number;
 }) {
   const [failed, setFailed] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  // SSR로 그려진 <img>는 하이드레이션 전에 error가 발생해 onError를 놓칠 수 있다.
+  // 마운트 시 이미 로드 실패한(complete && naturalWidth===0) 이미지를 직접 감지해 폴백 처리한다.
+  useEffect(() => {
+    setFailed(false);
+    const img = imgRef.current;
+    if (img && img.complete && img.naturalWidth === 0) {
+      setFailed(true);
+    }
+  }, [src]);
+
   const showImage = Boolean(src) && !failed;
 
   return (
@@ -34,6 +46,7 @@ export function Avatar({
         // 공통 컴포넌트라 호출처 이미지 도메인이 다양 → next/image 설정 의존을 피해 plain img 사용.
         // eslint-disable-next-line @next/next/no-img-element
         <img
+          ref={imgRef}
           src={src ?? undefined}
           alt=""
           className="size-full object-cover"
