@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 
 import { cn } from "@/shared/lib/cn";
+import { useKeyboardInset } from "@/shared/lib/use-keyboard-inset";
 import {
   closeNativeSubview,
   isNativeBridgeAvailable,
@@ -56,6 +57,8 @@ export function PostWriteScreen() {
   const [body, setBody] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
+  // 키보드가 가린 높이만큼 셸을 줄여 하단 바를 키보드 위에 붙인다(visualViewport 직접 추적).
+  const keyboardInset = useKeyboardInset();
   // 태그: 평소 숨김(tagsOpen=false) → 하단 "태그" 버튼으로 펼친다(progressive disclosure).
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
@@ -200,7 +203,16 @@ export function PostWriteScreen() {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col bg-[var(--bw-true-white)]">
+    // 뷰포트에 고정된 고정 높이 셸: 문서 전체 스크롤을 막고(overflow-hidden) 헤더·하단 바를 고정,
+    // 가운데 본문만 내부 스크롤시킨다. 키보드가 올라오면 가린 높이만큼 셸을 줄여 하단 바를 키보드 위로 올린다.
+    <div
+      className="flex h-dvh flex-col overflow-hidden bg-[var(--bw-true-white)]"
+      style={
+        keyboardInset > 0
+          ? { height: `calc(100dvh - ${keyboardInset}px)` }
+          : undefined
+      }
+    >
       {/* 앱바: 높이 44(h-11), 좌우 8(px-2). 좌측 닫기, 우측 등록(텍스트 버튼). */}
       <AppBarShell>
         {/* 좌측 "취소": 보조 동작이라 연한 회색(text-secondary)으로 빼 주동작 "등록"과 위계를 둔다. */}
@@ -231,7 +243,7 @@ export function PostWriteScreen() {
         </button>
       </AppBarShell>
 
-      <main className="flex flex-1 flex-col">
+      <main className="flex min-h-0 flex-1 flex-col">
         {/* 제목: 단행 입력 + 우측 글자수(n/45)로 한도를 자연 노출.
             헤더↔제목 간격 24(pt-6): 상세의 헤더→작성자 아이콘 간격(article pt-6)과 동일하게 맞춘다. */}
         <div className="flex items-center gap-2 px-4 pb-4 pt-6">
@@ -257,7 +269,8 @@ export function PostWriteScreen() {
           placeholder="자유롭게 이야기를 나눠보세요."
           aria-label="내용"
           // 폰트·색상은 상세 본문과 동일 토큰(Body S 14/21 / feed-card-body-text) → 입력=상세 미리보기.
-          className="mt-2 flex-1 resize-none px-4 text-sm leading-[21px] text-feed-card-body-text outline-none placeholder:text-text-tertiary"
+          // 남은 영역을 채우되(flex-1) 내용이 길어지면 페이지가 아니라 textarea 내부만 스크롤(min-h-0 + overflow).
+          className="mt-2 min-h-0 flex-1 resize-none overflow-y-auto px-4 text-sm leading-[21px] text-feed-card-body-text outline-none placeholder:text-text-tertiary"
         />
 
         {/* 본문 글자수: 자신이 세는 본문 끝 우측에 둔다(상태값을 하단 액션 툴바와 분리). */}
@@ -328,10 +341,16 @@ export function PostWriteScreen() {
         ) : null}
       </main>
 
-      {/* 하단 툴바: 사진·태그 입력 보조 액션 전용. safe-area bottom까지 같은 배경으로.
-          키보드 추적은 JS로 억지로 하지 않는다 — 네이티브 웹뷰가 키보드만큼 리사이즈하면
-          sticky bottom-0가 자연히 키보드 상단에 붙는다(가장 안정적). */}
-      <div className="sticky bottom-0 border-t border-border-subtle bg-[var(--bw-true-white)] pb-[env(safe-area-inset-bottom)]">
+      {/* 하단 툴바: 사진·태그 입력 보조 액션 전용. 고정 높이 셸의 마지막 자식이라 항상 바닥에 붙는다(shrink-0).
+          키보드가 올라오면 셸 높이가 keyboardInset만큼 줄어 이 바가 키보드 바로 위로 따라 올라온다(상세 댓글 바와 동일).
+          평소엔 safe-area bottom(홈 인디케이터)까지 같은 배경으로 칠하지만, 키보드가 올라온 동안엔 그 영역이
+          키보드에 가려 의미가 없으므로 패딩을 0으로 줘 바가 키보드에 딱 붙게 한다(불필요한 하단 여백 제거). */}
+      <div
+        className={cn(
+          "shrink-0 border-t border-border-subtle bg-[var(--bw-true-white)]",
+          keyboardInset > 0 ? "pb-0" : "pb-[env(safe-area-inset-bottom)]",
+        )}
+      >
         {/* 사진 첨부 · 태그 추가. 아이콘 + 텍스트 라벨로 의미를 명시.
             버튼: 아이콘24 ↔ 텍스트(Body S) 간격 12(gap-3), 좌우 여백 8(px-2). */}
         <div className="flex h-[52px] items-center px-2">
