@@ -2,9 +2,13 @@ import { NextResponse } from "next/server";
 
 import {
   parsePostId,
+  requireSessionOr401,
   toErrorResponse,
 } from "@/app/api/community/_lib/community-route-helpers";
-import { createGetPostDetailUseCase } from "@/features/community/application/community-use-case-factory";
+import {
+  createDeletePostUseCase,
+  createGetPostDetailUseCase,
+} from "@/features/community/application/community-use-case-factory";
 import { readSessionToken } from "@/shared/lib/auth";
 import type { ApiSuccessResponse } from "@/shared/types/api";
 
@@ -38,5 +42,33 @@ export async function GET(
     );
   } catch (error) {
     return toErrorResponse(error, "detail", "게시글 조회에 실패했습니다.");
+  }
+}
+
+/**
+ * DELETE /api/community/posts/{id} — 게시글 삭제(인증 필요).
+ *
+ * 업스트림 DELETE /board/{id}로 위임. 본인 게시글 권한은 업스트림이 최종 검사한다.
+ */
+export async function DELETE(
+  _request: Request,
+  ctx: RouteContext<"/api/community/posts/[id]">,
+) {
+  const { id } = await ctx.params;
+  const parsed = parsePostId(id);
+  if ("response" in parsed) return parsed.response;
+
+  const session = await requireSessionOr401();
+  if ("response" in session) return session.response;
+
+  try {
+    await createDeletePostUseCase(session.accessToken).execute(parsed.postId);
+
+    return NextResponse.json<ApiSuccessResponse<null>>(
+      { success: true, data: null },
+      { status: 200 },
+    );
+  } catch (error) {
+    return toErrorResponse(error, "delete", "게시글 삭제에 실패했습니다.");
   }
 }

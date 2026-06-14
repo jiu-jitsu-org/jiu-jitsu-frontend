@@ -37,6 +37,8 @@ export interface CommunityWriteRepository {
   createComment(postId: number, body: string): Promise<Comment>;
   /** 댓글 삭제(본인 댓글). 결과 본문이 없어 void. */
   deleteComment(commentId: number): Promise<void>;
+  /** 게시글 삭제(본인 게시글, DELETE /board/{id}). 결과 본문이 없어 void. */
+  deletePost(postId: number): Promise<void>;
   /** 댓글 좋아요 토글(등록/취소). 토글 후의 좋아요 상태(isLiked)를 반환. */
   toggleCommentLike(commentId: number): Promise<boolean>;
   /**

@@ -61,6 +61,13 @@ export class ExternalCommunityWriteRepository
     });
   }
 
+  async deletePost(postId: number): Promise<void> {
+    // DELETE /board/{id} — 본인 게시글 삭제. 응답 본문은 사용하지 않는다.
+    await this.httpClient.delete<Envelope<null>>({
+      path: `${BOARD_ENDPOINT_PATH}/${postId}`,
+    });
+  }
+
   async toggleCommentLike(commentId: number): Promise<boolean> {
     // POST /community/comments/like — 단일 엔드포인트 토글(등록/취소). 응답 data.isLiked가 토글 후 상태.
     const response = await this.httpClient.post<

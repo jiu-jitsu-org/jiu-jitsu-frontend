@@ -29,6 +29,7 @@ export function PostDetailView({
     <KeyboardAwareShell
       header={
         <PostDetailAppBar
+          postId={post.id}
           isOwner={post.viewer.isOwner}
           initialNoticeEnabled={post.noticeEnabled}
         />
