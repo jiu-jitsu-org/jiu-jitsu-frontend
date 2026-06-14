@@ -21,10 +21,10 @@ import type { HttpClient } from "@/shared/lib/http";
  * 모든 쓰기는 인증이 필요하므로 주입되는 HttpClient는 반드시 authed(Bearer 부착) 클라이언트다.
  *
  * 댓글 생성은 Swagger 확정 계약(POST /community/comments, body { contentId, parentId, body }).
- * 좋아요/북마크는 POST(추가) / DELETE(취소)로 토글한다. 멱등 동작이라 본문은 무시한다.
- * 북마크는 단건 조회 응답의 `isSaved`에 맞춰 `/saves` 경로를 가정한다.
+ * 좋아요는 Swagger 확정 계약(PUT /board/like/{id}) — 서버가 토글하고 isLiked를 돌려준다.
+ * 저장(북마크)은 Swagger 확정 계약(PUT /board/save/{id}) — 서버가 토글하고 isSaved를 돌려준다.
  *
- * FIXME: board/이미지/좋아요·북마크 경로는 가정 계약이다(Swagger 미확인). 백엔드 확정 시 정합 확인 필요.
+ * FIXME: board/이미지 경로는 가정 계약이다(Swagger 미확인). 백엔드 확정 시 정합 확인 필요.
  */
 const BOARD_ENDPOINT_PATH = "/api/board";
 const IMAGE_ENDPOINT_PATH = "/api/image";
@@ -73,28 +73,26 @@ export class ExternalCommunityWriteRepository
     return response.data.isLiked;
   }
 
-  async likePost(postId: number): Promise<void> {
-    await this.httpClient.post<Envelope<null>>({
-      path: `${BOARD_ENDPOINT_PATH}/${postId}/likes`,
+  async toggleLike(postId: number): Promise<boolean> {
+    // PUT /board/like/{id} — 단일 엔드포인트 토글(등록/취소). 응답 data.isLiked가 토글 후 상태.
+    const response = await this.httpClient.put<
+      Envelope<{ contentID: number; isLiked: boolean }>
+    >({
+      path: `${BOARD_ENDPOINT_PATH}/like/${postId}`,
     });
+
+    return response.data.isLiked;
   }
 
-  async unlikePost(postId: number): Promise<void> {
-    await this.httpClient.delete<Envelope<null>>({
-      path: `${BOARD_ENDPOINT_PATH}/${postId}/likes`,
+  async toggleSave(postId: number): Promise<boolean> {
+    // PUT /board/save/{id} — 단일 엔드포인트 토글(저장/취소). 응답 data.isSaved가 토글 후 상태.
+    const response = await this.httpClient.put<
+      Envelope<{ contentID: number; isSaved: boolean }>
+    >({
+      path: `${BOARD_ENDPOINT_PATH}/save/${postId}`,
     });
-  }
 
-  async bookmarkPost(postId: number): Promise<void> {
-    await this.httpClient.post<Envelope<null>>({
-      path: `${BOARD_ENDPOINT_PATH}/${postId}/saves`,
-    });
-  }
-
-  async unbookmarkPost(postId: number): Promise<void> {
-    await this.httpClient.delete<Envelope<null>>({
-      path: `${BOARD_ENDPOINT_PATH}/${postId}/saves`,
-    });
+    return response.data.isSaved;
   }
 
   async getImageUploadAuth(): Promise<ImageUploadAuth> {

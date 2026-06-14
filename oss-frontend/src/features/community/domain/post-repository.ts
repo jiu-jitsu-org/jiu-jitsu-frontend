@@ -31,7 +31,7 @@ export interface PostRepository {
  * 게시글 쓰기 도메인 계약.
  *
  * 모든 쓰기는 인증이 필요하므로, 구현은 반드시 authed HttpClient로 구성된다.
- * 좋아요/북마크는 멱등한 토글이라 결과 본문 없이 void를 반환한다.
+ * 좋아요/저장은 서버가 현재 상태를 뒤집어 결과를 돌려주는 단일 엔드포인트 토글이다.
  */
 export interface CommunityWriteRepository {
   createComment(postId: number, body: string): Promise<Comment>;
@@ -39,10 +39,16 @@ export interface CommunityWriteRepository {
   deleteComment(commentId: number): Promise<void>;
   /** 댓글 좋아요 토글(등록/취소). 토글 후의 좋아요 상태(isLiked)를 반환. */
   toggleCommentLike(commentId: number): Promise<boolean>;
-  likePost(postId: number): Promise<void>;
-  unlikePost(postId: number): Promise<void>;
-  bookmarkPost(postId: number): Promise<void>;
-  unbookmarkPost(postId: number): Promise<void>;
+  /**
+   * 게시글 좋아요 토글(PUT /board/like/{id}). 서버가 현재 상태를 뒤집고
+   * 결과를 알려주므로, 토글 후의 좋아요 여부(isLiked)를 반환한다.
+   */
+  toggleLike(postId: number): Promise<boolean>;
+  /**
+   * 게시글 저장/취소 토글(PUT /board/save/{id}). 서버가 현재 상태를 뒤집고
+   * 결과를 알려주므로, 토글 후의 저장 여부(isSaved)를 반환한다.
+   */
+  toggleSave(postId: number): Promise<boolean>;
   /** ① ImageKit 업로드용 서명 발급(GET /image/auth). */
   getImageUploadAuth(): Promise<ImageUploadAuth>;
   /** ③ ImageKit 업로드 결과를 서버에 등록(POST /image) → TEMP 이미지. */

@@ -9,32 +9,14 @@ import { createToggleLikeUseCase } from "@/features/community/application/commun
 import type { ApiSuccessResponse } from "@/shared/types/api";
 
 /**
- * 게시글 좋아요 BFF (인증 필요).
+ * POST /api/community/posts/{id}/likes — 게시글 좋아요 토글(인증 필요).
  *
- * - POST   : 좋아요 추가 (현재 미좋아요 상태 → like)
- * - DELETE : 좋아요 취소 (현재 좋아요 상태 → unlike)
- *
- * ToggleLikeUseCase는 "현재 liked" 값을 받아 반대 동작을 수행하므로,
- * REST 의미(POST=add/DELETE=remove)를 현재 상태 boolean으로 매핑해 호출한다.
+ * 업스트림 PUT /board/like/{id}로 위임한다(단일 엔드포인트 등록/취소).
+ * 응답으로 토글 후 좋아요 상태(liked)를 돌려줘 클라이언트가 낙관적 상태를 보정한다.
  */
 export async function POST(
   _request: Request,
   ctx: RouteContext<"/api/community/posts/[id]/likes">,
-) {
-  return mutateLike(ctx, false, "like");
-}
-
-export async function DELETE(
-  _request: Request,
-  ctx: RouteContext<"/api/community/posts/[id]/likes">,
-) {
-  return mutateLike(ctx, true, "unlike");
-}
-
-async function mutateLike(
-  ctx: RouteContext<"/api/community/posts/[id]/likes">,
-  currentlyLiked: boolean,
-  context: string,
 ) {
   const { id } = await ctx.params;
   const parsed = parsePostId(id);
@@ -44,16 +26,15 @@ async function mutateLike(
   if ("response" in session) return session.response;
 
   try {
-    await createToggleLikeUseCase(session.accessToken).execute(
+    const liked = await createToggleLikeUseCase(session.accessToken).execute(
       parsed.postId,
-      currentlyLiked,
     );
 
-    return NextResponse.json<ApiSuccessResponse<null>>(
-      { success: true, data: null },
+    return NextResponse.json<ApiSuccessResponse<{ liked: boolean }>>(
+      { success: true, data: { liked } },
       { status: 200 },
     );
   } catch (error) {
-    return toErrorResponse(error, context, "좋아요 처리에 실패했습니다.");
+    return toErrorResponse(error, "like", "좋아요 처리에 실패했습니다.");
   }
 }

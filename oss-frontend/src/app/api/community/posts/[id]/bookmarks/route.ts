@@ -9,29 +9,14 @@ import { createToggleBookmarkUseCase } from "@/features/community/application/co
 import type { ApiSuccessResponse } from "@/shared/types/api";
 
 /**
- * 게시글 북마크 BFF (인증 필요).
+ * POST /api/community/posts/{id}/bookmarks — 게시글 저장(북마크) 토글(인증 필요).
  *
- * - POST   : 북마크 추가 (현재 미북마크 상태 → bookmark)
- * - DELETE : 북마크 취소 (현재 북마크 상태 → unbookmark)
+ * 업스트림 PUT /board/save/{id}로 위임한다(단일 엔드포인트 저장/취소).
+ * 응답으로 토글 후 저장 상태(saved)를 돌려줘 클라이언트가 낙관적 상태를 보정한다.
  */
 export async function POST(
   _request: Request,
   ctx: RouteContext<"/api/community/posts/[id]/bookmarks">,
-) {
-  return mutateBookmark(ctx, false, "bookmark");
-}
-
-export async function DELETE(
-  _request: Request,
-  ctx: RouteContext<"/api/community/posts/[id]/bookmarks">,
-) {
-  return mutateBookmark(ctx, true, "unbookmark");
-}
-
-async function mutateBookmark(
-  ctx: RouteContext<"/api/community/posts/[id]/bookmarks">,
-  currentlyBookmarked: boolean,
-  context: string,
 ) {
   const { id } = await ctx.params;
   const parsed = parsePostId(id);
@@ -41,16 +26,15 @@ async function mutateBookmark(
   if ("response" in session) return session.response;
 
   try {
-    await createToggleBookmarkUseCase(session.accessToken).execute(
-      parsed.postId,
-      currentlyBookmarked,
-    );
+    const saved = await createToggleBookmarkUseCase(
+      session.accessToken,
+    ).execute(parsed.postId);
 
-    return NextResponse.json<ApiSuccessResponse<null>>(
-      { success: true, data: null },
+    return NextResponse.json<ApiSuccessResponse<{ saved: boolean }>>(
+      { success: true, data: { saved } },
       { status: 200 },
     );
   } catch (error) {
-    return toErrorResponse(error, context, "북마크 처리에 실패했습니다.");
+    return toErrorResponse(error, "bookmark", "저장 처리에 실패했습니다.");
   }
 }

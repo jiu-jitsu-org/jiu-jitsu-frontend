@@ -3,18 +3,13 @@ import type { CommunityWriteRepository } from "@/features/community/domain/post-
 /**
  * 게시글 좋아요를 토글한다.
  *
- * 현재 좋아요 상태(liked)를 받아 반대 동작(취소/추가)을 수행한다. 멱등 토글이라
- * 별도 응답 본문은 다루지 않는다(낙관적 UI는 presentation이 카운트를 보정).
+ * 서버 단일 엔드포인트(PUT /board/like/{id})가 현재 상태를 뒤집고 결과를 돌려주므로,
+ * 토글 후의 좋아요 여부(isLiked)를 그대로 반환한다(카운트 보정은 presentation 담당).
  */
 export class ToggleLikeUseCase {
   constructor(private readonly writeRepository: CommunityWriteRepository) {}
 
-  async execute(postId: number, liked: boolean): Promise<void> {
-    if (liked) {
-      await this.writeRepository.unlikePost(postId);
-      return;
-    }
-
-    await this.writeRepository.likePost(postId);
+  async execute(postId: number): Promise<boolean> {
+    return this.writeRepository.toggleLike(postId);
   }
 }

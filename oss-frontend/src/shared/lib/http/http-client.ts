@@ -39,6 +39,10 @@ export class HttpClient {
     return this.request<T>("POST", options);
   }
 
+  async put<T>(options: RequestOptions): Promise<T> {
+    return this.request<T>("PUT", options);
+  }
+
   async delete<T>(options: RequestOptions): Promise<T> {
     return this.request<T>("DELETE", options);
   }
