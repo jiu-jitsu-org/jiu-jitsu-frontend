@@ -12,7 +12,9 @@ import {
   closeNativeSubview,
   postToNative,
 } from "@/shared/lib/native-bridge";
-import { AppBarShell, ConfirmDialog, useToast } from "@/shared/ui";
+import { useToast } from "@/shared/ui";
+import { AppBarShell } from "@/features/community/presentation/app-bar-shell";
+import { ConfirmDialog } from "@/features/community/presentation/confirm-dialog";
 import {
   BellIcon,
   BellOffIcon,

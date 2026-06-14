@@ -3,7 +3,12 @@
 import { useState } from "react";
 
 import { useOpenPostDetail } from "@/features/community/presentation/use-open-post-detail";
-import { BackButton, FeedCard, FeedListEnd, type FeedCardProps } from "@/shared/ui";
+import { BackButton } from "@/shared/ui";
+import {
+  FeedCard,
+  type FeedCardProps,
+} from "@/features/community/presentation/feed/feed-card";
+import { FeedListEnd } from "@/features/community/presentation/feed/feed-list-end";
 
 const SAMPLE_IMAGE = "https://picsum.photos/seed/oss/800/450";
 

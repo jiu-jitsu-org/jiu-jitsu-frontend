@@ -7,7 +7,8 @@ import { PostAuthorRow } from "@/features/community/presentation/post-author-row
 import { PostDetailAppBar } from "@/features/community/presentation/post-detail-app-bar";
 import { PostDetailBody } from "@/features/community/presentation/post-detail-body";
 import { PostTags } from "@/features/community/presentation/post-tags";
-import { FeedCardImages, KeyboardAwareShell } from "@/shared/ui";
+import { FeedCardImages } from "@/features/community/presentation/feed/feed-card";
+import { KeyboardAwareShell } from "@/features/community/presentation/keyboard-aware-shell";
 
 /**
  * 상세 화면 레이아웃 (순수 표현 서버 컴포넌트).

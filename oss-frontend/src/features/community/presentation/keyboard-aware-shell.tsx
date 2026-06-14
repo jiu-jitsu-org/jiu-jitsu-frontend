@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 
-import { useViewportRect } from "@/shared/lib/use-viewport-rect";
+import { useViewportRect } from "@/features/community/presentation/use-viewport-rect";
 
 /**
  * 키보드를 인지하는 고정 높이 화면 셸.

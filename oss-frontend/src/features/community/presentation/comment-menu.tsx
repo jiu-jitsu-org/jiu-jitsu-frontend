@@ -9,7 +9,8 @@ import {
   MenuItem,
 } from "@/features/community/presentation/menu-box";
 import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
-import { ConfirmDialog, useToast } from "@/shared/ui";
+import { useToast } from "@/shared/ui";
+import { ConfirmDialog } from "@/features/community/presentation/confirm-dialog";
 import { MoreVerticalIcon } from "@/shared/ui/icons";
 
 /** 현재 열린 확인 알럿 종류. */

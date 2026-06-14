@@ -3,7 +3,8 @@
 import { useOpenPostDetail } from "@/features/community/presentation/use-open-post-detail";
 import { usePostActions } from "@/features/community/presentation/use-post-actions";
 import type { PostSummary } from "@/features/community/domain/post-summary";
-import { FeedCard, FeedListEnd } from "@/shared/ui";
+import { FeedCard } from "@/features/community/presentation/feed/feed-card";
+import { FeedListEnd } from "@/features/community/presentation/feed/feed-list-end";
 
 /**
  * 커뮤니티 메인 피드 목록.

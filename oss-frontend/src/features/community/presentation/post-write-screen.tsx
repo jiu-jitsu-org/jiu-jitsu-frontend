@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 
 import { cn } from "@/shared/lib/cn";
-import { useViewportRect } from "@/shared/lib/use-viewport-rect";
+import { useViewportRect } from "@/features/community/presentation/use-viewport-rect";
 import {
   closeNativeSubview,
   isNativeBridgeAvailable,
@@ -12,7 +12,9 @@ import {
   postToNative,
   useNativeBackHandler,
 } from "@/shared/lib/native-bridge";
-import { AppBarShell, ConfirmDialog, useToast } from "@/shared/ui";
+import { useToast } from "@/shared/ui";
+import { AppBarShell } from "@/features/community/presentation/app-bar-shell";
+import { ConfirmDialog } from "@/features/community/presentation/confirm-dialog";
 import { HashIcon, ImageIcon } from "@/shared/ui/icons";
 
 import {

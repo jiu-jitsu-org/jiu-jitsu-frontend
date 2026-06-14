@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
 import { cn } from "@/shared/lib/cn";
-import { useViewportRect } from "@/shared/lib/use-viewport-rect";
+import { useViewportRect } from "@/features/community/presentation/use-viewport-rect";
 import { CommentIcon } from "@/shared/ui/icons";
 import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
 
