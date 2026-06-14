@@ -2,9 +2,10 @@ import type { ReactNode } from "react";
 
 import type { Comment } from "@/features/community/domain/comment";
 import { Avatar } from "@/features/community/presentation/avatar";
+import { CommentLikeButton } from "@/features/community/presentation/comment-like-button";
 import { CommentMenu } from "@/features/community/presentation/comment-menu";
 import { CommentReplies } from "@/features/community/presentation/comment-replies";
-import { CommentIcon, HeartIcon } from "@/shared/ui/icons";
+import { CommentIcon } from "@/shared/ui/icons";
 
 /** ISO → "M월 D일" 간단 라벨. 파싱 실패 시 원문 반환. */
 function formatCommentDate(iso: string): string {
@@ -63,13 +64,14 @@ export function CommentItem({ comment }: { comment: Comment }) {
             label="댓글쓰기"
             count={comment.replyCount}
           />
-          <CommentReaction
-            icon={<HeartIcon size={16} filled={comment.liked} />}
-            label="좋아요"
-            count={comment.likeCount}
+          <CommentLikeButton
+            commentId={comment.id}
+            initialLiked={comment.liked}
+            initialLikeCount={comment.likeCount}
           />
           {/* ⋮ 메뉴: 내 댓글=삭제 / 타인 댓글=차단·신고. 차단 시 닉네임으로 확인 알럿 */}
           <CommentMenu
+            commentId={comment.id}
             isOwner={comment.isOwner}
             authorNickname={comment.author.nickname}
           />

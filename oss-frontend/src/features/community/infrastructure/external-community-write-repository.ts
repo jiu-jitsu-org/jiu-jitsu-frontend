@@ -1,4 +1,8 @@
 import type { Comment } from "@/features/community/domain/comment";
+import {
+  type CommentDto,
+  toComment,
+} from "@/features/community/infrastructure/comment-dto";
 import type {
   ImageUploadAuth,
   RegisterImageInput,
@@ -9,6 +13,7 @@ import type {
   CreatedPost,
 } from "@/features/community/domain/post";
 import type { CommunityWriteRepository } from "@/features/community/domain/post-repository";
+import type { CreateReportInput } from "@/features/community/domain/report";
 import type { HttpClient } from "@/shared/lib/http";
 
 /**
@@ -16,14 +21,16 @@ import type { HttpClient } from "@/shared/lib/http";
  *
  * 모든 쓰기는 인증이 필요하므로 주입되는 HttpClient는 반드시 authed(Bearer 부착) 클라이언트다.
  *
- * 좋아요/북마크는 POST(추가) / DELETE(취소)로 토글한다. 멱등 동작이라 본문은 무시한다.
- * 북마크는 단건 조회 응답의 `isSaved`에 맞춰 `/saves` 경로를 가정한다.
+ * 댓글 생성은 Swagger 확정 계약(POST /community/comments, body { contentId, parentId, body }).
+ * 좋아요는 Swagger 확정 계약(PUT /board/like/{id}) — 서버가 토글하고 isLiked를 돌려준다.
+ * 저장(북마크)은 Swagger 확정 계약(PUT /board/save/{id}) — 서버가 토글하고 isSaved를 돌려준다.
  *
- * FIXME: 아래 경로/본문 필드(`content`)는 가정 계약이다(단건 조회 외 엔드포인트는 Swagger 미확인).
- *        백엔드 확정 시 정합 확인 필요.
+ * FIXME: board/이미지 경로는 가정 계약이다(Swagger 미확인). 백엔드 확정 시 정합 확인 필요.
  */
 const BOARD_ENDPOINT_PATH = "/api/board";
 const IMAGE_ENDPOINT_PATH = "/api/image";
+const COMMENT_ENDPOINT_PATH = "/api/community/comments";
+const REPORT_ENDPOINT_PATH = "/api/reports";
 
 type Envelope<T> = {
   success: boolean;
@@ -38,36 +45,72 @@ export class ExternalCommunityWriteRepository
   constructor(private readonly httpClient: HttpClient) {}
 
   async createComment(postId: number, body: string): Promise<Comment> {
-    const response = await this.httpClient.post<Envelope<Comment>>({
-      path: `${BOARD_ENDPOINT_PATH}/${postId}/comments`,
-      body: { content: body },
+    // POST /community/comments — contentId(게시글 id) + parentId + body.
+    // FIXME(대댓글): 현재 화면은 최상위 댓글만 작성하므로 parentId=0 고정.
+    //   답글 작성 UI 추가 시 parentId를 인자로 받아 전달.
+    const response = await this.httpClient.post<Envelope<CommentDto>>({
+      path: COMMENT_ENDPOINT_PATH,
+      body: { contentId: postId, parentId: 0, body },
     });
 
-    return response.data;
+    return toComment(response.data);
   }
 
-  async likePost(postId: number): Promise<void> {
-    await this.httpClient.post<Envelope<null>>({
-      path: `${BOARD_ENDPOINT_PATH}/${postId}/likes`,
-    });
-  }
-
-  async unlikePost(postId: number): Promise<void> {
+  async deleteComment(commentId: number): Promise<void> {
+    // DELETE /community/comments/{id} — 본인 댓글 삭제. 응답 본문은 사용하지 않는다.
     await this.httpClient.delete<Envelope<null>>({
-      path: `${BOARD_ENDPOINT_PATH}/${postId}/likes`,
+      path: `${COMMENT_ENDPOINT_PATH}/${commentId}`,
     });
   }
 
-  async bookmarkPost(postId: number): Promise<void> {
-    await this.httpClient.post<Envelope<null>>({
-      path: `${BOARD_ENDPOINT_PATH}/${postId}/saves`,
-    });
-  }
-
-  async unbookmarkPost(postId: number): Promise<void> {
+  async deletePost(postId: number): Promise<void> {
+    // DELETE /board/{id} — 본인 게시글 삭제. 응답 본문은 사용하지 않는다.
     await this.httpClient.delete<Envelope<null>>({
-      path: `${BOARD_ENDPOINT_PATH}/${postId}/saves`,
+      path: `${BOARD_ENDPOINT_PATH}/${postId}`,
     });
+  }
+
+  async report(input: CreateReportInput): Promise<void> {
+    // POST /reports — { reportType, targetId, reason }. 응답 본문은 사용하지 않는다.
+    // 동일 대상 중복 신고는 서버가 막는다(409 가정) → HttpError로 상위에 전달.
+    await this.httpClient.post<Envelope<null>>({
+      path: REPORT_ENDPOINT_PATH,
+      body: input,
+    });
+  }
+
+  async toggleCommentLike(commentId: number): Promise<boolean> {
+    // POST /community/comments/like — 단일 엔드포인트 토글(등록/취소). 응답 data.isLiked가 토글 후 상태.
+    const response = await this.httpClient.post<
+      Envelope<{ commentId: number; isLiked: boolean }>
+    >({
+      path: `${COMMENT_ENDPOINT_PATH}/like`,
+      body: { commentId },
+    });
+
+    return response.data.isLiked;
+  }
+
+  async toggleLike(postId: number): Promise<boolean> {
+    // PUT /board/like/{id} — 단일 엔드포인트 토글(등록/취소). 응답 data.isLiked가 토글 후 상태.
+    const response = await this.httpClient.put<
+      Envelope<{ contentID: number; isLiked: boolean }>
+    >({
+      path: `${BOARD_ENDPOINT_PATH}/like/${postId}`,
+    });
+
+    return response.data.isLiked;
+  }
+
+  async toggleSave(postId: number): Promise<boolean> {
+    // PUT /board/save/{id} — 단일 엔드포인트 토글(저장/취소). 응답 data.isSaved가 토글 후 상태.
+    const response = await this.httpClient.put<
+      Envelope<{ contentID: number; isSaved: boolean }>
+    >({
+      path: `${BOARD_ENDPOINT_PATH}/save/${postId}`,
+    });
+
+    return response.data.isSaved;
   }
 
   async getImageUploadAuth(): Promise<ImageUploadAuth> {

@@ -2,10 +2,16 @@
 
 import { useState } from "react";
 
+import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
 import {
   MenuBox,
   MenuItem,
 } from "@/features/community/presentation/menu-box";
+import {
+  OutboundMessageType,
+  closeNativeSubview,
+  postToNative,
+} from "@/shared/lib/native-bridge";
 import { AppBarShell, ConfirmDialog, useToast } from "@/shared/ui";
 import {
   BellIcon,
@@ -24,15 +30,19 @@ import {
  * (네이티브가 그리면 소유자 컨텍스트를 브릿지로 왕복해야 함).
  */
 export function PostDetailAppBar({
+  postId,
   isOwner,
   initialNoticeEnabled,
 }: {
+  postId: number;
   isOwner: boolean;
   initialNoticeEnabled: boolean;
 }) {
   const toast = useToast();
+  const demo = useIsDemoMode();
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [reportConfirmOpen, setReportConfirmOpen] = useState(false);
   // 알림 받기 on/off. 초기값은 게시글의 noticeEnabled, 탭하면 토글(아이콘 변경 + 토스트).
   // FIXME: 실제 알림 설정 저장(PATCH)은 API 확정 후 추가.
   const [alarmOn, setAlarmOn] = useState(initialNoticeEnabled);
@@ -48,10 +58,66 @@ export function PostDetailAppBar({
     );
   }
 
-  function confirmDelete() {
+  async function confirmDelete() {
     setDeleteConfirmOpen(false);
-    // FIXME(API): 게시글 삭제(post id) + 성공 시 화면 닫기/목록 복귀.
+
+    // 예시(데모)에선 네트워크 없이 토스트만(실제 삭제/화면 닫기 없음).
+    if (demo) {
+      toast.show("게시물이 삭제되었습니다");
+      return;
+    }
+
+    const response = await fetch(`/api/community/posts/${postId}`, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
+      }
+      toast.show("게시물 삭제에 실패했습니다");
+      return;
+    }
+
     toast.show("게시물이 삭제되었습니다");
+    // 성공 → 네이티브가 상세 서브뷰를 닫고 목록으로 복귀(목록 갱신은 네이티브 책임).
+    closeNativeSubview();
+  }
+
+  async function confirmReport() {
+    setReportConfirmOpen(false);
+
+    // 예시(데모)에선 네트워크 없이 토스트만(실제 신고 없음).
+    if (demo) {
+      toast.show("게시물을 신고했습니다");
+      return;
+    }
+
+    // FIXME(reason): 사유 선택 UI가 없어 항상 "SPAM"으로 보낸다. 사유 picker 추가 시 교체.
+    const response = await fetch("/api/community/reports", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        reportType: "BOARD",
+        targetId: postId,
+        reason: "SPAM",
+      }),
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
+      }
+      // 동일 대상 중복 신고는 서버가 막는다(409 가정).
+      toast.show(
+        response.status === 409
+          ? "이미 신고한 게시물이에요"
+          : "게시물 신고에 실패했습니다",
+      );
+      return;
+    }
+
+    toast.show("게시물을 신고했습니다");
   }
 
   return (
@@ -97,7 +163,14 @@ export function PostDetailAppBar({
               </>
             ) : (
               <>
-                <MenuItem onClick={() => setMenuOpen(false)}>신고하기</MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setReportConfirmOpen(true);
+                  }}
+                >
+                  신고하기
+                </MenuItem>
                 <MenuItem onClick={() => setMenuOpen(false)}>숨기기</MenuItem>
               </>
             )}
@@ -115,6 +188,17 @@ export function PostDetailAppBar({
         destructive
         onCancel={() => setDeleteConfirmOpen(false)}
         onConfirm={confirmDelete}
+      />
+
+      {/* 게시글 신고 확인 알럿 */}
+      <ConfirmDialog
+        open={reportConfirmOpen}
+        title="게시글 신고"
+        message="신고된 게시글은 검토 후 처리돼요."
+        confirmText="신고"
+        destructive
+        onCancel={() => setReportConfirmOpen(false)}
+        onConfirm={confirmReport}
       />
     </AppBarShell>
   );

@@ -1,10 +1,15 @@
 import { CreateCommentUseCase } from "@/features/community/application/create-comment";
 import { CreatePostUseCase } from "@/features/community/application/create-post";
+import { CreateReportUseCase } from "@/features/community/application/create-report";
+import { DeleteCommentUseCase } from "@/features/community/application/delete-comment";
+import { DeletePostUseCase } from "@/features/community/application/delete-post";
 import { GetCommentsUseCase } from "@/features/community/application/get-comments";
 import { GetImageUploadAuthUseCase } from "@/features/community/application/get-image-upload-auth";
 import { RegisterImageUseCase } from "@/features/community/application/register-image";
 import { GetPostDetailUseCase } from "@/features/community/application/get-post-detail";
+import { GetPostListUseCase } from "@/features/community/application/get-post-list";
 import { ToggleBookmarkUseCase } from "@/features/community/application/toggle-bookmark";
+import { ToggleCommentLikeUseCase } from "@/features/community/application/toggle-comment-like";
 import { ToggleLikeUseCase } from "@/features/community/application/toggle-like";
 import { ExternalCommunityWriteRepository } from "@/features/community/infrastructure/external-community-write-repository";
 import { ExternalPostRepository } from "@/features/community/infrastructure/external-post-repository";
@@ -30,6 +35,12 @@ function createReadRepository(accessToken: string | null): ExternalPostRepositor
     : createServerHttpClient();
 
   return new ExternalPostRepository(httpClient);
+}
+
+export function createGetPostListUseCase(
+  accessToken: string | null,
+): GetPostListUseCase {
+  return new GetPostListUseCase(createReadRepository(accessToken));
 }
 
 export function createGetPostDetailUseCase(
@@ -59,10 +70,34 @@ export function createCreateCommentUseCase(
   return new CreateCommentUseCase(createWriteRepository(accessToken));
 }
 
+export function createDeleteCommentUseCase(
+  accessToken: string,
+): DeleteCommentUseCase {
+  return new DeleteCommentUseCase(createWriteRepository(accessToken));
+}
+
+export function createDeletePostUseCase(
+  accessToken: string,
+): DeletePostUseCase {
+  return new DeletePostUseCase(createWriteRepository(accessToken));
+}
+
+export function createCreateReportUseCase(
+  accessToken: string,
+): CreateReportUseCase {
+  return new CreateReportUseCase(createWriteRepository(accessToken));
+}
+
 export function createToggleLikeUseCase(
   accessToken: string,
 ): ToggleLikeUseCase {
   return new ToggleLikeUseCase(createWriteRepository(accessToken));
+}
+
+export function createToggleCommentLikeUseCase(
+  accessToken: string,
+): ToggleCommentLikeUseCase {
+  return new ToggleCommentLikeUseCase(createWriteRepository(accessToken));
 }
 
 export function createToggleBookmarkUseCase(

@@ -40,9 +40,10 @@ export function usePostActions(postId: number, initial: PostActionsState) {
     if (pending[kind]) return;
 
     const wasActive = kind === "like" ? state.liked : state.bookmarked;
-    const method = wasActive ? "DELETE" : "POST";
+    // 토글 전 카운트(서버 권위값 보정 시 기준점) — like 카운트 재계산에만 쓴다.
+    const prevLikes = state.likes;
 
-    // 1) 낙관적 반영
+    // 1) 낙관적 반영 — like/bookmark 모두 단일 엔드포인트 토글이라 항상 POST.
     setPending((p) => ({ ...p, [kind]: true }));
     setState((prev) => applyToggle(prev, kind, !wasActive));
 
@@ -53,7 +54,7 @@ export function usePostActions(postId: number, initial: PostActionsState) {
     }
 
     try {
-      const response = await fetch(ENDPOINT[kind](postId), { method });
+      const response = await fetch(ENDPOINT[kind](postId), { method: "POST" });
 
       if (!response.ok) {
         if (response.status === 401) {
@@ -61,6 +62,25 @@ export function usePostActions(postId: number, initial: PostActionsState) {
           postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
         }
         throw new Error(`${kind} request failed: ${response.status}`);
+      }
+
+      // 서버 권위값으로 낙관적 상태를 보정한다(like=data.liked, bookmark=data.saved).
+      const body = (await response.json().catch(() => null)) as
+        | { data?: { liked?: boolean; saved?: boolean } }
+        | null;
+      const authoritative =
+        kind === "like" ? body?.data?.liked : body?.data?.saved;
+      if (typeof authoritative === "boolean") {
+        setState((prev) =>
+          kind === "like"
+            ? {
+                ...prev,
+                liked: authoritative,
+                // 토글 전 기준점에서 서버 진실값으로 카운트 재계산.
+                likes: prevLikes + (authoritative ? 1 : 0) - (wasActive ? 1 : 0),
+              }
+            : { ...prev, bookmarked: authoritative },
+        );
       }
     } catch {
       // 2) 실패 시 롤백

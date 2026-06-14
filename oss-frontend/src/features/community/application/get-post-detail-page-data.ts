@@ -2,7 +2,7 @@ import {
   createGetCommentsUseCase,
   createGetPostDetailUseCase,
 } from "@/features/community/application/community-use-case-factory";
-import type { CommentList } from "@/features/community/domain/comment";
+import type { Comment, CommentList } from "@/features/community/domain/comment";
 import type { CommentSort, PostDetail } from "@/features/community/domain/post";
 import { readSessionToken } from "@/shared/lib/auth";
 import { toApiError } from "@/shared/lib/http";
@@ -18,6 +18,23 @@ export type PostDetailPageDataResult =
 
 /** 댓글 API 미연동 시 폴백(상세만으로도 화면이 뜨도록). */
 const EMPTY_COMMENTS: CommentList = { items: [], total: 0, nextCursor: null };
+
+/**
+ * 게시글 작성자가 쓴 댓글에 isPostAuthor=true를 채운다("작성자" 배지).
+ *
+ * 응답에 "댓글 작성자 == 게시글 작성자" 필드가 없어, 게시글 author id와 댓글 author id를
+ * 비교해 도출한다. 대댓글까지 재귀 적용. (게시글+댓글이 함께 있는 이 레이어에서만 가능)
+ */
+function markPostAuthorComments(
+  comments: Comment[],
+  postAuthorId: number,
+): Comment[] {
+  return comments.map((comment) => ({
+    ...comment,
+    isPostAuthor: comment.author.userId === postAuthorId,
+    replies: markPostAuthorComments(comment.replies, postAuthorId),
+  }));
+}
 
 /**
  * 상세 화면 Server Component용 페이지 쿼리.
@@ -38,13 +55,18 @@ export async function getPostDetailPageData(
   try {
     const post = await createGetPostDetailUseCase(accessToken).execute(postId);
 
-    // 댓글 단건 조회 API는 아직 미연동일 수 있다. 실패해도 상세는 보이도록 빈 목록으로 폴백한다.
-    // FIXME: 댓글 목록 API 연동 후 이 폴백(catch) 제거.
+    // 댓글 목록 조회가 실패해도 게시글 상세는 보이도록 빈 목록으로 폴백(graceful degradation).
     const comments = await createGetCommentsUseCase(accessToken)
       .execute(postId, sort)
       .catch(() => EMPTY_COMMENTS);
 
-    return { ok: true, data: { post, comments } };
+    // 게시글 작성자 본인이 단 댓글에 "작성자" 배지를 채운다(응답에 직접 필드가 없어 id 비교로 도출).
+    const commentsWithAuthor: CommentList = {
+      ...comments,
+      items: markPostAuthorComments(comments.items, post.author.userId),
+    };
+
+    return { ok: true, data: { post, comments: commentsWithAuthor } };
   } catch (error) {
     const apiError = toApiError(error);
     return {

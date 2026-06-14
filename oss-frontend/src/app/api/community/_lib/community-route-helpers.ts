@@ -38,6 +38,20 @@ export function parsePostId(
 }
 
 /**
+ * 댓글 `[id]` 동적 세그먼트를 양의 정수로 파싱한다(parsePostId와 동일 규약).
+ */
+export function parseCommentId(
+  raw: string,
+): { commentId: number } | { response: NextResponse } {
+  const commentId = Number(raw);
+  if (!Number.isInteger(commentId) || commentId <= 0) {
+    return { response: jsonError("잘못된 댓글 ID입니다.", 400) };
+  }
+
+  return { commentId };
+}
+
+/**
  * 보호된 쓰기 진입부의 세션 가드.
  * 토큰이 있으면 반환, 없으면 401 응답을 반환한다.
  */

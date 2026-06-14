@@ -1,87 +1,45 @@
-import Link from "next/link";
+import type { ReactNode } from "react";
 
+import { getBoardListPageData } from "@/features/community/application/get-board-list-page-data";
+import { DEFAULT_BOARD_LIST_QUERY } from "@/features/community/domain/post-summary";
+import { CommunityFeedList } from "@/features/community/presentation/community-feed-list";
 import { PostWriteFab } from "@/features/community/presentation/post-write-fab";
 
 /**
- * 메인 화면(임시): 개발용 진입 허브.
+ * 메인 화면 — 커뮤니티 게시글 피드.
  *
- * 작업 중인 페이지로 빠르게 이동하기 위한 링크 모음이다.
- * page는 서버 컴포넌트로 유지한다(정적 링크만 포함).
- * 원래 랜딩은 `src/app/_backup/home-page-original.tsx`에 보관돼 있다.
+ * Server Component가 초기 목록을 조회(GET /board)해 FeedCard 목록으로 렌더한다.
+ * 데이터 조회는 application page data query에 위임하고(page는 라우팅/조립만),
+ * 로딩은 같은 라우트의 loading.tsx, 카드 상호작용은 client 컴포넌트가 담당한다.
+ * 개발용 진입 허브/playground는 `src/app/_backup/`에 보관돼 있다.
  */
+export default async function Home() {
+  const result = await getBoardListPageData(DEFAULT_BOARD_LIST_QUERY);
 
-type NavEntry = {
-  href: string;
-  title: string;
-  description: string;
-};
-
-const NAV_ENTRIES: NavEntry[] = [
-  {
-    href: "/auth-playground",
-    title: "인증·브릿지 테스트 하니스",
-    description:
-      "네이티브 없이 브릿지·세션 흐름을 확인하는 개발용 하니스 (로그인/시뮬레이터/이벤트 로그)",
-  },
-  {
-    href: "/community-playground",
-    title: "커뮤니티 메인 카드 컴포넌트",
-    description:
-      "커뮤니티 피드 공통 UI(FeedCard) 쇼케이스 — 실제 메인처럼 카드를 세로로 나열",
-  },
-  {
-    href: "/community-playground/detail",
-    title: "커뮤니티 게시글 상세 화면",
-    description:
-      "게시글 상세 UI 쇼케이스(mock) — 앱바·본문·액션바·댓글·입력바. 백엔드 없이 레이아웃/인터랙션 확인",
-  },
-];
-
-export default function Home() {
   return (
-    <main className="min-h-screen bg-white px-6 py-12 text-zinc-900">
-      <div className="mx-auto w-full max-w-3xl">
-        <header className="border-b border-zinc-200 pb-6">
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-zinc-500">
-            Dev Hub
-          </p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-            개발용 진입 허브
-          </h1>
-          <p className="mt-3 text-sm text-zinc-600">
-            작업 중인 페이지로 이동합니다.
-          </p>
-        </header>
-
-        <ul className="mt-8 divide-y divide-zinc-200 border-y border-zinc-200">
-          {NAV_ENTRIES.map((entry) => (
-            <li key={entry.href}>
-              <Link
-                href={entry.href}
-                className="group flex items-center justify-between gap-4 py-5 transition-colors hover:bg-zinc-50"
-              >
-                <div className="min-w-0">
-                  <p className="text-base font-semibold text-zinc-900 group-hover:text-zinc-950">
-                    {entry.title}
-                  </p>
-                  <p className="mt-1 text-sm leading-6 text-zinc-600">
-                    {entry.description}
-                  </p>
-                </div>
-                <span
-                  aria-hidden
-                  className="shrink-0 text-zinc-400 transition-transform group-hover:translate-x-0.5 group-hover:text-zinc-600"
-                >
-                  →
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </div>
+    <main className="min-h-screen bg-[var(--bw-white)]">
+      {!result.ok ? (
+        <FeedMessage>게시글을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.</FeedMessage>
+      ) : result.data.list.items.length === 0 ? (
+        <FeedMessage>아직 게시글이 없어요.</FeedMessage>
+      ) : (
+        <CommunityFeedList
+          posts={result.data.list.items}
+          isLast={result.data.list.isLast}
+        />
+      )}
 
       {/* 게시글 작성 진입 FAB — 네이티브면 OPEN_SUBVIEW로 풀스크린 서브뷰, 웹 단독이면 라우터 이동. */}
       <PostWriteFab />
     </main>
+  );
+}
+
+/** 빈/에러 상태 안내 문구(피드 영역 중앙). */
+function FeedMessage({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center px-6 text-center text-sm text-feed-card-body-text">
+      {children}
+    </div>
   );
 }

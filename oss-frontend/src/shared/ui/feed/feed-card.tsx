@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { cn } from "@/shared/lib/cn";
 import {
@@ -123,6 +123,46 @@ function formatDateLabel(iso: string): string {
   return `${date.getMonth() + 1}월 ${date.getDate()}일`;
 }
 
+/**
+ * 카드 헤더 아바타 (size-6, 폴백 아이콘 16).
+ *
+ * src가 없거나 이미지 로드에 실패하면(onError) 기본 아이콘(PersonIcon)으로 폴백한다 — 엑박 방지.
+ * SSR로 그려진 <img>는 하이드레이션 전에 error가 나 onError를 놓칠 수 있어, 마운트 시
+ * 이미 로드 실패한(complete && naturalWidth===0) 상태를 직접 감지해 폴백 처리한다.
+ */
+function FeedCardAvatar({ avatarUrl }: { avatarUrl?: string }) {
+  const [failed, setFailed] = useState(false);
+
+  // ref 콜백은 DOM 부착 직후(커밋 시점) 실행되므로, 하이드레이션 전에 이미 깨진
+  // (complete && naturalWidth===0) 이미지를 즉시 감지해 폴백한다 — onError를 놓치는 경우 보완.
+  const detectBrokenImage = useCallback((img: HTMLImageElement | null) => {
+    if (img?.complete && img.naturalWidth === 0) {
+      setFailed(true);
+    }
+  }, []);
+
+  const showImage = Boolean(avatarUrl) && !failed;
+
+  return (
+    <span className="inline-flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-feed-card-header-avatar-bg text-icon-subtle">
+      {showImage ? (
+        // 공통 컴포넌트라 호출처 이미지 도메인이 다양 → next/image 설정 의존을 피해 plain img 사용.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          ref={detectBrokenImage}
+          src={avatarUrl}
+          alt=""
+          className="size-full object-cover"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        // 동그라미 배경은 유지하고 기본 아이콘만 16x16으로(가운데 정렬은 span이 담당)
+        <PersonIcon size={16} />
+      )}
+    </span>
+  );
+}
+
 export function FeedCardHeader({
   author,
   createdAt,
@@ -134,16 +174,8 @@ export function FeedCardHeader({
 }) {
   return (
     <header className="flex items-center">
-      <span className="inline-flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-feed-card-header-avatar-bg text-icon-subtle">
-        {author.avatarUrl ? (
-          // 공통 컴포넌트라 호출처 이미지 도메인이 다양 → next/image 설정 의존을 피해 plain img 사용.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={author.avatarUrl} alt="" className="size-full object-cover" />
-        ) : (
-          // 동그라미 배경은 유지하고 기본 아이콘만 16x16으로(가운데 정렬은 span이 담당)
-          <PersonIcon size={16} />
-        )}
-      </span>
+      {/* key=URL: 아바타 URL이 바뀌면 컴포넌트를 재마운트해 폴백 상태(failed)를 초기화한다. */}
+      <FeedCardAvatar key={author.avatarUrl ?? "none"} avatarUrl={author.avatarUrl} />
       {/* 아바타→닉네임 8, 닉네임→날짜 6 (요소별 간격이 달라 gap 대신 ml로 지정) */}
       {/* 닉네임: BodyM(Pretendard Medium 16) */}
       <span className="ml-2 text-base font-medium text-feed-card-header-username-text">
