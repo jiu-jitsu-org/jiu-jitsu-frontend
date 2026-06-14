@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 
+import { useAuth } from "@/features/auth/presentation/auth-provider";
 import {
   isNativeBridgeAvailable,
   openNativeSubview,
@@ -18,17 +19,27 @@ const POST_WRITE_PATH = "/community/write";
  *   동일 origin 절대경로로 전달 → 새 웹뷰가 세션 쿠키 공유.
  * - 웹 단독: 같은 웹뷰 내 라우터 이동.
  *
+ * 진입은 로그인 상태에서만 허용한다(requireAuth). 비로그인이면 화면을 이동하지 않고
+ * 네이티브에 AUTH_LOGIN_PROMPT('로그인 요청' 안내 알럿)만 띄운다. 로그인 성공 시
+ * 보관된 열기 행위가 자동 복귀돼 작성 화면으로 진입한다.
+ *
  * 닫기(등록/취소)는 작성 화면의 closeScreen이 CLOSE_SUBVIEW로 pop해 짝을 맞춘다.
  */
 export function useOpenPostWrite() {
   const router = useRouter();
+  const { requireAuth } = useAuth();
 
   return () => {
-    if (isNativeBridgeAvailable()) {
-      openNativeSubview(`${window.location.origin}${POST_WRITE_PATH}`);
-      return;
-    }
+    requireAuth(
+      () => {
+        if (isNativeBridgeAvailable()) {
+          openNativeSubview(`${window.location.origin}${POST_WRITE_PATH}`);
+          return;
+        }
 
-    router.push(POST_WRITE_PATH);
+        router.push(POST_WRITE_PATH);
+      },
+      { reason: "게시글 작성" },
+    );
   };
 }
