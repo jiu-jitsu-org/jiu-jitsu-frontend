@@ -4,6 +4,10 @@ import type {
   PostDetail,
 } from "@/features/community/domain/post";
 import type { PostRepository } from "@/features/community/domain/post-repository";
+import {
+  type CommentDto,
+  toComment,
+} from "@/features/community/infrastructure/comment-dto";
 import type { HttpClient } from "@/shared/lib/http";
 
 /**
@@ -20,9 +24,18 @@ import type { HttpClient } from "@/shared/lib/http";
  * 공통 ApiError(toApiError)가 처리한다.
  *
  * 작성자(author)·isAuthor(본인 여부)는 응답에 포함된다. 조회수·태그 필드는 아직 없어 optional.
- * FIXME: 댓글 목록 경로/봉투는 미확정(가정). 댓글 API 연동 시 정합 확인 필요.
+ *
+ * 댓글 목록: GET /community/comments?id={게시글id}&sortType=CREATE_DESC|CREATE_ASC.
+ *   응답 봉투 data는 댓글 DTO 평배열이라 toComment로 매핑해 CommentList로 조립한다(서버 페이지네이션 없음).
  */
 const BOARD_ENDPOINT_PATH = "/api/board";
+const COMMENT_ENDPOINT_PATH = "/api/community/comments";
+
+/** 도메인 정렬 → 업스트림 sortType 쿼리 값. */
+const COMMENT_SORT_TYPE: Record<CommentSort, string> = {
+  latest: "CREATE_DESC",
+  oldest: "CREATE_ASC",
+};
 
 type Envelope<T> = {
   success: boolean;
@@ -109,13 +122,15 @@ export class ExternalPostRepository implements PostRepository {
   async getComments(
     postId: number,
     sort: CommentSort,
-    cursor?: string,
   ): Promise<CommentList> {
-    const response = await this.httpClient.get<Envelope<CommentList>>({
-      path: `${BOARD_ENDPOINT_PATH}/${postId}/comments`,
-      query: { sort, cursor },
+    // GET /community/comments?id=&sortType= → 봉투 data는 댓글 DTO 평배열.
+    const response = await this.httpClient.get<Envelope<CommentDto[]>>({
+      path: COMMENT_ENDPOINT_PATH,
+      query: { id: postId, sortType: COMMENT_SORT_TYPE[sort] },
     });
 
-    return response.data;
+    const items = (response.data ?? []).map(toComment);
+    // 서버 커서 페이지네이션 미제공 — 전체 목록을 한 번에 반환한다.
+    return { items, total: items.length, nextCursor: null };
   }
 }
