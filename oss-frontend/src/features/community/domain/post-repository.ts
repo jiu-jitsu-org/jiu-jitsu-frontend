@@ -35,6 +35,8 @@ export interface PostRepository {
  */
 export interface CommunityWriteRepository {
   createComment(postId: number, body: string): Promise<Comment>;
+  /** 댓글 삭제(본인 댓글). 결과 본문이 없어 void. */
+  deleteComment(commentId: number): Promise<void>;
   likePost(postId: number): Promise<void>;
   unlikePost(postId: number): Promise<void>;
   bookmarkPost(postId: number): Promise<void>;

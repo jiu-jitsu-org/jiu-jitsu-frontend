@@ -54,6 +54,13 @@ export class ExternalCommunityWriteRepository
     return toComment(response.data);
   }
 
+  async deleteComment(commentId: number): Promise<void> {
+    // DELETE /community/comments/{id} — 본인 댓글 삭제. 응답 본문은 사용하지 않는다.
+    await this.httpClient.delete<Envelope<null>>({
+      path: `${COMMENT_ENDPOINT_PATH}/${commentId}`,
+    });
+  }
+
   async likePost(postId: number): Promise<void> {
     await this.httpClient.post<Envelope<null>>({
       path: `${BOARD_ENDPOINT_PATH}/${postId}/likes`,

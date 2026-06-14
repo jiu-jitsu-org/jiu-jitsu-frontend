@@ -70,6 +70,7 @@ export function CommentItem({ comment }: { comment: Comment }) {
           />
           {/* ⋮ 메뉴: 내 댓글=삭제 / 타인 댓글=차단·신고. 차단 시 닉네임으로 확인 알럿 */}
           <CommentMenu
+            commentId={comment.id}
             isOwner={comment.isOwner}
             authorNickname={comment.author.nickname}
           />

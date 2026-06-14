@@ -1,5 +1,6 @@
 import { CreateCommentUseCase } from "@/features/community/application/create-comment";
 import { CreatePostUseCase } from "@/features/community/application/create-post";
+import { DeleteCommentUseCase } from "@/features/community/application/delete-comment";
 import { GetCommentsUseCase } from "@/features/community/application/get-comments";
 import { GetImageUploadAuthUseCase } from "@/features/community/application/get-image-upload-auth";
 import { RegisterImageUseCase } from "@/features/community/application/register-image";
@@ -57,6 +58,12 @@ export function createCreateCommentUseCase(
   accessToken: string,
 ): CreateCommentUseCase {
   return new CreateCommentUseCase(createWriteRepository(accessToken));
+}
+
+export function createDeleteCommentUseCase(
+  accessToken: string,
+): DeleteCommentUseCase {
+  return new DeleteCommentUseCase(createWriteRepository(accessToken));
 }
 
 export function createToggleLikeUseCase(
