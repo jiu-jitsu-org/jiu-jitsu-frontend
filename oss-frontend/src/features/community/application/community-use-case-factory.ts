@@ -7,6 +7,7 @@ import { GetCommentsUseCase } from "@/features/community/application/get-comment
 import { GetImageUploadAuthUseCase } from "@/features/community/application/get-image-upload-auth";
 import { RegisterImageUseCase } from "@/features/community/application/register-image";
 import { GetPostDetailUseCase } from "@/features/community/application/get-post-detail";
+import { GetPostListUseCase } from "@/features/community/application/get-post-list";
 import { ToggleBookmarkUseCase } from "@/features/community/application/toggle-bookmark";
 import { ToggleCommentLikeUseCase } from "@/features/community/application/toggle-comment-like";
 import { ToggleLikeUseCase } from "@/features/community/application/toggle-like";
@@ -34,6 +35,12 @@ function createReadRepository(accessToken: string | null): ExternalPostRepositor
     : createServerHttpClient();
 
   return new ExternalPostRepository(httpClient);
+}
+
+export function createGetPostListUseCase(
+  accessToken: string | null,
+): GetPostListUseCase {
+  return new GetPostListUseCase(createReadRepository(accessToken));
 }
 
 export function createGetPostDetailUseCase(

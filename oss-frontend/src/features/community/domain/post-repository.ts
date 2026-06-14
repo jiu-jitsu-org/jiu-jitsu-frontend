@@ -10,6 +10,10 @@ import type {
   CreatedPost,
   PostDetail,
 } from "@/features/community/domain/post";
+import type {
+  BoardListQuery,
+  PostList,
+} from "@/features/community/domain/post-summary";
 import type { CreateReportInput } from "@/features/community/domain/report";
 
 /**
@@ -20,6 +24,8 @@ import type { CreateReportInput } from "@/features/community/domain/report";
  * 이 메서드들은 토큰을 인자로 받지 않는다(viewer 상태는 토큰 유무에 따라 채워짐).
  */
 export interface PostRepository {
+  /** 게시글 목록 조회(GET /board). 카테고리·검색어·페이지 조건은 query로 전달. */
+  getPostList(query: BoardListQuery): Promise<PostList>;
   getPostDetail(postId: number): Promise<PostDetail>;
   getComments(
     postId: number,

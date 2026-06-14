@@ -4,6 +4,11 @@ import type {
   PostDetail,
 } from "@/features/community/domain/post";
 import type { PostRepository } from "@/features/community/domain/post-repository";
+import type {
+  BoardListQuery,
+  PostList,
+  PostSummary,
+} from "@/features/community/domain/post-summary";
 import {
   type CommentDto,
   toComment,
@@ -75,6 +80,80 @@ type BoardDetailDto = {
   tagList?: { id: number; name: string }[];
 };
 
+/** GET /board content[] 항목 DTO. 상세(BoardDetailDto)에서 단건 전용 필드(태그/조회수/알림)를 뺀 형태. */
+type BoardSummaryDto = {
+  id: number;
+  categoryId: number;
+  categoryName: string;
+  title: string;
+  body: string;
+  createdAt: string;
+  updatedAt?: string | null;
+  isUpdated: boolean;
+  commentCount: number;
+  likeCount: number;
+  isCommented: boolean;
+  isLiked: boolean;
+  isSaved: boolean;
+  imageList: { id: number; imageUrl: string }[];
+  author: {
+    id: number;
+    nickname: string;
+    profileImage: { id: number; imageUrl: string } | null;
+  };
+  isAuthor: boolean;
+};
+
+/** GET /board 성공 응답 DTO(봉투 data 안의 Spring Page 형태). 화면이 쓰는 메타만 선언. */
+type BoardListDto = {
+  content: BoardSummaryDto[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  last: boolean;
+};
+
+function toPostSummary(dto: BoardSummaryDto): PostSummary {
+  return {
+    id: dto.id,
+    categoryId: dto.categoryId,
+    categoryName: dto.categoryName,
+    author: {
+      userId: dto.author.id,
+      nickname: dto.author.nickname,
+      avatarUrl: dto.author.profileImage?.imageUrl ?? null,
+    },
+    title: dto.title,
+    body: dto.body,
+    images: dto.imageList ?? [],
+    counts: {
+      comments: dto.commentCount,
+      likes: dto.likeCount,
+    },
+    viewer: {
+      liked: dto.isLiked,
+      bookmarked: dto.isSaved,
+      commented: dto.isCommented,
+      isOwner: dto.isAuthor,
+    },
+    createdAt: dto.createdAt,
+    updatedAt: dto.updatedAt ?? null,
+    edited: dto.isUpdated,
+  };
+}
+
+function toPostList(dto: BoardListDto): PostList {
+  return {
+    items: (dto.content ?? []).map(toPostSummary),
+    page: dto.number,
+    size: dto.size,
+    totalElements: dto.totalElements,
+    totalPages: dto.totalPages,
+    isLast: dto.last,
+  };
+}
+
 function toPostDetail(dto: BoardDetailDto): PostDetail {
   return {
     id: dto.id,
@@ -109,6 +188,24 @@ function toPostDetail(dto: BoardDetailDto): PostDetail {
 
 export class ExternalPostRepository implements PostRepository {
   constructor(private readonly httpClient: HttpClient) {}
+
+  async getPostList(query: BoardListQuery): Promise<PostList> {
+    // Spring 객체 쿼리(boardListRequest/pageable)는 평탄한 쿼리스트링으로 펼쳐 전송한다.
+    // undefined 값(categoryId/searchKeyword/sort)은 HttpClient가 알아서 생략한다.
+    const response = await this.httpClient.get<Envelope<BoardListDto>>({
+      path: BOARD_ENDPOINT_PATH,
+      query: {
+        boardListType: query.boardListType,
+        categoryId: query.categoryId,
+        searchKeyword: query.searchKeyword,
+        page: query.page,
+        size: query.size,
+        sort: query.sort,
+      },
+    });
+
+    return toPostList(response.data);
+  }
 
   async getPostDetail(postId: number): Promise<PostDetail> {
     // 성공 응답은 { ..., data: BoardDetailDto } 봉투 → data를 한 겹 벗긴다.
