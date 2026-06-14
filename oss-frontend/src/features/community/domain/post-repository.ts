@@ -10,6 +10,7 @@ import type {
   CreatedPost,
   PostDetail,
 } from "@/features/community/domain/post";
+import type { CreateReportInput } from "@/features/community/domain/report";
 
 /**
  * 게시글 읽기 도메인 계약.
@@ -39,6 +40,8 @@ export interface CommunityWriteRepository {
   deleteComment(commentId: number): Promise<void>;
   /** 게시글 삭제(본인 게시글, DELETE /board/{id}). 결과 본문이 없어 void. */
   deletePost(postId: number): Promise<void>;
+  /** 게시글/댓글 신고(POST /reports). 동일 대상 중복 신고는 서버가 막는다. 결과 본문이 없어 void. */
+  report(input: CreateReportInput): Promise<void>;
   /** 댓글 좋아요 토글(등록/취소). 토글 후의 좋아요 상태(isLiked)를 반환. */
   toggleCommentLike(commentId: number): Promise<boolean>;
   /**

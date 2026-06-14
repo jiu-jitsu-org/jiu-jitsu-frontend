@@ -13,6 +13,7 @@ import type {
   CreatedPost,
 } from "@/features/community/domain/post";
 import type { CommunityWriteRepository } from "@/features/community/domain/post-repository";
+import type { CreateReportInput } from "@/features/community/domain/report";
 import type { HttpClient } from "@/shared/lib/http";
 
 /**
@@ -29,6 +30,7 @@ import type { HttpClient } from "@/shared/lib/http";
 const BOARD_ENDPOINT_PATH = "/api/board";
 const IMAGE_ENDPOINT_PATH = "/api/image";
 const COMMENT_ENDPOINT_PATH = "/api/community/comments";
+const REPORT_ENDPOINT_PATH = "/api/reports";
 
 type Envelope<T> = {
   success: boolean;
@@ -65,6 +67,15 @@ export class ExternalCommunityWriteRepository
     // DELETE /board/{id} — 본인 게시글 삭제. 응답 본문은 사용하지 않는다.
     await this.httpClient.delete<Envelope<null>>({
       path: `${BOARD_ENDPOINT_PATH}/${postId}`,
+    });
+  }
+
+  async report(input: CreateReportInput): Promise<void> {
+    // POST /reports — { reportType, targetId, reason }. 응답 본문은 사용하지 않는다.
+    // 동일 대상 중복 신고는 서버가 막는다(409 가정) → HttpError로 상위에 전달.
+    await this.httpClient.post<Envelope<null>>({
+      path: REPORT_ENDPOINT_PATH,
+      body: input,
     });
   }
 

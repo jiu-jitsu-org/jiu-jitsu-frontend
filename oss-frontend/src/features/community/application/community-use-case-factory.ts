@@ -1,5 +1,6 @@
 import { CreateCommentUseCase } from "@/features/community/application/create-comment";
 import { CreatePostUseCase } from "@/features/community/application/create-post";
+import { CreateReportUseCase } from "@/features/community/application/create-report";
 import { DeleteCommentUseCase } from "@/features/community/application/delete-comment";
 import { DeletePostUseCase } from "@/features/community/application/delete-post";
 import { GetCommentsUseCase } from "@/features/community/application/get-comments";
@@ -72,6 +73,12 @@ export function createDeletePostUseCase(
   accessToken: string,
 ): DeletePostUseCase {
   return new DeletePostUseCase(createWriteRepository(accessToken));
+}
+
+export function createCreateReportUseCase(
+  accessToken: string,
+): CreateReportUseCase {
+  return new CreateReportUseCase(createWriteRepository(accessToken));
 }
 
 export function createToggleLikeUseCase(

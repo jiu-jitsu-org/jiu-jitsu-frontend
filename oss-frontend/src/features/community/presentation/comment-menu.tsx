@@ -75,9 +75,39 @@ export function CommentMenu({
     toast.show("유저를 차단했습니다.");
   }
 
-  function confirmReport() {
+  async function confirmReport() {
     setDialog(null);
-    // FIXME(API): 댓글 신고(댓글 id).
+
+    // 예시(데모)에선 네트워크 없이 토스트만(실제 신고 없음).
+    if (demo) {
+      toast.show("댓글을 신고했습니다.");
+      return;
+    }
+
+    // FIXME(reason): 사유 선택 UI가 없어 항상 "SPAM"으로 보낸다. 사유 picker 추가 시 교체.
+    const response = await fetch("/api/community/reports", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        reportType: "COMMENT",
+        targetId: commentId,
+        reason: "SPAM",
+      }),
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
+      }
+      // 동일 대상 중복 신고는 서버가 막는다(409 가정).
+      toast.show(
+        response.status === 409
+          ? "이미 신고한 댓글이에요."
+          : "댓글 신고에 실패했습니다.",
+      );
+      return;
+    }
+
     toast.show("댓글을 신고했습니다.");
   }
 
