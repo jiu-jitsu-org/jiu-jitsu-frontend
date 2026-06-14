@@ -61,6 +61,18 @@ export class ExternalCommunityWriteRepository
     });
   }
 
+  async toggleCommentLike(commentId: number): Promise<boolean> {
+    // POST /community/comments/like — 단일 엔드포인트 토글(등록/취소). 응답 data.isLiked가 토글 후 상태.
+    const response = await this.httpClient.post<
+      Envelope<{ commentId: number; isLiked: boolean }>
+    >({
+      path: `${COMMENT_ENDPOINT_PATH}/like`,
+      body: { commentId },
+    });
+
+    return response.data.isLiked;
+  }
+
   async likePost(postId: number): Promise<void> {
     await this.httpClient.post<Envelope<null>>({
       path: `${BOARD_ENDPOINT_PATH}/${postId}/likes`,
