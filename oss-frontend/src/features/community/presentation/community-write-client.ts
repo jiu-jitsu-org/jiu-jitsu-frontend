@@ -1,3 +1,4 @@
+import { getImageKitClientEnv } from "@/config/env";
 import type { ImageUploadAuth } from "@/features/community/domain/image";
 import type {
   CreatePostInput,
@@ -17,19 +18,13 @@ import { compressImage } from "@/features/community/presentation/compress-image"
  * 등록(③)은 고를 때가 아니라 작성(④) 직전에만 일어나므로 CDN/서버 미아가 생기지 않는다.
  */
 
-/** ImageKit 업로드 엔드포인트(고정 공개 엔드포인트, 필요 시 env로 override). */
-const IMAGEKIT_UPLOAD_URL =
-  process.env.NEXT_PUBLIC_IMAGEKIT_UPLOAD_URL ??
-  "https://upload.imagekit.io/api/v1/files/upload";
-
 /**
- * ImageKit publicKey (주짓수랩 ImageKit 계정). publicKey는 비밀이 아니라 클라이언트 노출이
- * 정상이며, 서버 서명(/image/auth)과 반드시 같은 계정의 키여야 한다.
- * env로 override 가능하되, 실제 키를 기본값으로 두어 standalone 빌드에서 별도 주입 없이도 동작한다.
+ * ImageKit 공개 설정(업로드 엔드포인트 + publicKey)은 config로 중앙화한다.
+ * publicKey는 비밀이 아니라 클라이언트 노출이 정상이며, 서버 서명(/image/auth)과
+ * 반드시 같은 계정의 키여야 한다. 기본값/override 규칙은 config/env.ts 참고.
  */
-const IMAGEKIT_PUBLIC_KEY =
-  process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY ??
-  "public_mQk8MsljUr3YQ2KBYGqSJg3gYAc=";
+const { uploadUrl: IMAGEKIT_UPLOAD_URL, publicKey: IMAGEKIT_PUBLIC_KEY } =
+  getImageKitClientEnv();
 
 /** ImageKit 업로드 폴더. 루트가 아니라 커뮤니티 게시글 이미지 경로 아래로 모은다. */
 const IMAGEKIT_FOLDER = "community/posts";
