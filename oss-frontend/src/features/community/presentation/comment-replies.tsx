@@ -26,8 +26,8 @@ export function CommentReplies({ children }: { children: ReactNode }) {
           type="button"
           onClick={() => setExpanded(true)}
           // 높이 19 고정. 텍스트는 대댓글 본문 좌측과 정렬 → 아바타 24 + gap 4 = 28 들여쓰기(pl-7).
-          // 폰트 Body M, 색 text-secondary.
-          className="flex h-[19px] items-center self-start pl-7 text-base font-medium text-text-secondary"
+          // 폰트 Body M, 색 #70737C(토큰 미매핑 특수 케이스).
+          className="flex h-[19px] items-center self-start pl-7 text-base font-medium text-[#70737C]"
         >
           대댓글 {hiddenCount}개 더보기
         </button>

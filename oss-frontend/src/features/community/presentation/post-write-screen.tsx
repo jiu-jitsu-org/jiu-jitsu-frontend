@@ -316,7 +316,7 @@ export function PostWriteScreen() {
                 type="button"
                 onClick={() => setTags((prev) => prev.filter((t) => t !== tag))}
                 aria-label={`태그 ${tag} 삭제`}
-                className="inline-flex items-center gap-1 rounded-full bg-surface-secondary py-1 pl-2.5 pr-2 text-xs font-medium text-text-secondary"
+                className="inline-flex items-center gap-1 rounded-full bg-[#F2F2F2] py-1 pl-2.5 pr-2 text-xs font-medium text-text-secondary"
               >
                 #{tag}
                 <span aria-hidden className="text-text-tertiary">

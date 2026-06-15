@@ -108,7 +108,7 @@ export function ConfirmDialog({
             onClick={onConfirm}
             className={cn(
               "h-[51px] flex-1 rounded-[15px] text-base font-semibold text-button-filled-default-text",
-              destructive ? "bg-destructive" : "bg-button-filled-default-bg",
+              destructive ? "bg-[#E52012]" : "bg-button-filled-default-bg",
             )}
           >
             {confirmText}
