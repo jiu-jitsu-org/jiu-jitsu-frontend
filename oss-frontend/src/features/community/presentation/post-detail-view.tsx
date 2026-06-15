@@ -66,8 +66,8 @@ export function PostDetailView({
           initialLikes={post.counts.likes}
         />
 
-        {/* 액션바 아래 디바이더: 간격 22, 풀폭(좌우 여백 없음), 높이 4, #F7F7F7(토큰 미매핑 특수 케이스) */}
-        <div className="mt-[22px] h-1 bg-[#F7F7F7]" />
+        {/* 액션바 아래 디바이더: 간격 22, 풀폭(좌우 여백 없음), 높이 4 */}
+        <div className="mt-[22px] h-1 bg-border-subtle" />
 
         {/* 댓글 섹션 */}
         <CommentSection comments={comments} sort={sort} />
