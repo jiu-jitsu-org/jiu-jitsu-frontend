@@ -394,6 +394,20 @@ export function PostWriteScreen() {
         </div>
       </div>
 
+      {/* 등록 진행 오버레이 — 업로드·생성 중(submitting) 전 영역을 덮어 입력/버튼 재탭을 막고
+          (overlay가 포인터 이벤트를 가로챔) 중앙 스피너로 진행을 알린다. 앱바(z-30)까지 덮도록 z-50.
+          스피너 색은 Color/Blue/600(--blue-600). */}
+      {submitting ? (
+        <div
+          className="absolute inset-0 z-50 flex items-center justify-center bg-white/60"
+          role="status"
+          aria-live="polite"
+          aria-label="게시글 등록 중"
+        >
+          <span className="h-8 w-8 animate-spin rounded-full border-[3px] border-[var(--blue-600)] border-t-transparent" />
+        </div>
+      ) : null}
+
       {/* 작성 이탈 가드 — 내용이 있을 때만 확인. */}
       <ConfirmDialog
         open={leaveOpen}
