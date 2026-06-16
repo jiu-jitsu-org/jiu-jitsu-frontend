@@ -59,6 +59,8 @@
   --surface-primary-pressed: var(--blue-200);
   --surface-primary-subtle: var(--blue-50);
   --surface-primary-subtle-pressed: var(--blue-75);
+  --surface-primary-subtle-strong: var(--blue-75);
+  --surface-primary-subtle-strong-pressed: var(--blue-100);
   --surface-background: var(--cool-gray-25);
   --surface-inactive: var(--cool-gray-75);
   --surface-disabled: var(--cool-gray-50);
@@ -66,10 +68,19 @@
   --surface-overlay-surface-pressed: var(--cool-gray-800);
   --surface-field: var(--cool-gray-25);
   --surface-background-default: var(--cool-gray-25);
+  --surface-poll-a: var(--red-balance-50);
+  --surface-poll-a-track: var(--red-balance-100);
+  --surface-poll-a-strong: var(--red-balance-500);
+  --surface-poll-b: var(--blue-balance-50);
+  --surface-poll-b-track: var(--blue-balance-100);
+  --surface-poll-b-strong: var(--blue-balance-500);
+  --surface-destructive: var(--red-500);
   --interactive-primary: var(--blue-500p);
   --interactive-primary-pressed: var(--blue-600);
   --interactive-disabled: var(--cool-gray-100);
   --interactive-strong: var(--cool-gray-700);
   --interactive-strong-pressed: var(--cool-gray-800);
+  --interactive-poll-a: var(--red-balance-500);
+  --interactive-poll-b: var(--blue-balance-500);
   --destructive: var(--red-500);
 }

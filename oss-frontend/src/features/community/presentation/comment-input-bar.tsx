@@ -82,7 +82,7 @@ export function CommentInputBar({ postId }: { postId: number }) {
       {/* 바는 내용에 따라 높이 가변(min-h 69), 전송 버튼은 하단 고정(items-end). 좌우 16(px-4). */}
       <div className="flex min-h-[69px] items-end px-4 py-3">
         {/* 텍스트 영역: 좌우 16(px-4)/상하 12(py-3), 멀티라인 — 엔터=줄바꿈, 최대 5줄(max-h-[129px]) 후 스크롤.
-            radius 24, 배경 #EDEDED. 입력 #000000(Body S), 플레이스홀더 #9EA1A5. */}
+            radius 24. 색은 comment-input-bar 토큰(배경/입력/플레이스홀더). */}
         <textarea
           id={COMMENT_INPUT_ELEMENT_ID}
           ref={textareaRef}
@@ -90,7 +90,7 @@ export function CommentInputBar({ postId }: { postId: number }) {
           value={value}
           onChange={(event) => setValue(event.target.value)}
           placeholder="댓글을 입력해주세요."
-          className="max-h-[129px] flex-1 resize-none overflow-y-auto rounded-[24px] bg-[#EDEDED] px-4 py-3 text-sm leading-[21px] text-[#000000] outline-none placeholder:text-[#9EA1A5]"
+          className="max-h-[129px] flex-1 resize-none overflow-y-auto rounded-[24px] bg-comment-input-bar-bg px-4 py-3 text-sm leading-[21px] text-comment-input-bar-text outline-none placeholder:text-comment-input-bar-placeholder"
         />
       <button
         type="button"
@@ -98,10 +98,12 @@ export function CommentInputBar({ postId }: { postId: number }) {
         disabled={!canSubmit}
         aria-label="댓글 등록"
         // 버튼 40x40(size-10) = 아이콘 24 + 상하좌우 여백 8(items/justify-center로 가운데 → 8 여백). 우측 고정.
-        // 입력 1자 이상: button/filled/default-bg, 빈 상태(플레이스홀더): #D3D3D3.
+        // 입력 1자 이상: send-icon-active, 빈 상태(플레이스홀더): send-icon-disabled.
         className={cn(
           "inline-flex size-10 shrink-0 items-center justify-center rounded-full",
-          canSubmit ? "text-button-filled-default-bg" : "text-[#D3D3D3]",
+          canSubmit
+            ? "text-comment-input-bar-send-icon-active"
+            : "text-comment-input-bar-send-icon-disabled",
         )}
       >
         <CommentIcon size={24} filled />
