@@ -17,7 +17,7 @@ export default async function Home() {
   const result = await getBoardListPageData(DEFAULT_BOARD_LIST_QUERY);
 
   return (
-    <main className="min-h-screen bg-[var(--bw-white)]">
+    <main className="feed-bounce-scroll min-h-screen bg-[var(--bw-white)]">
       {!result.ok ? (
         <FeedMessage>게시글을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.</FeedMessage>
       ) : result.data.list.items.length === 0 ? (

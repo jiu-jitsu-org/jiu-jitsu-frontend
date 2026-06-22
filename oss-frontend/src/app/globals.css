@@ -27,3 +27,10 @@ body {
   touch-action: pan-x pan-y;
   overscroll-behavior: none;
 }
+
+/* 커뮤니티 메인 피드 리스트에서만 오버스크롤 바운스 허용.
+   피드는 문서 레벨로 스크롤되므로 해당 페이지가 떠 있을 때만 html/body의 차단을 해제한다. */
+html:has(.feed-bounce-scroll),
+body:has(.feed-bounce-scroll) {
+  overscroll-behavior: auto;
+}
