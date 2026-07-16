@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
+import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import {
   MenuBox,
   MenuItem,
@@ -53,7 +54,7 @@ export function CommentMenu({
       return;
     }
 
-    const response = await fetch(`/api/community/comments/${commentId}`, {
+    const response = await bffFetch(`/api/community/comments/${commentId}`, {
       method: "DELETE",
     });
 
@@ -86,7 +87,7 @@ export function CommentMenu({
     }
 
     // FIXME(reason): 사유 선택 UI가 없어 항상 "SPAM"으로 보낸다. 사유 picker 추가 시 교체.
-    const response = await fetch("/api/community/reports", {
+    const response = await bffFetch("/api/community/reports", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

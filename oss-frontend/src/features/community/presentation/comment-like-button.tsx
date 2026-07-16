@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
+import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { cn } from "@/shared/lib/cn";
 import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
 import { HeartIcon } from "@/shared/ui/icons";
@@ -45,7 +46,7 @@ export function CommentLikeButton({
 
     setPending(true);
     try {
-      const response = await fetch(
+      const response = await bffFetch(
         `/api/community/comments/${commentId}/likes`,
         { method: "POST" },
       );

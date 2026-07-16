@@ -18,3 +18,8 @@ export {
 } from "./native-bridge";
 export type { BridgePlatform } from "./native-bridge";
 export { useNativeBackHandler } from "./native-back";
+export {
+  notifySessionRefreshed,
+  notifySessionRefreshFailed,
+  refreshSessionViaBridge,
+} from "./session-refresh";

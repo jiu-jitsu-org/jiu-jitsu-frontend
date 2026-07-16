@@ -19,6 +19,10 @@ export const OutboundMessageType = {
   AUTH_LOGIN_PROMPT: "AUTH_LOGIN_PROMPT",
   AUTH_LOGIN_MODAL: "AUTH_LOGIN_MODAL",
   AUTH_LOGOUT_REQUEST: "AUTH_LOGOUT_REQUEST",
+  // 토큰 만료 복구: refreshToken은 네이티브만 보유하므로 웹은 스스로 갱신할 수 없다.
+  // 만료(백엔드 A0003) 감지 시 네이티브에 갱신을 요청 → 네이티브가 AUTH_LOGIN_SUCCESS(새 토큰)
+  // 또는 AUTH_SESSION_EXPIRED로 응답한다.
+  AUTH_TOKEN_REFRESH_REQUEST: "AUTH_TOKEN_REFRESH_REQUEST",
   // 네비게이션: 풀 웹뷰 서브뷰 푸시/팝 (게시글 상세 등). 범용이라 대상은 payload.url로 전달.
   OPEN_SUBVIEW: "OPEN_SUBVIEW",
   CLOSE_SUBVIEW: "CLOSE_SUBVIEW",

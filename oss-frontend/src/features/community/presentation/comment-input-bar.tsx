@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
+import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { cn } from "@/shared/lib/cn";
 import { useViewportRect } from "@/features/community/presentation/use-viewport-rect";
 import { CommentIcon } from "@/shared/ui/icons";
@@ -49,7 +50,7 @@ export function CommentInputBar({ postId }: { postId: number }) {
 
     setSubmitting(true);
     try {
-      const response = await fetch(`/api/community/posts/${postId}/comments`, {
+      const response = await bffFetch(`/api/community/posts/${postId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content }),

@@ -16,6 +16,8 @@ import {
   InboundMessageType,
   OutboundMessageType,
   isNativeBridgeAvailable,
+  notifySessionRefreshed,
+  notifySessionRefreshFailed,
   postToNative,
   registerWebBridge,
   type InboundMessage,
@@ -149,6 +151,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       applyState(state);
 
+      // 만료 복구로 세션 재수립을 기다리던 BFF 호출을 진행/중단시킨다.
+      if (state?.authenticated) {
+        notifySessionRefreshed();
+      } else {
+        notifySessionRefreshFailed();
+      }
+
       // 로그인 성공으로 세션이 수립됐다면 보관한 행위를 복귀한다.
       if (state?.authenticated && pendingActionRef.current) {
         const action = pendingActionRef.current;
@@ -179,6 +188,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         case InboundMessageType.AUTH_SESSION_EXPIRED:
         case InboundMessageType.AUTH_LOGOUT:
+          // 갱신 대기 중이던 BFF 호출에 실패를 전파한 뒤 세션을 정리한다.
+          notifySessionRefreshFailed();
           void clearSession();
           return;
       }
