@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { getBoardListPageData } from "@/features/community/application/get-board-list-page-data";
 import { DEFAULT_BOARD_LIST_QUERY } from "@/features/community/domain/post-summary";
 import { CommunityFeedList } from "@/features/community/presentation/community-feed-list";
+import { FeedErrorState } from "@/features/community/presentation/feed-error-state";
 import { PostWriteFab } from "@/features/community/presentation/post-write-fab";
 
 /**
@@ -19,7 +20,7 @@ export default async function Home() {
   return (
     <main className="feed-bounce-scroll min-h-screen bg-[var(--bw-white)]">
       {!result.ok ? (
-        <FeedMessage>게시글을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.</FeedMessage>
+        <FeedErrorState />
       ) : result.data.list.items.length === 0 ? (
         <FeedMessage>아직 게시글이 없어요.</FeedMessage>
       ) : (
