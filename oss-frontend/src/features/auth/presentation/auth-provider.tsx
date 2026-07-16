@@ -140,11 +140,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // 네이티브 토큰 → 서버 세션 수립
   const establishSession = useCallback(
-    async (accessToken: string, expiresAt?: number) => {
+    async (accessToken: string) => {
       const state = await fetchSessionState({
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accessToken, expiresAt }),
+        body: JSON.stringify({ accessToken }),
       });
 
       applyState(state);
@@ -171,10 +171,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       switch (message.type) {
         case InboundMessageType.AUTH_LOGIN_SUCCESS:
-          void establishSession(
-            message.payload.accessToken,
-            message.payload.expiresAt,
-          );
+          void establishSession(message.payload.accessToken);
           return;
         case InboundMessageType.AUTH_LOGIN_CANCELLED:
           // 사용자가 로그인을 취소했으므로 대기 중 행위를 폐기한다.

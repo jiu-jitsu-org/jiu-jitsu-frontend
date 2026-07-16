@@ -31,12 +31,10 @@ function ok(state: SessionState) {
 
 export async function POST(request: NextRequest) {
   let accessToken = "";
-  let expiresAt: number | undefined;
 
   try {
     const body = await request.json();
     accessToken = String(body?.accessToken ?? "").trim();
-    expiresAt = typeof body?.expiresAt === "number" ? body.expiresAt : undefined;
   } catch {
     // 본문 파싱 실패는 아래 빈 토큰 검증에서 400으로 처리된다.
   }
@@ -52,12 +50,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 만료시각이 오면 남은 시간을 쿠키 수명으로 환산(과거면 0 → 즉시 만료).
-  const maxAgeSeconds = expiresAt
-    ? Math.max(0, Math.floor((expiresAt - Date.now()) / 1000))
-    : undefined;
-
-  await writeSessionToken(accessToken, maxAgeSeconds);
+  // 쿠키 수명은 기본값(SESSION_COOKIE_MAX_AGE_SECONDS). 토큰 만료는 업스트림이 매 요청 검증한다.
+  await writeSessionToken(accessToken);
 
   return ok({ authenticated: true });
 }

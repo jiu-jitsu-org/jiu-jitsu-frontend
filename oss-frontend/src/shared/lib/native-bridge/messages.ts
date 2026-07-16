@@ -66,8 +66,6 @@ export type OpenSubviewPayload = {
 /** `AUTH_LOGIN_SUCCESS` payload. refreshToken은 네이티브가 보관하고 웹엔 accessToken만 전달. */
 export type AuthLoginSuccessPayload = {
   accessToken: string;
-  /** epoch millis. 세션 쿠키 maxAge 산정에 사용(선택). */
-  expiresAt?: number;
 };
 
 /** 모든 브릿지 메시지의 공통 봉투(Envelope). */
