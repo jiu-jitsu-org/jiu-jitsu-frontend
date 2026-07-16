@@ -5,6 +5,7 @@ import type {
   CreatedPost,
 } from "@/features/community/domain/post";
 import { compressImage } from "@/features/community/presentation/compress-image";
+import { bffFetch } from "@/shared/lib/http/bff-fetch";
 
 /**
  * 게시글 작성 클라이언트 호출부 (브라우저 전용).
@@ -58,7 +59,7 @@ async function unwrap<T>(response: Response, context: string): Promise<T> {
 
 /** ① ImageKit 업로드용 서명 발급. */
 async function fetchImageUploadAuth(): Promise<ImageUploadAuth> {
-  const response = await fetch("/api/community/image/auth", { method: "GET" });
+  const response = await bffFetch("/api/community/image/auth", { method: "GET" });
   return unwrap<ImageUploadAuth>(response, "image-auth");
 }
 
@@ -98,7 +99,7 @@ async function uploadToImageKit(
 
 /** ③ 업로드 결과를 우리 서버에 등록 → 우리 서버 int imageId. */
 async function registerImage(cdnId: string, imageUrl: string): Promise<number> {
-  const response = await fetch("/api/community/image", {
+  const response = await bffFetch("/api/community/image", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ cdnId, imageUrl }),
@@ -126,7 +127,7 @@ export async function uploadImageAndRegister(file: File): Promise<number> {
 export async function createPost(
   input: CreatePostInput,
 ): Promise<CreatedPost> {
-  const response = await fetch("/api/community/board", {
+  const response = await bffFetch("/api/community/board", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),

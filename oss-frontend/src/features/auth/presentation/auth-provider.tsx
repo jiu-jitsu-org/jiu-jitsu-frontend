@@ -16,6 +16,8 @@ import {
   InboundMessageType,
   OutboundMessageType,
   isNativeBridgeAvailable,
+  notifySessionRefreshed,
+  notifySessionRefreshFailed,
   postToNative,
   registerWebBridge,
   type InboundMessage,
@@ -140,14 +142,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // 네이티브 토큰 → 서버 세션 수립
   const establishSession = useCallback(
-    async (accessToken: string, expiresAt?: number) => {
+    async (accessToken: string) => {
       const state = await fetchSessionState({
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accessToken, expiresAt }),
+        body: JSON.stringify({ accessToken }),
       });
 
       applyState(state);
+
+      // 만료 복구로 세션 재수립을 기다리던 BFF 호출을 진행/중단시킨다.
+      if (state?.authenticated) {
+        notifySessionRefreshed();
+      } else {
+        notifySessionRefreshFailed();
+      }
 
       // 로그인 성공으로 세션이 수립됐다면 보관한 행위를 복귀한다.
       if (state?.authenticated && pendingActionRef.current) {
@@ -171,10 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       switch (message.type) {
         case InboundMessageType.AUTH_LOGIN_SUCCESS:
-          void establishSession(
-            message.payload.accessToken,
-            message.payload.expiresAt,
-          );
+          void establishSession(message.payload.accessToken);
           return;
         case InboundMessageType.AUTH_LOGIN_CANCELLED:
           // 사용자가 로그인을 취소했으므로 대기 중 행위를 폐기한다.
@@ -182,6 +188,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         case InboundMessageType.AUTH_SESSION_EXPIRED:
         case InboundMessageType.AUTH_LOGOUT:
+          // 갱신 대기 중이던 BFF 호출에 실패를 전파한 뒤 세션을 정리한다.
+          notifySessionRefreshFailed();
           void clearSession();
           return;
       }
