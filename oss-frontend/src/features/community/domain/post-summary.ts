@@ -72,9 +72,17 @@ export type BoardListQuery = {
   sort?: string;
 };
 
+/**
+ * 메인 피드 페이지당 게시글 수(무한 스크롤 단위).
+ *
+ * 이미지 포함 카드라 첫 페인트를 가볍게 유지하려 10으로 둔다. 초기 조회(Server Component)와
+ * 다음 페이지 조회(BFF GET) 모두 이 값을 공유해 페이지 경계가 어긋나지 않게 한다.
+ */
+export const FEED_PAGE_SIZE = 10;
+
 /** 메인 피드 기본 쿼리 — 전체 FEED, 첫 페이지. */
 export const DEFAULT_BOARD_LIST_QUERY: BoardListQuery = {
   boardListType: "FEED",
   page: 0,
-  size: 20,
+  size: FEED_PAGE_SIZE,
 };
