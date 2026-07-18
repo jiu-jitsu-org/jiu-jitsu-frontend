@@ -7,7 +7,7 @@ import {
   BookmarkIcon,
   CommentIcon,
   HeartIcon,
-  MoreIcon,
+  MoreVerticalIcon,
   PersonIcon,
 } from "@/shared/ui/icons";
 
@@ -84,19 +84,19 @@ export function FeedCard({
 }: FeedCardProps) {
   return (
     <article
-      className={cn("flex flex-col bg-surface-container px-4 py-4", className)}
+      className={cn("flex flex-col bg-surface-container px-4", className)}
     >
       <FeedCardHeader
         author={author}
         createdAt={createdAt}
         onPressMore={onPressMore}
       />
-      {/* 헤더행 → 제목행 간격 12 */}
+      {/* 헤더행 → 제목행 간격 8 */}
       <FeedCardBody
         title={title}
         body={body}
         onPress={onPress}
-        className="mt-3"
+        className="mt-2"
       />
       {images && images.length > 0 ? (
         <FeedCardImages images={images} className="mt-3" />
@@ -173,29 +173,34 @@ export function FeedCardHeader({
   onPressMore?: () => void;
 }) {
   return (
-    <header className="flex items-center">
-      {/* key=URL: 아바타 URL이 바뀌면 컴포넌트를 재마운트해 폴백 상태(failed)를 초기화한다. */}
-      <FeedCardAvatar key={author.avatarUrl ?? "none"} avatarUrl={author.avatarUrl} />
-      {/* 아바타→닉네임 8, 닉네임→날짜 6 (요소별 간격이 달라 gap 대신 ml로 지정) */}
-      {/* 닉네임: BodyM(Pretendard Medium 16) */}
-      <span className="ml-2 text-base font-medium text-feed-card-header-username-text">
-        {author.name}
-      </span>
-      {/* 날짜: Label M(Pretendard Medium 12) */}
-      <time
-        dateTime={createdAt}
-        className="ml-1.5 text-xs font-medium text-feed-card-header-date-text"
-      >
-        {formatDateLabel(createdAt)}
-      </time>
+    // 헤더는 items-start: user-header 묶음을 카드 헤더 좌상단에 붙인다.
+    // 더보기 버튼(28)이 헤더 높이를 결정하고, user-header(24)는 위쪽 정렬로 남는다.
+    <header className="flex items-start">
+      {/* user-header: 아바타·닉네임·날짜 묶음. 좌상단 정렬, 묶음 내부는 수직 가운데. */}
+      <div className="flex items-center">
+        {/* key=URL: 아바타 URL이 바뀌면 컴포넌트를 재마운트해 폴백 상태(failed)를 초기화한다. */}
+        <FeedCardAvatar key={author.avatarUrl ?? "none"} avatarUrl={author.avatarUrl} />
+        {/* 아바타→닉네임 8, 닉네임→날짜 6 (요소별 간격이 달라 gap 대신 ml로 지정) */}
+        {/* 닉네임: BodyM(Pretendard Medium 16) */}
+        <span className="ml-2 text-base font-medium text-feed-card-header-username-text">
+          {author.name}
+        </span>
+        {/* 날짜: Label M(Pretendard Medium 12) */}
+        <time
+          dateTime={createdAt}
+          className="ml-1.5 text-xs font-medium text-feed-card-header-date-text"
+        >
+          {formatDateLabel(createdAt)}
+        </time>
+      </div>
       {onPressMore ? (
         <button
           type="button"
           onClick={onPressMore}
           aria-label="게시물 메뉴 열기"
-          className="ml-auto inline-flex size-8 items-center justify-center text-feed-card-header-more-icon"
+          className="ml-auto inline-flex h-7 w-8 items-center justify-center text-feed-card-header-more-icon"
         >
-          <MoreIcon size={20} />
+          <MoreVerticalIcon size={16} />
         </button>
       ) : null}
     </header>
