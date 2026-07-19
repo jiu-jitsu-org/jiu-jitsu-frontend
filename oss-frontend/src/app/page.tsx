@@ -4,6 +4,7 @@ import { getBoardListPageData } from "@/features/community/application/get-board
 import { SessionExpiredRecovery } from "@/features/auth/presentation/session-expired-recovery";
 import { DEFAULT_BOARD_LIST_QUERY } from "@/features/community/domain/post-summary";
 import { CommunityFeedList } from "@/features/community/presentation/community-feed-list";
+import { FeedEmptyState } from "@/features/community/presentation/feed-empty-state";
 import { FeedErrorState } from "@/features/community/presentation/feed-error-state";
 import { PostWriteFab } from "@/features/community/presentation/post-write-fab";
 
@@ -50,7 +51,7 @@ function renderFeed(
   }
 
   if (result.data.list.items.length === 0) {
-    return <FeedMessage>아직 게시글이 없어요.</FeedMessage>;
+    return <FeedEmptyState />;
   }
 
   return (
@@ -71,15 +72,6 @@ function FeedLoading() {
         role="status"
         aria-label="불러오는 중"
       />
-    </div>
-  );
-}
-
-/** 빈/에러 상태 안내 문구(피드 영역 중앙). */
-function FeedMessage({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex min-h-[60vh] items-center justify-center px-6 text-center text-sm text-feed-card-body-text">
-      {children}
     </div>
   );
 }

@@ -281,7 +281,8 @@ export function FeedCardImages({
 
   return (
     <div className={cn("overflow-hidden rounded-2xl", className)}>
-      {/* 폭은 카드 내용 폭(디바이스 폭)에 맞춤, 높이는 비율 343:220으로 예약해 CLS를 막는다. */}
+      {/* 원본 비율 유지: 가로는 카드 내용 폭(343)에 꽉 채우고 높이는 비율대로 자동 계산. */}
+      {/* 최대 높이 458(343의 4:3 세로 기준) — 초과분은 object-cover로 center crop. 최소 높이 없음. */}
       {/* 비어 있을 때 채움색: Color/Cool Gray/50 */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -289,7 +290,7 @@ export function FeedCardImages({
         alt={cover.alt ?? ""}
         width={cover.width}
         height={cover.height}
-        className="aspect-[343/220] w-full bg-[var(--cool-gray-50)] object-cover"
+        className="max-h-[458px] w-full bg-[var(--cool-gray-50)] object-cover object-center"
       />
       {/* +N 뱃지: 임시 삭제 (다중 이미지 레이아웃 스펙 확정 시 복원) */}
     </div>
