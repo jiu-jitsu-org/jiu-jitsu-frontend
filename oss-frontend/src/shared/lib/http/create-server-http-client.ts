@@ -14,6 +14,7 @@ export function createServerHttpClient(): HttpClient {
   return new HttpClient({
     baseUrl: env.apiBaseUrl,
     timeoutMs: env.apiTimeoutMs,
+    debugLog: env.apiDebugLog,
   });
 }
 
@@ -29,6 +30,7 @@ export function createAuthedServerHttpClient(accessToken: string): HttpClient {
   return new HttpClient({
     baseUrl: env.apiBaseUrl,
     timeoutMs: env.apiTimeoutMs,
+    debugLog: env.apiDebugLog,
     defaultHeaders: { Authorization: `Bearer ${accessToken}` },
   });
 }

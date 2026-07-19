@@ -13,6 +13,11 @@
 type ServerEnv = {
   apiBaseUrl: string;
   apiTimeoutMs: number;
+  /**
+   * (dev 전용) 업스트림 API 요청/응답을 서버 터미널에 로깅할지 여부.
+   * NODE_ENV가 production이면 어떤 경우에도 false → 운영 노출 원천 차단.
+   */
+  apiDebugLog: boolean;
 };
 
 type ImageKitClientEnv = {
@@ -53,6 +58,10 @@ export function getServerEnv(): ServerEnv {
       process.env.INTERNAL_API_BASE_URL ?? process.env.API_BASE_URL,
     ),
     apiTimeoutMs: parseNumber(process.env.API_TIMEOUT_MS, 10000),
+    // 이중 게이트: production 빌드에서는 플래그 값과 무관하게 항상 꺼진다.
+    apiDebugLog:
+      process.env.NODE_ENV !== "production" &&
+      process.env.API_DEBUG_LOG === "true",
   };
 
   return cachedEnv;
