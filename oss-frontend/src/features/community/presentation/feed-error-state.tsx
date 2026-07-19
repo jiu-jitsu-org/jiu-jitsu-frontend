@@ -15,7 +15,7 @@ export function FeedErrorState() {
   const [pending, startTransition] = useTransition();
 
   return (
-    {/* 컨텐츠 묶음은 뷰포트 전체 기준 가로·세로 가운데 정렬. */}
+    // 컨텐츠 묶음은 뷰포트 전체 기준 가로·세로 가운데 정렬.
     <div className="flex min-h-screen flex-col items-center justify-center gap-[13px] px-4 text-center">
       <p className="text-base font-medium text-feed-card-body-text">
         잠시 문제가 생겼어요
