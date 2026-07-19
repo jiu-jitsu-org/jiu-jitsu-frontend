@@ -10,7 +10,7 @@ import type {
  *
  * 업스트림: GET /board (카테고리별·페이징 목록 조회) 응답 계약.
  * 상세(PostDetail)와 작성자/이미지/카운트/viewer 의미는 공유하되, 목록 항목은
- * 태그·알림설정 등 단건 전용 필드를 갖지 않는다(가벼운 카드 표시용).
+ * 조회수·태그·알림설정 등 단건 전용 필드를 갖지 않는다(가벼운 카드 표시용).
  */
 export type PostSummary = {
   id: number;
@@ -23,8 +23,6 @@ export type PostSummary = {
   images: PostImage[];
   /** likeCount/commentCount. 저장(북마크) 카운트는 응답에 없어 포함하지 않는다. */
   counts: PostCounts;
-  /** viewCount(조회수). 응답에 포함되며, 현재 카드 저장 슬롯 표시값으로 사용된다. */
-  views: number;
   viewer: PostViewerState;
   /** createdAt(ISO 8601). */
   createdAt: string;

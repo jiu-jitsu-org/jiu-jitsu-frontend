@@ -92,7 +92,6 @@ type BoardSummaryDto = {
   isUpdated: boolean;
   commentCount: number;
   likeCount: number;
-  viewCount: number;
   isCommented: boolean;
   isLiked: boolean;
   isSaved: boolean;
@@ -132,7 +131,6 @@ function toPostSummary(dto: BoardSummaryDto): PostSummary {
       comments: dto.commentCount,
       likes: dto.likeCount,
     },
-    views: dto.viewCount,
     viewer: {
       liked: dto.isLiked,
       bookmarked: dto.isSaved,

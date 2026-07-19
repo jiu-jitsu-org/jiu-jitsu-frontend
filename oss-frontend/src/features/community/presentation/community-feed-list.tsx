@@ -65,8 +65,7 @@ export function CommunityFeedList({
  * 좋아요/저장은 서버 초기 상태(viewer)를 시드로 usePostActions가 낙관적 토글 + BFF 요청을 담당한다
  * (상세 화면과 동일 훅 재사용). 카드 탭/댓글 탭 → 상세 열기(네이티브면 서브뷰, 웹이면 라우터 이동).
  *
- * 저장(북마크) 카운트는 응답에 없어, 저장 슬롯에는 조회수(viewCount)를 대신 표시한다.
- * (0이면 FeedCard가 숫자를 숨기고 아이콘만 노출)
+ * 저장(북마크) 카운트는 응답에 없어 0으로 둔다 → FeedCard가 숫자를 숨기고 아이콘만 표시한다.
  */
 function FeedCardItem({ post }: { post: PostSummary }) {
   const openPostDetail = useOpenPostDetail();
@@ -87,7 +86,13 @@ function FeedCardItem({ post }: { post: PostSummary }) {
       title={post.title}
       body={post.body}
       images={post.images.map((image) => ({ url: image.imageUrl, alt: "" }))}
-      counts={{ comments: post.counts.comments, likes, bookmarks: post.views }}
+      counts={{
+        comments: post.counts.comments,
+        likes,
+        // TODO: 저장(북마크) 카운트는 목록 응답에 아직 없음(isSaved boolean만 존재).
+        // 백엔드가 저장 수 필드를 추가하면 0 대신 실제 저장 수로 교체한다.
+        bookmarks: 0,
+      }}
       commented={post.viewer.commented}
       liked={liked}
       bookmarked={bookmarked}
