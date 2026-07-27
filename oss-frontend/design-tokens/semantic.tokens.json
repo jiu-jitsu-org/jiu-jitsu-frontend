@@ -1181,6 +1181,31 @@
         }
       }
     },
+    "surface-field-subtle": {
+      "$type": "color",
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.9607843160629272,
+          0.9607843160629272,
+          0.9607843160629272
+        ],
+        "alpha": 1,
+        "hex": "#F5F5F5"
+      },
+      "$extensions": {
+        "com.figma.variableId": "VariableID:4709:21340",
+        "com.figma.scopes": [
+          "ALL_SCOPES"
+        ],
+        "com.figma.aliasData": {
+          "targetVariableId": "VariableID:139a491ef597a1d7ba15d518211d3c350a767ece/-1:-1",
+          "targetVariableName": "Color/Cool gray/10",
+          "targetVariableSetId": "VariableCollectionId:7f00cdd25149ef1089b75cf5032c9e3c0007fe95/-1:-1",
+          "targetVariableSetName": "Primitive"
+        }
+      }
+    },
     "on-dark-pressed-bg": {
       "$type": "color",
       "$value": {
