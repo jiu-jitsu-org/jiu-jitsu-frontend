@@ -85,7 +85,7 @@ type BoardDetailDto = {
  *
  * 상세(BoardDetailDto)와 달리 알림설정(noticeEnabled)이 없고, 목록 전용 필드(timeAgo)가 있다.
  * 아래 필드는 응답에는 오지만 아직 도메인/화면에서 쓰지 않는다 — 계약을 먼저 고정해 둔다:
- *   viewCount(조회수) · tags(태그) · timeAgo(상대 시각) · categoryName · updatedAt · isAuthor.
+ *   viewCount(조회수) · tags(태그) · categoryName · updatedAt.
  */
 type BoardSummaryDto = {
   id: number;
@@ -105,7 +105,7 @@ type BoardSummaryDto = {
   viewCount?: number;
   /** 태그 목록. 상세의 tagList와 키 이름이 다르다(목록은 tags). 항목 형태는 상세와 동일 가정. */
   tags?: { id: number; name: string }[];
-  /** 서버가 계산한 상대 시각(예: "10일 전"). 카드는 현재 createdAt을 직접 포맷한다. */
+  /** 서버가 계산한 상대 시각(예: "10일 전"). 카드 날짜 라벨의 정본 — 없으면 createdAt으로 폴백. */
   timeAgo?: string;
   isCommented: boolean;
   isLiked: boolean;
@@ -154,6 +154,7 @@ function toPostSummary(dto: BoardSummaryDto): PostSummary {
       isOwner: dto.isAuthor,
     },
     createdAt: dto.createdAt,
+    timeAgo: dto.timeAgo,
     updatedAt: dto.updatedAt ?? null,
     edited: dto.isUpdated ?? false,
   };

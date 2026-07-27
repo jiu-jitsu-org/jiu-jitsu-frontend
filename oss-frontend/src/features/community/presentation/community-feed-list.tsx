@@ -85,6 +85,7 @@ function FeedCardItem({ post }: { post: PostSummary }) {
         avatarUrl: post.author.avatarUrl ?? undefined,
       }}
       createdAt={post.createdAt}
+      dateLabel={post.timeAgo}
       title={post.title}
       body={post.body}
       images={post.images.map((image) => ({ url: image.imageUrl, alt: "" }))}

@@ -26,6 +26,8 @@ export type PostSummary = {
   viewer: PostViewerState;
   /** createdAt(ISO 8601). */
   createdAt: string;
+  /** timeAgo — 서버가 계산한 상대 시각 라벨(예: "10일 전"). 없으면 화면이 createdAt으로 포맷. */
+  timeAgo?: string;
   /** updatedAt(ISO 8601). */
   updatedAt?: string | null;
   /** isUpdated → "수정됨" 표시 여부. */

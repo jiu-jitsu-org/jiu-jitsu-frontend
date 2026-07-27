@@ -37,8 +37,13 @@ export type FeedReactionCounts = {
 
 export type FeedCardProps = {
   author: FeedAuthor;
-  /** 작성 시각(ISO 8601). 표시 포맷은 카드가 담당하되 `<time datetime>`으로 원본도 노출. */
+  /** 작성 시각(ISO 8601). `<time datetime>` 원본값이자 dateLabel이 없을 때의 표시 소스. */
   createdAt: string;
+  /**
+   * 날짜 표시 라벨. 서버가 계산한 상대 시각(timeAgo, 예: "10일 전")을 그대로 노출하기 위한 슬롯.
+   * 없으면 카드가 createdAt을 "M월 D일"로 포맷한다(데모/구버전 응답 폴백).
+   */
+  dateLabel?: string;
   title: string;
   body: string;
   /** 0개=없음 / 1개=단일 / N개=대표 1장 + "+N" 뱃지. */
@@ -68,6 +73,7 @@ export type FeedCardProps = {
 export function FeedCard({
   author,
   createdAt,
+  dateLabel,
   title,
   body,
   images,
@@ -89,6 +95,7 @@ export function FeedCard({
       <FeedCardHeader
         author={author}
         createdAt={createdAt}
+        dateLabel={dateLabel}
         onPressMore={onPressMore}
       />
       {/* 헤더행 → 제목행 간격 8 */}
@@ -166,10 +173,12 @@ function FeedCardAvatar({ avatarUrl }: { avatarUrl?: string }) {
 export function FeedCardHeader({
   author,
   createdAt,
+  dateLabel,
   onPressMore,
 }: {
   author: FeedAuthor;
   createdAt: string;
+  dateLabel?: string;
   onPressMore?: () => void;
 }) {
   return (
@@ -190,7 +199,7 @@ export function FeedCardHeader({
           dateTime={createdAt}
           className="ml-1.5 text-xs font-medium text-feed-card-header-date-text"
         >
-          {formatDateLabel(createdAt)}
+          {dateLabel ?? formatDateLabel(createdAt)}
         </time>
       </div>
       {onPressMore ? (
