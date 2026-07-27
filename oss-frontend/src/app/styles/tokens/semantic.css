@@ -49,6 +49,7 @@
   --primary-subtle: var(--blue-100);
   --primary-on-primary: var(--bw-white);
   --surface-container: var(--bw-white);
+  --surface-field-subtle: var(--cool-gray-10);
   --surface-on-dark-pressed-bg: var(--opacity-white-20);
   --surface-container-pressed: var(--cool-gray-75);
   --surface-container-disabled: var(--cool-gray-100);
