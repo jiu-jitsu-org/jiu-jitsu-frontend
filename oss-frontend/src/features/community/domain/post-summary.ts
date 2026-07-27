@@ -21,7 +21,7 @@ export type PostSummary = {
   body: string;
   /** imageList. 목록 카드에서는 대표 1장만 노출. */
   images: PostImage[];
-  /** likeCount/commentCount. 저장(북마크) 카운트는 응답에 없어 포함하지 않는다. */
+  /** likeCount/commentCount/saveCount. */
   counts: PostCounts;
   viewer: PostViewerState;
   /** createdAt(ISO 8601). */

@@ -92,6 +92,8 @@ type BoardSummaryDto = {
   isUpdated: boolean;
   commentCount: number;
   likeCount: number;
+  /** 저장(북마크) 수. 구버전 응답 호환을 위해 optional로 두고 매핑 시 0으로 정규화. */
+  saveCount?: number;
   isCommented: boolean;
   isLiked: boolean;
   isSaved: boolean;
@@ -130,6 +132,7 @@ function toPostSummary(dto: BoardSummaryDto): PostSummary {
     counts: {
       comments: dto.commentCount,
       likes: dto.likeCount,
+      saves: dto.saveCount ?? 0,
     },
     viewer: {
       liked: dto.isLiked,
