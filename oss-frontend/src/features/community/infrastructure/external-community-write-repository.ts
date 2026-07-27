@@ -22,10 +22,11 @@ import type { HttpClient } from "@/shared/lib/http";
  * 모든 쓰기는 인증이 필요하므로 주입되는 HttpClient는 반드시 authed(Bearer 부착) 클라이언트다.
  *
  * 댓글 생성은 Swagger 확정 계약(POST /community/comments, body { contentId, parentId, body }).
+ * 게시글 삭제는 Swagger 확정 계약(DELETE /board/{id}) — 200 OK, 응답 본문은 사용하지 않는다.
  * 좋아요는 Swagger 확정 계약(PUT /board/like/{id}) — 서버가 토글하고 isLiked를 돌려준다.
  * 저장(북마크)은 Swagger 확정 계약(PUT /board/save/{id}) — 서버가 토글하고 isSaved를 돌려준다.
  *
- * FIXME: board/이미지 경로는 가정 계약이다(Swagger 미확인). 백엔드 확정 시 정합 확인 필요.
+ * FIXME: 이미지 경로는 가정 계약이다(Swagger 미확인). 백엔드 확정 시 정합 확인 필요.
  */
 const BOARD_ENDPOINT_PATH = "/api/board";
 const IMAGE_ENDPOINT_PATH = "/api/image";
