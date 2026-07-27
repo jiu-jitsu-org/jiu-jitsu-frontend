@@ -42,13 +42,13 @@ export function CommentSortSelect({ sort }: { sort: CommentSort }) {
   return (
     <div className="relative">
       {/* 텍스트(Button S = 12 Semibold) + chevron 16, 간격 2(gap-0.5). 높이 32, 너비 콘텐츠 맞춤.
-          좌 8(pl-2)/우 4(pr-1). 색 #292A2E(토큰 미매핑 특수 케이스, 아이콘은 currentColor로 동일). */}
+          좌 8(pl-2)/우 4(pr-1). 색 comment-sort-select-default-text(아이콘은 currentColor로 동일). */}
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="inline-flex h-8 items-center gap-0.5 pl-2 pr-1 text-xs font-semibold text-[#292A2E]"
+        className="inline-flex h-8 items-center gap-0.5 pl-2 pr-1 text-xs font-semibold text-comment-sort-select-default-text"
       >
         {current.label}
         <ChevronDownIcon size={16} />

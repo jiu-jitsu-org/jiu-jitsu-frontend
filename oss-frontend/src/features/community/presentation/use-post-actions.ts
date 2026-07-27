@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
+import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
 
 /**
@@ -54,7 +55,7 @@ export function usePostActions(postId: number, initial: PostActionsState) {
     }
 
     try {
-      const response = await fetch(ENDPOINT[kind](postId), { method: "POST" });
+      const response = await bffFetch(ENDPOINT[kind](postId), { method: "POST" });
 
       if (!response.ok) {
         if (response.status === 401) {

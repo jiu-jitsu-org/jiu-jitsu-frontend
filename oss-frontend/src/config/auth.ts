@@ -8,5 +8,5 @@
 /** 세션(accessToken)을 담는 httpOnly 쿠키 이름. */
 export const SESSION_COOKIE_NAME = "oss_session";
 
-/** 세션 쿠키 기본 수명(초). 토큰 expiresAt이 없을 때의 폴백 = 7일. */
+/** 세션 쿠키 수명(초) = 7일. 실제 토큰 만료는 업스트림이 매 요청 검증한다. */
 export const SESSION_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;

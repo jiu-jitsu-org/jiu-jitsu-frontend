@@ -94,7 +94,6 @@ export function AuthPlaygroundPage() {
       payload: {
         // 더미 토큰으로는 백엔드가 401을 준다. 실제 성공을 보려면 유효 토큰을 입력한다.
         accessToken: tokenInput.trim() || DUMMY_ACCESS_TOKEN,
-        expiresAt: Date.now() + 1000 * 60 * 60,
       },
     });
   };

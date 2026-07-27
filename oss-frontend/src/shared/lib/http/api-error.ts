@@ -21,6 +21,8 @@ export const ApiErrorCode = {
   WRONG_PARAMETER: "R0002",
   /** 404 존재하지 않는 게시글. */
   BOARD_NOT_FOUND: "C0002",
+  /** 403 만료된 액세스 토큰. 브라우저는 bffFetch가 네이티브 갱신·재시도로 처리한다. */
+  EXPIRED_TOKEN: "A0003",
   /** 500 서버 오류. */
   SERVER_ERROR: "SY002",
 } as const;

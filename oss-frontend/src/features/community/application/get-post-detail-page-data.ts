@@ -5,7 +5,7 @@ import {
 import type { Comment, CommentList } from "@/features/community/domain/comment";
 import type { CommentSort, PostDetail } from "@/features/community/domain/post";
 import { readSessionToken } from "@/shared/lib/auth";
-import { toApiError } from "@/shared/lib/http";
+import { ApiErrorCode, toApiError } from "@/shared/lib/http";
 
 export type PostDetailPageData = {
   post: PostDetail;
@@ -14,7 +14,9 @@ export type PostDetailPageData = {
 
 export type PostDetailPageDataResult =
   | { ok: true; data: PostDetailPageData }
-  | { ok: false; status: number; code: string; error: string };
+  // 만료 토큰 — 서버는 갱신 불가하니 클라이언트가 네이티브 갱신 후 재조회(SSR 재실행)한다.
+  | { ok: false; reason: "session-expired" }
+  | { ok: false; reason: "error"; status: number; code: string; error: string };
 
 /** 댓글 API 미연동 시 폴백(상세만으로도 화면이 뜨도록). */
 const EMPTY_COMMENTS: CommentList = { items: [], total: 0, nextCursor: null };
@@ -69,8 +71,15 @@ export async function getPostDetailPageData(
     return { ok: true, data: { post, comments: commentsWithAuthor } };
   } catch (error) {
     const apiError = toApiError(error);
+
+    // 로그인 상태에서 토큰 만료 → 클라이언트가 네이티브 갱신 후 SSR 재실행하도록 위임.
+    if (accessToken && apiError.code === ApiErrorCode.EXPIRED_TOKEN) {
+      return { ok: false, reason: "session-expired" };
+    }
+
     return {
       ok: false,
+      reason: "error",
       status: apiError.status,
       code: apiError.code,
       error: apiError.message,

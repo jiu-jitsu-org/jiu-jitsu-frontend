@@ -32,10 +32,16 @@ const MAX_TAGS = 10;
 /** 태그 1개 최대 글자 수. */
 const MAX_TAG_LENGTH = 20;
 /**
- * 게시글 카테고리 id. 작성 화면에 카테고리 선택 UI가 아직 없어 임시 기본값을 쓴다.
- * FIXME(UI/API): 카테고리 선택 컴포넌트 추가 후 사용자가 고른 값으로 교체(POST /board 필수 필드).
+ * 게시글 카테고리 목록. 업스트림 카테고리 조회 응답(data) 기준 — 추후 API 조회로 대체 가능하나,
+ * 고정 분류라 현재는 상수로 둔다. id는 POST /board의 필수 categoryId로 그대로 전송된다.
  */
-const DEFAULT_CATEGORY_ID = 1;
+const CATEGORIES: { id: number; name: string }[] = [
+  { id: 1, name: "매트 위 수다" },
+  { id: 2, name: "훈련 & 기술" },
+  { id: 3, name: "도장" },
+  { id: 4, name: "장비" },
+  { id: 5, name: "대회" },
+];
 
 /**
  * 게시글 작성 화면 초안 (클라이언트 화면 컴포넌트).
@@ -49,8 +55,8 @@ const DEFAULT_CATEGORY_ID = 1;
  * 상세처럼 서버 레이아웃 + 클라이언트 leaf로 쪼개지 않고 하나의 클라이언트 화면으로 둔다.
  *
  * 작성 흐름은 BFF에 연결돼 있다: ①②③(서명→ImageKit→등록)으로 imageFileIdList 확보 후
- * ④ POST /api/community/board로 생성. 남은 공백 2가지:
- * - categoryId: 카테고리 선택 UI가 없어 DEFAULT_CATEGORY_ID 임시 사용(FIXME).
+ * ④ POST /api/community/board로 생성. categoryId는 헤더와 제목 사이의 카테고리 드롭다운에서
+ * 사용자가 고른 값을 전송하며, 미선택이면 등록을 비활성화한다(canSubmit). 남은 공백:
  * - tags: /board 계약에 태그 필드가 없어 입력은 받되 전송하지 않음(백엔드 확정 시 연결).
  */
 export function PostWriteScreen() {
@@ -60,6 +66,8 @@ export function PostWriteScreen() {
   const [body, setBody] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
+  // 카테고리: 미선택(null)으로 시작 → 사용자가 칩에서 고르기 전엔 등록 불가.
+  const [categoryId, setCategoryId] = useState<number | null>(null);
   // 키보드 위 '실제 보이는 영역'에 셸을 맞춘다(visualViewport). dvh/fixed inset-0가 안 줄어드는
   // WKWebView에서 입력 보조 바를 키보드 바로 위에 떨어뜨리는 유일하게 신뢰 가능한 기준.
   const rect = useViewportRect();
@@ -83,11 +91,15 @@ export function PostWriteScreen() {
     uploadAll,
   } = useImageAttachments();
 
-  // 등록 가능: 제목·본문 모두 공백 아님 + 전송 중 아님.
+  // 등록 가능: 카테고리 선택 + 제목·본문 모두 공백 아님 + 전송 중 아님.
   const canSubmit =
-    title.trim().length > 0 && body.trim().length > 0 && !submitting;
-  // 한 글자라도 적었거나 이미지를 담았으면 "작성 중" → 닫기 시 이탈 가드를 띄운다.
+    categoryId !== null &&
+    title.trim().length > 0 &&
+    body.trim().length > 0 &&
+    !submitting;
+  // 한 글자라도 적었거나 카테고리/이미지를 골랐으면 "작성 중" → 닫기 시 이탈 가드를 띄운다.
   const isDirty =
+    categoryId !== null ||
     title.trim().length > 0 ||
     body.trim().length > 0 ||
     tags.length > 0 ||
@@ -178,7 +190,7 @@ export function PostWriteScreen() {
   useNativeBackHandler(requestClose);
 
   async function submit() {
-    if (!canSubmit) return;
+    if (!canSubmit || categoryId === null) return;
     setSubmitting(true);
     try {
       // 지연 업로드: 작성 직전에만 ①②③(서명→ImageKit→등록) 실행 → 표시 순서대로 imageId 확보.
@@ -186,7 +198,7 @@ export function PostWriteScreen() {
       console.info("[post-write] 이미지 등록 완료 imageFileIdList:", imageFileIdList);
       // ④ 게시글 생성. tags는 현재 /board 계약에 필드가 없어 전송하지 않는다(FIXME 참고).
       const created = await createPost({
-        categoryId: DEFAULT_CATEGORY_ID,
+        categoryId,
         title: title.trim(),
         body: body.trim(),
         imageFileIdList,
@@ -244,9 +256,35 @@ export function PostWriteScreen() {
       </AppBarShell>
 
       <main className="flex min-h-0 flex-1 flex-col">
+        {/* 카테고리 선택: 헤더 바로 아래 가로 스크롤 칩. 5개를 한 줄에 모두 노출해 숨김 메뉴 없이
+            한 번에 고른다(필수값이라 미선택이면 등록 비활성 — canSubmit). 선택 칩은 등록 버튼과 같은
+            브랜드 채움, 비선택은 외곽선으로 대비를 준다. 좌우 16(px-4)·칩 간격 8(gap-2), 넘치면 가로
+            스크롤(스크롤바 숨김). 선택/비선택의 1px 외곽선 폭을 맞춰(선택은 투명 테두리) 크기 흔들림 방지. */}
+        <div className="flex gap-2 overflow-x-auto px-4 pb-1 pt-5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {CATEGORIES.map((category) => {
+            const selected = category.id === categoryId;
+            return (
+              <button
+                key={category.id}
+                type="button"
+                onClick={() => setCategoryId(category.id)}
+                aria-pressed={selected}
+                className={cn(
+                  "shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors",
+                  selected
+                    ? "border-transparent bg-button-filled-default-bg text-button-filled-default-text"
+                    : "border-border-subtle text-text-secondary",
+                )}
+              >
+                {category.name}
+              </button>
+            );
+          })}
+        </div>
+
         {/* 제목: 단행 입력 + 우측 글자수(n/45)로 한도를 자연 노출.
-            헤더↔제목 간격 24(pt-6): 상세의 헤더→작성자 아이콘 간격(article pt-6)과 동일하게 맞춘다. */}
-        <div className="flex items-center gap-2 px-4 pb-4 pt-6">
+            카테고리↔제목 간격 16(pt-4). */}
+        <div className="flex items-center gap-2 px-4 pb-4 pt-4">
           {/* 폰트·색상은 상세 제목과 동일 토큰(Body M 16 medium / feed-card-body-title-text) → 입력=상세 미리보기. */}
           <input
             value={title}
@@ -316,7 +354,7 @@ export function PostWriteScreen() {
                 type="button"
                 onClick={() => setTags((prev) => prev.filter((t) => t !== tag))}
                 aria-label={`태그 ${tag} 삭제`}
-                className="inline-flex items-center gap-1 rounded-full bg-[#F2F2F2] py-1 pl-2.5 pr-2 text-xs font-medium text-text-secondary"
+                className="inline-flex items-center gap-1 rounded-full bg-tag-chip-selected-bg py-1 pl-2.5 pr-2 text-xs font-medium text-tag-chip-selected-text"
               >
                 #{tag}
                 <span aria-hidden className="text-text-tertiary">
