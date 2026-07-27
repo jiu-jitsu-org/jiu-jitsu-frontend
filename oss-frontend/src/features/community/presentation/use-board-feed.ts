@@ -66,7 +66,14 @@ export function useBoardFeed(initial: {
     }
   }, [isLast, page]);
 
-  return { items, isLast, status, loadMore };
+  // 카드 ⋮ 메뉴에서 삭제가 성공하면 목록에서 걷어낸다(서버 재조회 없이 즉시 반영).
+  // page/isLast는 건드리지 않는다 — 한 건 빠졌다고 페이지 경계가 달라지지 않고,
+  // 뒤이은 loadMore는 여전히 서버 기준 page+1을 이어 받아야 하기 때문.
+  const removePost = useCallback((postId: number) => {
+    setItems((prev) => prev.filter((post) => post.id !== postId));
+  }, []);
+
+  return { items, isLast, status, loadMore, removePost };
 }
 
 /** 이미 있는 id는 건너뛰고 새 항목만 이어 붙인다(페이지 경계 중복 방지). */

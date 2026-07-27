@@ -59,6 +59,11 @@ export type FeedCardProps = {
   onToggleLike?: () => void;
   onToggleBookmark?: () => void;
   onPressMore?: () => void;
+  /**
+   * 헤더 우측 ⋮ 슬롯. 메뉴 항목은 소유자 여부·삭제/신고 API를 알아야 해 카드가 소유하지 않는다
+   * → 호출부가 트리거+드롭다운을 통째로 넘긴다(FeedCardMenu). 없으면 onPressMore 버튼으로 폴백.
+   */
+  menu?: ReactNode;
   className?: string;
 };
 
@@ -86,6 +91,7 @@ export function FeedCard({
   onToggleLike,
   onToggleBookmark,
   onPressMore,
+  menu,
   className,
 }: FeedCardProps) {
   return (
@@ -97,6 +103,7 @@ export function FeedCard({
         createdAt={createdAt}
         dateLabel={dateLabel}
         onPressMore={onPressMore}
+        menu={menu}
       />
       {/* 헤더행 → 제목행 간격 8 */}
       <FeedCardBody
@@ -175,11 +182,13 @@ export function FeedCardHeader({
   createdAt,
   dateLabel,
   onPressMore,
+  menu,
 }: {
   author: FeedAuthor;
   createdAt: string;
   dateLabel?: string;
   onPressMore?: () => void;
+  menu?: ReactNode;
 }) {
   return (
     // 헤더는 items-start: user-header 묶음을 카드 헤더 좌상단에 붙인다.
@@ -202,7 +211,9 @@ export function FeedCardHeader({
           {dateLabel ?? formatDateLabel(createdAt)}
         </time>
       </div>
-      {onPressMore ? (
+      {/* 드롭다운을 버튼 기준으로 띄우려면 앵커가 필요해 relative 래퍼로 감싼다. */}
+      {menu ? <div className="relative ml-auto">{menu}</div> : null}
+      {!menu && onPressMore ? (
         <button
           type="button"
           onClick={onPressMore}

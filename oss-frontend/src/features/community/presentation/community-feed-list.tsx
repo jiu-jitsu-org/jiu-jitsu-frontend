@@ -6,6 +6,7 @@ import { useInfiniteScroll } from "@/features/community/presentation/use-infinit
 import { usePostActions } from "@/features/community/presentation/use-post-actions";
 import type { PostSummary } from "@/features/community/domain/post-summary";
 import { FeedCard } from "@/features/community/presentation/feed/feed-card";
+import { FeedCardMenu } from "@/features/community/presentation/feed/feed-card-menu";
 import { FeedListEnd } from "@/features/community/presentation/feed/feed-list-end";
 
 /**
@@ -28,7 +29,7 @@ export function CommunityFeedList({
   page: number;
   isLast: boolean;
 }) {
-  const { items, isLast, status, loadMore } = useBoardFeed({
+  const { items, isLast, status, loadMore, removePost } = useBoardFeed({
     items: posts,
     page,
     isLast: initialIsLast,
@@ -45,7 +46,11 @@ export function CommunityFeedList({
     // 하단 91: 우하단 플로팅 FAB(작성 버튼)이 마지막 카드 UX를 가리지 않도록 여유를 둔 스펙값.
     <div className="flex flex-col gap-4 pt-6 pb-[91px]">
       {items.map((post) => (
-        <FeedCardItem key={post.id} post={post} />
+        <FeedCardItem
+          key={post.id}
+          post={post}
+          onDeleted={() => removePost(post.id)}
+        />
       ))}
 
       {!isLast && status !== "error" ? (
@@ -67,8 +72,16 @@ export function CommunityFeedList({
  *
  * 저장(북마크) 카운트(saveCount)는 좋아요와 동일하게 낙관적으로 증감한다.
  * 0이면 FeedCard가 숫자를 숨기고 아이콘만 표시한다.
+ *
+ * 헤더 우측 ⋮는 소유자 여부(viewer.isOwner)로 항목이 갈려 카드가 소유할 수 없으므로 menu 슬롯으로 넘긴다.
  */
-function FeedCardItem({ post }: { post: PostSummary }) {
+function FeedCardItem({
+  post,
+  onDeleted,
+}: {
+  post: PostSummary;
+  onDeleted: () => void;
+}) {
   const openPostDetail = useOpenPostDetail();
   const { liked, bookmarked, likes, saves, toggleLike, toggleBookmark } =
     usePostActions(post.id, {
@@ -101,6 +114,13 @@ function FeedCardItem({ post }: { post: PostSummary }) {
       onPressComment={() => openPostDetail(post.id)}
       onToggleLike={toggleLike}
       onToggleBookmark={toggleBookmark}
+      menu={
+        <FeedCardMenu
+          postId={post.id}
+          isOwner={post.viewer.isOwner}
+          onDeleted={onDeleted}
+        />
+      }
     />
   );
 }
