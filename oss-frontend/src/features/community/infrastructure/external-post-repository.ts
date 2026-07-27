@@ -80,7 +80,13 @@ type BoardDetailDto = {
   tagList?: { id: number; name: string }[];
 };
 
-/** GET /board content[] 항목 DTO. 상세(BoardDetailDto)에서 단건 전용 필드(태그/조회수/알림)를 뺀 형태. */
+/**
+ * GET /board content[] 항목 DTO.
+ *
+ * 상세(BoardDetailDto)와 달리 알림설정(noticeEnabled)이 없고, 목록 전용 필드(timeAgo)가 있다.
+ * 아래 필드는 응답에는 오지만 아직 도메인/화면에서 쓰지 않는다 — 계약을 먼저 고정해 둔다:
+ *   viewCount(조회수) · tags(태그) · timeAgo(상대 시각) · categoryName · updatedAt · isAuthor.
+ */
 type BoardSummaryDto = {
   id: number;
   categoryId: number;
@@ -89,11 +95,18 @@ type BoardSummaryDto = {
   body: string;
   createdAt: string;
   updatedAt?: string | null;
-  isUpdated: boolean;
+  /** 응답에서 누락되는 경우가 있어 optional — 매핑 시 false로 정규화. */
+  isUpdated?: boolean;
   commentCount: number;
   likeCount: number;
   /** 저장(북마크) 수. 구버전 응답 호환을 위해 optional로 두고 매핑 시 0으로 정규화. */
   saveCount?: number;
+  /** 조회수. 목록 카드 노출 스펙은 미확정(이전 표시 시도는 롤백됨). */
+  viewCount?: number;
+  /** 태그 목록. 상세의 tagList와 키 이름이 다르다(목록은 tags). 항목 형태는 상세와 동일 가정. */
+  tags?: { id: number; name: string }[];
+  /** 서버가 계산한 상대 시각(예: "10일 전"). 카드는 현재 createdAt을 직접 포맷한다. */
+  timeAgo?: string;
   isCommented: boolean;
   isLiked: boolean;
   isSaved: boolean;
@@ -142,7 +155,7 @@ function toPostSummary(dto: BoardSummaryDto): PostSummary {
     },
     createdAt: dto.createdAt,
     updatedAt: dto.updatedAt ?? null,
-    edited: dto.isUpdated,
+    edited: dto.isUpdated ?? false,
   };
 }
 
