@@ -60,6 +60,11 @@ export interface CommunityWriteRepository {
    * 결과를 알려주므로, 토글 후의 저장 여부(isSaved)를 반환한다.
    */
   toggleSave(postId: number): Promise<boolean>;
+  /**
+   * 게시글 숨김/숨김해제 토글(PUT /board/hide/{id}). 서버가 현재 상태를 뒤집고
+   * 결과를 알려주므로, 토글 후의 숨김 여부(true=숨김)를 반환한다.
+   */
+  toggleHide(postId: number): Promise<boolean>;
   /** ① ImageKit 업로드용 서명 발급(GET /image/auth). */
   getImageUploadAuth(): Promise<ImageUploadAuth>;
   /** ③ ImageKit 업로드 결과를 서버에 등록(POST /image) → TEMP 이미지. */

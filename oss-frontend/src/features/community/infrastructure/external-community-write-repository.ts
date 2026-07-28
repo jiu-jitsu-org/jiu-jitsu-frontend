@@ -114,6 +114,20 @@ export class ExternalCommunityWriteRepository
     return response.data.isSaved;
   }
 
+  async toggleHide(postId: number): Promise<boolean> {
+    // PUT /board/hide/{id} — 단일 엔드포인트 토글(숨김/숨김해제).
+    // 좋아요·저장과 달리 Swagger 응답 예시가 봉투 없는 raw `true`라, 두 형태를 모두 허용한다
+    // (봉투가 오면 data를, 아니면 본문 자체를 토글 후 상태로 읽는다).
+    const response = await this.httpClient.put<
+      Envelope<{ contentID: number; isHidden?: boolean }> | boolean
+    >({
+      path: `${BOARD_ENDPOINT_PATH}/hide/${postId}`,
+    });
+
+    if (typeof response === "boolean") return response;
+    return response.data?.isHidden ?? true;
+  }
+
   async getImageUploadAuth(): Promise<ImageUploadAuth> {
     const response = await this.httpClient.get<Envelope<ImageUploadAuth>>({
       path: `${IMAGE_ENDPOINT_PATH}/auth`,
