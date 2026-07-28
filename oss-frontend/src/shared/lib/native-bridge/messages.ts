@@ -29,6 +29,12 @@ export const OutboundMessageType = {
   // 뒤로가기 가드 토글. 기본은 네이티브가 back을 직접 처리(닫기)하지만, 이 화면이 가드(작성 중 확인 등)를
   // 가졌다고 enabled:true로 통지하면 네이티브는 직접 닫지 않고 BACK_PRESSED를 보낸다. 해제 시 enabled:false.
   BACK_GUARD: "BACK_GUARD",
+  // 확인 알럿·선택 바텀시트 표시 요청. 웹뷰는 자기 프레임 밖(GNB·하단 탭바)을 그릴 수 없어
+  // 풀스크린 딤이 필요한 표면은 네이티브가 소유한다. 문구·항목은 웹이 payload로 넘겨
+  // 문안 변경이 앱 배포에 묶이지 않게 한다(네이티브는 셸만 소유).
+  // 두 메시지는 결과 회신이 필요한 유일한 케이스라 requestId로 요청↔응답을 짝짓는다.
+  SHOW_CONFIRM_DIALOG: "SHOW_CONFIRM_DIALOG",
+  SHOW_SELECT_SHEET: "SHOW_SELECT_SHEET",
 } as const;
 export type OutboundMessageType =
   (typeof OutboundMessageType)[keyof typeof OutboundMessageType];
@@ -42,6 +48,9 @@ export const InboundMessageType = {
   // 네이티브 뒤로가기. 가드를 등록한(BACK_GUARD enabled:true) 화면에만 보낸다. 웹이 이탈 가드를
   // 처리한 뒤 닫을 때만 스스로 CLOSE_SUBVIEW를 호출한다(가드 없는 화면은 네이티브가 직접 닫음).
   BACK_PRESSED: "BACK_PRESSED",
+  // SHOW_CONFIRM_DIALOG / SHOW_SELECT_SHEET의 결과. requestId로 어느 요청의 답인지 식별한다.
+  CONFIRM_DIALOG_RESULT: "CONFIRM_DIALOG_RESULT",
+  SELECT_SHEET_RESULT: "SELECT_SHEET_RESULT",
 } as const;
 export type InboundMessageType =
   (typeof InboundMessageType)[keyof typeof InboundMessageType];
@@ -67,6 +76,73 @@ export type OpenSubviewPayload = {
   presentation?: "push" | "modal";
 };
 
+/**
+ * `SHOW_CONFIRM_DIALOG` payload — 네이티브가 그릴 확인 알럿.
+ *
+ * 문구·라벨은 전부 웹이 채운다(네이티브는 셸만 소유). destructive면 확인 버튼을 위험색으로 그린다.
+ */
+export type ConfirmDialogPayload = {
+  /** 웹이 발급하는 요청 식별자 — 결과 회신을 이 값으로 매칭한다. */
+  requestId: string;
+  title: string;
+  message?: string;
+  confirmText: string;
+  /** 미지정 시 네이티브가 "취소"를 쓴다. */
+  cancelText?: string;
+  destructive?: boolean;
+  /** 딤 바깥 탭으로 닫을 수 있는지. 미지정 시 true. */
+  dismissOnOutsideTap?: boolean;
+};
+
+/** 알럿 종료 사유. dismiss = 바깥 탭·뒤로가기 등 명시적 취소가 아닌 닫힘. */
+export type ConfirmDialogResult = "confirm" | "cancel" | "dismiss";
+
+/** `CONFIRM_DIALOG_RESULT` payload. */
+export type ConfirmDialogResultPayload = {
+  requestId: string;
+  result: ConfirmDialogResult;
+};
+
+/** 선택 시트의 단일 항목. value는 API로 보낼 코드, label은 사용자에게 보일 문구. */
+export type SelectSheetOption = {
+  value: string;
+  label: string;
+  /** 이 항목을 고르면 자유 입력 필드를 함께 노출한다(신고 사유의 "기타" 등). */
+  allowsCustomText?: boolean;
+};
+
+/**
+ * `SHOW_SELECT_SHEET` payload — 네이티브가 그릴 선택 바텀시트(신고 사유 등).
+ *
+ * 신고 전용으로 두지 않는 이유: 항목을 웹이 넘기면 사유가 늘어도 앱을 건드리지 않는다.
+ */
+export type SelectSheetPayload = {
+  requestId: string;
+  title: string;
+  /** 제목 아래 보조 설명(선택). */
+  message?: string;
+  options: SelectSheetOption[];
+  /** 자유 입력 필드의 placeholder(선택) — 문구를 웹이 소유하기 위해 payload로 넘긴다. */
+  customTextPlaceholder?: string;
+  submitText: string;
+};
+
+/** 시트 종료 사유. dismiss = 제출 없이 닫힘. */
+export type SelectSheetResult = "submit" | "dismiss";
+
+/**
+ * `SELECT_SHEET_RESULT` payload. submit일 때만 value/customText가 채워진다.
+ *
+ * value는 항상 선택된 항목의 코드다(자유 입력 항목이어도 그 항목의 value를 그대로 보낸다).
+ * customText는 `allowsCustomText` 항목을 골라 입력했을 때만 함께 채운다.
+ */
+export type SelectSheetResultPayload = {
+  requestId: string;
+  result: SelectSheetResult;
+  value?: string;
+  customText?: string;
+};
+
 /** `AUTH_LOGIN_SUCCESS` payload. refreshToken은 네이티브가 보관하고 웹엔 accessToken만 전달. */
 export type AuthLoginSuccessPayload = {
   accessToken: string;
@@ -87,4 +163,12 @@ export type InboundMessage =
   | { type: typeof InboundMessageType.AUTH_LOGIN_CANCELLED }
   | { type: typeof InboundMessageType.AUTH_SESSION_EXPIRED }
   | { type: typeof InboundMessageType.AUTH_LOGOUT }
-  | { type: typeof InboundMessageType.BACK_PRESSED };
+  | { type: typeof InboundMessageType.BACK_PRESSED }
+  | {
+      type: typeof InboundMessageType.CONFIRM_DIALOG_RESULT;
+      payload: ConfirmDialogResultPayload;
+    }
+  | {
+      type: typeof InboundMessageType.SELECT_SHEET_RESULT;
+      payload: SelectSheetResultPayload;
+    };
