@@ -29,11 +29,12 @@ export function CommunityFeedList({
   page: number;
   isLast: boolean;
 }) {
-  const { items, isLast, status, loadMore, removePost } = useBoardFeed({
-    items: posts,
-    page,
-    isLast: initialIsLast,
-  });
+  const { items, isLast, status, loadMore, removePost, restorePost } =
+    useBoardFeed({
+      items: posts,
+      page,
+      isLast: initialIsLast,
+    });
 
   // 에러 상태에선 자동 재요청을 멈추고, 사용자가 재시도 버튼으로만 다시 시도하게 한다.
   const sentinelRef = useInfiniteScroll({
@@ -45,11 +46,13 @@ export function CommunityFeedList({
   return (
     // 하단 91: 우하단 플로팅 FAB(작성 버튼)이 마지막 카드 UX를 가리지 않도록 여유를 둔 스펙값.
     <div className="flex flex-col gap-4 pt-6 pb-[91px]">
-      {items.map((post) => (
+      {items.map((post, index) => (
         <FeedCardItem
           key={post.id}
           post={post}
           onDeleted={() => removePost(post.id)}
+          // 되돌리기로 복원할 수 있도록 걷어낸 위치를 함께 넘긴다.
+          onRestored={() => restorePost(post, index)}
         />
       ))}
 
@@ -78,9 +81,11 @@ export function CommunityFeedList({
 function FeedCardItem({
   post,
   onDeleted,
+  onRestored,
 }: {
   post: PostSummary;
   onDeleted: () => void;
+  onRestored: () => void;
 }) {
   const openPostDetail = useOpenPostDetail();
   const { liked, bookmarked, likes, saves, toggleLike, toggleBookmark } =
@@ -119,6 +124,7 @@ function FeedCardItem({
           postId={post.id}
           isOwner={post.viewer.isOwner}
           onDeleted={onDeleted}
+          onRestored={onRestored}
         />
       }
     />

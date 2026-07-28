@@ -3,49 +3,60 @@
 import { useState } from "react";
 
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
-import { ConfirmDialog } from "@/features/community/presentation/confirm-dialog";
 import {
   MenuBox,
   MenuItem,
 } from "@/features/community/presentation/menu-box";
+import { useNativeDialog } from "@/features/community/presentation/use-native-dialog";
+import { useOpenPostEdit } from "@/features/community/presentation/use-open-post-edit";
+import { useReportFlow } from "@/features/community/presentation/use-report-flow";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
 import { useToast } from "@/shared/ui";
 import { MoreVerticalIcon } from "@/shared/ui/icons";
 
-/** 현재 열린 확인 알럿 종류. */
-type ActiveDialog = "delete" | "report" | null;
-
 /**
  * 피드 카드 ⋮ 메뉴 (클라이언트 leaf).
  *
- * 항목·문구·API는 상세 앱바(PostDetailAppBar)의 ⋮ 메뉴와 동일하게 맞춘다 — 같은 게시글을
- * 목록에서 열든 상세에서 열든 메뉴가 달라 보이면 안 되기 때문. 소유자면 삭제/수정,
- * 아니면 신고/숨기기.
+ * 항목·문구는 상세 앱바(PostDetailAppBar)의 ⋮ 메뉴와 맞춘다 — 같은 게시글을 목록에서 열든
+ * 상세에서 열든 메뉴가 달라 보이면 안 되기 때문. 소유자면 삭제/수정, 아니면 신고/숨기기.
  *
- * 상세와 다른 점은 성공 후 처리뿐이다: 상세는 서브뷰를 닫지만, 목록은 화면에 남아 있으므로
- * 삭제된 카드만 목록에서 걷어낸다(onDeleted). 카드가 사라지는 UX상 낙관적 제거가 아니라
- * 서버 성공을 확인한 뒤 제거한다.
+ * 확인 알럿·신고 사유 시트는 useNativeDialog가 "네이티브 우선, 없으면 웹"으로 띄운다.
+ * 앱에서는 GNB·하단 탭바까지 덮는 딤이 필요해 표면을 네이티브가 소유해야 하고(웹뷰는 자기 프레임
+ * 밖을 못 그림), 무엇을 물어보고 확인 후 무엇을 호출할지는 여기(웹)가 그대로 쥔다.
+ * 계약 상세: docs/native-dialog-bridge.md
  *
- * FIXME: 수정하기/숨기기는 상세와 동일하게 아직 미구현(메뉴만 닫힘) — 수정 화면 라우트와
- * 숨기기 API가 확정되면 두 화면을 함께 연결한다.
+ * 삭제/신고 모두 성공하면 목록에서 카드를 걷어낸다(onDeleted). 카드가 사라지는 UX라 낙관적 제거가
+ * 아니라 서버 성공을 확인한 뒤 제거한다.
  */
 export function FeedCardMenu({
   postId,
   isOwner,
   onDeleted,
+  onRestored,
 }: {
   postId: number;
   isOwner: boolean;
   onDeleted: () => void;
+  /** 숨기기 되돌리기 — 걷어낸 카드를 원래 자리에 복원한다. */
+  onRestored: () => void;
 }) {
   const toast = useToast();
   const demo = useIsDemoMode();
+  const openPostEdit = useOpenPostEdit();
+  const { confirm, dialog } = useNativeDialog();
+  const { report, dialog: reportDialog } = useReportFlow();
   const [open, setOpen] = useState(false);
-  const [dialog, setDialog] = useState<ActiveDialog>(null);
 
-  async function confirmDelete() {
-    setDialog(null);
+  /** 삭제: 확인 알럿 → DELETE → 성공 시 목록에서 제거. */
+  async function handleDelete() {
+    const confirmed = await confirm({
+      title: "게시글 삭제",
+      message: "삭제한 게시글은 복구할 수 없어요.",
+      confirmText: "삭제",
+      destructive: true,
+    });
+    if (!confirmed) return;
 
     // 예시(데모)에선 네트워크 없이 토스트만(실제 삭제 없음).
     if (demo) {
@@ -69,40 +80,61 @@ export function FeedCardMenu({
     onDeleted();
   }
 
-  async function confirmReport() {
-    setDialog(null);
+  /** 신고: 확인 알럿 → 사유 시트 → POST(useReportFlow) → 성공 시 목록에서 제거(숨김). */
+  async function handleReport() {
+    const reported = await report({ reportType: "BOARD", targetId: postId });
+    if (reported) onDeleted();
+  }
 
-    // 예시(데모)에선 네트워크 없이 토스트만(실제 신고 없음).
+  /**
+   * 숨기기: 확인 알럿 없이 바로 처리하고, 되돌리기 버튼이 달린 토스트로 취소 기회를 준다.
+   *
+   * 되돌리기는 같은 엔드포인트를 한 번 더 호출한다(PUT /board/hide/{id}가 토글이라 두 번째 호출이
+   * 숨김 해제가 된다). 실패하면 카드는 숨겨진 상태로 두고 실패만 알린다 — 서버와 화면이 어긋나는
+   * 편보다 낫다.
+   */
+  async function handleHide() {
+    // 예시(데모)에선 네트워크 없이 UI만(되돌리기도 로컬 복원).
     if (demo) {
-      toast.show("게시물을 신고했습니다");
+      onDeleted();
+      toast.show("게시글을 숨겼습니다", {
+        label: "되돌리기",
+        onAction: onRestored,
+      });
       return;
     }
 
-    // FIXME(reason): 사유 선택 UI가 없어 항상 "SPAM"으로 보낸다. 사유 picker 추가 시 교체.
-    const response = await bffFetch("/api/community/reports", {
+    const response = await bffFetch(`/api/community/posts/${postId}/hide`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        reportType: "BOARD",
-        targetId: postId,
-        reason: "SPAM",
-      }),
     });
 
     if (!response.ok) {
       if (response.status === 401) {
         postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
       }
-      // 동일 대상 중복 신고는 서버가 막는다(409 가정).
-      toast.show(
-        response.status === 409
-          ? "이미 신고한 게시물이에요"
-          : "게시물 신고에 실패했습니다",
-      );
+      toast.show("게시글을 숨기지 못했습니다");
       return;
     }
 
-    toast.show("게시물을 신고했습니다");
+    onDeleted();
+    toast.show("게시글을 숨겼습니다", {
+      label: "되돌리기",
+      onAction: () => void handleUndoHide(),
+    });
+  }
+
+  /** 숨기기 되돌리기 — 토글 재호출로 숨김을 해제하고 카드를 원래 자리에 복원한다. */
+  async function handleUndoHide() {
+    const response = await bffFetch(`/api/community/posts/${postId}/hide`, {
+      method: "POST",
+    });
+
+    if (!response.ok) {
+      toast.show("되돌리지 못했습니다");
+      return;
+    }
+
+    onRestored();
   }
 
   return (
@@ -127,50 +159,47 @@ export function FeedCardMenu({
               <MenuItem
                 onClick={() => {
                   setOpen(false);
-                  setDialog("delete");
+                  void handleDelete();
                 }}
               >
                 삭제하기
               </MenuItem>
-              <MenuItem onClick={() => setOpen(false)}>수정하기</MenuItem>
+              <MenuItem
+                onClick={() => {
+                  setOpen(false);
+                  openPostEdit(postId);
+                }}
+              >
+                수정하기
+              </MenuItem>
             </>
           ) : (
             <>
               <MenuItem
                 onClick={() => {
                   setOpen(false);
-                  setDialog("report");
+                  void handleReport();
                 }}
               >
                 신고하기
               </MenuItem>
-              <MenuItem onClick={() => setOpen(false)}>숨기기</MenuItem>
+              {/* 숨기기는 확인 알럿 없이 바로 처리 — 되돌리기 토스트가 취소 수단이다. */}
+              <MenuItem
+                onClick={() => {
+                  setOpen(false);
+                  void handleHide();
+                }}
+              >
+                숨기기
+              </MenuItem>
             </>
           )}
         </MenuBox>
       ) : null}
 
-      {/* 게시글 삭제 확인 알럿 */}
-      <ConfirmDialog
-        open={dialog === "delete"}
-        title="게시글 삭제"
-        message="삭제한 게시글은 복구할 수 없어요."
-        confirmText="삭제"
-        destructive
-        onCancel={() => setDialog(null)}
-        onConfirm={confirmDelete}
-      />
-
-      {/* 게시글 신고 확인 알럿 */}
-      <ConfirmDialog
-        open={dialog === "report"}
-        title="게시글 신고"
-        message="신고된 게시글은 검토 후 처리돼요."
-        confirmText="신고"
-        destructive
-        onCancel={() => setDialog(null)}
-        onConfirm={confirmReport}
-      />
+      {/* 네이티브가 그리는 경우 아무것도 렌더하지 않는다(웹 단독 폴백 전용). */}
+      {dialog}
+      {reportDialog}
     </>
   );
 }
