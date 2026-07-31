@@ -59,7 +59,7 @@ export function VersionInfoPage({
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
         <section className="rounded-[2rem] border border-zinc-200 bg-white/95 p-8 shadow-[0_24px_80px_rgba(24,24,27,0.08)]">
           <p className="text-sm font-semibold uppercase tracking-[0.28em] text-zinc-500">
-            Version Info $$$$$$$$$$$$
+            Version Info TEST DEVELOP BRANCH !!!!!
           </p>
           <div className="mt-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div className="max-w-3xl">
