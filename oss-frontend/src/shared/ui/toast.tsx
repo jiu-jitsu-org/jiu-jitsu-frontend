@@ -100,8 +100,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={{ show }}>
       {children}
       {message !== null ? (
-        // 하단 댓글 입력 바(69 + safe-area) 위로 16 공백을 두고 노출
-        <div className="pointer-events-none fixed inset-x-6 bottom-[calc(85px_+_env(safe-area-inset-bottom))] z-50">
+        // 하단 여백은 화면이 정한다(globals.css의 --toast-bottom-inset):
+        // 기본 16, 댓글 입력 바가 있는 상세는 바 위(85). z는 최상단 —
+        // 우하단 플로팅 버튼(FAB, z auto)과 시트·알럿(z-50)보다 위에 와야 한다.
+        <div className="pointer-events-none fixed inset-x-6 bottom-[calc(var(--toast-bottom-inset)_+_env(safe-area-inset-bottom))] z-[60]">
           {/* 최소 높이 56(멀티라인 가변), 좌우 16/상하 8, toast/default 토큰, Body S(14/21). 알파 페이드. */}
           <div
             role="status"
