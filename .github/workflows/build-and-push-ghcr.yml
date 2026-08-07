@@ -1,13 +1,13 @@
-name: Build & Push OSS Front to GHCR
+name: Build & Push to GHCR
 
 on:
-  # develop에 merge/push되면 운영용 이미지 태그를 만든다.
+  # develop/main에 merge 또는 push되면 브랜치별 배포 이미지를 만든다.
   push:
-    branches: ["develop"]
+    branches: ["develop", "main"]
 
   # PR에서는 Docker build까지만 검증하고 push는 하지 않는다.
   pull_request:
-    branches: ["develop"]
+    branches: ["develop", "main"]
 
   # GitHub UI에서 수동 재빌드/재배포 트리거용.
   workflow_dispatch:
@@ -20,7 +20,7 @@ permissions:
   packages: write
 
 # 같은 브랜치에서 여러 빌드가 겹치면 이전 빌드를 취소한다.
-# develop에 연속 push될 때 오래된 이미지가 늦게 push되는 상황을 줄인다.
+# 오래된 커밋의 이미지가 늦게 push되어 브랜치별 최신 이미지를 덮는 상황을 줄인다.
 concurrency:
   group: oss-front-image-${{ github.ref }}
   cancel-in-progress: true
@@ -60,25 +60,35 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # 배포용 태그와 롤백용 태그를 만든다.
-      # latest-develop은 현재 deploy/docker-compose.yml이 바라보는 태그다.
+      # 브랜치별 배포용 태그와 추적/롤백용 태그를 만든다.
+      # 배포 환경에서는 develop은 latest-develop, main은 latest-main을 사용한다.
       - name: Prepare image tags
         id: tags
         shell: bash
         run: |
+          CHANNEL="${GITHUB_BASE_REF:-${GITHUB_REF_NAME}}"
           SHORT_SHA="${GITHUB_SHA::12}"
+
+          case "$CHANNEL" in
+            develop|main)
+              ;;
+            *)
+              echo "Unsupported branch: $CHANNEL" >&2
+              exit 1
+              ;;
+          esac
 
           {
             echo "value<<EOF"
-            echo "${REGISTRY}/${IMAGE_NAME}:latest-develop"
+            echo "${REGISTRY}/${IMAGE_NAME}:latest-${CHANNEL}"
             echo "${REGISTRY}/${IMAGE_NAME}:sha-${SHORT_SHA}"
-            echo "${REGISTRY}/${IMAGE_NAME}:run-${GITHUB_RUN_NUMBER}"
+            echo "${REGISTRY}/${IMAGE_NAME}:run-${CHANNEL}-${GITHUB_RUN_NUMBER}"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
       # Docker image build.
       # PR에서는 push=false라서 빌드 검증만 한다.
-      # develop push 또는 workflow_dispatch에서는 GHCR로 push한다.
+      # develop/main push 또는 workflow_dispatch에서는 GHCR로 push한다.
       - name: Build and push image
         uses: docker/build-push-action@v7
         with:
