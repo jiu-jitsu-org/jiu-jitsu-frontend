@@ -10,7 +10,7 @@ import { PostDetailScreen } from "@/features/community/presentation/post-detail-
  * id 미지정 시 입력 폼을 띄워 테스터가 직접 대상 게시글 id를 넣는다(고정 기본값 없음).
  * `?id=`로 대상 게시글을 지정한다(폼이 이 쿼리를 채운다). 댓글 정렬은 `?sort=`로만 받는다(기본 최신순).
  *
- * 참고: 실제 업스트림(API_BASE_URL)과 세션이 필요하다. 현재는 업스트림 TLS(자체서명) 미해결이라 에러 화면일 수 있음.
+ * 참고: 실제 업스트림(API_BASE_URL)과 세션이 필요하다.
  */
 export default async function CommunityDetailApiTestPage({
   searchParams,

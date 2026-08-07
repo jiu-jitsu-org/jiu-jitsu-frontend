@@ -5,8 +5,13 @@ export type {
   AuthLoginPayload,
   AuthLoginSuccessPayload,
   BridgeMessage,
+  ConfirmDialogPayload,
+  ConfirmDialogResult,
   InboundMessage,
   OpenSubviewPayload,
+  SelectSheetOption,
+  SelectSheetPayload,
+  SelectSheetResult,
 } from "./messages";
 export {
   closeNativeSubview,
@@ -18,6 +23,11 @@ export {
 } from "./native-bridge";
 export type { BridgePlatform } from "./native-bridge";
 export { useNativeBackHandler } from "./native-back";
+export {
+  requestNativeConfirm,
+  requestNativeSelectSheet,
+} from "./native-dialog";
+export type { NativeSelectSheetOutcome } from "./native-dialog";
 export {
   notifySessionRefreshed,
   notifySessionRefreshFailed,

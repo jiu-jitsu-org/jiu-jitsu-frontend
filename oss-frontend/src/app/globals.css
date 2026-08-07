@@ -28,6 +28,17 @@ body {
   overscroll-behavior: none;
 }
 
+/* 토스트 하단 여백 — 기본은 화면 하단에서 16.
+   댓글 입력 바가 있는 화면(상세)에서는 바(69 + safe-area) 위로 16 띄워 가리지 않게 한다.
+   토스트는 body 직속 fixed라 부모 레이아웃이 위치를 알려줄 수 없어 html 레벨 변수로 전달한다. */
+:root {
+  --toast-bottom-inset: 16px;
+}
+
+html:has(.toast-inset-comment-bar) {
+  --toast-bottom-inset: 85px;
+}
+
 /* 커뮤니티 메인 피드 리스트에서만 오버스크롤 바운스 허용.
    피드는 문서 레벨로 스크롤되므로 해당 페이지가 떠 있을 때만 html/body의 차단을 해제한다. */
 html:has(.feed-bounce-scroll),

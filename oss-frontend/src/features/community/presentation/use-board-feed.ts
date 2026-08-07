@@ -66,7 +66,29 @@ export function useBoardFeed(initial: {
     }
   }, [isLast, page]);
 
-  return { items, isLast, status, loadMore };
+  // 카드 ⋮ 메뉴에서 삭제가 성공하면 목록에서 걷어낸다(서버 재조회 없이 즉시 반영).
+  // page/isLast는 건드리지 않는다 — 한 건 빠졌다고 페이지 경계가 달라지지 않고,
+  // 뒤이은 loadMore는 여전히 서버 기준 page+1을 이어 받아야 하기 때문.
+  const removePost = useCallback((postId: number) => {
+    setItems((prev) => prev.filter((post) => post.id !== postId));
+  }, []);
+
+  /**
+   * 숨기기 되돌리기 — 걷어냈던 카드를 원래 자리에 다시 끼워 넣는다.
+   *
+   * 맨 뒤에 붙이면 시간순 피드에서 글이 엉뚱한 위치로 튀므로 인덱스를 받아 같은 자리에 복원한다.
+   * 그 사이 다음 페이지가 붙어 인덱스가 밀렸어도 대략 같은 구간에 놓이면 충분하다(정확한 정렬은
+   * 다음 새로고침이 맞춘다). 이미 같은 id가 있으면 중복 삽입하지 않는다.
+   */
+  const restorePost = useCallback((post: PostSummary, index: number) => {
+    setItems((prev) => {
+      if (prev.some((item) => item.id === post.id)) return prev;
+      const at = Math.min(Math.max(index, 0), prev.length);
+      return [...prev.slice(0, at), post, ...prev.slice(at)];
+    });
+  }, []);
+
+  return { items, isLast, status, loadMore, removePost, restorePost };
 }
 
 /** 이미 있는 id는 건너뛰고 새 항목만 이어 붙인다(페이지 경계 중복 방지). */

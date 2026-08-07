@@ -21,11 +21,13 @@ export type PostSummary = {
   body: string;
   /** imageList. 목록 카드에서는 대표 1장만 노출. */
   images: PostImage[];
-  /** likeCount/commentCount. 저장(북마크) 카운트는 응답에 없어 포함하지 않는다. */
+  /** likeCount/commentCount/saveCount. */
   counts: PostCounts;
   viewer: PostViewerState;
   /** createdAt(ISO 8601). */
   createdAt: string;
+  /** timeAgo — 서버가 계산한 상대 시각 라벨(예: "10일 전"). 없으면 화면이 createdAt으로 포맷. */
+  timeAgo?: string;
   /** updatedAt(ISO 8601). */
   updatedAt?: string | null;
   /** isUpdated → "수정됨" 표시 여부. */

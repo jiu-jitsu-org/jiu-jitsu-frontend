@@ -27,6 +27,8 @@ export type PostCounts = {
   comments: number;
   /** likeCount */
   likes: number;
+  /** saveCount(저장/북마크 수). 목록 응답에만 존재 — 상세 응답에는 아직 없어 optional. */
+  saves?: number;
 };
 
 /**

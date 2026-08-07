@@ -15,10 +15,19 @@ import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
  * 쓰기 흐름은 컨벤션의 정본 경로(Browser → app/api → application → infrastructure)를 따른다.
  */
 
+/** 훅 시드값. saves는 목록 응답(saveCount)에만 있어 미제공(상세)이면 0으로 시드한다. */
+type PostActionsSeed = {
+  liked: boolean;
+  bookmarked: boolean;
+  likes: number;
+  saves?: number;
+};
+
 type PostActionsState = {
   liked: boolean;
   bookmarked: boolean;
   likes: number;
+  saves: number;
 };
 
 type ToggleKind = "like" | "bookmark";
@@ -28,9 +37,12 @@ const ENDPOINT: Record<ToggleKind, (postId: number) => string> = {
   bookmark: (postId) => `/api/community/posts/${postId}/bookmarks`,
 };
 
-export function usePostActions(postId: number, initial: PostActionsState) {
+export function usePostActions(postId: number, initial: PostActionsSeed) {
   const demo = useIsDemoMode();
-  const [state, setState] = useState<PostActionsState>(initial);
+  const [state, setState] = useState<PostActionsState>({
+    ...initial,
+    saves: initial.saves ?? 0,
+  });
   // 동시 토글 방지 — 종류별 진행 중 플래그.
   const [pending, setPending] = useState<Record<ToggleKind, boolean>>({
     like: false,
@@ -41,8 +53,8 @@ export function usePostActions(postId: number, initial: PostActionsState) {
     if (pending[kind]) return;
 
     const wasActive = kind === "like" ? state.liked : state.bookmarked;
-    // 토글 전 카운트(서버 권위값 보정 시 기준점) — like 카운트 재계산에만 쓴다.
-    const prevLikes = state.likes;
+    // 토글 전 카운트(서버 권위값 보정 시 기준점) — 카운트 재계산에 쓴다.
+    const prevCount = kind === "like" ? state.likes : state.saves;
 
     // 1) 낙관적 반영 — like/bookmark 모두 단일 엔드포인트 토글이라 항상 POST.
     setPending((p) => ({ ...p, [kind]: true }));
@@ -72,15 +84,15 @@ export function usePostActions(postId: number, initial: PostActionsState) {
       const authoritative =
         kind === "like" ? body?.data?.liked : body?.data?.saved;
       if (typeof authoritative === "boolean") {
+        // 토글 전 기준점에서 서버 진실값으로 카운트 재계산.
+        const nextCount = Math.max(
+          0,
+          prevCount + (authoritative ? 1 : 0) - (wasActive ? 1 : 0),
+        );
         setState((prev) =>
           kind === "like"
-            ? {
-                ...prev,
-                liked: authoritative,
-                // 토글 전 기준점에서 서버 진실값으로 카운트 재계산.
-                likes: prevLikes + (authoritative ? 1 : 0) - (wasActive ? 1 : 0),
-              }
-            : { ...prev, bookmarked: authoritative },
+            ? { ...prev, liked: authoritative, likes: nextCount }
+            : { ...prev, bookmarked: authoritative, saves: nextCount },
         );
       }
     } catch {
@@ -95,25 +107,28 @@ export function usePostActions(postId: number, initial: PostActionsState) {
     liked: state.liked,
     bookmarked: state.bookmarked,
     likes: state.likes,
+    saves: state.saves,
     toggleLike: () => toggle("like"),
     toggleBookmark: () => toggle("bookmark"),
   };
 }
 
-/**
- * 종류별 상태를 보정한다.
- * - like: active + 카운트 동시 보정(카운트 노출됨).
- * - bookmark: active만 토글(북마크 카운트는 노출하지 않음 — API에 saveCount 없음).
- */
+/** 종류별 상태를 보정한다 — active 플래그와 해당 카운트를 함께 움직인다. */
 function applyToggle(
   prev: PostActionsState,
   kind: ToggleKind,
   nextActive: boolean,
 ): PostActionsState {
+  const delta = nextActive ? 1 : -1;
+
   if (kind === "like") {
-    const delta = nextActive ? 1 : -1;
     return { ...prev, liked: nextActive, likes: prev.likes + delta };
   }
 
-  return { ...prev, bookmarked: nextActive };
+  // 카운트는 0 미만으로 내려가지 않게 방어(시드가 0인 상세 화면에서 해제 토글 시).
+  return {
+    ...prev,
+    bookmarked: nextActive,
+    saves: Math.max(0, prev.saves + delta),
+  };
 }

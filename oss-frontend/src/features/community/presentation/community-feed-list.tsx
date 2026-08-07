@@ -6,6 +6,7 @@ import { useInfiniteScroll } from "@/features/community/presentation/use-infinit
 import { usePostActions } from "@/features/community/presentation/use-post-actions";
 import type { PostSummary } from "@/features/community/domain/post-summary";
 import { FeedCard } from "@/features/community/presentation/feed/feed-card";
+import { FeedCardMenu } from "@/features/community/presentation/feed/feed-card-menu";
 import { FeedListEnd } from "@/features/community/presentation/feed/feed-list-end";
 
 /**
@@ -28,11 +29,12 @@ export function CommunityFeedList({
   page: number;
   isLast: boolean;
 }) {
-  const { items, isLast, status, loadMore } = useBoardFeed({
-    items: posts,
-    page,
-    isLast: initialIsLast,
-  });
+  const { items, isLast, status, loadMore, removePost, restorePost } =
+    useBoardFeed({
+      items: posts,
+      page,
+      isLast: initialIsLast,
+    });
 
   // 에러 상태에선 자동 재요청을 멈추고, 사용자가 재시도 버튼으로만 다시 시도하게 한다.
   const sentinelRef = useInfiniteScroll({
@@ -44,8 +46,14 @@ export function CommunityFeedList({
   return (
     // 하단 91: 우하단 플로팅 FAB(작성 버튼)이 마지막 카드 UX를 가리지 않도록 여유를 둔 스펙값.
     <div className="flex flex-col gap-4 pt-6 pb-[91px]">
-      {items.map((post) => (
-        <FeedCardItem key={post.id} post={post} />
+      {items.map((post, index) => (
+        <FeedCardItem
+          key={post.id}
+          post={post}
+          onDeleted={() => removePost(post.id)}
+          // 되돌리기로 복원할 수 있도록 걷어낸 위치를 함께 넘긴다.
+          onRestored={() => restorePost(post, index)}
+        />
       ))}
 
       {!isLast && status !== "error" ? (
@@ -65,15 +73,27 @@ export function CommunityFeedList({
  * 좋아요/저장은 서버 초기 상태(viewer)를 시드로 usePostActions가 낙관적 토글 + BFF 요청을 담당한다
  * (상세 화면과 동일 훅 재사용). 카드 탭/댓글 탭 → 상세 열기(네이티브면 서브뷰, 웹이면 라우터 이동).
  *
- * 저장(북마크) 카운트는 응답에 없어 0으로 둔다 → FeedCard가 숫자를 숨기고 아이콘만 표시한다.
+ * 저장(북마크) 카운트(saveCount)는 좋아요와 동일하게 낙관적으로 증감한다.
+ * 0이면 FeedCard가 숫자를 숨기고 아이콘만 표시한다.
+ *
+ * 헤더 우측 ⋮는 소유자 여부(viewer.isOwner)로 항목이 갈려 카드가 소유할 수 없으므로 menu 슬롯으로 넘긴다.
  */
-function FeedCardItem({ post }: { post: PostSummary }) {
+function FeedCardItem({
+  post,
+  onDeleted,
+  onRestored,
+}: {
+  post: PostSummary;
+  onDeleted: () => void;
+  onRestored: () => void;
+}) {
   const openPostDetail = useOpenPostDetail();
-  const { liked, bookmarked, likes, toggleLike, toggleBookmark } =
+  const { liked, bookmarked, likes, saves, toggleLike, toggleBookmark } =
     usePostActions(post.id, {
       liked: post.viewer.liked,
       bookmarked: post.viewer.bookmarked,
       likes: post.counts.likes,
+      saves: post.counts.saves,
     });
 
   return (
@@ -83,15 +103,14 @@ function FeedCardItem({ post }: { post: PostSummary }) {
         avatarUrl: post.author.avatarUrl ?? undefined,
       }}
       createdAt={post.createdAt}
+      dateLabel={post.timeAgo}
       title={post.title}
       body={post.body}
       images={post.images.map((image) => ({ url: image.imageUrl, alt: "" }))}
       counts={{
         comments: post.counts.comments,
         likes,
-        // TODO: 저장(북마크) 카운트는 목록 응답에 아직 없음(isSaved boolean만 존재).
-        // 백엔드가 저장 수 필드를 추가하면 0 대신 실제 저장 수로 교체한다.
-        bookmarks: 0,
+        bookmarks: saves,
       }}
       commented={post.viewer.commented}
       liked={liked}
@@ -100,6 +119,14 @@ function FeedCardItem({ post }: { post: PostSummary }) {
       onPressComment={() => openPostDetail(post.id)}
       onToggleLike={toggleLike}
       onToggleBookmark={toggleBookmark}
+      menu={
+        <FeedCardMenu
+          postId={post.id}
+          isOwner={post.viewer.isOwner}
+          onDeleted={onDeleted}
+          onRestored={onRestored}
+        />
+      }
     />
   );
 }

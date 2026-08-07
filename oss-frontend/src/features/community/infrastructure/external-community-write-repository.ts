@@ -22,10 +22,11 @@ import type { HttpClient } from "@/shared/lib/http";
  * 모든 쓰기는 인증이 필요하므로 주입되는 HttpClient는 반드시 authed(Bearer 부착) 클라이언트다.
  *
  * 댓글 생성은 Swagger 확정 계약(POST /community/comments, body { contentId, parentId, body }).
+ * 게시글 삭제는 Swagger 확정 계약(DELETE /board/{id}) — 200 OK, 응답 본문은 사용하지 않는다.
  * 좋아요는 Swagger 확정 계약(PUT /board/like/{id}) — 서버가 토글하고 isLiked를 돌려준다.
  * 저장(북마크)은 Swagger 확정 계약(PUT /board/save/{id}) — 서버가 토글하고 isSaved를 돌려준다.
  *
- * FIXME: board/이미지 경로는 가정 계약이다(Swagger 미확인). 백엔드 확정 시 정합 확인 필요.
+ * FIXME: 이미지 경로는 가정 계약이다(Swagger 미확인). 백엔드 확정 시 정합 확인 필요.
  */
 const BOARD_ENDPOINT_PATH = "/api/board";
 const IMAGE_ENDPOINT_PATH = "/api/image";
@@ -111,6 +112,20 @@ export class ExternalCommunityWriteRepository
     });
 
     return response.data.isSaved;
+  }
+
+  async toggleHide(postId: number): Promise<boolean> {
+    // PUT /board/hide/{id} — 단일 엔드포인트 토글(숨김/숨김해제).
+    // 좋아요·저장과 달리 Swagger 응답 예시가 봉투 없는 raw `true`라, 두 형태를 모두 허용한다
+    // (봉투가 오면 data를, 아니면 본문 자체를 토글 후 상태로 읽는다).
+    const response = await this.httpClient.put<
+      Envelope<{ contentID: number; isHidden?: boolean }> | boolean
+    >({
+      path: `${BOARD_ENDPOINT_PATH}/hide/${postId}`,
+    });
+
+    if (typeof response === "boolean") return response;
+    return response.data?.isHidden ?? true;
   }
 
   async getImageUploadAuth(): Promise<ImageUploadAuth> {
