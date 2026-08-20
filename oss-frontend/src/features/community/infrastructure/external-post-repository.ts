@@ -89,6 +89,8 @@ type BoardDetailDto = {
   tagList?: { id: number; name: string }[];
   /** 공유 수. 아직 응답에 없음 — 추가되면 리액션바에 자동 노출되도록 optional로 선언만 해둔다. */
   shareCount?: number;
+  /** 내가 공유했는지. 아직 응답에 없음 — 없으면 false로 정규화해 Active 표시를 끈다. */
+  isShared?: boolean;
 };
 
 /**
@@ -121,6 +123,8 @@ type BoardSummaryDto = {
   isCommented: boolean;
   isLiked: boolean;
   isSaved: boolean;
+  /** 내가 공유했는지. 아직 응답에 없음 — 없으면 false로 정규화. */
+  isShared?: boolean;
   imageList: { id: number; imageUrl: string }[];
   author: {
     id: number;
@@ -162,6 +166,7 @@ function toPostSummary(dto: BoardSummaryDto): PostSummary {
       liked: dto.isLiked,
       bookmarked: dto.isSaved,
       commented: dto.isCommented,
+      shared: dto.isShared ?? false,
       isOwner: dto.isAuthor,
     },
     createdAt: dto.createdAt,
@@ -207,6 +212,7 @@ function toPostDetail(dto: BoardDetailDto): PostDetail {
       liked: dto.isLiked,
       bookmarked: dto.isSaved,
       commented: dto.isCommented,
+      shared: dto.isShared ?? false,
       isOwner: dto.isAuthor,
     },
     createdAt: dto.createdAt,
