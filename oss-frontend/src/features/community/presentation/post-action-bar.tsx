@@ -34,6 +34,7 @@ export function PostActionBar({
   initialBookmarked,
   initialLikes,
   initialSaves,
+  comments,
   commented = false,
   shared = false,
   shares,
@@ -44,6 +45,11 @@ export function PostActionBar({
   initialBookmarked: boolean;
   initialLikes: number;
   initialSaves?: number;
+  /**
+   * commentCount. 다른 버튼과 같은 규칙 — 0이면 "댓글쓰기", 1 이상이면 숫자.
+   * 낙관적 상태가 아니라 서버 렌더 값이다(댓글 등록 후 router.refresh로 갱신).
+   */
+  comments?: number;
   /** isCommented — 내가 댓글을 남긴 글이면 댓글 아이콘을 Active(filled)로 표시. 토글 아님. */
   commented?: boolean;
   /** isShared — 서버가 아직 안 내려주면 false로 들어와 Active가 꺼진다. 토글 아님. */
@@ -92,6 +98,8 @@ export function PostActionBar({
       <ActionButton
         icon={<CommentIcon size={16} filled={commented} />}
         label="댓글쓰기"
+        a11yLabel={comments ? `댓글 ${comments}개` : "댓글쓰기"}
+        count={comments}
         active={commented}
         activeIconColorClass="text-reaction-bar-detail-active-comment-icon"
         onClick={focusCommentInput}

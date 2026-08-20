@@ -68,6 +68,7 @@ export function PostDetailView({
           initialBookmarked={post.viewer.bookmarked}
           initialLikes={post.counts.likes}
           initialSaves={post.counts.saves}
+          comments={post.counts.comments}
           commented={post.viewer.commented}
           shared={post.viewer.shared}
           shares={post.counts.shares}

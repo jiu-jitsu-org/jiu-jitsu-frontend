@@ -22,17 +22,13 @@ export function CommentSection({
 
   return (
     <section className="flex flex-col">
-      <div className="flex items-center justify-between px-4 py-3">
+      {/* 댓글 수는 리액션바의 댓글 버튼이 카운트로 보여주므로 이 행에는 두지 않는다. */}
+      <div className="flex items-center px-4 py-3">
         {/* useSearchParams() leaf — 정적 prerender에서 빠지도록 Suspense로 감싼다.
             fallback은 높이 32 자리만 유지해 레이아웃 시프트를 막는다. */}
         <Suspense fallback={<div className="h-8" />}>
           <CommentSortSelect sort={sort} />
         </Suspense>
-        {hasComments ? (
-          <span className="text-xs text-text-tertiary">
-            댓글 {comments.total}
-          </span>
-        ) : null}
       </div>
 
       {hasComments ? (
