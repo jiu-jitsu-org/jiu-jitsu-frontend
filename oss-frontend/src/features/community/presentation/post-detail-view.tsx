@@ -50,7 +50,9 @@ export function PostDetailView({
             edited={post.edited}
           />
           {post.images.length > 0 ? (
+            // 상세 이미지는 디자인 샘플대로 1:1 고정. 크롭/여백 정책 확정 전까지의 1차 구현(#57).
             <FeedCardImages
+              ratio="square"
               images={post.images.map((image) => ({ url: image.imageUrl }))}
             />
           ) : null}
