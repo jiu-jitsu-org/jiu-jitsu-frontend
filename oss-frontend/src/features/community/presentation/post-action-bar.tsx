@@ -18,7 +18,7 @@ import {
  *
  * 배치: 태그 아래(디바이더 없음), 우측 정렬. 좌우 16(px-4). 버튼 간격 8(gap-2).
  * 버튼 공통: 배경 reaction-bar/detail/default/bg / 높이 28 / radius 10 / 좌우 패딩 8 / 아이콘 16.
- * 텍스트는 Label M(12) + reaction-bar/detail/default/count-text, 아이콘은 같은 계열 icon 토큰.
+ * 텍스트는 Body S(14/21) + reaction-bar/detail/default/count-text, 아이콘은 같은 계열 icon 토큰.
  *
  * 라벨/카운트 규칙(디자인 기본형 기준): 카운트가 0이거나 API에 없으면 라벨(없으면 아이콘만),
  * 1 이상이면 숫자를 노출한다. 서버가 내려주는 값만 쓰고 없는 값을 임의로 만들지 않는다.
@@ -117,7 +117,7 @@ export function PostActionBar({
  * 액션바 단일 버튼.
  *
  * 배경 reaction-bar/detail/default/bg, 높이 28(h-7), radius 10, 좌우 패딩 8(px-2).
- * 텍스트 Label M(12, line-height 100%) — 피드 카드(Body S 14)와 달리 상세 액션바는 12다.
+ * 텍스트 Body S(14/21) — 피드 카드 ReactionButton과 동일.
  *
  * 표시 우선순위: count가 1 이상이면 숫자 → 아니면 label(hideLabel이면 아이콘만).
  * 활성(좋아요/북마크 active) 케이스: 별도 디자인이 없어 임의 정의 — 아이콘 filled(호출부에서 전달) +
@@ -169,7 +169,7 @@ function ActionButton({
       {text !== null ? (
         <span
           className={cn(
-            "text-xs font-medium leading-none text-reaction-bar-detail-default-count-text",
+            "text-sm leading-[21px] text-reaction-bar-detail-default-count-text",
             active && "text-reaction-bar-detail-active-count-text",
           )}
         >
