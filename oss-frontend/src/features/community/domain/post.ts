@@ -27,8 +27,13 @@ export type PostCounts = {
   comments: number;
   /** likeCount */
   likes: number;
-  /** saveCount(저장/북마크 수). 목록 응답에만 존재 — 상세 응답에는 아직 없어 optional. */
+  /** saveCount(저장/북마크 수). */
   saves?: number;
+  /**
+   * 공유 수. 디자인(리액션바 기본형)은 공유 옆 숫자를 요구하지만 현재 상세 응답에는 필드가 없다.
+   * 서버가 shareCount를 내려주기 시작하면 자동 노출되도록 optional로 둔다(없으면 숫자 숨김).
+   */
+  shares?: number;
 };
 
 /**
@@ -65,6 +70,11 @@ export type PostDetail = {
   viewer: PostViewerState;
   /** createdAt(ISO 8601). */
   createdAt: string;
+  /**
+   * timeAgo — 서버가 계산한 상대 시각 라벨(예: "8일 전"). 메타행 날짜의 정본.
+   * 목록(PostSummary)과 동일 규칙을 쓰려고 서버값을 그대로 노출한다 — 없으면 화면이 createdAt으로 폴백.
+   */
+  timeAgo?: string;
   /** updatedAt(ISO 8601). */
   updatedAt?: string | null;
   /** isUpdated → "수정됨" 표시 여부. */

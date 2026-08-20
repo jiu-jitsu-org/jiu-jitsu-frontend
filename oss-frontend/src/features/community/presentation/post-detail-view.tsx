@@ -45,6 +45,7 @@ export function PostDetailView({
             title={post.title}
             body={post.body}
             createdAt={post.createdAt}
+            timeAgo={post.timeAgo}
             views={post.views}
             edited={post.edited}
           />
@@ -64,10 +65,12 @@ export function PostDetailView({
           initialLiked={post.viewer.liked}
           initialBookmarked={post.viewer.bookmarked}
           initialLikes={post.counts.likes}
+          initialSaves={post.counts.saves}
+          shares={post.counts.shares}
         />
 
-        {/* 액션바 아래 디바이더: 간격 22, 풀폭(좌우 여백 없음), 높이 4 */}
-        <div className="mt-[22px] h-1 bg-divider-bg" />
+        {/* 액션바 아래 디바이더: 간격 24, 풀폭(좌우 여백 없음), 높이 4 */}
+        <div className="mt-6 h-1 bg-divider-bg" />
 
         {/* 댓글 섹션 */}
         <CommentSection comments={comments} sort={sort} />

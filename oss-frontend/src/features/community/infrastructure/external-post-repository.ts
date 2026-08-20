@@ -75,9 +75,20 @@ type BoardDetailDto = {
   };
   /** 본인 게시글 여부(viewer.isOwner). */
   isAuthor: boolean;
-  // ↓ 응답에 아직 없음. 추가되면 매핑되도록 optional.
+  /** 조회수. */
   viewCount?: number;
+  /** 저장(북마크) 수. */
+  saveCount?: number;
+  /** 서버가 계산한 상대 시각(예: "8일 전"). 상세 메타행 날짜의 정본. */
+  timeAgo?: string;
+  /**
+   * 태그 목록. 실제 응답 키는 목록과 동일한 `tags`다.
+   * `tagList`는 초기 계약 문서 기준의 옛 키 — 아직 그렇게 내려오는 환경이 있을 수 있어 폴백으로 남긴다.
+   */
+  tags?: { id: number; name: string }[];
   tagList?: { id: number; name: string }[];
+  /** 공유 수. 아직 응답에 없음 — 추가되면 리액션바에 자동 노출되도록 optional로 선언만 해둔다. */
+  shareCount?: number;
 };
 
 /**
@@ -184,10 +195,12 @@ function toPostDetail(dto: BoardDetailDto): PostDetail {
     title: dto.title,
     body: dto.body,
     images: dto.imageList ?? [],
-    tags: dto.tagList ?? [],
+    tags: dto.tags ?? dto.tagList ?? [],
     counts: {
       comments: dto.commentCount,
       likes: dto.likeCount,
+      saves: dto.saveCount ?? 0,
+      shares: dto.shareCount,
     },
     views: dto.viewCount,
     viewer: {
@@ -197,6 +210,7 @@ function toPostDetail(dto: BoardDetailDto): PostDetail {
       isOwner: dto.isAuthor,
     },
     createdAt: dto.createdAt,
+    timeAgo: dto.timeAgo,
     updatedAt: dto.updatedAt ?? null,
     edited: dto.isUpdated,
     noticeEnabled: dto.noticeEnabled ?? false,
