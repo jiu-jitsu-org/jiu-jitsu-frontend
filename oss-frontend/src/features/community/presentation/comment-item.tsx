@@ -12,9 +12,9 @@ import { CommentLikeButton } from "@/features/community/presentation/comment-lik
 import { CommentMenu } from "@/features/community/presentation/comment-menu";
 import { CommentReplies } from "@/features/community/presentation/comment-replies";
 import { cn } from "@/shared/lib/cn";
-import { CommentIcon } from "@/shared/ui/icons";
+import { CommentIcon, ReplyBranchIcon } from "@/shared/ui/icons";
 
-/** ISO → "M월 D일" 간단 라벨. 파싱 실패 시 원문 반환. */
+/** 서버 timeAgo가 없을 때만 쓰는 폴백. ISO → "M월 D일". 파싱 실패 시 원문 반환. */
 function formatCommentDate(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
@@ -24,14 +24,31 @@ function formatCommentDate(iso: string): string {
 /**
  * 단일 댓글 행 (서버 컴포넌트, 초안).
  *
- * 구성: 아바타 + 닉네임(+"작성자" 배지) + 날짜 / 본문 / 반응 행(댓글쓰기·좋아요·⋮).
+ * 구성: (대댓글이면 분기 아이콘 +) 아바타 + 닉네임(+"작성자" 배지) + 날짜 / 본문 / 반응 행.
  * FIXME(초안): 반응 토글·답글·⋮ 메뉴 동작과 정확한 디자인 토큰/간격은 가이드 확정 후 적용.
  */
-export function CommentItem({ comment }: { comment: Comment }) {
+export function CommentItem({
+  comment,
+  isReply = false,
+}: {
+  comment: Comment;
+  /** 대댓글이면 아바타 앞에 분기 아이콘을 붙인다. */
+  isReply?: boolean;
+}) {
   return (
     // 아바타↔콘텐츠 간격 4(gap-1). 아바타는 프로필 행(닉네임/날짜)과 수직 가운데 정렬.
     // 세로 패딩 없음 — 댓글 사이 간격(12)은 목록(ul gap-3)이 담당.
-    <li className="flex gap-1">
+    //
+    // 대댓글: -ml-7(28)로 왼쪽 28을 되찾아 분기 아이콘(24) + gap 4 = 28을 그 자리에 채운다.
+    // 결과적으로 아바타·본문의 최종 x는 아이콘이 없을 때와 동일하다(들여쓰기 변화 없음).
+    <li className={cn("flex gap-1", isReply && "-ml-7")}>
+      {isReply ? (
+        // 위에서 내려와 오른쪽으로 꺾이는 연결선 — 이 행이 위 댓글의 대댓글임을 나타낸다.
+        <ReplyBranchIcon
+          size={24}
+          className="shrink-0 self-start text-[var(--cool-gray-50)]"
+        />
+      ) : null}
       {/* 프로필 아이콘 24x24, 로드 실패 시 기본 상태 폴백 */}
       <Avatar src={comment.author.avatarUrl} className="size-6" iconSize={16} />
       <div className="flex min-w-0 flex-1 flex-col">
@@ -53,7 +70,7 @@ export function CommentItem({ comment }: { comment: Comment }) {
             dateTime={comment.createdAt}
             className="text-xs font-medium text-feed-card-header-date-text"
           >
-            {formatCommentDate(comment.createdAt)}
+            {comment.timeAgo ?? formatCommentDate(comment.createdAt)}
           </time>
         </div>
         {/* 본문: 프로필 행과 간격 7, 닉네임 좌측 정렬(컬럼 기준), n줄 전부 노출(클램프 없음).
@@ -91,7 +108,7 @@ export function CommentItem({ comment }: { comment: Comment }) {
         {comment.replies.length > 0 ? (
           <CommentReplies>
             {comment.replies.map((reply) => (
-              <CommentItem key={reply.id} comment={reply} />
+              <CommentItem key={reply.id} comment={reply} isReply />
             ))}
           </CommentReplies>
         ) : null}

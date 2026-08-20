@@ -16,6 +16,11 @@ export type Comment = {
   body: string;
   /** 작성 시각(ISO 8601). */
   createdAt: string;
+  /**
+   * timeAgo — 서버가 계산한 상대 시각 라벨(예: "8일 전"). 게시글과 동일하게 이게 날짜의 정본이다.
+   * 아직 댓글 응답에 내려오지 않아 optional — 들어오면 그대로 노출하고, 없으면 화면이 createdAt으로 폴백한다.
+   */
+  timeAgo?: string;
   /** 내 댓글 여부 — 삭제 노출 결정. */
   isOwner: boolean;
   /** 게시글 작성자가 쓴 댓글인지 — "작성자" 배지 표시. */
