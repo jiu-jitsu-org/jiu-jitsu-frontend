@@ -4,6 +4,11 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
+import {
+  COMMENT_REACTION_BUTTON,
+  COMMENT_REACTION_ICON,
+} from "@/features/community/presentation/comment-reaction-styles";
+import { cn } from "@/shared/lib/cn";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import {
   MenuBox,
@@ -122,14 +127,15 @@ export function CommentMenu({
 
   return (
     <div className="relative">
-      {/* ⋮ 버튼: eclipsis-vertical 16, 아이콘만, 좌우 여백 8(px-2), 높이 28(h-7) */}
+      {/* ⋮ 버튼: eclipsis-vertical 16, 아이콘만, 좌우 여백 8(px-2), 높이 28(h-7).
+          Active 상태 없음 — Default/Pressed만 (comment-reaction-styles). */}
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="댓글 메뉴"
-        className="inline-flex h-7 items-center justify-center px-2 text-reaction-bar-default-icon"
+        className={cn(COMMENT_REACTION_BUTTON, COMMENT_REACTION_ICON)}
       >
         <MoreVerticalIcon size={16} />
       </button>
