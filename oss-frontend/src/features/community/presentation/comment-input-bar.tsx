@@ -8,7 +8,7 @@ import { useCommentReply } from "@/features/community/presentation/comment-reply
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { cn } from "@/shared/lib/cn";
 import { useViewportRect } from "@/features/community/presentation/use-viewport-rect";
-import { SendIcon } from "@/shared/ui/icons";
+import { CloseIcon, ReplyBranchIcon, SendIcon } from "@/shared/ui/icons";
 import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
 
 /** 액션바의 "댓글쓰기"가 포커스 대상으로 참조하는 입력 id(단일 출처). */
@@ -104,20 +104,25 @@ export function CommentInputBar({ postId }: { postId: number }) {
         rect?.keyboardOpen ? "pb-0" : "pb-[env(safe-area-inset-bottom)]",
       )}
     >
-      {/* 답글 대상 칩 — 답글 모드일 때만. 입력 행 위 12, 좌우 16.
-          FIXME(디자인 미확정): 칩의 배경/닫기 아이콘 스펙이 없어 텍스트만으로 임시 구성했다.
-            가이드 확정 시 교체(#60). 취소는 CloseIcon이 없어 "취소" 텍스트로 둔다. */}
+      {/* 답장 대상 행 — 답글 모드일 때만. 입력 행 위, 좌우 16.
+          분기 아이콘(연한 회색) + "○○님에게 답장" + 우측 × 로 구성한다.
+          FIXME(디자인 미확정): 간격·폰트·색 토큰은 가이드 이미지 기준 추정값이다. 상세 가이드 수령 시 정합(#60). */}
       {target ? (
-        <div className="flex items-center justify-between px-4 pt-3">
-          <span className="text-xs font-medium text-comment-input-bar-placeholder">
-            {target.nickname}님에게 답글
+        <div className="flex items-center gap-1 px-4 pt-3">
+          <ReplyBranchIcon
+            size={24}
+            className="shrink-0 text-feed-card-header-avatar-bg"
+          />
+          <span className="min-w-0 flex-1 truncate text-xs font-medium text-comment-input-bar-placeholder">
+            {target.nickname}님에게 답장
           </span>
           <button
             type="button"
             onClick={cancelReply}
-            className="text-xs font-medium text-comment-input-bar-send-icon-active"
+            aria-label="답장 취소"
+            className="inline-flex size-6 shrink-0 items-center justify-center text-icon-primary"
           >
-            취소
+            <CloseIcon size={24} />
           </button>
         </div>
       ) : null}
@@ -139,9 +144,7 @@ export function CommentInputBar({ postId }: { postId: number }) {
           rows={1}
           value={value}
           onChange={(event) => setValue(event.target.value)}
-          placeholder={
-            target ? "답글을 입력해주세요." : "댓글을 입력해주세요."
-          }
+          placeholder="댓글을 입력해주세요."
           className="max-h-[129px] flex-1 resize-none overflow-y-auto rounded-[24px] bg-comment-input-bar-bg px-4 py-3 text-sm leading-[21px] text-comment-input-bar-text outline-none placeholder:text-comment-input-bar-placeholder"
         />
       <button
