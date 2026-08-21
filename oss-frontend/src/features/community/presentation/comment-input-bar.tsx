@@ -33,7 +33,7 @@ export function CommentInputBar({ postId }: { postId: number }) {
   // 키보드가 떠 있는 동안엔 홈 인디케이터(safe-area)가 키보드에 가려 의미가 없으므로 하단 패딩 0.
   const rect = useViewportRect();
 
-  // 입력에 따라 높이 자동 확장. 최대 5줄(max-h-[129px])은 CSS가 제한하고 초과분은 스크롤.
+  // 입력에 따라 높이 자동 확장. 최대 5줄(max-h-[125px])은 CSS가 제한하고 초과분은 스크롤.
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
@@ -129,16 +129,21 @@ export function CommentInputBar({ postId }: { postId: number }) {
         </div>
       ) : null}
 
-      {/* 바는 내용에 따라 높이 가변(min-h 69), 전송 버튼은 하단 고정(items-end). 좌우 16(px-4).
-          상단 12 고정. 하단은 키보드가 내려가 있을 때만 16(12+4) — 키보드에 붙어 있을 땐 12로 좁힌다.
+      {/* 입력 행 — 높이는 필드(1줄 41) + 상하 여백으로만 결정된다(min-h 없음).
+          전송 버튼은 하단 고정(items-end), 좌우 16(px-4).
+            상 여백: 답장 행이 있으면 4, 없으면 12
+            하 여백: 키보드가 올라오면 12, 내려가면 16
+          결과 높이 — 답장 행 없음 65/69, 있음 57/61 (키보드 올라옴/내려감).
           transition을 두지 않아 키보드 전환 시 애니메이션 없이 바로 바뀐다. */}
       <div
         className={cn(
-          "flex min-h-[69px] items-end px-4 pt-3",
+          "flex items-end px-4",
+          target ? "pt-1" : "pt-3",
           rect?.keyboardOpen ? "pb-3" : "pb-4",
         )}
       >
-        {/* 텍스트 영역: 좌우 16(px-4)/상하 12(py-3), 멀티라인 — 엔터=줄바꿈, 최대 5줄(max-h-[129px]) 후 스크롤.
+        {/* 텍스트 영역: 좌우 16(px-4)/상하 10 → 1줄 높이 41(10+21+10).
+            멀티라인 — 엔터=줄바꿈, 최대 5줄(20+21×5=125) 후 스크롤.
             radius 24. 색은 comment-input-bar 토큰(배경/입력/플레이스홀더). */}
         <textarea
           id={COMMENT_INPUT_ELEMENT_ID}
@@ -147,7 +152,7 @@ export function CommentInputBar({ postId }: { postId: number }) {
           value={value}
           onChange={(event) => setValue(event.target.value)}
           placeholder="댓글을 입력해주세요."
-          className="max-h-[129px] flex-1 resize-none overflow-y-auto rounded-[24px] bg-comment-input-bar-bg px-4 py-3 text-sm leading-[21px] text-comment-input-bar-text outline-none placeholder:text-comment-input-bar-placeholder"
+          className="max-h-[125px] flex-1 resize-none overflow-y-auto rounded-[24px] bg-comment-input-bar-bg px-4 py-[10px] text-sm leading-[21px] text-comment-input-bar-text outline-none placeholder:text-comment-input-bar-placeholder"
         />
       <button
         type="button"
