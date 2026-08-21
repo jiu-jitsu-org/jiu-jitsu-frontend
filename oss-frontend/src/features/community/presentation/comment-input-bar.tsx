@@ -122,7 +122,7 @@ export function CommentInputBar({ postId }: { postId: number }) {
             onClick={cancelReply}
             aria-label="답장 취소"
             // 버튼 영역 40x40(size-10) = 아이콘 24 + 사방 여백 8. 우측 16은 이 버튼 바깥 기준.
-            className="inline-flex size-10 shrink-0 items-center justify-center text-icon-secondary"
+            className="inline-flex size-10 shrink-0 items-center justify-center text-comment-input-bar-reply-ref-close-icon"
           >
             <CloseIcon size={24} />
           </button>

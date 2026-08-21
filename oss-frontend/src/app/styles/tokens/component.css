@@ -267,12 +267,10 @@
   --comment-input-bar-text-disabled: var(--text-disabled);
   --comment-input-bar-send-icon-disabled: var(--icon-disabled);
   --comment-input-bar-send-icon-active: var(--interactive-primary);
-  /* 답장 대상 행의 분기(thread) 아이콘. 디자인 값 #EDEFF0 — cool-gray-25로 해석되는
-     semantic 중 성격이 가장 가까운 border-subtle을 가리킨다(연한 연결선). */
+  /* 답장 대상 행(comment-input-bar/reply-ref) — Figma 변수 매핑 그대로. */
   --comment-input-bar-reply-ref-thread-icon: var(--border-subtle);
-  /* FIXME(값 미확정): "○○님에게 답장" 텍스트 색. 디자인 hex를 못 받아 플레이스홀더와 같은
-     text-tertiary로 두었다 — 실제 값 확인 시 교체(#60). */
   --comment-input-bar-reply-ref-text: var(--text-tertiary);
+  --comment-input-bar-reply-ref-close-icon: var(--icon-secondary);
   --comment-sort-select-default-text: var(--text-primary);
   --comment-sort-select-pressed-bg: var(--surface-secondary);
   --comment-sort-select-pressed-text: var(--text-primary);
