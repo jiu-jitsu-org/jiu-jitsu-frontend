@@ -20,10 +20,16 @@ export const MOCK_POST_BASE: PostDetail = {
     { id: 2, name: "서브미션" },
     { id: 3, name: "드릴2" },
   ],
-  counts: { comments: 0, likes: 0 },
+  counts: { comments: 0, likes: 0, saves: 1 },
   views: 0,
-  // 활성(좋아요/북마크) 상태 디자인 확인용으로 true.
-  viewer: { liked: true, bookmarked: true, commented: false, isOwner: false },
+  // 활성(좋아요/북마크/댓글) 상태 디자인 확인용으로 true. shared는 서버 미제공 기본값 그대로 false.
+  viewer: {
+    liked: true,
+    bookmarked: true,
+    commented: true,
+    shared: false,
+    isOwner: false,
+  },
   createdAt: "2025-09-18T16:15:00+09:00",
   updatedAt: "2025-09-18T17:00:00+09:00",
   edited: true,

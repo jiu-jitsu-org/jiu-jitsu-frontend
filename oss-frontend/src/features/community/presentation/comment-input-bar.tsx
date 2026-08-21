@@ -7,7 +7,7 @@ import { useIsDemoMode } from "@/features/community/presentation/community-demo-
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { cn } from "@/shared/lib/cn";
 import { useViewportRect } from "@/features/community/presentation/use-viewport-rect";
-import { CommentIcon } from "@/shared/ui/icons";
+import { SendIcon } from "@/shared/ui/icons";
 import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
 
 /** 액션바의 "댓글쓰기"가 포커스 대상으로 참조하는 입력 id(단일 출처). */
@@ -72,18 +72,25 @@ export function CommentInputBar({ postId }: { postId: number }) {
   }
 
   return (
-    // 배경 navibar/container/background. 평소엔 safe-area bottom(노치)도 같은 배경으로 칠하지만,
+    // 배경 comment-input-bar/container-bg. 평소엔 safe-area bottom(노치)도 같은 배경으로 칠하지만,
     // 키보드가 떠 있는 동안엔 그 영역이 키보드에 가려 의미가 없으므로 패딩을 0으로 줘 키보드에 딱 붙인다.
     <div
       className={cn(
         // toast-inset-comment-bar: 이 바가 떠 있는 화면에서는 토스트를 바 위로 올린다(globals.css).
         // 토스트는 body 직속 fixed라 부모 레이아웃으로는 위치를 못 알려줘, html:has()로 신호를 준다.
-        "toast-inset-comment-bar bg-navibar-container-background",
+        "toast-inset-comment-bar bg-comment-input-bar-container-bg",
         rect?.keyboardOpen ? "pb-0" : "pb-[env(safe-area-inset-bottom)]",
       )}
     >
-      {/* 바는 내용에 따라 높이 가변(min-h 69), 전송 버튼은 하단 고정(items-end). 좌우 16(px-4). */}
-      <div className="flex min-h-[69px] items-end px-4 py-3">
+      {/* 바는 내용에 따라 높이 가변(min-h 69), 전송 버튼은 하단 고정(items-end). 좌우 16(px-4).
+          상단 12 고정. 하단은 키보드가 내려가 있을 때만 16(12+4) — 키보드에 붙어 있을 땐 12로 좁힌다.
+          transition을 두지 않아 키보드 전환 시 애니메이션 없이 바로 바뀐다. */}
+      <div
+        className={cn(
+          "flex min-h-[69px] items-end px-4 pt-3",
+          rect?.keyboardOpen ? "pb-3" : "pb-4",
+        )}
+      >
         {/* 텍스트 영역: 좌우 16(px-4)/상하 12(py-3), 멀티라인 — 엔터=줄바꿈, 최대 5줄(max-h-[129px]) 후 스크롤.
             radius 24. 색은 comment-input-bar 토큰(배경/입력/플레이스홀더). */}
         <textarea
@@ -100,7 +107,7 @@ export function CommentInputBar({ postId }: { postId: number }) {
         onClick={() => void submit()}
         disabled={!canSubmit}
         aria-label="댓글 등록"
-        // 버튼 40x40(size-10) = 아이콘 24 + 상하좌우 여백 8(items/justify-center로 가운데 → 8 여백). 우측 고정.
+        // 버튼 40x40(size-10) = 종이비행기 아이콘 24 + 상하좌우 여백 8(가운데 정렬). 우측 고정.
         // 입력 1자 이상: send-icon-active, 빈 상태(플레이스홀더): send-icon-disabled.
         className={cn(
           "inline-flex size-10 shrink-0 items-center justify-center rounded-full",
@@ -109,7 +116,7 @@ export function CommentInputBar({ postId }: { postId: number }) {
             : "text-comment-input-bar-send-icon-disabled",
         )}
       >
-        <CommentIcon size={24} filled />
+        <SendIcon size={24} />
       </button>
       </div>
     </div>

@@ -291,9 +291,18 @@ export function FeedCardBody({
 
 export function FeedCardImages({
   images,
+  ratio = "auto",
   className,
 }: {
   images: FeedImage[];
+  /**
+   * 이미지 영역 비율.
+   * - `auto`(기본, 피드 카드): 원본 비율 유지 + 최대 높이 458.
+   * - `square`(상세): 1:1 고정 — 상세는 여러 장을 가로 캐러셀로 넘길 예정이라 장마다 높이가
+   *   달라지면 안 된다. 어떤 기준으로 통일할지(크롭 vs 여백)는 정책 확정 대기 중이라,
+   *   지금은 디자인 샘플대로 1:1 + 가운데 크롭만 맞춘다.
+   */
+  ratio?: "auto" | "square";
   className?: string;
 }) {
   const [cover] = images;
@@ -301,8 +310,8 @@ export function FeedCardImages({
 
   return (
     <div className={cn("overflow-hidden rounded-2xl", className)}>
-      {/* 원본 비율 유지: 가로는 카드 내용 폭(343)에 꽉 채우고 높이는 비율대로 자동 계산. */}
-      {/* 최대 높이 458(343의 4:3 세로 기준) — 초과분은 object-cover로 center crop. 최소 높이 없음. */}
+      {/* 가로는 카드 내용 폭(343)에 꽉 채운다. 초과분은 object-cover로 center crop. */}
+      {/* auto: 높이는 원본 비율대로 자동, 최대 458(343의 4:3 세로 기준). 최소 높이 없음. */}
       {/* 비어 있을 때 채움색: Color/Cool Gray/50 */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -310,7 +319,10 @@ export function FeedCardImages({
         alt={cover.alt ?? ""}
         width={cover.width}
         height={cover.height}
-        className="max-h-[458px] w-full bg-[var(--cool-gray-50)] object-cover object-center"
+        className={cn(
+          "w-full bg-[var(--cool-gray-50)] object-cover object-center",
+          ratio === "square" ? "aspect-square" : "max-h-[458px]",
+        )}
       />
       {/* +N 뱃지: 임시 삭제 (다중 이미지 레이아웃 스펙 확정 시 복원) */}
     </div>

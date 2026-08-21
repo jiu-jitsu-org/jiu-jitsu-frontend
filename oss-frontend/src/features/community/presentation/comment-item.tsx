@@ -1,13 +1,20 @@
 import type { ReactNode } from "react";
 
 import type { Comment } from "@/features/community/domain/comment";
+import {
+  COMMENT_REACTION_BUTTON,
+  COMMENT_REACTION_ICON,
+  COMMENT_REACTION_TEXT,
+  COMMENT_REACTION_TEXT_ACTIVE,
+} from "@/features/community/presentation/comment-reaction-styles";
 import { Avatar } from "@/features/community/presentation/avatar";
 import { CommentLikeButton } from "@/features/community/presentation/comment-like-button";
 import { CommentMenu } from "@/features/community/presentation/comment-menu";
 import { CommentReplies } from "@/features/community/presentation/comment-replies";
-import { CommentIcon } from "@/shared/ui/icons";
+import { cn } from "@/shared/lib/cn";
+import { CommentIcon, ReplyBranchIcon } from "@/shared/ui/icons";
 
-/** ISO → "M월 D일" 간단 라벨. 파싱 실패 시 원문 반환. */
+/** 서버 timeAgo가 없을 때만 쓰는 폴백. ISO → "M월 D일". 파싱 실패 시 원문 반환. */
 function formatCommentDate(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
@@ -17,14 +24,31 @@ function formatCommentDate(iso: string): string {
 /**
  * 단일 댓글 행 (서버 컴포넌트, 초안).
  *
- * 구성: 아바타 + 닉네임(+"작성자" 배지) + 날짜 / 본문 / 반응 행(댓글쓰기·좋아요·⋮).
+ * 구성: (대댓글이면 분기 아이콘 +) 아바타 + 닉네임(+"작성자" 배지) + 날짜 / 본문 / 반응 행.
  * FIXME(초안): 반응 토글·답글·⋮ 메뉴 동작과 정확한 디자인 토큰/간격은 가이드 확정 후 적용.
  */
-export function CommentItem({ comment }: { comment: Comment }) {
+export function CommentItem({
+  comment,
+  isReply = false,
+}: {
+  comment: Comment;
+  /** 대댓글이면 아바타 앞에 분기 아이콘을 붙인다. */
+  isReply?: boolean;
+}) {
   return (
     // 아바타↔콘텐츠 간격 4(gap-1). 아바타는 프로필 행(닉네임/날짜)과 수직 가운데 정렬.
     // 세로 패딩 없음 — 댓글 사이 간격(12)은 목록(ul gap-3)이 담당.
-    <li className="flex gap-1">
+    //
+    // 대댓글: -ml-7(28)로 왼쪽 28을 되찾아 분기 아이콘(24) + gap 4 = 28을 그 자리에 채운다.
+    // 결과적으로 아바타·본문의 최종 x는 아이콘이 없을 때와 동일하다(들여쓰기 변화 없음).
+    <li className={cn("flex gap-1", isReply && "-ml-7")}>
+      {isReply ? (
+        // 위에서 내려와 오른쪽으로 꺾이는 연결선 — 이 행이 위 댓글의 대댓글임을 나타낸다.
+        <ReplyBranchIcon
+          size={24}
+          className="shrink-0 self-start text-feed-card-header-avatar-bg"
+        />
+      ) : null}
       {/* 프로필 아이콘 24x24, 로드 실패 시 기본 상태 폴백 */}
       <Avatar src={comment.author.avatarUrl} className="size-6" iconSize={16} />
       <div className="flex min-w-0 flex-1 flex-col">
@@ -36,8 +60,8 @@ export function CommentItem({ comment }: { comment: Comment }) {
             {comment.author.nickname}
           </span>
           {comment.isPostAuthor ? (
-            // 작성자 배지: 배경 Blue/50, 텍스트 Blue/500(P), radius 4, 패딩 좌우4·상하2, Label M
-            <span className="rounded bg-[var(--blue-50)] px-1 py-0.5 text-xs font-medium text-[var(--blue-500p)]">
+            // 작성자 배지: comment-author-badge 토큰, radius 4, 패딩 좌우4·상하2, Label M
+            <span className="rounded bg-comment-author-badge-bg px-1 py-0.5 text-xs font-medium text-comment-author-badge-text">
               작성자
             </span>
           ) : null}
@@ -46,7 +70,7 @@ export function CommentItem({ comment }: { comment: Comment }) {
             dateTime={comment.createdAt}
             className="text-xs font-medium text-feed-card-header-date-text"
           >
-            {formatCommentDate(comment.createdAt)}
+            {comment.timeAgo ?? formatCommentDate(comment.createdAt)}
           </time>
         </div>
         {/* 본문: 프로필 행과 간격 7, 닉네임 좌측 정렬(컬럼 기준), n줄 전부 노출(클램프 없음).
@@ -56,13 +80,15 @@ export function CommentItem({ comment }: { comment: Comment }) {
         </p>
 
         {/* 본문 바로 하단 반응 행(본문과 간격 0): 답글 · 좋아요(+카운트) · ⋮. 높이 28 고정, 우측 정렬.
-            버튼 사이 간격 4(gap-1). 아이콘 색 reaction-bar/default/icon, 텍스트 reaction-bar/default/count-text. */}
+            버튼 사이 간격 4(gap-1). 색/상태는 comment-reaction-styles가 단일 출처. */}
         <div className="flex h-7 items-center justify-end gap-1">
           {/* 답글: 0개=아이콘+"댓글쓰기" / 1개+=아이콘+숫자 / 내가 단 적 있으면 fill 아이콘+숫자(색은 동일) */}
           <CommentReaction
             icon={<CommentIcon size={16} filled={comment.replied} />}
             label="댓글쓰기"
             count={comment.replyCount}
+            active={comment.replied}
+            activeIconColorClass="text-reaction-bar-active-comment-icon"
           />
           <CommentLikeButton
             commentId={comment.id}
@@ -82,7 +108,7 @@ export function CommentItem({ comment }: { comment: Comment }) {
         {comment.replies.length > 0 ? (
           <CommentReplies>
             {comment.replies.map((reply) => (
-              <CommentItem key={reply.id} comment={reply} />
+              <CommentItem key={reply.id} comment={reply} isReply />
             ))}
           </CommentReplies>
         ) : null}
@@ -93,26 +119,39 @@ export function CommentItem({ comment }: { comment: Comment }) {
 
 /**
  * 댓글 반응 단일 버튼(초안) — 카운트 0이면 라벨, 1+면 숫자.
- * 액션바와 달리 배경 없는 가벼운 형태. 높이 28(h-7), 활성은 아이콘 fill로만 표시(색 통일).
- * 아이콘 색 reaction-bar/default/icon, 텍스트 reaction-bar/default/count-text + Body S(14/21).
+ * 액션바와 달리 기본 배경이 없는 가벼운 형태. Default/Pressed/Active는 comment-reaction-styles 참고.
  */
 function CommentReaction({
   icon,
   label,
   count,
+  active = false,
+  activeIconColorClass,
 }: {
   icon: ReactNode;
   label: string;
   count: number;
+  /** 내가 이 댓글에 답글을 단 적 있는지 — 아이콘 fill은 호출부가 전달한다. */
+  active?: boolean;
+  activeIconColorClass?: string;
 }) {
   return (
     <button
       type="button"
       aria-label={label}
-      className="inline-flex h-7 items-center gap-1 px-2 text-reaction-bar-default-icon"
+      className={cn(
+        COMMENT_REACTION_BUTTON,
+        COMMENT_REACTION_ICON,
+        active && activeIconColorClass,
+      )}
     >
       {icon}
-      <span className="text-sm leading-[21px] text-reaction-bar-default-count-text">
+      <span
+        className={cn(
+          COMMENT_REACTION_TEXT,
+          active && COMMENT_REACTION_TEXT_ACTIVE,
+        )}
+      >
         {count > 0 ? count : label}
       </span>
     </button>

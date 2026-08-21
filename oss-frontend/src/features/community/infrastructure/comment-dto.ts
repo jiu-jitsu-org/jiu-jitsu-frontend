@@ -30,6 +30,11 @@ export type CommentDto = {
   };
   /** 작성 시각(ISO 8601). */
   createdAt: string;
+  /**
+   * 서버가 계산한 상대 시각(예: "8일 전"). 게시글(board)에는 있고 댓글에는 아직 없다.
+   * 추가되면 별도 코드 변경 없이 화면에 노출되도록 미리 매핑해 둔다.
+   */
+  timeAgo?: string;
   /** 수정 시각(ISO 8601). */
   updatedAt?: string | null;
   /** 대댓글 목록(같은 DTO 형태). */
@@ -58,6 +63,7 @@ export function toComment(dto: CommentDto): Comment {
     },
     body: dto.body,
     createdAt: dto.createdAt,
+    timeAgo: dto.timeAgo,
     isOwner: dto.isAuthor,
     isPostAuthor: false,
     likeCount: dto.likes,

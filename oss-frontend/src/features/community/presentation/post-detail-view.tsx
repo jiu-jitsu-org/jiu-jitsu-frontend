@@ -45,11 +45,14 @@ export function PostDetailView({
             title={post.title}
             body={post.body}
             createdAt={post.createdAt}
+            timeAgo={post.timeAgo}
             views={post.views}
             edited={post.edited}
           />
           {post.images.length > 0 ? (
+            // 상세 이미지는 디자인 샘플대로 1:1 고정. 크롭/여백 정책 확정 전까지의 1차 구현(#57).
             <FeedCardImages
+              ratio="square"
               images={post.images.map((image) => ({ url: image.imageUrl }))}
             />
           ) : null}
@@ -64,10 +67,15 @@ export function PostDetailView({
           initialLiked={post.viewer.liked}
           initialBookmarked={post.viewer.bookmarked}
           initialLikes={post.counts.likes}
+          initialSaves={post.counts.saves}
+          comments={post.counts.comments}
+          commented={post.viewer.commented}
+          shared={post.viewer.shared}
+          shares={post.counts.shares}
         />
 
-        {/* 액션바 아래 디바이더: 간격 22, 풀폭(좌우 여백 없음), 높이 4 */}
-        <div className="mt-[22px] h-1 bg-divider-bg" />
+        {/* 액션바 아래 디바이더: 간격 24, 풀폭(좌우 여백 없음), 높이 4 */}
+        <div className="mt-6 h-1 bg-divider-bg" />
 
         {/* 댓글 섹션 */}
         <CommentSection comments={comments} sort={sort} />

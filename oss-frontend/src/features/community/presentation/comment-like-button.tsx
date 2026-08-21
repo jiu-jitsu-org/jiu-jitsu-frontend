@@ -4,6 +4,12 @@ import { useState } from "react";
 
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
+import {
+  COMMENT_REACTION_BUTTON,
+  COMMENT_REACTION_ICON,
+  COMMENT_REACTION_TEXT,
+  COMMENT_REACTION_TEXT_ACTIVE,
+} from "@/features/community/presentation/comment-reaction-styles";
 import { cn } from "@/shared/lib/cn";
 import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
 import { HeartIcon } from "@/shared/ui/icons";
@@ -82,16 +88,19 @@ export function CommentLikeButton({
       aria-pressed={liked}
       onClick={() => void toggle()}
       // 내가 누른 상태: 채워진 하트 + active 색 / 아니면: 빈 하트 + default 색.
-      // 카운트 텍스트는 자체 색 클래스를 가져 버튼 색 변경의 영향을 받지 않는다.
+      // Pressed는 두 경우 모두 pressed 색이 덮는다(comment-reaction-styles).
       className={cn(
-        "inline-flex h-7 items-center gap-1 px-2",
-        liked
-          ? "text-reaction-bar-active-like-icon"
-          : "text-reaction-bar-default-icon",
+        COMMENT_REACTION_BUTTON,
+        liked ? "text-reaction-bar-active-like-icon" : COMMENT_REACTION_ICON,
       )}
     >
       <HeartIcon size={16} filled={liked} />
-      <span className="text-sm leading-[21px] text-reaction-bar-default-count-text">
+      <span
+        className={cn(
+          COMMENT_REACTION_TEXT,
+          liked && COMMENT_REACTION_TEXT_ACTIVE,
+        )}
+      >
         {count > 0 ? count : "좋아요"}
       </span>
     </button>
