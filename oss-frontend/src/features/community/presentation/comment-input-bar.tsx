@@ -7,7 +7,7 @@ import { useIsDemoMode } from "@/features/community/presentation/community-demo-
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { cn } from "@/shared/lib/cn";
 import { useViewportRect } from "@/features/community/presentation/use-viewport-rect";
-import { CommentIcon } from "@/shared/ui/icons";
+import { SendIcon } from "@/shared/ui/icons";
 import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
 
 /** 액션바의 "댓글쓰기"가 포커스 대상으로 참조하는 입력 id(단일 출처). */
@@ -100,7 +100,7 @@ export function CommentInputBar({ postId }: { postId: number }) {
         onClick={() => void submit()}
         disabled={!canSubmit}
         aria-label="댓글 등록"
-        // 버튼 40x40(size-10) = 아이콘 24 + 상하좌우 여백 8(items/justify-center로 가운데 → 8 여백). 우측 고정.
+        // 버튼 40x40(size-10) = 종이비행기 아이콘 24 + 상하좌우 여백 8(가운데 정렬). 우측 고정.
         // 입력 1자 이상: send-icon-active, 빈 상태(플레이스홀더): send-icon-disabled.
         className={cn(
           "inline-flex size-10 shrink-0 items-center justify-center rounded-full",
@@ -109,7 +109,7 @@ export function CommentInputBar({ postId }: { postId: number }) {
             : "text-comment-input-bar-send-icon-disabled",
         )}
       >
-        <CommentIcon size={24} filled />
+        <SendIcon size={24} />
       </button>
       </div>
     </div>
