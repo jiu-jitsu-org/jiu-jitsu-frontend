@@ -46,7 +46,7 @@ export function CommentItem({
         // 위에서 내려와 오른쪽으로 꺾이는 연결선 — 이 행이 위 댓글의 대댓글임을 나타낸다.
         <ReplyBranchIcon
           size={24}
-          className="shrink-0 self-start text-[var(--cool-gray-50)]"
+          className="shrink-0 self-start text-feed-card-header-avatar-bg"
         />
       ) : null}
       {/* 프로필 아이콘 24x24, 로드 실패 시 기본 상태 폴백 */}
