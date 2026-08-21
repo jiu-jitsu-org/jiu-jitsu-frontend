@@ -105,8 +105,8 @@ export function CommentInputBar({ postId }: { postId: number }) {
       )}
     >
       {/* 답장 대상 행 — 답글 모드일 때만. 높이 44 고정, 수직 가운데, 좌우 16.
-          분기 아이콘 24 바로 옆(간격 0)에 텍스트, 우측 끝에 ×.
-          FIXME(디자인 미확정): × 버튼 규격/색은 가이드 이미지 기준 추정값이다(#60). */}
+          분기 아이콘 24 바로 옆(간격 0)에 텍스트, 우측 끝에 × 버튼(40x40, 아이콘 24).
+          좌우 16은 × "버튼 영역" 기준이라 음수 마진으로 당기지 않는다. */}
       {target ? (
         <div className="flex h-11 items-center px-4">
           {/* 대댓글 목록의 분기 아이콘과 동일 에셋(24, strokeWidth 2) — 색만 다르다. */}
@@ -121,7 +121,8 @@ export function CommentInputBar({ postId }: { postId: number }) {
             type="button"
             onClick={cancelReply}
             aria-label="답장 취소"
-            className="inline-flex size-6 shrink-0 items-center justify-center text-icon-primary"
+            // 버튼 영역 40x40(size-10) = 아이콘 24 + 사방 여백 8. 우측 16은 이 버튼 바깥 기준.
+            className="inline-flex size-10 shrink-0 items-center justify-center text-icon-secondary"
           >
             <CloseIcon size={24} />
           </button>

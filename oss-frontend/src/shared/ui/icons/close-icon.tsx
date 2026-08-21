@@ -1,10 +1,10 @@
 import { type IconProps } from "./types";
 
 /**
- * 닫기(×) 아이콘.
+ * 닫기(×) 아이콘 — 디자인 SVG.
  *
- * FIXME(디자인 미확정): 디자인 SVG를 아직 못 받아 표준 X 형태로 임시 작성했다.
- *   원본 SVG 수령 시 교체(#60). 색은 currentColor로 부모 토큰을 상속한다.
+ * 원본 stroke #70737C → currentColor로 바꿔 부모의 색 토큰을 상속한다(다른 아이콘과 동일 규칙).
+ * viewBox 24 기준이라 size 기본값도 24다.
  */
 export function CloseIcon({ size = 24, ...props }: IconProps) {
   return (
@@ -18,10 +18,11 @@ export function CloseIcon({ size = 24, ...props }: IconProps) {
       {...props}
     >
       <path
-        d="M18 6L6 18M6 6l12 12"
+        d="M18 6L6 18M6 6L18 18"
         stroke="currentColor"
         strokeWidth={2}
         strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </svg>
   );
