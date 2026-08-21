@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
+import { useCommentReply } from "@/features/community/presentation/comment-reply-context";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { cn } from "@/shared/lib/cn";
 import { useViewportRect } from "@/features/community/presentation/use-viewport-rect";
@@ -18,6 +19,9 @@ export const COMMENT_INPUT_ELEMENT_ID = "community-comment-input";
  *
  * 제출 시 BFF로 POST한 뒤 router.refresh()로 서버 렌더 댓글 목록을 다시 가져온다
  * (클라이언트에 목록 상태를 중복으로 들지 않음). 401이면 네이티브 로그인 유도.
+ *
+ * 답글 모드: 댓글의 답글 버튼이 대상을 지정하면 입력창 위에 "○○님에게 답글" 칩이 뜨고,
+ * 전송 시 parentId가 함께 나간다. 인라인 입력창을 따로 두지 않고 이 바를 재사용한다.
  */
 export function CommentInputBar({ postId }: { postId: number }) {
   const router = useRouter();
@@ -25,6 +29,7 @@ export function CommentInputBar({ postId }: { postId: number }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [value, setValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const { target, cancelReply, completeReply } = useCommentReply();
   // 키보드가 떠 있는 동안엔 홈 인디케이터(safe-area)가 키보드에 가려 의미가 없으므로 하단 패딩 0.
   const rect = useViewportRect();
 
@@ -36,6 +41,13 @@ export function CommentInputBar({ postId }: { postId: number }) {
     el.style.height = `${el.scrollHeight}px`;
   }, [value]);
 
+  // 답글 대상이 새로 지정되면 입력창으로 포커스를 옮긴다(버튼 쪽에서도 한 번 시도하지만,
+  // 대상이 바뀌기만 한 경우까지 커버하려면 여기서도 반응해야 한다).
+  useEffect(() => {
+    if (!target) return;
+    textareaRef.current?.focus();
+  }, [target]);
+
   const canSubmit = value.trim().length > 0 && !submitting;
 
   async function submit() {
@@ -45,15 +57,19 @@ export function CommentInputBar({ postId }: { postId: number }) {
     // 예시(데모)에선 네트워크 없이 입력만 비운다(목록 갱신/전송 없음).
     if (demo) {
       setValue("");
+      cancelReply();
       return;
     }
+
+    // 대상은 전송 시점 값으로 고정한다 — 응답을 기다리는 동안 대상이 바뀌어도 영향받지 않게.
+    const parentId = target?.parentId;
 
     setSubmitting(true);
     try {
       const response = await bffFetch(`/api/community/posts/${postId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify(parentId ? { content, parentId } : { content }),
       });
 
       if (!response.ok) {
@@ -64,6 +80,12 @@ export function CommentInputBar({ postId }: { postId: number }) {
       }
 
       setValue("");
+      // 답글이면 해당 묶음을 펼쳐 방금 쓴 답글이 보이게 한다(접혀 있으면 안 보임).
+      if (parentId) {
+        completeReply(parentId);
+      } else {
+        cancelReply();
+      }
       // 서버 렌더 목록 재요청 — 새 댓글이 정렬 규칙에 맞게 반영된다.
       router.refresh();
     } finally {
@@ -82,6 +104,24 @@ export function CommentInputBar({ postId }: { postId: number }) {
         rect?.keyboardOpen ? "pb-0" : "pb-[env(safe-area-inset-bottom)]",
       )}
     >
+      {/* 답글 대상 칩 — 답글 모드일 때만. 입력 행 위 12, 좌우 16.
+          FIXME(디자인 미확정): 칩의 배경/닫기 아이콘 스펙이 없어 텍스트만으로 임시 구성했다.
+            가이드 확정 시 교체(#60). 취소는 CloseIcon이 없어 "취소" 텍스트로 둔다. */}
+      {target ? (
+        <div className="flex items-center justify-between px-4 pt-3">
+          <span className="text-xs font-medium text-comment-input-bar-placeholder">
+            {target.nickname}님에게 답글
+          </span>
+          <button
+            type="button"
+            onClick={cancelReply}
+            className="text-xs font-medium text-comment-input-bar-send-icon-active"
+          >
+            취소
+          </button>
+        </div>
+      ) : null}
+
       {/* 바는 내용에 따라 높이 가변(min-h 69), 전송 버튼은 하단 고정(items-end). 좌우 16(px-4).
           상단 12 고정. 하단은 키보드가 내려가 있을 때만 16(12+4) — 키보드에 붙어 있을 땐 12로 좁힌다.
           transition을 두지 않아 키보드 전환 시 애니메이션 없이 바로 바뀐다. */}
@@ -99,7 +139,9 @@ export function CommentInputBar({ postId }: { postId: number }) {
           rows={1}
           value={value}
           onChange={(event) => setValue(event.target.value)}
-          placeholder="댓글을 입력해주세요."
+          placeholder={
+            target ? "답글을 입력해주세요." : "댓글을 입력해주세요."
+          }
           className="max-h-[129px] flex-1 resize-none overflow-y-auto rounded-[24px] bg-comment-input-bar-bg px-4 py-3 text-sm leading-[21px] text-comment-input-bar-text outline-none placeholder:text-comment-input-bar-placeholder"
         />
       <button

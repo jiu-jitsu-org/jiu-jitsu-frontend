@@ -22,6 +22,7 @@ import type { HttpClient } from "@/shared/lib/http";
  * 모든 쓰기는 인증이 필요하므로 주입되는 HttpClient는 반드시 authed(Bearer 부착) 클라이언트다.
  *
  * 댓글 생성은 Swagger 확정 계약(POST /community/comments, body { contentId, parentId, body }).
+ * 대댓글은 parentId에 부모 댓글 id를 넣어 같은 엔드포인트로 보낸다.
  * 게시글 삭제는 Swagger 확정 계약(DELETE /board/{id}) — 200 OK, 응답 본문은 사용하지 않는다.
  * 좋아요는 Swagger 확정 계약(PUT /board/like/{id}) — 서버가 토글하고 isLiked를 돌려준다.
  * 저장(북마크)은 Swagger 확정 계약(PUT /board/save/{id}) — 서버가 토글하고 isSaved를 돌려준다.
@@ -45,13 +46,16 @@ export class ExternalCommunityWriteRepository
 {
   constructor(private readonly httpClient: HttpClient) {}
 
-  async createComment(postId: number, body: string): Promise<Comment> {
+  async createComment(
+    postId: number,
+    body: string,
+    parentId?: number,
+  ): Promise<Comment> {
     // POST /community/comments — contentId(게시글 id) + parentId + body.
-    // FIXME(대댓글): 현재 화면은 최상위 댓글만 작성하므로 parentId=0 고정.
-    //   답글 작성 UI 추가 시 parentId를 인자로 받아 전달.
+    // 최상위 댓글은 업스트림 규약상 parentId=0으로 보낸다(null 아님).
     const response = await this.httpClient.post<Envelope<CommentDto>>({
       path: COMMENT_ENDPOINT_PATH,
-      body: { contentId: postId, parentId: 0, body },
+      body: { contentId: postId, parentId: parentId ?? 0, body },
     });
 
     return toComment(response.data);
