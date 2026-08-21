@@ -106,7 +106,10 @@ export function CommentItem({
         {/* 대댓글: 같은 댓글 폼을 들여쓰기로 재사용(콘텐츠 컬럼 안에 두어 부모 닉네임 기준 정렬).
             최초 2개만 노출, 초과분은 "대댓글 N개 더보기"로 펼침. */}
         {comment.replies.length > 0 ? (
-          <CommentReplies commentId={comment.id}>
+          <CommentReplies
+            commentId={comment.id}
+            totalCount={comment.replyCount}
+          >
             {comment.replies.map((reply) => (
               <CommentItem
                 key={reply.id}
