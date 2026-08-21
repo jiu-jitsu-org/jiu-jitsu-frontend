@@ -39,6 +39,13 @@ export type CommentDto = {
   updatedAt?: string | null;
   /** 대댓글 목록(같은 DTO 형태). */
   childrenList?: CommentDto[] | null;
+  /**
+   * 삭제/신고 여부. 응답에는 오지만 아직 화면에서 쓰지 않는다 — 계약만 먼저 고정한다.
+   * (deletedYn은 isDeleted와 같은 값의 중복 필드다.)
+   */
+  isDeleted?: boolean;
+  isReported?: boolean;
+  deletedYn?: boolean;
 };
 
 /**
@@ -47,8 +54,9 @@ export type CommentDto = {
  * isPostAuthor: 응답에 직접 필드가 없어 여기선 false로 두고, 게시글 작성자 id를 아는
  *   get-post-detail-page-data에서 댓글 author id와 비교해 최종 확정한다(작성자 배지).
  *
- * FIXME(스펙 공백): replied("내가 이 댓글에 답글을 단 적 있는지")는 대응 필드가 없어 false 고정.
- *   백엔드에 필드 추가되면 여기서 매핑.
+ * replied: 전용 필드는 없지만 자식 댓글의 isAuthor(내 댓글 여부)로 계산할 수 있다 —
+ *   내가 쓴 답글이 하나라도 있으면 true. childrenList가 페이지네이션 없이 전량 내려오는
+ *   현재 계약에서만 정확하다(부분만 내려오기 시작하면 서버 필드가 필요해진다).
  */
 export function toComment(dto: CommentDto): Comment {
   const children = dto.childrenList ?? [];
@@ -69,7 +77,7 @@ export function toComment(dto: CommentDto): Comment {
     likeCount: dto.likes,
     liked: dto.isLiked,
     replyCount: children.length,
-    replied: false,
+    replied: children.some((child) => child.isAuthor),
     replies: children.map(toComment),
   };
 }
