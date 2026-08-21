@@ -46,6 +46,17 @@ export type CommentDto = {
   isDeleted?: boolean;
   isReported?: boolean;
   deletedYn?: boolean;
+  /**
+   * 답글 총 개수. childrenList는 상위 N개만 내려오는 잘린 목록이라 여기서 세면 안 된다.
+   * FIXME(필드명 미확정): 아직 응답에 없다 — BE 확정 시 이름 정합 필요.
+   */
+  replyCount?: number;
+  /**
+   * 내가 이 댓글에 답글을 단 적 있는지(답글 아이콘 fill 판단).
+   * 잘린 childrenList로는 알 수 없어 서버 계산이 필요하다.
+   * FIXME(필드명 미확정): 아직 응답에 없다 — BE 확정 시 이름 정합 필요.
+   */
+  isReplied?: boolean;
 };
 
 /**
@@ -54,9 +65,9 @@ export type CommentDto = {
  * isPostAuthor: 응답에 직접 필드가 없어 여기선 false로 두고, 게시글 작성자 id를 아는
  *   get-post-detail-page-data에서 댓글 author id와 비교해 최종 확정한다(작성자 배지).
  *
- * replied: 전용 필드는 없지만 자식 댓글의 isAuthor(내 댓글 여부)로 계산할 수 있다 —
- *   내가 쓴 답글이 하나라도 있으면 true. childrenList가 페이지네이션 없이 전량 내려오는
- *   현재 계약에서만 정확하다(부분만 내려오기 시작하면 서버 필드가 필요해진다).
+ * replyCount·replied는 반드시 서버값이어야 한다 — 정책상 childrenList는 상위 N개만 내려오는
+ *   잘린 목록이라(나머지는 별도 "더보기" 화면), 개수도 "내가 답글을 달았는지"도 여기서 셀 수 없다.
+ *   FIXME(스펙 공백): 두 필드가 아직 응답에 없어 잘린 목록 기준으로 폴백한다 — 실제보다 작게 나온다.
  */
 export function toComment(dto: CommentDto): Comment {
   const children = dto.childrenList ?? [];
@@ -76,8 +87,9 @@ export function toComment(dto: CommentDto): Comment {
     isPostAuthor: false,
     likeCount: dto.likes,
     liked: dto.isLiked,
-    replyCount: children.length,
-    replied: children.some((child) => child.isAuthor),
+    // 서버값 우선. 없으면 내려온 자식 수로 폴백하되, 잘린 목록이라 실제 개수보다 작을 수 있다.
+    replyCount: dto.replyCount ?? children.length,
+    replied: dto.isReplied ?? false,
     replies: children.map(toComment),
   };
 }
