@@ -104,16 +104,17 @@ export function CommentInputBar({ postId }: { postId: number }) {
         rect?.keyboardOpen ? "pb-0" : "pb-[env(safe-area-inset-bottom)]",
       )}
     >
-      {/* 답장 대상 행 — 답글 모드일 때만. 입력 행 위, 좌우 16.
-          분기 아이콘(연한 회색) + "○○님에게 답장" + 우측 × 로 구성한다.
-          FIXME(디자인 미확정): 간격·폰트·색 토큰은 가이드 이미지 기준 추정값이다. 상세 가이드 수령 시 정합(#60). */}
+      {/* 답장 대상 행 — 답글 모드일 때만. 높이 44 고정, 수직 가운데, 좌우 16.
+          분기 아이콘 24 바로 옆(간격 0)에 텍스트, 우측 끝에 ×.
+          FIXME(디자인 미확정): × 버튼 규격/색은 가이드 이미지 기준 추정값이다(#60). */}
       {target ? (
-        <div className="flex items-center gap-1 px-4 pt-3">
+        <div className="flex h-11 items-center px-4">
+          {/* 대댓글 목록의 분기 아이콘과 동일 에셋(24, strokeWidth 2) — 색만 다르다. */}
           <ReplyBranchIcon
             size={24}
-            className="shrink-0 text-feed-card-header-avatar-bg"
+            className="shrink-0 text-comment-input-bar-reply-ref-thread-icon"
           />
-          <span className="min-w-0 flex-1 truncate text-xs font-medium text-comment-input-bar-placeholder">
+          <span className="min-w-0 flex-1 truncate text-sm leading-[21px] text-comment-input-bar-reply-ref-text">
             {target.nickname}님에게 답장
           </span>
           <button
