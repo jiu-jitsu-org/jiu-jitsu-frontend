@@ -82,8 +82,15 @@ export function CommentInputBar({ postId }: { postId: number }) {
         rect?.keyboardOpen ? "pb-0" : "pb-[env(safe-area-inset-bottom)]",
       )}
     >
-      {/* 바는 내용에 따라 높이 가변(min-h 69), 전송 버튼은 하단 고정(items-end). 좌우 16(px-4). */}
-      <div className="flex min-h-[69px] items-end px-4 py-3">
+      {/* 바는 내용에 따라 높이 가변(min-h 69), 전송 버튼은 하단 고정(items-end). 좌우 16(px-4).
+          상단 12 고정. 하단은 키보드가 내려가 있을 때만 16(12+4) — 키보드에 붙어 있을 땐 12로 좁힌다.
+          transition을 두지 않아 키보드 전환 시 애니메이션 없이 바로 바뀐다. */}
+      <div
+        className={cn(
+          "flex min-h-[69px] items-end px-4 pt-3",
+          rect?.keyboardOpen ? "pb-3" : "pb-4",
+        )}
+      >
         {/* 텍스트 영역: 좌우 16(px-4)/상하 12(py-3), 멀티라인 — 엔터=줄바꿈, 최대 5줄(max-h-[129px]) 후 스크롤.
             radius 24. 색은 comment-input-bar 토큰(배경/입력/플레이스홀더). */}
         <textarea
