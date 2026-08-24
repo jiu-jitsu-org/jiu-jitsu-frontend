@@ -1,18 +1,11 @@
-import type { ReactNode } from "react";
-
 import type { Comment } from "@/features/community/domain/comment";
-import {
-  COMMENT_REACTION_BUTTON,
-  COMMENT_REACTION_ICON,
-  COMMENT_REACTION_TEXT,
-  COMMENT_REACTION_TEXT_ACTIVE,
-} from "@/features/community/presentation/comment-reaction-styles";
 import { Avatar } from "@/features/community/presentation/avatar";
 import { CommentLikeButton } from "@/features/community/presentation/comment-like-button";
+import { CommentReplyButton } from "@/features/community/presentation/comment-reply-button";
 import { CommentMenu } from "@/features/community/presentation/comment-menu";
 import { CommentReplies } from "@/features/community/presentation/comment-replies";
 import { cn } from "@/shared/lib/cn";
-import { CommentIcon, ReplyBranchIcon } from "@/shared/ui/icons";
+import { ReplyBranchIcon } from "@/shared/ui/icons";
 
 /** 서버 timeAgo가 없을 때만 쓰는 폴백. ISO → "M월 D일". 파싱 실패 시 원문 반환. */
 function formatCommentDate(iso: string): string {
@@ -30,11 +23,19 @@ function formatCommentDate(iso: string): string {
 export function CommentItem({
   comment,
   isReply = false,
+  replyParentId,
 }: {
   comment: Comment;
   /** 대댓글이면 아바타 앞에 분기 아이콘을 붙인다. */
   isReply?: boolean;
+  /**
+   * 이 행의 답글 버튼이 서버로 보낼 parentId.
+   * 최상위 댓글은 자기 id, 대댓글은 부모(최상위) id가 들어온다 — 중첩을 1단계로 묶기 위함.
+   */
+  replyParentId?: number;
 }) {
+  // 대댓글에서 답글을 달아도 최상위 댓글 아래에 붙는다(무한 중첩 방지).
+  const parentId = replyParentId ?? comment.id;
   return (
     // 아바타↔콘텐츠 간격 4(gap-1). 아바타는 프로필 행(닉네임/날짜)과 수직 가운데 정렬.
     // 세로 패딩 없음 — 댓글 사이 간격(12)은 목록(ul gap-3)이 담당.
@@ -82,13 +83,12 @@ export function CommentItem({
         {/* 본문 바로 하단 반응 행(본문과 간격 0): 답글 · 좋아요(+카운트) · ⋮. 높이 28 고정, 우측 정렬.
             버튼 사이 간격 4(gap-1). 색/상태는 comment-reaction-styles가 단일 출처. */}
         <div className="flex h-7 items-center justify-end gap-1">
-          {/* 답글: 0개=아이콘+"댓글쓰기" / 1개+=아이콘+숫자 / 내가 단 적 있으면 fill 아이콘+숫자(색은 동일) */}
-          <CommentReaction
-            icon={<CommentIcon size={16} filled={comment.replied} />}
-            label="댓글쓰기"
-            count={comment.replyCount}
-            active={comment.replied}
-            activeIconColorClass="text-reaction-bar-active-comment-icon"
+          {/* 답글: 탭하면 하단 입력 바가 답글 모드로 전환된다. */}
+          <CommentReplyButton
+            parentId={parentId}
+            nickname={comment.author.nickname}
+            replyCount={comment.replyCount}
+            replied={comment.replied}
           />
           <CommentLikeButton
             commentId={comment.id}
@@ -106,54 +106,21 @@ export function CommentItem({
         {/* 대댓글: 같은 댓글 폼을 들여쓰기로 재사용(콘텐츠 컬럼 안에 두어 부모 닉네임 기준 정렬).
             최초 2개만 노출, 초과분은 "대댓글 N개 더보기"로 펼침. */}
         {comment.replies.length > 0 ? (
-          <CommentReplies>
+          <CommentReplies
+            commentId={comment.id}
+            totalCount={comment.replyCount}
+          >
             {comment.replies.map((reply) => (
-              <CommentItem key={reply.id} comment={reply} isReply />
+              <CommentItem
+                key={reply.id}
+                comment={reply}
+                isReply
+                replyParentId={comment.id}
+              />
             ))}
           </CommentReplies>
         ) : null}
       </div>
     </li>
-  );
-}
-
-/**
- * 댓글 반응 단일 버튼(초안) — 카운트 0이면 라벨, 1+면 숫자.
- * 액션바와 달리 기본 배경이 없는 가벼운 형태. Default/Pressed/Active는 comment-reaction-styles 참고.
- */
-function CommentReaction({
-  icon,
-  label,
-  count,
-  active = false,
-  activeIconColorClass,
-}: {
-  icon: ReactNode;
-  label: string;
-  count: number;
-  /** 내가 이 댓글에 답글을 단 적 있는지 — 아이콘 fill은 호출부가 전달한다. */
-  active?: boolean;
-  activeIconColorClass?: string;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      className={cn(
-        COMMENT_REACTION_BUTTON,
-        COMMENT_REACTION_ICON,
-        active && activeIconColorClass,
-      )}
-    >
-      {icon}
-      <span
-        className={cn(
-          COMMENT_REACTION_TEXT,
-          active && COMMENT_REACTION_TEXT_ACTIVE,
-        )}
-      >
-        {count > 0 ? count : label}
-      </span>
-    </button>
   );
 }

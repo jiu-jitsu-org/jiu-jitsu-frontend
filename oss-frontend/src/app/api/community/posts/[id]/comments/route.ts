@@ -50,9 +50,10 @@ export async function GET(
 }
 
 /**
- * POST /api/community/posts/{id}/comments — 댓글 작성(인증 필요).
+ * POST /api/community/posts/{id}/comments — 댓글/대댓글 작성(인증 필요).
  *
- * body: { content: string }
+ * body: { content: string, parentId?: number }
+ * parentId가 있으면 그 댓글의 답글로 달린다. 숫자가 아니거나 0 이하면 최상위 댓글로 취급한다.
  */
 export async function POST(
   request: NextRequest,
@@ -66,9 +67,13 @@ export async function POST(
   if ("response" in session) return session.response;
 
   let content = "";
+  let parentId: number | undefined;
   try {
     const body = await request.json();
     content = String(body?.content ?? "").trim();
+    const rawParentId = Number(body?.parentId);
+    // 0/NaN/음수는 "부모 없음"으로 본다 — 업스트림에는 0으로 나간다.
+    parentId = Number.isInteger(rawParentId) && rawParentId > 0 ? rawParentId : undefined;
   } catch {
     // 파싱 실패는 아래 빈 값 검증에서 400으로 처리된다.
   }
@@ -81,6 +86,7 @@ export async function POST(
     const data = await createCreateCommentUseCase(session.accessToken).execute(
       parsed.postId,
       content,
+      parentId,
     );
 
     return NextResponse.json<ApiSuccessResponse<typeof data>>(

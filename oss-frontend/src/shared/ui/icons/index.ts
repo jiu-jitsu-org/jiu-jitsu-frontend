@@ -17,3 +17,4 @@ export { ImageIcon } from "./image-icon";
 export { HashIcon } from "./hash-icon";
 export { ReplyBranchIcon } from "./reply-branch-icon";
 export { SendIcon } from "./send-icon";
+export { CloseIcon } from "./close-icon";

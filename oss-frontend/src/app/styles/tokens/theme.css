@@ -352,6 +352,9 @@
   --color-comment-input-bar-text-disabled: var(--comment-input-bar-text-disabled);
   --color-comment-input-bar-send-icon-disabled: var(--comment-input-bar-send-icon-disabled);
   --color-comment-input-bar-send-icon-active: var(--comment-input-bar-send-icon-active);
+  --color-comment-input-bar-reply-ref-thread-icon: var(--comment-input-bar-reply-ref-thread-icon);
+  --color-comment-input-bar-reply-ref-text: var(--comment-input-bar-reply-ref-text);
+  --color-comment-input-bar-reply-ref-close-icon: var(--comment-input-bar-reply-ref-close-icon);
   --color-comment-sort-select-default-text: var(--comment-sort-select-default-text);
   --color-comment-sort-select-pressed-bg: var(--comment-sort-select-pressed-bg);
   --color-comment-sort-select-pressed-text: var(--comment-sort-select-pressed-text);
