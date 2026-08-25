@@ -68,10 +68,10 @@ export function SelectSheet({
 
   const selectedOption = options.find((option) => option.value === selected);
   const needsCustomText = selectedOption?.allowsCustomText === true;
-  // 자유 입력 항목은 내용이 있어야 제출할 수 있다(빈 사유 전송 방지 — BFF도 400으로 막는다).
-  const canSubmit =
-    selectedOption !== undefined &&
-    (!needsCustomText || customText.trim().length > 0);
+  // 자유 입력은 선택 사항이다 — 「기타」를 고르기만 해도 제출할 수 있다. 사유를 글로 설명하기
+  // 어려운 사용자가 「기타」로 신고할 길이 막히면 안 된다. 전송값은 reason 코드라 입력이 비어도
+  // BFF 검증(reason 필수)에 걸리지 않는다.
+  const canSubmit = selectedOption !== undefined;
 
   return (
     <div
@@ -138,7 +138,11 @@ export function SelectSheet({
             selectedOption
               ? onSubmit({
                   value: selectedOption.value,
-                  customText: needsCustomText ? customText.trim() : undefined,
+                  // 비어 있으면 빈 문자열 대신 아예 싣지 않는다(입력 안 함 == 없음).
+                  customText:
+                    needsCustomText && customText.trim()
+                      ? customText.trim()
+                      : undefined,
                 })
               : undefined
           }
