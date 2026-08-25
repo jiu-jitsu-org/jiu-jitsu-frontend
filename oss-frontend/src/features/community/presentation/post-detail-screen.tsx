@@ -1,8 +1,7 @@
-import { notFound } from "next/navigation";
-
 import { getPostDetailPageData } from "@/features/community/application/get-post-detail-page-data";
 import { SessionExpiredRecovery } from "@/features/auth/presentation/session-expired-recovery";
 import type { CommentSort } from "@/features/community/domain/post";
+import { PostDetailGone } from "@/features/community/presentation/post-detail-gone";
 import { PostDetailView } from "@/features/community/presentation/post-detail-view";
 import { ApiErrorCode } from "@/shared/lib/http";
 
@@ -10,7 +9,7 @@ import { ApiErrorCode } from "@/shared/lib/http";
  * 게시글 상세 화면 루트 (서버 컴포넌트).
  *
  * application use case를 서버에서 직접 호출(내부 HTTP 왕복 회피)해 상세+댓글을 가져온 뒤
- * 순수 표현 컴포넌트 PostDetailView에 넘긴다. 조회 실패는 404/에러 화면으로 분기.
+ * 순수 표현 컴포넌트 PostDetailView에 넘긴다. 조회 실패는 진입 차단/에러 화면으로 분기.
  *
  * 만료 토큰이면 서버는 갱신 불가 → SessionExpiredRecovery에 위임(네이티브 갱신 후 SSR 재실행).
  */
@@ -34,9 +33,12 @@ export async function PostDetailScreen({
       );
     }
 
-    // 존재하지 않는 게시글(C0002) → 404. 그 외는 코드별 메시지로 간단한 에러 화면.
+    // 열 수 없는 게시글(C0002 / 404) → 진입을 막고 목록으로 돌려보낸다(#41).
+    // 삭제 · 신고 · 차단 · 숨김이 모두 404로 수렴하므로 사유를 구분하지 않는다.
+    // FIXME(#42): 누적 3회 신고로 임시 숨김된 게시물은 복구될 수 있어 "재시도" 안내가 맞다.
+    // 지금은 응답만으로 삭제와 구분할 수 없어 함께 처리한다 — 구분 수단이 생기면 분기를 추가한다.
     if (result.code === ApiErrorCode.BOARD_NOT_FOUND || result.status === 404) {
-      notFound();
+      return <PostDetailGone />;
     }
     return <PostDetailError message={result.error} />;
   }
