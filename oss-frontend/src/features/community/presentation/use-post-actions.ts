@@ -13,6 +13,10 @@ import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
  * BFF로 요청한다. 실패하면 이전 상태로 롤백한다. 401(비로그인)이면 네이티브 로그인 유도.
  *
  * 쓰기 흐름은 컨벤션의 정본 경로(Browser → app/api → application → infrastructure)를 따른다.
+ *
+ * 시드가 바뀌면 상태를 다시 맞춘다 — 목록이 서버에서 게시글을 다시 읽어 갈아끼우는 경로(#73)가
+ * 생겼기 때문. 카드는 id가 같아 재마운트되지 않으므로, 시드만 새로 들어오고 useState는 최초값을
+ * 붙들고 있어 좋아요·저장이 옛 값으로 남는다.
  */
 
 /** 훅 시드값. saves는 목록 응답(saveCount)에만 있어 미제공(상세)이면 0으로 시드한다. */
@@ -39,15 +43,20 @@ const ENDPOINT: Record<ToggleKind, (postId: number) => string> = {
 
 export function usePostActions(postId: number, initial: PostActionsSeed) {
   const demo = useIsDemoMode();
-  const [state, setState] = useState<PostActionsState>({
-    ...initial,
-    saves: initial.saves ?? 0,
-  });
+  const [state, setState] = useState<PostActionsState>(() => toState(initial));
   // 동시 토글 방지 — 종류별 진행 중 플래그.
   const [pending, setPending] = useState<Record<ToggleKind, boolean>>({
     like: false,
     bookmark: false,
   });
+
+  // 렌더 중 상태 조정(React 공식 "props 변경 시 state 리셋" 패턴) — effect로 하면 옛 값이 한 번
+  // 그려진 뒤 덮여 깜빡인다. 진행 중인 토글이 있으면 건드리지 않는다(낙관적 반영을 되돌리지 않도록).
+  const [seed, setSeed] = useState(initial);
+  if (!isSameSeed(seed, initial) && !pending.like && !pending.bookmark) {
+    setSeed(initial);
+    setState(toState(initial));
+  }
 
   async function toggle(kind: ToggleKind) {
     if (pending[kind]) return;
@@ -111,6 +120,21 @@ export function usePostActions(postId: number, initial: PostActionsSeed) {
     toggleLike: () => toggle("like"),
     toggleBookmark: () => toggle("bookmark"),
   };
+}
+
+/** 시드 → 내부 상태. saves는 미제공(상세) 시 0으로 정규화한다. */
+function toState(seed: PostActionsSeed): PostActionsState {
+  return { ...seed, saves: seed.saves ?? 0 };
+}
+
+/** 시드가 실제로 달라졌는지 값으로 비교한다(매 렌더 새 객체가 만들어지므로 참조 비교 불가). */
+function isSameSeed(a: PostActionsSeed, b: PostActionsSeed): boolean {
+  return (
+    a.liked === b.liked &&
+    a.bookmarked === b.bookmarked &&
+    a.likes === b.likes &&
+    a.saves === b.saves
+  );
 }
 
 /** 종류별 상태를 보정한다 — active 플래그와 해당 카운트를 함께 움직인다. */
