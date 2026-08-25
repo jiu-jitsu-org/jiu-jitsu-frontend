@@ -33,6 +33,7 @@ const BOARD_ENDPOINT_PATH = "/api/board";
 const IMAGE_ENDPOINT_PATH = "/api/image";
 const COMMENT_ENDPOINT_PATH = "/api/community/comments";
 const REPORT_ENDPOINT_PATH = "/api/reports";
+const USER_ENDPOINT_PATH = "/api/user";
 
 type Envelope<T> = {
   success: boolean;
@@ -156,5 +157,19 @@ export class ExternalCommunityWriteRepository
     });
 
     return response.data;
+  }
+
+  async toggleBlock(userId: number): Promise<boolean> {
+    // POST /user/block/{id} — 단일 엔드포인트 토글(차단/차단해제). 대상은 댓글이 아니라 작성자 회원이다.
+    // 숨김과 마찬가지로 Swagger 응답 스키마가 봉투 없는 raw boolean이라 두 형태를 모두 허용한다
+    // (봉투가 오면 data를, 아니면 본문 자체를 토글 후 상태로 읽는다).
+    const response = await this.httpClient.post<
+      Envelope<{ isBlocked?: boolean }> | boolean
+    >({
+      path: `${USER_ENDPOINT_PATH}/block/${userId}`,
+    });
+
+    if (typeof response === "boolean") return response;
+    return response.data?.isBlocked ?? true;
   }
 }

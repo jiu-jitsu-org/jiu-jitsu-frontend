@@ -79,4 +79,9 @@ export interface CommunityWriteRepository {
   registerImage(input: RegisterImageInput): Promise<RegisteredImage>;
   /** ④ 게시글 생성(POST /board). 등록된 imageId를 imageFileIdList로 연결. */
   createPost(input: CreatePostInput): Promise<CreatedPost>;
+  /**
+   * 유저 차단/차단해제 토글(POST /user/block/{id}). 차단은 댓글 1건이 아니라 그 회원 전체가
+   * 대상이라 인자는 commentId가 아닌 작성자 userId다. 토글 후의 차단 여부(true=차단)를 반환한다.
+   */
+  toggleBlock(userId: number): Promise<boolean>;
 }

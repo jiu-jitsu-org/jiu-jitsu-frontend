@@ -12,6 +12,7 @@ import { ToggleBookmarkUseCase } from "@/features/community/application/toggle-b
 import { ToggleHideUseCase } from "@/features/community/application/toggle-hide";
 import { ToggleCommentLikeUseCase } from "@/features/community/application/toggle-comment-like";
 import { ToggleLikeUseCase } from "@/features/community/application/toggle-like";
+import { BlockUserUseCase } from "@/features/community/application/block-user";
 import { ExternalCommunityWriteRepository } from "@/features/community/infrastructure/external-community-write-repository";
 import { ExternalPostRepository } from "@/features/community/infrastructure/external-post-repository";
 import {
@@ -129,4 +130,10 @@ export function createCreatePostUseCase(
   accessToken: string,
 ): CreatePostUseCase {
   return new CreatePostUseCase(createWriteRepository(accessToken));
+}
+
+export function createBlockUserUseCase(
+  accessToken: string,
+): BlockUserUseCase {
+  return new BlockUserUseCase(createWriteRepository(accessToken));
 }
