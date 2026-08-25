@@ -35,6 +35,18 @@ export interface PostRepository {
 }
 
 /**
+ * 저장(북마크) 토글 결과.
+ *
+ * saveCount는 토글 직후 서버가 계산한 저장 수다. 그 사이 다른 사용자의 저장이
+ * 반영되므로 로컬 ±1 계산보다 정확하다. 구버전 응답 호환을 위해 optional로 두고,
+ * 없으면 상위에서 기존 로컬 계산으로 폴백한다.
+ */
+export type ToggleSaveResult = {
+  saved: boolean;
+  saveCount?: number;
+};
+
+/**
  * 게시글 쓰기 도메인 계약.
  *
  * 모든 쓰기는 인증이 필요하므로, 구현은 반드시 authed HttpClient로 구성된다.
@@ -65,9 +77,9 @@ export interface CommunityWriteRepository {
   toggleLike(postId: number): Promise<boolean>;
   /**
    * 게시글 저장/취소 토글(PUT /board/save/{id}). 서버가 현재 상태를 뒤집고
-   * 결과를 알려주므로, 토글 후의 저장 여부(isSaved)를 반환한다.
+   * 결과를 알려주므로, 토글 후의 저장 여부(isSaved)와 저장 수(saveCount)를 반환한다.
    */
-  toggleSave(postId: number): Promise<boolean>;
+  toggleSave(postId: number): Promise<ToggleSaveResult>;
   /**
    * 게시글 숨김/숨김해제 토글(PUT /board/hide/{id}). 서버가 현재 상태를 뒤집고
    * 결과를 알려주므로, 토글 후의 숨김 여부(true=숨김)를 반환한다.

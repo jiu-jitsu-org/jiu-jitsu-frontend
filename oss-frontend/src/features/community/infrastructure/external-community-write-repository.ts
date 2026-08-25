@@ -12,7 +12,10 @@ import type {
   CreatePostInput,
   CreatedPost,
 } from "@/features/community/domain/post";
-import type { CommunityWriteRepository } from "@/features/community/domain/post-repository";
+import type {
+  CommunityWriteRepository,
+  ToggleSaveResult,
+} from "@/features/community/domain/post-repository";
 import type { CreateReportInput } from "@/features/community/domain/report";
 import type { HttpClient } from "@/shared/lib/http";
 
@@ -25,7 +28,7 @@ import type { HttpClient } from "@/shared/lib/http";
  * 대댓글은 parentId에 부모 댓글 id를 넣어 같은 엔드포인트로 보낸다.
  * 게시글 삭제는 Swagger 확정 계약(DELETE /board/{id}) — 200 OK, 응답 본문은 사용하지 않는다.
  * 좋아요는 Swagger 확정 계약(PUT /board/like/{id}) — 서버가 토글하고 isLiked를 돌려준다.
- * 저장(북마크)은 Swagger 확정 계약(PUT /board/save/{id}) — 서버가 토글하고 isSaved를 돌려준다.
+ * 저장(북마크)은 Swagger 확정 계약(PUT /board/save/{id}) — 서버가 토글하고 isSaved·saveCount를 돌려준다.
  *
  * FIXME: 이미지 경로는 가정 계약이다(Swagger 미확인). 백엔드 확정 시 정합 확인 필요.
  */
@@ -108,15 +111,20 @@ export class ExternalCommunityWriteRepository
     return response.data.isLiked;
   }
 
-  async toggleSave(postId: number): Promise<boolean> {
-    // PUT /board/save/{id} — 단일 엔드포인트 토글(저장/취소). 응답 data.isSaved가 토글 후 상태.
+  async toggleSave(postId: number): Promise<ToggleSaveResult> {
+    // PUT /board/save/{id} — 단일 엔드포인트 토글(저장/취소).
+    // 응답 data.isSaved가 토글 후 상태, saveCount가 토글 직후 서버 기준 저장 수다.
+    // saveCount는 구버전 응답 호환을 위해 optional — 없으면 그대로 undefined로 흘려보낸다.
     const response = await this.httpClient.put<
-      Envelope<{ contentID: number; isSaved: boolean }>
+      Envelope<{ contentID: number; isSaved: boolean; saveCount?: number }>
     >({
       path: `${BOARD_ENDPOINT_PATH}/save/${postId}`,
     });
 
-    return response.data.isSaved;
+    return {
+      saved: response.data.isSaved,
+      saveCount: response.data.saveCount,
+    };
   }
 
   async toggleHide(postId: number): Promise<boolean> {
