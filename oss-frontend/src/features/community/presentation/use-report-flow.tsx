@@ -21,18 +21,40 @@ import { useToast } from "@/shared/ui";
  * 알럿·시트 표면은 useNativeDialog가 "네이티브 우선, 없으면 웹"으로 처리한다 — 앱에서는 GNB·하단
  * 탭바까지 덮는 딤이 필요해 네이티브가 그려야 한다. 계약: docs/native-dialog-bridge.md
  *
- * @returns report(성공 여부를 반환) + 웹 폴백 UI(`dialog`, 트리에 렌더 필요)
+ * 성공 토스트를 훅이 직접 띄우지 않고 `onReported`로 넘길 수 있게 둔 이유: 상세처럼 신고 직후
+ * 화면이 닫히는 진입점에서는 이 화면에 띄운 토스트가 웹뷰와 함께 사라져 사용자가 못 본다.
+ * 문구는 훅이 계속 소유하고(진입점마다 갈리면 안 됨), "어디에 띄울지"만 호출부가 정한다.
+ *
+ * @returns report(신고 처리 여부를 반환) + 웹 폴백 UI(`dialog`, 트리에 렌더 필요)
  */
 export function useReportFlow() {
   const toast = useToast();
   const demo = useIsDemoMode();
   const { confirm, selectSheet, dialog } = useNativeDialog();
 
+  /** 성공 문구를 호출부에 넘기거나(화면이 닫히는 진입점), 없으면 여기서 띄운다. */
+  const notifyReported = useCallback(
+    (message: string, onReported?: (message: string) => void) => {
+      if (onReported) onReported(message);
+      else toast.show(message);
+    },
+    [toast],
+  );
+
   const report = useCallback(
-    async (target: {
-      reportType: ReportTargetType;
-      targetId: number;
-    }): Promise<boolean> => {
+    async (
+      target: {
+        reportType: ReportTargetType;
+        targetId: number;
+      },
+      options?: {
+        /**
+         * 신고가 처리로 확정됐을 때(신규 접수·중복 신고 공통) 호출된다. 인자는 노출할 문구.
+         * 넘기지 않으면 훅이 현재 화면에 그대로 토스트를 띄운다.
+         */
+        onReported?: (message: string) => void;
+      },
+    ): Promise<boolean> => {
       const isPost = target.reportType === "BOARD";
       const noun = isPost ? "게시글" : "댓글";
 
@@ -53,9 +75,9 @@ export function useReportFlow() {
       });
       if (!outcome.submitted || !outcome.value) return false;
 
-      // 예시(데모)에선 네트워크 없이 토스트만(실제 신고 없음).
+      // 예시(데모)에선 네트워크 없이 안내만(실제 신고 없음).
       if (demo) {
-        toast.show(`${noun}을 신고했습니다`);
+        notifyReported(`${noun}을 신고했습니다`, options?.onReported);
         return true;
       }
 
@@ -78,17 +100,17 @@ export function useReportFlow() {
         // 동일 대상 중복 신고는 서버가 막는다(409). 이미 신고한 상태이므로 호출부는 성공과 동일하게
         // 후처리(목록에서 감추기)한다 — 계속 보이는 편이 더 어색하다.
         if (response.status === 409) {
-          toast.show(`이미 신고한 ${noun}이에요`);
+          notifyReported(`이미 신고한 ${noun}이에요`, options?.onReported);
           return true;
         }
         toast.show(`${noun} 신고에 실패했습니다`);
         return false;
       }
 
-      toast.show(`${noun}을 신고했습니다`);
+      notifyReported(`${noun}을 신고했습니다`, options?.onReported);
       return true;
     },
-    [confirm, demo, selectSheet, toast],
+    [confirm, demo, notifyReported, selectSheet, toast],
   );
 
   return { report, dialog };

@@ -11,9 +11,10 @@ import {
 import {
   OutboundMessageType,
   closeNativeSubview,
+  isNativeBridgeAvailable,
   postToNative,
 } from "@/shared/lib/native-bridge";
-import { useToast } from "@/shared/ui";
+import { enqueuePendingToast, useToast } from "@/shared/ui";
 import { AppBarShell } from "@/features/community/presentation/app-bar-shell";
 import { ConfirmDialog } from "@/features/community/presentation/confirm-dialog";
 import { useReportFlow } from "@/features/community/presentation/use-report-flow";
@@ -88,6 +89,49 @@ export function PostDetailAppBar({
     closeNativeSubview();
   }
 
+  /**
+   * 상세를 닫고 이전 화면(목록)으로 돌아간다.
+   *
+   * 앱은 상세가 별도 서브뷰 웹뷰라 네이티브가 팝해야 하고, 웹 단독 진입은 브라우저 히스토리를
+   * 되돌린다 — 두 경우 모두 "직전 화면으로 복귀"라는 같은 결과가 된다.
+   */
+  function closeDetail() {
+    if (isNativeBridgeAvailable()) {
+      closeNativeSubview();
+      return;
+    }
+    window.history.back();
+  }
+
+  /**
+   * 신고: 확인 알럿 → 사유 시트 → POST(useReportFlow) → 처리되면 상세를 닫는다.
+   *
+   * 신고자 본인 화면에서는 그 콘텐츠가 즉시 사라져야 하는데(#48), 상세는 글 하나가 화면 전부라
+   * 숨길 대상이 없다 → 삭제와 같이 화면을 닫는 것이 곧 비노출이다.
+   *
+   * 목록에서 카드가 사라지는 것은 여기서 신호를 보내지 않는다 — 상세 복귀 시 해당 게시글을
+   * 단건 재조회해 비노출이면 걷어내는 경로(#73)가 담당한다. 서버 응답에서 신고한 글이 빠지는 것
+   * 자체는 백엔드 몫이다(목록 페이징이 깨지므로 클라이언트에서 필터링하지 않는다).
+   */
+  async function handleReport() {
+    await report(
+      { reportType: "BOARD", targetId: postId },
+      {
+        onReported: (message) => {
+          // 예시(데모)에선 화면을 닫지 않으므로 이 화면에서 바로 띄운다.
+          if (demo) {
+            toast.show(message);
+            return;
+          }
+
+          // 닫히는 화면에 띄우면 토스트도 함께 사라진다 → 문구만 넘기고 목록이 띄운다.
+          enqueuePendingToast(message);
+          closeDetail();
+        },
+      },
+    );
+  }
+
   return (
     <AppBarShell>
       {/* 우측 그룹: 알림종 + ⋮ 를 간격 0으로 붙여 우측 정렬 */}
@@ -134,7 +178,7 @@ export function PostDetailAppBar({
                 <MenuItem
                   onClick={() => {
                     setMenuOpen(false);
-                    void report({ reportType: "BOARD", targetId: postId });
+                    void handleReport();
                   }}
                 >
                   신고하기

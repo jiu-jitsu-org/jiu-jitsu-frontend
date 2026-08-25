@@ -8,6 +8,7 @@ import type { PostSummary } from "@/features/community/domain/post-summary";
 import { FeedCard } from "@/features/community/presentation/feed/feed-card";
 import { FeedCardMenu } from "@/features/community/presentation/feed/feed-card-menu";
 import { FeedListEnd } from "@/features/community/presentation/feed/feed-list-end";
+import { usePendingToast } from "@/shared/ui";
 
 /**
  * 커뮤니티 메인 피드 목록(무한 스크롤).
@@ -19,6 +20,9 @@ import { FeedListEnd } from "@/features/community/presentation/feed/feed-list-en
  * 초기 페이지는 Server Component가 조회해 seed로 넘기고, 하단 sentinel이 화면에 들어오면
  * useBoardFeed가 다음 페이지를 이어 붙인다(BFF GET /api/community/board). 마지막 페이지에
  * 도달하면 끝 표식(FeedListEnd)을 노출한다.
+ *
+ * 상세가 닫히면서 남긴 안내(신고 등)는 목록이 대신 띄운다 — 닫히는 웹뷰에 띄운 토스트는
+ * 사용자가 볼 수 없기 때문. 계약: shared/ui/pending-toast
  */
 export function CommunityFeedList({
   posts,
@@ -29,6 +33,8 @@ export function CommunityFeedList({
   page: number;
   isLast: boolean;
 }) {
+  usePendingToast();
+
   const { items, isLast, status, loadMore, removePost, restorePost } =
     useBoardFeed({
       items: posts,
