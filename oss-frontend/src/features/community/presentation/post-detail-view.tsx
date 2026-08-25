@@ -75,8 +75,6 @@ export function PostDetailView({
             initialSaves={post.counts.saves}
             comments={post.counts.comments}
             commented={post.viewer.commented}
-            shared={post.viewer.shared}
-            shares={post.counts.shares}
           />
 
           {/* 액션바 아래 디바이더: 간격 24, 풀폭(좌우 여백 없음), 높이 4 */}

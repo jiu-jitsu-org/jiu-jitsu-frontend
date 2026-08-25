@@ -22,12 +22,11 @@ export const MOCK_POST_BASE: PostDetail = {
   ],
   counts: { comments: 0, likes: 0, saves: 1 },
   views: 0,
-  // 활성(좋아요/북마크/댓글) 상태 디자인 확인용으로 true. shared는 서버 미제공 기본값 그대로 false.
+  // 활성(좋아요/북마크/댓글) 상태 디자인 확인용으로 true.
   viewer: {
     liked: true,
     bookmarked: true,
     commented: true,
-    shared: false,
     isOwner: false,
   },
   createdAt: "2025-09-18T16:15:00+09:00",

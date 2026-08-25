@@ -14,7 +14,8 @@ import {
  * 상세 화면 액션바 (클라이언트 leaf).
  *
  * 댓글쓰기·공유가 추가되어 FeedCardReactions와 구성이 다르므로 별도 컴포넌트로 둔다.
- * 좋아요/북마크는 usePostActions로 낙관적 토글하고, 댓글·공유는 서버가 준 상태를 표시만 한다.
+ * 좋아요/북마크는 usePostActions로 낙관적 토글하고, 댓글은 서버가 준 상태를 표시만 한다.
+ * 공유는 카운트도 상태도 두지 않는다(정책) — 아이콘 탭으로 공유 시트를 여는 것이 전부다.
  *
  * 배치: 태그 아래(디바이더 없음), 우측 정렬. 좌우 16(px-4). 버튼 간격 8(gap-2).
  * 버튼 공통: 높이 28 고정 / radius 10 / 아이콘 16 / 아이콘↔텍스트 4 / 배경과의 좌우 마진 8.
@@ -36,8 +37,6 @@ export function PostActionBar({
   initialSaves,
   comments,
   commented = false,
-  shared = false,
-  shares,
   className,
 }: {
   postId: number;
@@ -52,10 +51,6 @@ export function PostActionBar({
   comments?: number;
   /** isCommented — 내가 댓글을 남긴 글이면 댓글 아이콘을 Active(filled)로 표시. 토글 아님. */
   commented?: boolean;
-  /** isShared — 서버가 아직 안 내려주면 false로 들어와 Active가 꺼진다. 토글 아님. */
-  shared?: boolean;
-  /** 공유 수. 상세 응답에 아직 없어 optional — 없거나 0이면 숫자를 숨긴다. */
-  shares?: number;
   className?: string;
 }) {
   const { liked, bookmarked, likes, saves, toggleLike, toggleBookmark } =
@@ -125,14 +120,11 @@ export function PostActionBar({
         activeIconColorClass="text-reaction-bar-detail-active-bookmark-icon"
         onClick={toggleBookmark}
       />
+      {/* 공유는 카운트도 Active 표시도 없다 — 공유 수·공유 기록을 두지 않기로 확정된 정책. */}
       <ActionButton
         icon={<ShareIcon size={16} />}
         label="공유하기"
-        count={shares}
         hideLabel
-        active={shared}
-        // 공유 Active는 디자인상 북마크와 같은 색 토큰을 쓴다(전용 토큰 없음).
-        activeIconColorClass="text-reaction-bar-detail-active-bookmark-icon"
         onClick={() => void share()}
       />
     </div>
