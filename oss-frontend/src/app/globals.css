@@ -12,6 +12,13 @@
     "Segoe UI", sans-serif;
   --font-mono:
     "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+
+  /* 타이포 스케일 — 크기·행간·굵기가 한 벌로 묶인 디자인 시스템 이름을 그대로 클래스로 쓴다.
+     (`text-sm font-medium leading-[21px]`처럼 매번 조합하면 화면마다 굵기가 어긋난다)
+     Body S: Pretendard Medium 14 / 행간 21 */
+  --text-body-s: 0.875rem;
+  --text-body-s--line-height: 1.3125rem;
+  --text-body-s--font-weight: 500;
 }
 
 html {

@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
 
 import { cn } from "@/shared/lib/cn";
 import {
@@ -54,6 +61,7 @@ export type FeedCardProps = {
   commented?: boolean;
   liked?: boolean;
   bookmarked?: boolean;
+  /** 카드 탭 → 상세 진입. 카드 전체 영역이 대상이고, 내부 버튼(더보기·리액션·⋮)은 제외된다. */
   onPress?: () => void;
   onPressComment?: () => void;
   onToggleLike?: () => void;
@@ -94,9 +102,27 @@ export function FeedCard({
   menu,
   className,
 }: FeedCardProps) {
+  // 카드 전체 영역(본문·이미지·여백) 탭으로 상세에 들어간다.
+  // 카드를 <button>으로 감싸면 내부 버튼(더보기·리액션·⋮)이 중첩되므로, article에 클릭만 얹고
+  // 이벤트 출처가 버튼/링크면 무시한다 — 예외 영역을 호출부가 따로 표시할 필요가 없다.
+  // 키보드·스크린리더 진입점은 제목 버튼이 그대로 담당한다(article에 role/tabIndex를 더하면
+  // 같은 동작의 탭 스톱이 중복되고, 그 안의 버튼들과 위젯 중첩이 된다).
+  function handleCardPress(event: MouseEvent<HTMLElement>) {
+    if (!onPress) return;
+    if (event.target instanceof Element && event.target.closest("button, a")) {
+      return;
+    }
+    onPress();
+  }
+
   return (
     <article
-      className={cn("flex flex-col bg-surface-container px-4", className)}
+      onClick={onPress ? handleCardPress : undefined}
+      className={cn(
+        "flex flex-col bg-surface-container px-4",
+        onPress && "cursor-pointer",
+        className,
+      )}
     >
       <FeedCardHeader
         author={author}
@@ -305,26 +331,120 @@ export function FeedCardImages({
   ratio?: "auto" | "square";
   className?: string;
 }) {
-  const [cover] = images;
+  const [cover, ...rest] = images;
   if (!cover) return null;
 
   return (
-    <div className={cn("overflow-hidden rounded-2xl", className)}>
+    // key=URL: 대표 이미지가 바뀌면 재마운트해 폴백·재시도 상태를 초기화한다(아바타와 동일 패턴).
+    <FeedCardCover
+      key={cover.url}
+      image={cover}
+      // 목록·상세 모두 대표 1장만 노출하므로, 나머지 장수는 대표 위 +N 오버레이로만 알린다.
+      extraCount={rest.length}
+      ratio={ratio}
+      className={className}
+    />
+  );
+}
+
+/**
+ * 재시도용 URL — 같은 src를 그대로 다시 넣으면 브라우저가 실패한 응답을 캐시에서 재사용할 수 있어
+ * 시도 횟수를 쿼리로 붙여 매번 새 요청으로 만든다.
+ * 이미지 주소는 CDN 공개 URL(서명 파라미터 없음)이라 파라미터 추가가 접근을 깨지 않는다.
+ */
+function withRetryParam(url: string, attempt: number): string {
+  if (attempt === 0) return url;
+  return `${url}${url.includes("?") ? "&" : "?"}retry=${attempt}`;
+}
+
+/**
+ * 대표 이미지 1장 + `+N` 오버레이 + 로드 실패 폴백.
+ *
+ * 실패하면 빈 회색 박스 대신 안내와 재시도를 보여준다 — 아바타(FeedCardAvatar)와 같은 원칙이되,
+ * 본문 이미지는 대체 아이콘으로 끝낼 수 없어 복구 수단(재시도)까지 준다.
+ * 재시도는 이 이미지만 다시 받고(cache-bust), 성공하면 폴백이 풀린다.
+ */
+function FeedCardCover({
+  image,
+  extraCount,
+  ratio,
+  className,
+}: {
+  image: FeedImage;
+  extraCount: number;
+  ratio: "auto" | "square";
+  className?: string;
+}) {
+  const [attempt, setAttempt] = useState(0);
+  const [failed, setFailed] = useState(false);
+
+  // SSR로 그려진 <img>는 하이드레이션 전에 error가 나 onError를 놓칠 수 있어, 부착 직후
+  // 이미 실패한(complete && naturalWidth===0) 상태를 직접 감지한다(아바타와 동일).
+  const detectBrokenImage = useCallback((img: HTMLImageElement | null) => {
+    if (img?.complete && img.naturalWidth === 0) {
+      setFailed(true);
+    }
+  }, []);
+
+  function handleRetry() {
+    setFailed(false);
+    setAttempt((value) => value + 1);
+  }
+
+  if (failed) {
+    return (
+      <div className={cn("overflow-hidden rounded-2xl", className)}>
+        {/* 영역 비율은 피드·상세 공통 343:220 — 실패해도 아래 요소가 밀려 올라오지 않는다. */}
+        {/* 내용은 세로 가운데가 아니라, 안내 문구가 컨테이너 top에서 84에 오도록 붙인다. */}
+        <div className="flex aspect-[343/220] w-full flex-col items-center bg-image-load-error-bg pt-[84px]">
+          <p className="text-body-s text-image-load-error-text">
+            이미지를 불러올 수 없어요
+          </p>
+          {/* 재시도: 64(hug) x 32, radius 10 — 라벨이 길어지면 가로로만 늘어난다. */}
+          <button
+            type="button"
+            onClick={handleRetry}
+            className="text-body-s mt-2 inline-flex h-8 min-w-16 items-center justify-center rounded-[10px] bg-button-neutral-default-bg px-2 text-button-neutral-default-text"
+          >
+            재시도
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn("relative overflow-hidden rounded-2xl", className)}>
       {/* 가로는 카드 내용 폭(343)에 꽉 채운다. 초과분은 object-cover로 center crop. */}
       {/* auto: 높이는 원본 비율대로 자동, 최대 458(343의 4:3 세로 기준). 최소 높이 없음. */}
       {/* 비어 있을 때 채움색: Color/Cool Gray/50 */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={cover.url}
-        alt={cover.alt ?? ""}
-        width={cover.width}
-        height={cover.height}
+        ref={detectBrokenImage}
+        src={withRetryParam(image.url, attempt)}
+        alt={image.alt ?? ""}
+        width={image.width}
+        height={image.height}
+        onError={() => setFailed(true)}
         className={cn(
-          "w-full bg-[var(--cool-gray-50)] object-cover object-center",
+          // block: inline 이미지의 baseline 여백을 없애 뱃지가 이미지 하단에 정확히 붙게 한다.
+          "block w-full bg-[var(--cool-gray-50)] object-cover object-center",
           ratio === "square" ? "aspect-square" : "max-h-[458px]",
         )}
       />
-      {/* +N 뱃지: 임시 삭제 (다중 이미지 레이아웃 스펙 확정 시 복원) */}
+      {extraCount > 0 ? (
+        // 이미지 우하단에 여백 없이 붙는 36x36 뱃지. 이미지 안쪽으로 파고드는 좌상단만 8로 깎고,
+        // 우하단은 이미지 모서리 곡률(16)을 따른다 — iOS 웹뷰에서 부모 overflow-hidden이
+        // 절대배치 자식을 라운드대로 못 자르는 경우가 있어 부모 클리핑에만 기대지 않는다.
+        // role=img + aria-label로 "+4"가 아니라 장수로 읽히게 한다.
+        <span
+          role="img"
+          aria-label={`이미지 ${extraCount + 1}장 중 ${extraCount}장 더 있음`}
+          className="text-body-s absolute bottom-0 right-0 inline-flex size-9 items-center justify-center rounded-br-2xl rounded-tl-lg bg-feed-card-image-badge-bg text-feed-card-image-badge-text"
+        >
+          +{extraCount}
+        </span>
+      ) : null}
     </div>
   );
 }
