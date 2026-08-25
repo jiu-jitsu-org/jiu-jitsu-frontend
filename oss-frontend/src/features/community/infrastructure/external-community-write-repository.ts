@@ -33,6 +33,7 @@ const BOARD_ENDPOINT_PATH = "/api/board";
 const IMAGE_ENDPOINT_PATH = "/api/image";
 const COMMENT_ENDPOINT_PATH = "/api/community/comments";
 const REPORT_ENDPOINT_PATH = "/api/reports";
+const USER_ENDPOINT_PATH = "/api/user";
 
 type Envelope<T> = {
   success: boolean;
@@ -156,5 +157,18 @@ export class ExternalCommunityWriteRepository
     });
 
     return response.data;
+  }
+
+  async toggleBlock(userId: number): Promise<boolean> {
+    // POST /user/block/{id} — 단일 엔드포인트 토글(차단/차단해제). 대상은 댓글이 아니라 작성자 회원이다.
+    //
+    // 응답은 다른 토글(좋아요/저장)처럼 data가 객체가 아니라 boolean 그 자체다
+    // (실측: {"success":true,...,"data":true}). Swagger 스키마는 봉투 없는 raw boolean으로
+    // 적혀 있어 실제와 다르므로, 둘 다 토글 후 상태로 읽는다.
+    const response = await this.httpClient.post<Envelope<boolean> | boolean>({
+      path: `${USER_ENDPOINT_PATH}/block/${userId}`,
+    });
+
+    return typeof response === "boolean" ? response : response.data;
   }
 }

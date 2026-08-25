@@ -36,16 +36,20 @@ type ActiveDialog = "delete" | "block" | null;
  *   진입 지점에 따라 신고 경험이 갈리지 않는다. 성공 시 router.refresh() → 서버가 isReported로
  *   내려주면 본문이 "신고된 댓글입니다." placeholder로 바뀐다(#48). 댓글은 게시글과 달리 제거하지
  *   않는다 — 자리를 없애면 아래 대댓글이 부모를 잃어 스레드가 끊기기 때문.
- * 차단: 메뉴 → 확인 알럿 → 확정 시 처리 + 토스트.
+ * 차단: 확인 알럿 → BFF POST /api/community/users/{authorId}/block → 성공 시 router.refresh().
+ *   대상이 댓글 1건이 아니라 작성자 회원이라 commentId가 아닌 authorId를 넘긴다 — 그 회원의
+ *   게시글은 목록에서 빠지고 댓글은 placeholder로 바뀐다(#53).
  * 작성자 id/댓글 id는 웹이 들고 있다가 API에 직접 넘긴다(브릿지로 보내지 않음).
- * FIXME: 실제 차단 API 연동은 정책·계약 확정 후 추가(현재 토스트까지) — #54.
  */
 export function CommentMenu({
   commentId,
+  authorId,
   isOwner,
   authorNickname,
 }: {
   commentId: number;
+  /** 댓글 작성자 회원 id — 차단 대상. 차단은 댓글 1건이 아니라 이 회원 전체가 대상이다. */
+  authorId: number;
   isOwner: boolean;
   authorNickname: string;
 }) {
@@ -82,10 +86,30 @@ export function CommentMenu({
     router.refresh();
   }
 
-  function confirmBlock() {
+  async function confirmBlock() {
     setDialog(null);
-    // FIXME(API): 차단 처리(작성자 userId) + 성공 시 해당 유저 댓글 목록에서 제거.
+
+    // 예시(데모)에선 네트워크 없이 토스트만(실제 차단/목록 갱신 없음).
+    if (demo) {
+      toast.show("유저를 차단했습니다.");
+      return;
+    }
+
+    const response = await bffFetch(`/api/community/users/${authorId}/block`, {
+      method: "POST",
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
+      }
+      toast.show("유저 차단에 실패했습니다.");
+      return;
+    }
+
     toast.show("유저를 차단했습니다.");
+    // 서버 렌더 목록 재요청 — 차단된 회원의 댓글은 placeholder로, 게시글은 목록에서 빠진다.
+    router.refresh();
   }
 
   /**

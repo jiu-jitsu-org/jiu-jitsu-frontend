@@ -98,3 +98,18 @@ export function toErrorResponse(
   console.error(`[community:${context}] unexpected (non-HTTP) error:`, error);
   return jsonError(fallbackMessage, 500);
 }
+
+/**
+ * 유저 `[id]` 동적 세그먼트를 양의 정수로 파싱한다(parsePostId와 동일 규약).
+ * 차단처럼 대상이 컨텐츠가 아니라 회원인 라우트가 쓴다.
+ */
+export function parseUserId(
+  raw: string,
+): { userId: number } | { response: NextResponse } {
+  const userId = Number(raw);
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return { response: jsonError("잘못된 유저 ID입니다.", 400) };
+  }
+
+  return { userId };
+}
