@@ -15,7 +15,7 @@ import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
  * 쓰기 흐름은 컨벤션의 정본 경로(Browser → app/api → application → infrastructure)를 따른다.
  */
 
-/** 훅 시드값. saves는 목록 응답(saveCount)에만 있어 미제공(상세)이면 0으로 시드한다. */
+/** 훅 시드값. saves는 목록·상세 응답의 saveCount로 채워지고, 미제공이면 0으로 시드한다. */
 type PostActionsSeed = {
   liked: boolean;
   bookmarked: boolean;
@@ -77,23 +77,40 @@ export function usePostActions(postId: number, initial: PostActionsSeed) {
         throw new Error(`${kind} request failed: ${response.status}`);
       }
 
-      // 서버 권위값으로 낙관적 상태를 보정한다(like=data.liked, bookmark=data.saved).
+      // 서버 권위값으로 낙관적 상태를 보정한다(like=data.liked, bookmark=data.saved + data.saveCount).
       const body = (await response.json().catch(() => null)) as
-        | { data?: { liked?: boolean; saved?: boolean } }
+        | { data?: { liked?: boolean; saved?: boolean; saveCount?: number } }
         | null;
       const authoritative =
         kind === "like" ? body?.data?.liked : body?.data?.saved;
       if (typeof authoritative === "boolean") {
-        // 토글 전 기준점에서 서버 진실값으로 카운트 재계산.
-        const nextCount = Math.max(
+        // 응답에 카운트가 없을 때의 폴백 — 토글 전 기준점에서 서버 진실값으로 재계산.
+        const localCount = Math.max(
           0,
           prevCount + (authoritative ? 1 : 0) - (wasActive ? 1 : 0),
         );
-        setState((prev) =>
-          kind === "like"
-            ? { ...prev, liked: authoritative, likes: nextCount }
-            : { ...prev, bookmarked: authoritative, saves: nextCount },
-        );
+
+        if (kind === "like") {
+          // 좋아요 토글 응답에는 아직 카운트가 없다(저장 수만 추가됨) → 로컬 계산 유지.
+          setState((prev) => ({
+            ...prev,
+            liked: authoritative,
+            likes: localCount,
+          }));
+          return;
+        }
+
+        // 저장 수는 서버가 토글 직후 값(saveCount)을 내려주므로 그대로 확정한다.
+        // 로컬 ±1은 요청 사이에 끼어든 다른 사용자의 저장을 놓쳐 실제 값과 어긋난다.
+        const serverSaveCount = body?.data?.saveCount;
+        setState((prev) => ({
+          ...prev,
+          bookmarked: authoritative,
+          saves:
+            typeof serverSaveCount === "number"
+              ? Math.max(0, serverSaveCount)
+              : localCount,
+        }));
       }
     } catch {
       // 2) 실패 시 롤백
@@ -125,7 +142,7 @@ function applyToggle(
     return { ...prev, liked: nextActive, likes: prev.likes + delta };
   }
 
-  // 카운트는 0 미만으로 내려가지 않게 방어(시드가 0인 상세 화면에서 해제 토글 시).
+  // 카운트는 0 미만으로 내려가지 않게 방어(saveCount 미제공으로 0에서 시드된 글을 해제 토글할 때).
   return {
     ...prev,
     bookmarked: nextActive,
