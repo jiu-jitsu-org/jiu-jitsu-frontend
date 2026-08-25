@@ -427,17 +427,20 @@ function FeedCardCover({
         height={image.height}
         onError={() => setFailed(true)}
         className={cn(
-          "w-full bg-[var(--cool-gray-50)] object-cover object-center",
+          // block: inline 이미지의 baseline 여백을 없애 뱃지가 이미지 하단에 정확히 붙게 한다.
+          "block w-full bg-[var(--cool-gray-50)] object-cover object-center",
           ratio === "square" ? "aspect-square" : "max-h-[458px]",
         )}
       />
       {extraCount > 0 ? (
-        // 이미지 우하단 뱃지(높이 28, 여백 12). role=img + aria-label로 "+4"가 아니라
-        // 장수로 읽히게 한다 — 시각적으로는 숫자만 보여도 의미는 "몇 장 더 있음"이다.
+        // 이미지 우하단에 여백 없이 붙는 36x36 뱃지. 이미지 안쪽으로 파고드는 좌상단만 8로 깎고,
+        // 우하단은 이미지 모서리 곡률(16)을 따른다 — iOS 웹뷰에서 부모 overflow-hidden이
+        // 절대배치 자식을 라운드대로 못 자르는 경우가 있어 부모 클리핑에만 기대지 않는다.
+        // role=img + aria-label로 "+4"가 아니라 장수로 읽히게 한다.
         <span
           role="img"
           aria-label={`이미지 ${extraCount + 1}장 중 ${extraCount}장 더 있음`}
-          className="absolute bottom-3 right-3 inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-feed-card-image-badge-bg px-2 text-sm font-medium leading-[21px] text-feed-card-image-badge-text"
+          className="text-body-s absolute bottom-0 right-0 inline-flex size-9 items-center justify-center rounded-br-2xl rounded-tl-lg bg-feed-card-image-badge-bg text-feed-card-image-badge-text"
         >
           +{extraCount}
         </span>
