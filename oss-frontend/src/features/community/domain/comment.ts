@@ -32,6 +32,11 @@ export type Comment = {
   replyCount: number;
   /** 내가 이 댓글에 답글을 단 적 있는지 — 답글 아이콘 fill 표시. */
   replied: boolean;
+  /**
+   * 내가 신고한 댓글인지 — 신고자 본인 화면에서만 true.
+   * 신고해도 콘텐츠는 서버에 유지되고 타 사용자에겐 정상 노출되므로, 가림 여부는 계정별로 갈린다.
+   */
+  isReported: boolean;
   /** 대댓글 목록(같은 Comment 형태, 1단계 중첩). 없으면 빈 배열. */
   replies: Comment[];
 };
