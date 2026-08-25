@@ -3,6 +3,7 @@
 import { useOpenPostDetail } from "@/features/community/presentation/use-open-post-detail";
 import { useBoardFeed } from "@/features/community/presentation/use-board-feed";
 import { useInfiniteScroll } from "@/features/community/presentation/use-infinite-scroll";
+import { useFeedRevalidate } from "@/features/community/presentation/use-feed-revalidate";
 import { usePostActions } from "@/features/community/presentation/use-post-actions";
 import type { PostSummary } from "@/features/community/domain/post-summary";
 import { FeedCard } from "@/features/community/presentation/feed/feed-card";
@@ -23,6 +24,9 @@ import { usePendingToast } from "@/shared/ui";
  *
  * 상세가 닫히면서 남긴 안내(신고 등)는 목록이 대신 띄운다 — 닫히는 웹뷰에 띄운 토스트는
  * 사용자가 볼 수 없기 때문. 계약: shared/ui/pending-toast
+ *
+ * 상세 · 작성에서 돌아오면 바뀌었을 수 있는 게시글만 서버에서 다시 읽어 반영한다(useFeedRevalidate).
+ * 전체 새로고침은 하지 않는다 — 누적된 페이지와 스크롤이 날아가기 때문.
  */
 export function CommunityFeedList({
   posts,
@@ -35,12 +39,22 @@ export function CommunityFeedList({
 }) {
   usePendingToast();
 
-  const { items, isLast, status, loadMore, removePost, restorePost } =
-    useBoardFeed({
-      items: posts,
-      page,
-      isLast: initialIsLast,
-    });
+  const {
+    items,
+    isLast,
+    status,
+    loadMore,
+    removePost,
+    restorePost,
+    replacePost,
+    prependNew,
+  } = useBoardFeed({
+    items: posts,
+    page,
+    isLast: initialIsLast,
+  });
+
+  useFeedRevalidate({ replacePost, removePost, prependNew });
 
   // 에러 상태에선 자동 재요청을 멈추고, 사용자가 재시도 버튼으로만 다시 시도하게 한다.
   const sentinelRef = useInfiniteScroll({

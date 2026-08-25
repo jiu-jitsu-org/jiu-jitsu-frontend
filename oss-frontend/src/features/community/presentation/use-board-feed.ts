@@ -88,7 +88,47 @@ export function useBoardFeed(initial: {
     });
   }, []);
 
-  return { items, isLast, status, loadMore, removePost, restorePost };
+  /**
+   * 서버에서 다시 읽은 게시글을 원래 자리에 그대로 끼워 넣는다(순서 · 스크롤 유지).
+   *
+   * 목록에 없는 id면 아무것도 하지 않는다 — 이미 걷어냈거나 아직 안 불러온 페이지의 글이라,
+   * 여기서 새로 끼워 넣으면 시간순 피드에 엉뚱한 위치로 나타난다.
+   */
+  const replacePost = useCallback((post: PostSummary) => {
+    setItems((prev) => {
+      const at = prev.findIndex((item) => item.id === post.id);
+      if (at < 0) return prev;
+
+      const next = [...prev];
+      next[at] = post;
+      return next;
+    });
+  }, []);
+
+  /**
+   * 첫 페이지를 다시 읽어 새 글만 앞에 붙인다 — 작성 후 복귀용(#38).
+   *
+   * 누적된 items · page를 리셋하지 않는 이유: 리셋하면 그동안 이어붙인 페이지와 스크롤이 전부
+   * 날아간다. 이미 있는 id는 건너뛰므로 페이지 경계가 겹쳐도 중복되지 않는다.
+   */
+  const prependNew = useCallback((fresh: PostSummary[]) => {
+    setItems((prev) => {
+      const seen = new Set(prev.map((post) => post.id));
+      const added = fresh.filter((post) => !seen.has(post.id));
+      return added.length > 0 ? [...added, ...prev] : prev;
+    });
+  }, []);
+
+  return {
+    items,
+    isLast,
+    status,
+    loadMore,
+    removePost,
+    restorePost,
+    replacePost,
+    prependNew,
+  };
 }
 
 /** 이미 있는 id는 건너뛰고 새 항목만 이어 붙인다(페이지 경계 중복 방지). */
