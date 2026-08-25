@@ -67,6 +67,7 @@ function makeReply(id: number): Comment {
     liked: false,
     replyCount: 1,
     replied: false,
+    isReported: false,
     replies: [],
   };
 }
@@ -86,6 +87,7 @@ const MOCK_COMMENT_ITEMS: Comment[] = [
     liked: false,
     replyCount: 0,
     replied: false,
+    isReported: false,
     replies: [],
   },
   {
@@ -101,6 +103,7 @@ const MOCK_COMMENT_ITEMS: Comment[] = [
     liked: false,
     replyCount: 1,
     replied: false,
+    isReported: false,
     replies: [],
   },
   {
@@ -115,6 +118,7 @@ const MOCK_COMMENT_ITEMS: Comment[] = [
     liked: true,
     replyCount: 1,
     replied: false,
+    isReported: false,
     replies: [],
   },
   {
@@ -130,6 +134,7 @@ const MOCK_COMMENT_ITEMS: Comment[] = [
     replyCount: 4,
     // 내가 단 대댓글이 있는 케이스 → 답글 아이콘 fill + 카운트
     replied: true,
+    isReported: false,
     // 대댓글 4개 → 최초 2개 노출 + "대댓글 2개 더보기"
     replies: [makeReply(101), makeReply(102), makeReply(103), makeReply(104)],
   },

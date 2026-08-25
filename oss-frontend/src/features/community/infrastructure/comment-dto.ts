@@ -40,7 +40,8 @@ export type CommentDto = {
   /** 대댓글 목록(같은 DTO 형태). */
   childrenList?: CommentDto[] | null;
   /**
-   * 삭제/신고 여부. 응답에는 오지만 아직 화면에서 쓰지 않는다 — 계약만 먼저 고정한다.
+   * 삭제/신고 여부. isReported는 placeholder 노출에 쓰고(#48), isDeleted는 계약만 고정해 둔다
+   * (삭제 placeholder는 #61에서 붙인다).
    * (deletedYn은 isDeleted와 같은 값의 중복 필드다.)
    */
   isDeleted?: boolean;
@@ -90,6 +91,8 @@ export function toComment(dto: CommentDto): Comment {
     // 서버값 우선. 없으면 내려온 자식 수로 폴백하되, 잘린 목록이라 실제 개수보다 작을 수 있다.
     replyCount: dto.replyCount ?? children.length,
     replied: dto.isReplied ?? false,
+    // 서버가 신고자 본인에게만 true로 내려준다. 필드가 없으면 가리지 않는다(원문 노출이 안전한 기본값).
+    isReported: dto.isReported ?? false,
     replies: children.map(toComment),
   };
 }

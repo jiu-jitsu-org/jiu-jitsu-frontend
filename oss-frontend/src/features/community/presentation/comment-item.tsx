@@ -3,6 +3,7 @@ import { Avatar } from "@/features/community/presentation/avatar";
 import { CommentLikeButton } from "@/features/community/presentation/comment-like-button";
 import { CommentReplyButton } from "@/features/community/presentation/comment-reply-button";
 import { CommentMenu } from "@/features/community/presentation/comment-menu";
+import { CommentPlaceholder } from "@/features/community/presentation/comment-placeholder";
 import { CommentReplies } from "@/features/community/presentation/comment-replies";
 import { cn } from "@/shared/lib/cn";
 import { ReplyBranchIcon } from "@/shared/ui/icons";
@@ -36,6 +37,31 @@ export function CommentItem({
 }) {
   // 대댓글에서 답글을 달아도 최상위 댓글 아래에 붙는다(무한 중첩 방지).
   const parentId = replyParentId ?? comment.id;
+
+  // 대댓글 렌더는 원문·placeholder가 공유한다 — 부모가 가려져도 스레드는 유지되기 때문.
+  const replies =
+    comment.replies.length > 0 ? (
+      <CommentReplies commentId={comment.id} totalCount={comment.replyCount}>
+        {comment.replies.map((reply) => (
+          <CommentItem
+            key={reply.id}
+            comment={reply}
+            isReply
+            replyParentId={comment.id}
+          />
+        ))}
+      </CommentReplies>
+    ) : null;
+
+  // 내가 신고한 댓글은 본문 대신 자리 표시만 남긴다(신고자 본인 화면 한정).
+  if (comment.isReported) {
+    return (
+      <CommentPlaceholder message="신고된 댓글입니다." isReply={isReply}>
+        {replies}
+      </CommentPlaceholder>
+    );
+  }
+
   return (
     // 아바타↔콘텐츠 간격 4(gap-1). 아바타는 프로필 행(닉네임/날짜)과 수직 가운데 정렬.
     // 세로 패딩 없음 — 댓글 사이 간격(12)은 목록(ul gap-3)이 담당.
@@ -106,21 +132,7 @@ export function CommentItem({
 
         {/* 대댓글: 같은 댓글 폼을 들여쓰기로 재사용(콘텐츠 컬럼 안에 두어 부모 닉네임 기준 정렬).
             최초 2개만 노출, 초과분은 "대댓글 N개 더보기"로 펼침. */}
-        {comment.replies.length > 0 ? (
-          <CommentReplies
-            commentId={comment.id}
-            totalCount={comment.replyCount}
-          >
-            {comment.replies.map((reply) => (
-              <CommentItem
-                key={reply.id}
-                comment={reply}
-                isReply
-                replyParentId={comment.id}
-              />
-            ))}
-          </CommentReplies>
-        ) : null}
+        {replies}
       </div>
     </li>
   );
