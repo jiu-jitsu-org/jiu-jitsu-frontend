@@ -29,11 +29,6 @@ export type PostCounts = {
   likes: number;
   /** saveCount(저장/북마크 수). */
   saves?: number;
-  /**
-   * 공유 수. 디자인(리액션바 기본형)은 공유 옆 숫자를 요구하지만 현재 상세 응답에는 필드가 없다.
-   * 서버가 shareCount를 내려주기 시작하면 자동 노출되도록 optional로 둔다(없으면 숫자 숨김).
-   */
-  shares?: number;
 };
 
 /**
@@ -50,11 +45,6 @@ export type PostViewerState = {
   bookmarked: boolean;
   /** isCommented (내가 댓글을 남겼는지) */
   commented: boolean;
-  /**
-   * isShared (내가 공유했는지). 리액션바 공유 버튼의 Active 표시에 쓴다.
-   * 서버가 아직 내려주지 않을 수 있어 매핑 시 false로 정규화한다.
-   */
-  shared: boolean;
   /** 작성자 본인 여부 — ⋮ 메뉴의 수정/삭제 노출을 결정. */
   isOwner: boolean;
 };
