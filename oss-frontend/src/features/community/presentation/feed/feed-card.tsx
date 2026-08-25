@@ -14,16 +14,12 @@ import {
   BookmarkIcon,
   CommentIcon,
   HeartIcon,
-  ImageIcon,
   MoreVerticalIcon,
   PersonIcon,
 } from "@/shared/ui/icons";
 
 // 본문 말줄임 줄 수는 Tailwind 정적 클래스 `line-clamp-3`이 단일 출처다.
 // (Tailwind는 동적 클래스명을 감지하지 못하므로 상수 보간 대신 클래스로 고정)
-
-/** 이미지 로드 실패 시 확보할 영역 비율(피드 카드 이미지 기본 스펙 343:220). */
-const FALLBACK_AREA_RATIO = "aspect-[343/220]";
 
 export type FeedAuthor = {
   name: string;
@@ -395,26 +391,20 @@ function FeedCardCover({
     setAttempt((value) => value + 1);
   }
 
-  // 실패 영역도 이미지가 차지하던 높이를 그대로 유지해 시프트를 막는다. auto는 원본 비율을 알 수
-  // 없으므로(응답에 width/height 없음) 카드 이미지 기본 스펙 비율로 자리를 잡는다 — 원본 비율
-  // 규격(#43)이 정해지면 그 값으로 대체한다.
-  const areaClass = ratio === "square" ? "aspect-square" : FALLBACK_AREA_RATIO;
-
   if (failed) {
     return (
       <div className={cn("overflow-hidden rounded-2xl", className)}>
-        <div
-          className={cn(
-            "flex w-full flex-col items-center justify-center gap-2 bg-[var(--cool-gray-50)] text-feed-card-body-text",
-            areaClass,
-          )}
-        >
-          <ImageIcon size={24} />
-          <p className="text-sm leading-[21px]">이미지를 불러올 수 없어요</p>
+        {/* 영역 비율은 피드·상세 공통 343:220 — 실패해도 아래 요소가 밀려 올라오지 않는다. */}
+        {/* 내용은 세로 가운데가 아니라, 안내 문구가 컨테이너 top에서 84에 오도록 붙인다. */}
+        <div className="flex aspect-[343/220] w-full flex-col items-center bg-image-load-error-bg pt-[84px]">
+          <p className="text-body-s text-image-load-error-text">
+            이미지를 불러올 수 없어요
+          </p>
+          {/* 재시도: 64(hug) x 32, radius 10 — 라벨이 길어지면 가로로만 늘어난다. */}
           <button
             type="button"
             onClick={handleRetry}
-            className="text-sm font-semibold leading-[21px] text-feed-card-body-title-text underline"
+            className="text-body-s mt-2 inline-flex h-8 min-w-16 items-center justify-center rounded-[10px] bg-button-neutral-default-bg px-2 text-button-neutral-default-text"
           >
             재시도
           </button>
