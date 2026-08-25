@@ -331,11 +331,14 @@ export function FeedCardImages({
   ratio?: "auto" | "square";
   className?: string;
 }) {
-  const [cover] = images;
+  const [cover, ...rest] = images;
   if (!cover) return null;
 
+  // 목록·상세 모두 대표 1장만 노출하므로, 나머지 장수는 대표 위 +N 오버레이로만 알린다.
+  const extraCount = rest.length;
+
   return (
-    <div className={cn("overflow-hidden rounded-2xl", className)}>
+    <div className={cn("relative overflow-hidden rounded-2xl", className)}>
       {/* 가로는 카드 내용 폭(343)에 꽉 채운다. 초과분은 object-cover로 center crop. */}
       {/* auto: 높이는 원본 비율대로 자동, 최대 458(343의 4:3 세로 기준). 최소 높이 없음. */}
       {/* 비어 있을 때 채움색: Color/Cool Gray/50 */}
@@ -350,7 +353,17 @@ export function FeedCardImages({
           ratio === "square" ? "aspect-square" : "max-h-[458px]",
         )}
       />
-      {/* +N 뱃지: 임시 삭제 (다중 이미지 레이아웃 스펙 확정 시 복원) */}
+      {extraCount > 0 ? (
+        // 이미지 우하단 뱃지(높이 28, 여백 12). role=img + aria-label로 "+4"가 아니라
+        // 장수로 읽히게 한다 — 시각적으로는 숫자만 보여도 의미는 "몇 장 더 있음"이다.
+        <span
+          role="img"
+          aria-label={`이미지 ${images.length}장 중 ${extraCount}장 더 있음`}
+          className="absolute bottom-3 right-3 inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-feed-card-image-badge-bg px-2 text-sm font-medium leading-[21px] text-feed-card-image-badge-text"
+        >
+          +{extraCount}
+        </span>
+      ) : null}
     </div>
   );
 }
