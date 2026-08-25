@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
 
 import { cn } from "@/shared/lib/cn";
 import {
@@ -54,6 +61,7 @@ export type FeedCardProps = {
   commented?: boolean;
   liked?: boolean;
   bookmarked?: boolean;
+  /** 카드 탭 → 상세 진입. 카드 전체 영역이 대상이고, 내부 버튼(더보기·리액션·⋮)은 제외된다. */
   onPress?: () => void;
   onPressComment?: () => void;
   onToggleLike?: () => void;
@@ -94,9 +102,27 @@ export function FeedCard({
   menu,
   className,
 }: FeedCardProps) {
+  // 카드 전체 영역(본문·이미지·여백) 탭으로 상세에 들어간다.
+  // 카드를 <button>으로 감싸면 내부 버튼(더보기·리액션·⋮)이 중첩되므로, article에 클릭만 얹고
+  // 이벤트 출처가 버튼/링크면 무시한다 — 예외 영역을 호출부가 따로 표시할 필요가 없다.
+  // 키보드·스크린리더 진입점은 제목 버튼이 그대로 담당한다(article에 role/tabIndex를 더하면
+  // 같은 동작의 탭 스톱이 중복되고, 그 안의 버튼들과 위젯 중첩이 된다).
+  function handleCardPress(event: MouseEvent<HTMLElement>) {
+    if (!onPress) return;
+    if (event.target instanceof Element && event.target.closest("button, a")) {
+      return;
+    }
+    onPress();
+  }
+
   return (
     <article
-      className={cn("flex flex-col bg-surface-container px-4", className)}
+      onClick={onPress ? handleCardPress : undefined}
+      className={cn(
+        "flex flex-col bg-surface-container px-4",
+        onPress && "cursor-pointer",
+        className,
+      )}
     >
       <FeedCardHeader
         author={author}
