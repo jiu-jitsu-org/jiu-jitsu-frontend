@@ -14,12 +14,16 @@ import {
   BookmarkIcon,
   CommentIcon,
   HeartIcon,
+  ImageIcon,
   MoreVerticalIcon,
   PersonIcon,
 } from "@/shared/ui/icons";
 
 // 본문 말줄임 줄 수는 Tailwind 정적 클래스 `line-clamp-3`이 단일 출처다.
 // (Tailwind는 동적 클래스명을 감지하지 못하므로 상수 보간 대신 클래스로 고정)
+
+/** 이미지 로드 실패 시 확보할 영역 비율(피드 카드 이미지 기본 스펙 343:220). */
+const FALLBACK_AREA_RATIO = "aspect-[343/220]";
 
 export type FeedAuthor = {
   name: string;
@@ -334,8 +338,90 @@ export function FeedCardImages({
   const [cover, ...rest] = images;
   if (!cover) return null;
 
-  // 목록·상세 모두 대표 1장만 노출하므로, 나머지 장수는 대표 위 +N 오버레이로만 알린다.
-  const extraCount = rest.length;
+  return (
+    // key=URL: 대표 이미지가 바뀌면 재마운트해 폴백·재시도 상태를 초기화한다(아바타와 동일 패턴).
+    <FeedCardCover
+      key={cover.url}
+      image={cover}
+      // 목록·상세 모두 대표 1장만 노출하므로, 나머지 장수는 대표 위 +N 오버레이로만 알린다.
+      extraCount={rest.length}
+      ratio={ratio}
+      className={className}
+    />
+  );
+}
+
+/**
+ * 재시도용 URL — 같은 src를 그대로 다시 넣으면 브라우저가 실패한 응답을 캐시에서 재사용할 수 있어
+ * 시도 횟수를 쿼리로 붙여 매번 새 요청으로 만든다.
+ * 이미지 주소는 CDN 공개 URL(서명 파라미터 없음)이라 파라미터 추가가 접근을 깨지 않는다.
+ */
+function withRetryParam(url: string, attempt: number): string {
+  if (attempt === 0) return url;
+  return `${url}${url.includes("?") ? "&" : "?"}retry=${attempt}`;
+}
+
+/**
+ * 대표 이미지 1장 + `+N` 오버레이 + 로드 실패 폴백.
+ *
+ * 실패하면 빈 회색 박스 대신 안내와 재시도를 보여준다 — 아바타(FeedCardAvatar)와 같은 원칙이되,
+ * 본문 이미지는 대체 아이콘으로 끝낼 수 없어 복구 수단(재시도)까지 준다.
+ * 재시도는 이 이미지만 다시 받고(cache-bust), 성공하면 폴백이 풀린다.
+ */
+function FeedCardCover({
+  image,
+  extraCount,
+  ratio,
+  className,
+}: {
+  image: FeedImage;
+  extraCount: number;
+  ratio: "auto" | "square";
+  className?: string;
+}) {
+  const [attempt, setAttempt] = useState(0);
+  const [failed, setFailed] = useState(false);
+
+  // SSR로 그려진 <img>는 하이드레이션 전에 error가 나 onError를 놓칠 수 있어, 부착 직후
+  // 이미 실패한(complete && naturalWidth===0) 상태를 직접 감지한다(아바타와 동일).
+  const detectBrokenImage = useCallback((img: HTMLImageElement | null) => {
+    if (img?.complete && img.naturalWidth === 0) {
+      setFailed(true);
+    }
+  }, []);
+
+  function handleRetry() {
+    setFailed(false);
+    setAttempt((value) => value + 1);
+  }
+
+  // 실패 영역도 이미지가 차지하던 높이를 그대로 유지해 시프트를 막는다. auto는 원본 비율을 알 수
+  // 없으므로(응답에 width/height 없음) 카드 이미지 기본 스펙 비율로 자리를 잡는다 — 원본 비율
+  // 규격(#43)이 정해지면 그 값으로 대체한다.
+  const areaClass = ratio === "square" ? "aspect-square" : FALLBACK_AREA_RATIO;
+
+  if (failed) {
+    return (
+      <div className={cn("overflow-hidden rounded-2xl", className)}>
+        <div
+          className={cn(
+            "flex w-full flex-col items-center justify-center gap-2 bg-[var(--cool-gray-50)] text-feed-card-body-text",
+            areaClass,
+          )}
+        >
+          <ImageIcon size={24} />
+          <p className="text-sm leading-[21px]">이미지를 불러올 수 없어요</p>
+          <button
+            type="button"
+            onClick={handleRetry}
+            className="text-sm font-semibold leading-[21px] text-feed-card-body-title-text underline"
+          >
+            재시도
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("relative overflow-hidden rounded-2xl", className)}>
@@ -344,10 +430,12 @@ export function FeedCardImages({
       {/* 비어 있을 때 채움색: Color/Cool Gray/50 */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={cover.url}
-        alt={cover.alt ?? ""}
-        width={cover.width}
-        height={cover.height}
+        ref={detectBrokenImage}
+        src={withRetryParam(image.url, attempt)}
+        alt={image.alt ?? ""}
+        width={image.width}
+        height={image.height}
+        onError={() => setFailed(true)}
         className={cn(
           "w-full bg-[var(--cool-gray-50)] object-cover object-center",
           ratio === "square" ? "aspect-square" : "max-h-[458px]",
@@ -358,7 +446,7 @@ export function FeedCardImages({
         // 장수로 읽히게 한다 — 시각적으로는 숫자만 보여도 의미는 "몇 장 더 있음"이다.
         <span
           role="img"
-          aria-label={`이미지 ${images.length}장 중 ${extraCount}장 더 있음`}
+          aria-label={`이미지 ${extraCount + 1}장 중 ${extraCount}장 더 있음`}
           className="absolute bottom-3 right-3 inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-feed-card-image-badge-bg px-2 text-sm font-medium leading-[21px] text-feed-card-image-badge-text"
         >
           +{extraCount}
