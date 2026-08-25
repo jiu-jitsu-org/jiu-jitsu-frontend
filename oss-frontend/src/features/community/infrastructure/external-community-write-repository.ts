@@ -161,15 +161,14 @@ export class ExternalCommunityWriteRepository
 
   async toggleBlock(userId: number): Promise<boolean> {
     // POST /user/block/{id} — 단일 엔드포인트 토글(차단/차단해제). 대상은 댓글이 아니라 작성자 회원이다.
-    // 숨김과 마찬가지로 Swagger 응답 스키마가 봉투 없는 raw boolean이라 두 형태를 모두 허용한다
-    // (봉투가 오면 data를, 아니면 본문 자체를 토글 후 상태로 읽는다).
-    const response = await this.httpClient.post<
-      Envelope<{ isBlocked?: boolean }> | boolean
-    >({
+    //
+    // 응답은 다른 토글(좋아요/저장)처럼 data가 객체가 아니라 boolean 그 자체다
+    // (실측: {"success":true,...,"data":true}). Swagger 스키마는 봉투 없는 raw boolean으로
+    // 적혀 있어 실제와 다르므로, 둘 다 토글 후 상태로 읽는다.
+    const response = await this.httpClient.post<Envelope<boolean> | boolean>({
       path: `${USER_ENDPOINT_PATH}/block/${userId}`,
     });
 
-    if (typeof response === "boolean") return response;
-    return response.data?.isBlocked ?? true;
+    return typeof response === "boolean" ? response : response.data;
   }
 }
