@@ -7,8 +7,8 @@ import { PostActionBar } from "@/features/community/presentation/post-action-bar
 import { PostAuthorRow } from "@/features/community/presentation/post-author-row";
 import { PostDetailAppBar } from "@/features/community/presentation/post-detail-app-bar";
 import { PostDetailBody } from "@/features/community/presentation/post-detail-body";
+import { PostDetailImages } from "@/features/community/presentation/post-detail-images";
 import { PostTags } from "@/features/community/presentation/post-tags";
-import { FeedCardImages } from "@/features/community/presentation/feed/feed-card";
 import { KeyboardAwareShell } from "@/features/community/presentation/keyboard-aware-shell";
 
 /**
@@ -55,11 +55,8 @@ export function PostDetailView({
               edited={post.edited}
             />
             {post.images.length > 0 ? (
-              // 상세 이미지는 디자인 샘플대로 1:1 고정. 크롭/여백 정책 확정 전까지의 1차 구현(#57).
-              <FeedCardImages
-                ratio="square"
-                images={post.images.map((image) => ({ url: image.imageUrl }))}
-              />
+              // 상세 전용 규격(#57): 1장은 원본 비율 + 상한 크롭, 여러 장은 높이 고정.
+              <PostDetailImages images={post.images} />
             ) : null}
             {/* 본문(또는 이미지) 아래 태그 24 = article gap-4(16) + mt-2(8) */}
             <PostTags tags={post.tags} className="mt-2" />
