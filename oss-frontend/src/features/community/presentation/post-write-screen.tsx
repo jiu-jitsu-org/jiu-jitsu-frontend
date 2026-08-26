@@ -21,6 +21,7 @@ import {
   createPost,
   WriteRequestError,
 } from "./community-write-client";
+import { markPostCreated } from "@/features/community/presentation/dirty-posts";
 import { MAX_IMAGES, useImageAttachments } from "./use-image-attachments";
 
 /** 본문 최대 글자 수. 카운터/입력 제한 단일 출처. */
@@ -205,6 +206,9 @@ export function PostWriteScreen() {
       });
       // 여기 도달 = 생성 성공(2xx). created.id로 실제 추가 여부를 확인할 수 있다.
       console.info("[post-write] 게시글 생성 성공:", created);
+      // 목록이 복귀 시 첫 페이지를 다시 읽어 이 글을 앞에 붙이고 최상단으로 올린다(#38).
+      // 성공했을 때만 남긴다 — 취소로 닫으면 목록은 아무것도 하지 않는다.
+      markPostCreated(created.id);
       toast.show("게시글이 등록되었어요");
       // 성공일 때만 닫는다(closeScreen이 로컬 미리보기까지 정리).
       closeScreen();
