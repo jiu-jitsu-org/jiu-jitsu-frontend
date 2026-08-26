@@ -16,6 +16,11 @@ import {
 } from "@/shared/lib/native-bridge";
 import { enqueuePendingToast, useToast } from "@/shared/ui";
 import { AppBarShell } from "@/features/community/presentation/app-bar-shell";
+import {
+  HIDE_TOAST,
+  POST_HIDDEN_ACTION,
+  toggleHidePost,
+} from "@/features/community/presentation/hide-post";
 import { ConfirmDialog } from "@/features/community/presentation/confirm-dialog";
 import { useReportFlow } from "@/features/community/presentation/use-report-flow";
 import {
@@ -113,6 +118,34 @@ export function PostDetailAppBar({
    * 단건 재조회해 비노출이면 걷어내는 경로(#73)가 담당한다. 서버 응답에서 신고한 글이 빠지는 것
    * 자체는 백엔드 몫이다(목록 페이징이 깨지므로 클라이언트에서 필터링하지 않는다).
    */
+  /**
+   * 숨기기: 확인 알럿 없이 즉시 처리하고 화면을 닫는다 — 목록 카드와 같은 정책(#51).
+   *
+   * 카드 제거와 되돌리기는 목록이 맡는다. 이 화면은 곧 닫히므로 여기 띄운 토스트는 사용자가 볼 수
+   * 없고, 복원에 필요한 게시글 데이터 · 위치도 목록만 알고 있다. 그래서 "이 글을 숨겼다"는 사실만
+   * 액션 서술자로 남긴다(함수는 웹뷰를 건너갈 수 없다).
+   */
+  async function handleHide() {
+    // 예시(데모)에선 네트워크 없이 안내만(화면도 닫지 않는다).
+    if (demo) {
+      toast.show(HIDE_TOAST.done);
+      return;
+    }
+
+    const hidden = await toggleHidePost(postId);
+    if (!hidden) {
+      toast.show(HIDE_TOAST.failed);
+      return;
+    }
+
+    enqueuePendingToast(HIDE_TOAST.done, {
+      label: HIDE_TOAST.undoLabel,
+      type: POST_HIDDEN_ACTION,
+      postId,
+    });
+    closeDetail();
+  }
+
   async function handleReport() {
     await report(
       { reportType: "BOARD", targetId: postId },
@@ -183,7 +216,14 @@ export function PostDetailAppBar({
                 >
                   신고하기
                 </MenuItem>
-                <MenuItem onClick={() => setMenuOpen(false)}>숨기기</MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    setMenuOpen(false);
+                    void handleHide();
+                  }}
+                >
+                  숨기기
+                </MenuItem>
               </>
             )}
           </MenuBox>
