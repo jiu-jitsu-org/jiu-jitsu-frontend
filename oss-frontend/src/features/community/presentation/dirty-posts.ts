@@ -17,14 +17,22 @@
  * - 앱에서도 리스트 웹뷰는 살아 있으므로 같은 저장소가 그대로 동작한다 — 웹/앱이 한 메커니즘을 쓴다.
  */
 const DIRTY_POSTS_KEY = "feed-dirty-posts";
-const FEED_STALE_KEY = "feed-stale";
+const CREATED_POST_KEY = "feed-created-post";
+
+/**
+ * 등록 표시의 유효 시간(ms). 등록 → 닫기 → 복귀는 즉시 일어나므로 넉넉하다.
+ *
+ * localStorage는 세션이 끝나도 남으므로 만료를 둔다 — 없으면 며칠 뒤 앱을 켰을 때
+ * 엉뚱하게 최상단으로 튀는 일이 생긴다.
+ */
+const CREATED_TTL_MS = 30_000;
 
 /** 복귀 시 다시 읽어야 할 목록 상태. */
 export type FeedRevalidateTarget = {
   /** 단건 재조회 대상 게시글 id. */
   postIds: number[];
-  /** 첫 페이지를 다시 읽어야 하는지(새 글이 생겼을 수 있음). */
-  feedStale: boolean;
+  /** 내가 방금 등록한 글 id. 있으면 첫 페이지를 다시 읽어 앞에 붙인다. */
+  createdPostId: number | null;
 };
 
 function readIds(): number[] {
@@ -66,18 +74,45 @@ export function markPostDirty(postId: number): void {
 }
 
 /**
- * 목록 첫 페이지를 다시 읽어야 한다고 기록한다 — 작성 화면을 열 때 호출.
+ * 내가 등록한 글을 기록한다 — 작성 **성공** 시점에 호출(취소로 닫으면 남지 않는다).
  *
- * 작성은 아직 id가 없어 단건 대상을 지정할 수 없다. 등록 성공 여부와 무관하게 표시해 두고,
- * 취소로 돌아왔으면 첫 페이지에 새 글이 없어 결과적으로 아무 변화가 없다.
+ * WHY id까지 남기는가: 복귀 시 첫 페이지를 다시 읽으면 그 사이 **다른 사용자가 쓴 글도** 함께
+ * 딸려온다. "새 글이 붙었으니 최상단으로"라고 하면 남의 글 때문에 화면이 튄다. 내 글을 특정해야
+ * "내가 쓰고 돌아왔을 때"로만 한정할 수 있다.
+ *
+ * WHY localStorage인가: 앱에서 작성 화면은 목록과 **별도 웹뷰**다. sessionStorage는 웹뷰 단위로
+ * 격리돼 넘어가지 않는다(갱신 대상 기록과 반대되는 선택 — 그쪽은 목록 웹뷰 안에 머문다).
  */
-export function markFeedStale(): void {
+export function markPostCreated(postId: number): void {
   if (typeof window === "undefined") return;
 
   try {
-    window.sessionStorage.setItem(FEED_STALE_KEY, "1");
+    window.localStorage.setItem(
+      CREATED_POST_KEY,
+      JSON.stringify({ postId, at: Date.now() }),
+    );
   } catch {
     // 위와 같음.
+  }
+}
+
+/** 등록 표시를 읽는다. 없거나 만료면 null. */
+function readCreatedPostId(): number | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = window.localStorage.getItem(CREATED_POST_KEY);
+    if (!raw) return null;
+
+    const entry = JSON.parse(raw) as { postId?: number; at?: number };
+    if (typeof entry.postId !== "number" || typeof entry.at !== "number") {
+      return null;
+    }
+    if (Date.now() - entry.at > CREATED_TTL_MS) return null;
+
+    return entry.postId;
+  } catch {
+    return null;
   }
 }
 
@@ -89,16 +124,9 @@ export function markFeedStale(): void {
  * 목록에 영영 반영되지 않는다. 읽기와 삭제를 나눠 "진짜 복귀"가 확인된 뒤에만 지운다.
  */
 export function peekRevalidateTarget(): FeedRevalidateTarget {
-  if (typeof window === "undefined") return { postIds: [], feedStale: false };
+  if (typeof window === "undefined") return { postIds: [], createdPostId: null };
 
-  let feedStale = false;
-  try {
-    feedStale = window.sessionStorage.getItem(FEED_STALE_KEY) === "1";
-  } catch {
-    // 위와 같음.
-  }
-
-  return { postIds: readIds(), feedStale };
+  return { postIds: readIds(), createdPostId: readCreatedPostId() };
 }
 
 /**
@@ -120,7 +148,9 @@ export function clearRevalidated(target: FeedRevalidateTarget): void {
       window.sessionStorage.removeItem(DIRTY_POSTS_KEY);
     }
 
-    if (target.feedStale) window.sessionStorage.removeItem(FEED_STALE_KEY);
+    if (target.createdPostId !== null) {
+      window.localStorage.removeItem(CREATED_POST_KEY);
+    }
   } catch {
     // 위와 같음.
   }

@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 
 import { useAuth } from "@/features/auth/presentation/auth-provider";
-import { markFeedStale } from "@/features/community/presentation/dirty-posts";
 import {
   isNativeBridgeAvailable,
   openNativeSubview,
@@ -26,8 +25,8 @@ const POST_WRITE_PATH = "/community/write";
  *
  * 닫기(등록/취소)는 작성 화면의 closeScreen이 CLOSE_SUBVIEW로 pop해 짝을 맞춘다.
  *
- * 여는 시점에 목록 첫 페이지를 갱신 대상으로 기록한다 — 작성은 아직 id가 없어 단건을 지정할 수
- * 없기 때문. 취소로 돌아오면 첫 페이지에 새 글이 없어 결과적으로 변화가 없다(#73 · #38).
+ * 목록 갱신 표시는 여기서 남기지 않는다 — 등록에 성공한 시점에 작성 화면이 글 id와 함께 남긴다
+ * (markPostCreated). 취소로 닫으면 아무것도 남지 않아 목록이 헛되이 재조회하지 않는다.
  */
 export function useOpenPostWrite() {
   const router = useRouter();
@@ -36,8 +35,6 @@ export function useOpenPostWrite() {
   return () => {
     requireAuth(
       () => {
-        markFeedStale();
-
         if (isNativeBridgeAvailable()) {
           openNativeSubview(`${window.location.origin}${POST_WRITE_PATH}`);
           return;

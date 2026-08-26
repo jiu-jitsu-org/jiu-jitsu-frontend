@@ -20,9 +20,10 @@ import { bffFetch } from "@/shared/lib/http/bff-fetch";
  * WHY 전체 새로고침이 아닌가: useBoardFeed는 items를 누적하고 page를 이어받는 구조라, 리셋하면
  * 누적 페이지와 스크롤이 전부 날아간다. 그래서 대상만 골라 제자리에서 갈아 끼운다.
  *
- * WHY 행위를 전달받지 않는가: 상세가 "무엇을 했는지"(좋아요 · 저장 · 댓글 · 수정 · 삭제 · 숨김 ·
- * 신고)를 목록에 알려주면 행위마다 계약이 늘고 상세가 목록 내부 구조를 알아야 한다. 서버 최신값을
- * 다시 읽는 방식은 행위 종류와 무관해 이후 기능이 늘어도 이 로직이 그대로다.
+ * WHY 행위를 전달받지 않는가: 상세가 "무엇을 했는지"(좋아요 · 저장 · 댓글 · 수정 · 삭제 · 신고)를
+ * 목록에 알려주면 행위마다 계약이 늘고 상세가 목록 내부 구조를 알아야 한다. 서버 최신값을 다시
+ * 읽는 방식은 행위 종류와 무관해 이후 기능이 늘어도 이 로직이 그대로다.
+ * (숨김만 예외다 — 서버가 숨김을 응답에 표시하지 않아 상세가 직접 알린다.)
  *
  * 복귀 신호는 두 가지를 함께 듣는다. 마운트 한 번으로는 부족하다 — 웹에서 bfcache 복귀는 마운트를
  * 일으키지 않고, 앱에서는 리스트 웹뷰가 살아 있는 채로 가려졌다 돌아온다.
@@ -60,13 +61,16 @@ export function useFeedRevalidate({
   // 그래서 그대로 의존성에 두어도 아래 effect가 리스너를 재등록하지 않는다.
   const revalidate = useCallback(async () => {
     const target = peekRevalidateTarget();
-    if (target.postIds.length === 0 && !target.feedStale) return;
+    if (target.postIds.length === 0 && target.createdPostId === null) return;
 
+    const createdPostId = target.createdPostId;
     await Promise.all([
       ...target.postIds.map((postId) =>
         revalidatePost(postId, { replacePost, removePost }),
       ),
-      target.feedStale ? revalidateFirstPage({ prependNew }) : null,
+      createdPostId !== null
+        ? revalidateFirstPage(createdPostId, { prependNew })
+        : null,
     ]);
 
     // 화면이 계속 떠 있으면 복귀가 확정된 것으로 보고 기록을 지운다.
@@ -158,10 +162,20 @@ function toSummary(detail: PostDetail): PostSummary {
   };
 }
 
-/** 첫 페이지 재조회 → 새 글만 앞에 붙인다(작성 후 복귀). */
-async function revalidateFirstPage(handlers: {
-  prependNew: (posts: PostSummary[]) => void;
-}): Promise<void> {
+/**
+ * 첫 페이지 재조회 → 새 글만 앞에 붙인다(작성 후 복귀).
+ *
+ * 내가 등록한 글이 실제로 실려 왔을 때만 최상단으로 올린다. 첫 페이지를 다시 읽으면 그 사이
+ * **다른 사용자가 쓴 글도 함께** 딸려오는데, 그것 때문에 화면이 튀면 읽던 자리를 잃는다.
+ * 스크롤 이동은 "내가 쓰고 돌아왔을 때"로만 한정한다.
+ *
+ * 즉시 이동(smooth 아님)인 이유: 몇 페이지 내려가 있으면 부드러운 스크롤이 수 초씩 흘러 오히려
+ * 어지럽다. 툭 올라가서 내 글이 첫 카드로 보이는 편이 명확하다.
+ */
+async function revalidateFirstPage(
+  createdPostId: number,
+  handlers: { prependNew: (posts: PostSummary[]) => void },
+): Promise<void> {
   try {
     const response = await bffFetch(
       `/api/community/board?boardListType=FEED&page=0&size=${FEED_PAGE_SIZE}`,
@@ -171,7 +185,14 @@ async function revalidateFirstPage(handlers: {
     const body = (await response.json().catch(() => null)) as
       | { data?: PostList }
       | null;
-    if (body?.data?.items) handlers.prependNew(body.data.items);
+    const fresh = body?.data?.items;
+    if (!fresh) return;
+
+    handlers.prependNew(fresh);
+
+    if (fresh.some((post) => post.id === createdPostId)) {
+      window.scrollTo({ top: 0 });
+    }
   } catch {
     // 위와 같음.
   }
