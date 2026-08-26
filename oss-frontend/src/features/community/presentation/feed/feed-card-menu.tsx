@@ -4,6 +4,10 @@ import { useState } from "react";
 
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
 import {
+  HIDE_TOAST,
+  toggleHidePost,
+} from "@/features/community/presentation/hide-post";
+import {
   MenuBox,
   MenuItem,
 } from "@/features/community/presentation/menu-box";
@@ -89,48 +93,41 @@ export function FeedCardMenu({
   /**
    * 숨기기: 확인 알럿 없이 바로 처리하고, 되돌리기 버튼이 달린 토스트로 취소 기회를 준다.
    *
-   * 되돌리기는 같은 엔드포인트를 한 번 더 호출한다(PUT /board/hide/{id}가 토글이라 두 번째 호출이
-   * 숨김 해제가 된다). 실패하면 카드는 숨겨진 상태로 두고 실패만 알린다 — 서버와 화면이 어긋나는
-   * 편보다 낫다.
+   * 되돌리기는 같은 엔드포인트를 한 번 더 호출한다(토글이라 두 번째 호출이 숨김 해제가 된다).
+   * 실패하면 카드는 숨겨진 상태로 두고 실패만 알린다 — 서버와 화면이 어긋나는 편보다 낫다.
+   *
+   * 상세에서 숨긴 경우는 이 화면이 아니라 목록이 되돌리기를 받는다(#51) — 호출·문구는
+   * hide-post에 모여 있어 두 진입점이 갈리지 않는다.
    */
   async function handleHide() {
     // 예시(데모)에선 네트워크 없이 UI만(되돌리기도 로컬 복원).
     if (demo) {
       onDeleted();
-      toast.show("게시글을 숨겼습니다", {
-        label: "되돌리기",
+      toast.show(HIDE_TOAST.done, {
+        label: HIDE_TOAST.undoLabel,
         onAction: onRestored,
       });
       return;
     }
 
-    const response = await bffFetch(`/api/community/posts/${postId}/hide`, {
-      method: "POST",
-    });
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
-      }
-      toast.show("게시글을 숨기지 못했습니다");
+    const hidden = await toggleHidePost(postId);
+    if (!hidden) {
+      toast.show(HIDE_TOAST.failed);
       return;
     }
 
     onDeleted();
-    toast.show("게시글을 숨겼습니다", {
-      label: "되돌리기",
+    toast.show(HIDE_TOAST.done, {
+      label: HIDE_TOAST.undoLabel,
       onAction: () => void handleUndoHide(),
     });
   }
 
   /** 숨기기 되돌리기 — 토글 재호출로 숨김을 해제하고 카드를 원래 자리에 복원한다. */
   async function handleUndoHide() {
-    const response = await bffFetch(`/api/community/posts/${postId}/hide`, {
-      method: "POST",
-    });
-
-    if (!response.ok) {
-      toast.show("되돌리지 못했습니다");
+    const restored = await toggleHidePost(postId);
+    if (!restored) {
+      toast.show(HIDE_TOAST.undoFailed);
       return;
     }
 

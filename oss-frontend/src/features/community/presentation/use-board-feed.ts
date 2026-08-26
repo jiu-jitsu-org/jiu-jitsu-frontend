@@ -66,11 +66,22 @@ export function useBoardFeed(initial: {
     }
   }, [isLast, page]);
 
+  // 걷어낸 항목을 원래 위치와 함께 기억한다 — 되돌리기가 복원할 데이터를 목록만 알고 있기 때문.
+  // (상세에서 숨긴 경우 상세는 이미 닫혀 있어 게시글 데이터를 들고 있지 않다.)
+  const removedRef = useRef(new Map<number, { post: PostSummary; index: number }>());
+
   // 카드 ⋮ 메뉴에서 삭제가 성공하면 목록에서 걷어낸다(서버 재조회 없이 즉시 반영).
   // page/isLast는 건드리지 않는다 — 한 건 빠졌다고 페이지 경계가 달라지지 않고,
   // 뒤이은 loadMore는 여전히 서버 기준 page+1을 이어 받아야 하기 때문.
   const removePost = useCallback((postId: number) => {
-    setItems((prev) => prev.filter((post) => post.id !== postId));
+    setItems((prev) => {
+      const at = prev.findIndex((post) => post.id === postId);
+      if (at < 0) return prev;
+
+      // 같은 값을 두 번 써도 결과가 같아 updater가 재실행돼도 안전하다.
+      removedRef.current.set(postId, { post: prev[at], index: at });
+      return prev.filter((post) => post.id !== postId);
+    });
   }, []);
 
   /**
@@ -119,6 +130,23 @@ export function useBoardFeed(initial: {
     });
   }, []);
 
+  /**
+   * 걷어낸 카드를 기억해 둔 위치로 되돌린다 — 상세에서 숨긴 뒤의 되돌리기용.
+   *
+   * @returns 복원했으면 true. 기억이 없으면(아직 걷어내기 전이거나 이미 복원됨) false.
+   */
+  const restoreRemoved = useCallback(
+    (postId: number): boolean => {
+      const kept = removedRef.current.get(postId);
+      if (!kept) return false;
+
+      removedRef.current.delete(postId);
+      restorePost(kept.post, kept.index);
+      return true;
+    },
+    [restorePost],
+  );
+
   return {
     items,
     isLast,
@@ -126,6 +154,7 @@ export function useBoardFeed(initial: {
     loadMore,
     removePost,
     restorePost,
+    restoreRemoved,
     replacePost,
     prependNew,
   };
