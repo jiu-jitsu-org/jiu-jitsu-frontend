@@ -104,25 +104,28 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         // 기본 16, 댓글 입력 바가 있는 상세는 바 위(85). z는 최상단 —
         // 우하단 플로팅 버튼(FAB, z auto)과 시트·알럿(z-50)보다 위에 와야 한다.
         <div className="pointer-events-none fixed inset-x-6 bottom-[calc(var(--toast-bottom-inset)_+_env(safe-area-inset-bottom))] z-[60]">
-          {/* 최소 높이 56(멀티라인 가변), 좌우 16/상하 8, toast/default 토큰, Body S(14/21). 알파 페이드. */}
+          {/* 최소 높이 58(멀티라인 가변), 라운드 15, 좌우 16/상하 8, toast/default 토큰, Body S(Medium 14/21). 알파 페이드. */}
+          {/* 본문↔버튼 간격 16. 버튼 우측 여백 16은 컨테이너 px-4가 담당한다. */}
           <div
             role="status"
             aria-live="polite"
             className={cn(
-              "flex min-h-[56px] w-full items-center gap-3 rounded-2xl bg-toast-default-background px-4 py-2 text-sm leading-[21px] text-toast-default-text transition-opacity duration-200",
+              "flex min-h-[58px] w-full items-center gap-4 rounded-[15px] bg-toast-default-background px-4 py-2 text-body-s text-toast-default-text transition-opacity duration-200",
               visible ? "opacity-100" : "opacity-0",
             )}
           >
             <span className="flex-1">{message}</span>
             {action ? (
               // 래퍼가 pointer-events-none이라 버튼에서만 다시 켠다(토스트 뒤 화면 조작을 막지 않기 위함).
+              // 토스트 전용 --toast-button-* 대신 공용 button/neutral 토큰을 쓴다 — 다른 화면의
+              // neutral 버튼(재시도·글쓰기 등)과 같은 계열로 묶어 라운드·색이 따로 놀지 않게 한다.
               <button
                 type="button"
                 onClick={() => {
                   dismiss();
                   action.onAction();
                 }}
-                className="pointer-events-auto shrink-0 rounded-lg bg-toast-button-bg px-3 py-1.5 text-sm font-semibold text-toast-button-text"
+                className="text-button-s pointer-events-auto inline-flex min-h-[30px] shrink-0 items-center justify-center rounded-[10px] bg-button-neutral-default-bg px-4 py-2 text-button-neutral-default-text"
               >
                 {action.label}
               </button>

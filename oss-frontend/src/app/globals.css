@@ -19,6 +19,12 @@
   --text-body-s: 0.875rem;
   --text-body-s--line-height: 1.3125rem;
   --text-body-s--font-weight: 500;
+
+  /* Button S: Pretendard Semibold 12 / 행간 14.
+     행간 14는 버튼 최소 높이 30 = 상하 패딩 8 + 14에서 역산한 값이다. */
+  --text-button-s: 0.75rem;
+  --text-button-s--line-height: 0.875rem;
+  --text-button-s--font-weight: 600;
 }
 
 html {
