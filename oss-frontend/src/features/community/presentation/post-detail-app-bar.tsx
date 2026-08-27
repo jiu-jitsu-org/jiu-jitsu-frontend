@@ -21,7 +21,7 @@ import {
   POST_HIDDEN_ACTION,
   toggleHidePost,
 } from "@/features/community/presentation/hide-post";
-import { ConfirmDialog } from "@/features/community/presentation/confirm-dialog";
+import { useNativeDialog } from "@/features/community/presentation/use-native-dialog";
 import { useReportFlow } from "@/features/community/presentation/use-report-flow";
 import {
   BellIcon,
@@ -38,6 +38,10 @@ import {
  *
  * ⋮ 메뉴는 게시글 소유자 여부(isOwner)에 따라 수정/삭제 vs 신고를 노출하므로 웹이 소유한다
  * (네이티브가 그리면 소유자 컨텍스트를 브릿지로 왕복해야 함).
+ *
+ * 삭제 확인 알럿은 useNativeDialog가 "네이티브 우선, 없으면 웹"으로 띄운다 — 피드 카드 ⋮와 같은
+ * 경로다. 무엇을 물어보고 확인 후 무엇을 호출할지는 여기(웹)가 그대로 쥔다.
+ * 계약 상세: docs/native-dialog-bridge.md
  */
 export function PostDetailAppBar({
   postId,
@@ -50,9 +54,9 @@ export function PostDetailAppBar({
 }) {
   const toast = useToast();
   const demo = useIsDemoMode();
+  const { confirm, dialog } = useNativeDialog();
   const { report, dialog: reportDialog } = useReportFlow();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   // 알림 받기 on/off. 초기값은 게시글의 noticeEnabled, 탭하면 서버에 저장한다(#46).
   const [alarmOn, setAlarmOn] = useState(initialNoticeEnabled);
   // 저장 중 재탭 방지 — 토글 엔드포인트라 연타하면 서버 상태가 화면과 어긋난 채로 뒤집힌다.
@@ -113,8 +117,15 @@ export function PostDetailAppBar({
     }
   }
 
-  async function confirmDelete() {
-    setDeleteConfirmOpen(false);
+  /** 삭제: 확인 알럿 → DELETE → 성공 시 네이티브가 상세를 닫는다. */
+  async function handleDelete() {
+    const confirmed = await confirm({
+      title: "게시글 삭제",
+      message: "삭제한 게시글은 복구할 수 없어요.",
+      confirmText: "삭제",
+      destructive: true,
+    });
+    if (!confirmed) return;
 
     // 예시(데모)에선 네트워크 없이 토스트만(실제 삭제/화면 닫기 없음).
     if (demo) {
@@ -245,7 +256,7 @@ export function PostDetailAppBar({
                 <MenuItem
                   onClick={() => {
                     setMenuOpen(false);
-                    setDeleteConfirmOpen(true);
+                    void handleDelete();
                   }}
                 >
                   삭제하기
@@ -277,16 +288,8 @@ export function PostDetailAppBar({
         </div>
       </div>
 
-      {/* 게시글 삭제 확인 알럿 */}
-      <ConfirmDialog
-        open={deleteConfirmOpen}
-        title="게시글 삭제"
-        message="삭제한 게시글은 복구할 수 없어요."
-        confirmText="삭제"
-        destructive
-        onCancel={() => setDeleteConfirmOpen(false)}
-        onConfirm={confirmDelete}
-      />
+      {/* 게시글 삭제 확인 알럿(웹 단독 폴백 전용 — 앱에서는 네이티브가 그린다) */}
+      {dialog}
 
       {/* 신고 알럿·사유 시트(웹 단독 폴백 전용 — 앱에서는 네이티브가 그린다) */}
       {reportDialog}
