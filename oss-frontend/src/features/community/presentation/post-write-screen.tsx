@@ -14,7 +14,7 @@ import {
 } from "@/shared/lib/native-bridge";
 import { useToast } from "@/shared/ui";
 import { AppBarShell } from "@/features/community/presentation/app-bar-shell";
-import { ConfirmDialog } from "@/features/community/presentation/confirm-dialog";
+import { useNativeDialog } from "@/features/community/presentation/use-native-dialog";
 import { HashIcon, ImageIcon } from "@/shared/ui/icons";
 
 import {
@@ -50,7 +50,8 @@ const CATEGORIES: { id: number; name: string }[] = [
  * 상세(PostDetailView)의 시각 시스템을 그대로 따른다 — True White 배경, 44pt 앱바,
  * 본문 좌우 16(px-4), 동일 색 토큰. 다만 상세가 "읽기"라면 여긴 "쓰기"이므로 compose 패턴을 더한다:
  * - 우측 "등록"은 제목·본문이 모두 채워지기 전엔 비활성(댓글 입력바의 canSubmit과 동일 철학).
- * - 입력 중 뒤로가면 이탈 가드(ConfirmDialog)로 실수 유실을 막는다.
+ * - 입력 중 뒤로가면 이탈 가드로 실수 유실을 막는다. 알럿 표면은 useNativeDialog가
+ *   "네이티브 우선, 없으면 웹"으로 처리한다 — 무엇을 물어볼지·확인 후 무엇을 할지는 여기가 쥔다.
  *
  * 전 영역이 인터랙티브하고 등록 버튼이 입력 상태에 의존하므로(앱바↔본문 상태 공유),
  * 상세처럼 서버 레이아웃 + 클라이언트 leaf로 쪼개지 않고 하나의 클라이언트 화면으로 둔다.
@@ -66,7 +67,7 @@ export function PostWriteScreen() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [leaveOpen, setLeaveOpen] = useState(false);
+  const { confirm, dialog } = useNativeDialog();
   // 카테고리: 미선택(null)으로 시작 → 사용자가 칩에서 고르기 전엔 등록 불가.
   const [categoryId, setCategoryId] = useState<number | null>(null);
   // 키보드 위 '실제 보이는 영역'에 셸을 맞춘다(visualViewport). dvh/fixed inset-0가 안 줄어드는
@@ -178,17 +179,24 @@ export function PostWriteScreen() {
     router.push("/community");
   }
 
-  function requestClose() {
+  async function requestClose() {
     if (isDirty) {
-      setLeaveOpen(true);
-      return;
+      const confirmed = await confirm({
+        title: "작성 취소",
+        message: "작성 중인 내용은 저장되지 않아요.",
+        cancelText: "계속 작성",
+        confirmText: "나가기",
+        destructive: true,
+      });
+      // 취소("계속 작성")면 화면을 유지한다 — CLOSE_SUBVIEW를 보내지 않는다.
+      if (!confirmed) return;
     }
     closeScreen();
   }
 
   // 네이티브 뒤로가기 가드: 마운트 시 BACK_GUARD로 통지 → 네이티브가 직접 닫지 않고 BACK_PRESSED를 보낸다.
   // 작성 중이면 확인 다이얼로그, 아니면 닫기 → "계속 작성" 선택 시 CLOSE_SUBVIEW를 보내지 않아 화면 유지.
-  useNativeBackHandler(requestClose);
+  useNativeBackHandler(() => void requestClose());
 
   async function submit() {
     if (!canSubmit || categoryId === null) return;
@@ -450,20 +458,8 @@ export function PostWriteScreen() {
         </div>
       ) : null}
 
-      {/* 작성 이탈 가드 — 내용이 있을 때만 확인. */}
-      <ConfirmDialog
-        open={leaveOpen}
-        title="작성 취소"
-        message="작성 중인 내용은 저장되지 않아요."
-        cancelText="계속 작성"
-        confirmText="나가기"
-        destructive
-        onCancel={() => setLeaveOpen(false)}
-        onConfirm={() => {
-          setLeaveOpen(false);
-          closeScreen();
-        }}
-      />
+      {/* 작성 이탈 가드(웹 단독 폴백 전용 — 앱에서는 네이티브가 그린다) */}
+      {dialog}
     </div>
   );
 }
