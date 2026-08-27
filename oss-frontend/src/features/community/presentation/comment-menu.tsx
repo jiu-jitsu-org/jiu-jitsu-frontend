@@ -17,11 +17,8 @@ import {
 import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
 import { useReportFlow } from "@/features/community/presentation/use-report-flow";
 import { useToast } from "@/shared/ui";
-import { ConfirmDialog } from "@/features/community/presentation/confirm-dialog";
+import { useNativeDialog } from "@/features/community/presentation/use-native-dialog";
 import { MoreVerticalIcon } from "@/shared/ui/icons";
-
-/** 현재 열린 확인 알럿 종류. 신고는 useReportFlow가 알럿·시트를 함께 소유한다. */
-type ActiveDialog = "delete" | "block" | null;
 
 /**
  * 댓글 ⋮ 메뉴 (클라이언트 leaf).
@@ -40,6 +37,10 @@ type ActiveDialog = "delete" | "block" | null;
  *   대상이 댓글 1건이 아니라 작성자 회원이라 commentId가 아닌 authorId를 넘긴다 — 그 회원의
  *   게시글은 목록에서 빠지고 댓글은 placeholder로 바뀐다(#53).
  * 작성자 id/댓글 id는 웹이 들고 있다가 API에 직접 넘긴다(브릿지로 보내지 않음).
+ *
+ * 삭제·차단 확인 알럿은 useNativeDialog가 "네이티브 우선, 없으면 웹"으로 띄운다 — 피드 카드 ⋮와
+ * 같은 경로다. 무엇을 물어보고 확인 후 무엇을 호출할지는 여기(웹)가 그대로 쥔다.
+ * 계약 상세: docs/native-dialog-bridge.md
  */
 export function CommentMenu({
   commentId,
@@ -55,13 +56,20 @@ export function CommentMenu({
 }) {
   const router = useRouter();
   const demo = useIsDemoMode();
+  const { confirm, dialog } = useNativeDialog();
   const { report, dialog: reportDialog } = useReportFlow();
   const [open, setOpen] = useState(false);
-  const [dialog, setDialog] = useState<ActiveDialog>(null);
   const toast = useToast();
 
-  async function confirmDelete() {
-    setDialog(null);
+  /** 삭제: 확인 알럿 → DELETE → 성공 시 목록 갱신. */
+  async function handleDelete() {
+    const confirmed = await confirm({
+      title: "댓글 삭제",
+      message: "삭제한 댓글은 복구할 수 없어요.",
+      confirmText: "삭제",
+      destructive: true,
+    });
+    if (!confirmed) return;
 
     // 예시(데모)에선 네트워크 없이 토스트만(목록 갱신/삭제 없음).
     if (demo) {
@@ -86,8 +94,15 @@ export function CommentMenu({
     router.refresh();
   }
 
-  async function confirmBlock() {
-    setDialog(null);
+  /** 차단: 확인 알럿 → POST → 성공 시 목록 갱신. */
+  async function handleBlock() {
+    const confirmed = await confirm({
+      title: `${authorNickname}님 차단`,
+      message: "차단하면 해당 유저의 글과 댓글이 보이지 않아요.",
+      confirmText: "차단",
+      destructive: true,
+    });
+    if (!confirmed) return;
 
     // 예시(데모)에선 네트워크 없이 토스트만(실제 차단/목록 갱신 없음).
     if (demo) {
@@ -127,9 +142,9 @@ export function CommentMenu({
   }
 
   const items = isOwner
-    ? [{ label: "삭제", onSelect: () => setDialog("delete") }]
+    ? [{ label: "삭제", onSelect: () => void handleDelete() }]
     : [
-        { label: "차단", onSelect: () => setDialog("block") },
+        { label: "차단", onSelect: () => void handleBlock() },
         { label: "신고", onSelect: () => void handleReport() },
       ];
 
@@ -164,27 +179,8 @@ export function CommentMenu({
         </MenuBox>
       ) : null}
 
-      {/* 삭제 확인 알럿 */}
-      <ConfirmDialog
-        open={dialog === "delete"}
-        title="댓글 삭제"
-        message="삭제한 댓글은 복구할 수 없어요."
-        confirmText="삭제"
-        destructive
-        onCancel={() => setDialog(null)}
-        onConfirm={confirmDelete}
-      />
-
-      {/* 차단 확인 알럿 */}
-      <ConfirmDialog
-        open={dialog === "block"}
-        title={`${authorNickname}님 차단`}
-        message="차단하면 해당 유저의 글과 댓글이 보이지 않아요."
-        confirmText="차단"
-        destructive
-        onCancel={() => setDialog(null)}
-        onConfirm={confirmBlock}
-      />
+      {/* 삭제·차단 확인 알럿(웹 단독 폴백 전용 — 앱에서는 네이티브가 그린다) */}
+      {dialog}
 
       {/* 신고 알럿·사유 시트(웹 단독 폴백 전용 — 앱에서는 네이티브가 그린다) */}
       {reportDialog}
