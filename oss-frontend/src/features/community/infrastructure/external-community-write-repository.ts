@@ -29,6 +29,8 @@ import type { HttpClient } from "@/shared/lib/http";
  * 게시글 삭제는 Swagger 확정 계약(DELETE /board/{id}) — 200 OK, 응답 본문은 사용하지 않는다.
  * 좋아요는 Swagger 확정 계약(PUT /board/like/{id}) — 서버가 토글하고 isLiked를 돌려준다.
  * 저장(북마크)은 Swagger 확정 계약(PUT /board/save/{id}) — 서버가 토글하고 isSaved·saveCount를 돌려준다.
+ * 게시글 알림 수신은 Swagger 확정 계약(PUT /notice/setting/board/{boardId}) — 서버가 토글하고
+ * enabled를 돌려준다. 게시글이 아니라 알림 도메인(notice-controller)에 있어 경로 prefix가 다르다.
  *
  * FIXME: 이미지 경로는 가정 계약이다(Swagger 미확인). 백엔드 확정 시 정합 확인 필요.
  */
@@ -37,6 +39,7 @@ const IMAGE_ENDPOINT_PATH = "/api/image";
 const COMMENT_ENDPOINT_PATH = "/api/community/comments";
 const REPORT_ENDPOINT_PATH = "/api/reports";
 const USER_ENDPOINT_PATH = "/api/user";
+const NOTICE_ENDPOINT_PATH = "/api/notice";
 
 type Envelope<T> = {
   success: boolean;
@@ -139,6 +142,20 @@ export class ExternalCommunityWriteRepository
 
     if (typeof response === "boolean") return response;
     return response.data?.isHidden ?? true;
+  }
+
+  async toggleNotice(postId: number): Promise<boolean> {
+    // PUT /notice/setting/board/{boardId} — 단일 엔드포인트 토글(알림 켜기/끄기).
+    // 응답 data.enabled가 토글 후 상태다. 다른 토글(숨김·차단)에서 봉투 없이 내려온 전례가 있어
+    // 봉투 밖 형태도 함께 허용한다.
+    const response = await this.httpClient.put<
+      Envelope<{ boardId: number; enabled: boolean }> | { enabled: boolean }
+    >({
+      path: `${NOTICE_ENDPOINT_PATH}/setting/board/${postId}`,
+    });
+
+    if ("data" in response) return response.data.enabled;
+    return response.enabled;
   }
 
   async getImageUploadAuth(): Promise<ImageUploadAuth> {
