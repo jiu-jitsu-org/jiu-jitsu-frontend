@@ -10,6 +10,7 @@ import { GetPostDetailUseCase } from "@/features/community/application/get-post-
 import { GetPostListUseCase } from "@/features/community/application/get-post-list";
 import { ToggleBookmarkUseCase } from "@/features/community/application/toggle-bookmark";
 import { ToggleHideUseCase } from "@/features/community/application/toggle-hide";
+import { ToggleNoticeUseCase } from "@/features/community/application/toggle-notice";
 import { ToggleCommentLikeUseCase } from "@/features/community/application/toggle-comment-like";
 import { ToggleLikeUseCase } from "@/features/community/application/toggle-like";
 import { BlockUserUseCase } from "@/features/community/application/block-user";
@@ -112,6 +113,12 @@ export function createToggleHideUseCase(
   accessToken: string,
 ): ToggleHideUseCase {
   return new ToggleHideUseCase(createWriteRepository(accessToken));
+}
+
+export function createToggleNoticeUseCase(
+  accessToken: string,
+): ToggleNoticeUseCase {
+  return new ToggleNoticeUseCase(createWriteRepository(accessToken));
 }
 
 export function createGetImageUploadAuthUseCase(

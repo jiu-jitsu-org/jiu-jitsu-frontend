@@ -53,19 +53,64 @@ export function PostDetailAppBar({
   const { report, dialog: reportDialog } = useReportFlow();
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  // 알림 받기 on/off. 초기값은 게시글의 noticeEnabled, 탭하면 토글(아이콘 변경 + 토스트).
-  // FIXME: 실제 알림 설정 저장(PATCH)은 API 확정 후 추가.
+  // 알림 받기 on/off. 초기값은 게시글의 noticeEnabled, 탭하면 서버에 저장한다(#46).
   const [alarmOn, setAlarmOn] = useState(initialNoticeEnabled);
+  // 저장 중 재탭 방지 — 토글 엔드포인트라 연타하면 서버 상태가 화면과 어긋난 채로 뒤집힌다.
+  const [alarmPending, setAlarmPending] = useState(false);
 
   // 네이티브 뒤로가기: 상세는 이탈 가드가 없어 BACK_GUARD를 통지하지 않는다 → 네이티브가 직접 닫는다.
   // (정상/에러 어느 화면이든 네이티브가 처리하므로 웹 측 back 코드가 필요 없다.)
 
-  function toggleAlarm() {
-    const next = !alarmOn;
+  /**
+   * 알림 받기 토글 → 서버 저장(POST /api/community/posts/{id}/notice).
+   *
+   * 종 아이콘은 탭 즉시 뒤집되(반응성), 안내 토스트는 서버가 저장을 확정한 뒤에 띄운다 —
+   * 낙관적으로 먼저 띄우면 실패 시 "받아요" 다음에 "실패했습니다"가 겹쳐 상반된 안내가 된다.
+   * 실패하면 아이콘을 원래 상태로 되돌린다(재진입 시 서버 값과 어긋나지 않도록).
+   */
+  async function toggleAlarm() {
+    if (alarmPending) return;
+
+    const previous = alarmOn;
+    const next = !previous;
     setAlarmOn(next);
-    toast.show(
-      next ? "이제부터 이 글의 알림을 받아요" : "이제부터 이 글의 알림을 받지 않아요",
-    );
+
+    // 예시(데모)에선 네트워크 없이 토스트만(저장·롤백 없음).
+    if (demo) {
+      toast.show(alarmToast(next));
+      return;
+    }
+
+    setAlarmPending(true);
+    try {
+      const response = await bffFetch(
+        `/api/community/posts/${postId}/notice`,
+        { method: "POST" },
+      );
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
+        }
+        throw new Error(`notice request failed: ${response.status}`);
+      }
+
+      // 서버가 현재 설정을 뒤집어 결과(enabled)를 돌려주는 토글이라, 다른 화면·기기에서 이미
+      // 바뀌어 있었다면 결과가 next와 다를 수 있다 → 응답 값을 진실로 삼는다.
+      const body = (await response.json().catch(() => null)) as
+        | { data?: { enabled?: boolean } }
+        | null;
+      const enabled =
+        typeof body?.data?.enabled === "boolean" ? body.data.enabled : next;
+
+      setAlarmOn(enabled);
+      toast.show(alarmToast(enabled));
+    } catch {
+      setAlarmOn(previous);
+      toast.show("알림 설정에 실패했습니다");
+    } finally {
+      setAlarmPending(false);
+    }
   }
 
   async function confirmDelete() {
@@ -171,9 +216,10 @@ export function PostDetailAppBar({
       <div className="ml-auto flex items-center">
         <button
           type="button"
-          onClick={toggleAlarm}
+          onClick={() => void toggleAlarm()}
           aria-label={alarmOn ? "알림 끄기" : "알림 켜기"}
           aria-pressed={alarmOn}
+          disabled={alarmPending}
           className="inline-flex size-10 items-center justify-center text-icon-primary"
         >
           {alarmOn ? <BellIcon size={24} /> : <BellOffIcon size={24} />}
@@ -246,4 +292,11 @@ export function PostDetailAppBar({
       {reportDialog}
     </AppBarShell>
   );
+}
+
+/** 알림 on/off 안내 문구 — 확정된 상태 기준으로만 만든다. */
+function alarmToast(enabled: boolean): string {
+  return enabled
+    ? "이제부터 이 글의 알림을 받아요"
+    : "이제부터 이 글의 알림을 받지 않아요";
 }

@@ -85,6 +85,11 @@ export interface CommunityWriteRepository {
    * 결과를 알려주므로, 토글 후의 숨김 여부(true=숨김)를 반환한다.
    */
   toggleHide(postId: number): Promise<boolean>;
+  /**
+   * 게시글 알림 수신 토글(PUT /notice/setting/board/{boardId}). 서버가 현재 설정을 뒤집고
+   * 결과를 알려주므로, 토글 후의 수신 여부(true=알림 받음)를 반환한다.
+   */
+  toggleNotice(postId: number): Promise<boolean>;
   /** ① ImageKit 업로드용 서명 발급(GET /image/auth). */
   getImageUploadAuth(): Promise<ImageUploadAuth>;
   /** ③ ImageKit 업로드 결과를 서버에 등록(POST /image) → TEMP 이미지. */
