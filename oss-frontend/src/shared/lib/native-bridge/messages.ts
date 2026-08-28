@@ -35,6 +35,11 @@ export const OutboundMessageType = {
   // 두 메시지는 결과 회신이 필요한 유일한 케이스라 requestId로 요청↔응답을 짝짓는다.
   SHOW_CONFIRM_DIALOG: "SHOW_CONFIRM_DIALOG",
   SHOW_SELECT_SHEET: "SHOW_SELECT_SHEET",
+  // 시스템 공유 시트 표시 요청. 위 둘과 달리 결과 회신이 없어 requestId를 두지 않는다 —
+  // 어디로 공유했든, 시트를 닫았든 웹이 이어붙일 후처리가 없기 때문(공유 수·공유 기록 미보유 정책).
+  // 상시 전송이 아니다: navigator.share는 엔진이 OS 시트를 직접 띄우므로 그게 있으면 웹이 자체 처리하고,
+  // 이 메시지는 Web Share API가 없는 웹뷰(Android WebView 등)에서만 나간다.
+  SHOW_SHARE_SHEET: "SHOW_SHARE_SHEET",
 } as const;
 export type OutboundMessageType =
   (typeof OutboundMessageType)[keyof typeof OutboundMessageType];
@@ -141,6 +146,18 @@ export type SelectSheetResultPayload = {
   result: SelectSheetResult;
   value?: string;
   customText?: string;
+};
+
+/**
+ * `SHOW_SHARE_SHEET` payload — 네이티브가 띄울 시스템 공유 시트.
+ *
+ * url은 공유 대상(게시글 상세)의 절대 URL이다. 환경별 origin을 그대로 실어 보내 dev는 dev,
+ * 운영은 운영 링크가 공유된다. 정렬 등 쿼리 파라미터는 보류 — 파라미터 없는 형태로 보낸다.
+ */
+export type ShareSheetPayload = {
+  url: string;
+  /** 공유 미리보기·메일 제목에 쓸 문구(선택). 문구 소유권을 웹에 두기 위해 payload로 넘긴다. */
+  title?: string;
 };
 
 /** `AUTH_LOGIN_SUCCESS` payload. refreshToken은 네이티브가 보관하고 웹엔 accessToken만 전달. */

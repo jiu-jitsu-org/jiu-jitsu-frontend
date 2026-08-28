@@ -3,6 +3,7 @@ import {
   type BridgeMessage,
   type InboundMessage,
   type OpenSubviewPayload,
+  type ShareSheetPayload,
 } from "./messages";
 
 /**
@@ -88,6 +89,25 @@ export function openNativeSubview(
 /** 현재 서브뷰(풀 웹뷰)를 닫도록 네이티브에 요청한다(pop). 웹 헤더 뒤로가기에서 사용. */
 export function closeNativeSubview(): void {
   postToNative({ type: OutboundMessageType.CLOSE_SUBVIEW });
+}
+
+/**
+ * 네이티브 시스템 공유 시트를 띄우도록 요청한다.
+ *
+ * 결과를 기다리지 않는 단방향 메시지다 — 어디로 공유했든 시트를 닫았든 웹이 이어붙일 후처리가 없어
+ * requestId·회신이 필요 없다(알럿·선택 시트와 다른 점).
+ *
+ * 호출부는 navigator.share가 없을 때만 이걸 쓴다. Web Share API가 있으면 엔진이 OS 공유 시트를
+ * 직접 띄우므로(WKWebView 포함) 굳이 브릿지를 태우지 않는 편이 앱 배포와 결합되지 않는다.
+ */
+export function showNativeShareSheet(
+  url: string,
+  options?: Pick<ShareSheetPayload, "title">,
+): void {
+  postToNative({
+    type: OutboundMessageType.SHOW_SHARE_SHEET,
+    payload: { url, ...options },
+  });
 }
 
 /**
