@@ -117,7 +117,7 @@ export function PostDetailAppBar({
     }
   }
 
-  /** 삭제: 확인 알럿 → DELETE → 성공 시 네이티브가 상세를 닫는다. */
+  /** 삭제: 확인 알럿 → DELETE → 성공 시 완료 문구를 목록에 넘기고 상세를 닫는다. */
   async function handleDelete() {
     const confirmed = await confirm({
       title: "게시글 삭제",
@@ -145,9 +145,10 @@ export function PostDetailAppBar({
       return;
     }
 
-    toast.show("게시물이 삭제되었습니다");
-    // 성공 → 네이티브가 상세 서브뷰를 닫고 목록으로 복귀(목록 갱신은 네이티브 책임).
-    closeNativeSubview();
+    // 닫히는 화면에 띄우면 토스트도 웹뷰와 함께 사라진다 → 문구만 넘기고 목록이 띄운다.
+    enqueuePendingToast("게시물이 삭제되었습니다");
+    // 카드 제거는 복귀 시 단건 재조회(404)가 처리한다(#73).
+    closeDetail();
   }
 
   /**
