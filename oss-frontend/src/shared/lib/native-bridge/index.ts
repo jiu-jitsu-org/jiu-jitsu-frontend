@@ -12,6 +12,7 @@ export type {
   SelectSheetOption,
   SelectSheetPayload,
   SelectSheetResult,
+  ShareSheetPayload,
 } from "./messages";
 export {
   closeNativeSubview,
@@ -20,6 +21,7 @@ export {
   openNativeSubview,
   postToNative,
   registerWebBridge,
+  showNativeShareSheet,
 } from "./native-bridge";
 export type { BridgePlatform } from "./native-bridge";
 export { useNativeBackHandler } from "./native-back";

@@ -4,6 +4,10 @@ import { COMMENT_INPUT_ELEMENT_ID } from "@/features/community/presentation/comm
 import { usePostActions } from "@/features/community/presentation/use-post-actions";
 import { cn } from "@/shared/lib/cn";
 import {
+  isNativeBridgeAvailable,
+  showNativeShareSheet,
+} from "@/shared/lib/native-bridge";
+import {
   BookmarkIcon,
   CommentIcon,
   HeartIcon,
@@ -16,6 +20,8 @@ import {
  * 댓글쓰기·공유가 추가되어 FeedCardReactions와 구성이 다르므로 별도 컴포넌트로 둔다.
  * 좋아요/북마크는 usePostActions로 낙관적 토글하고, 댓글은 서버가 준 상태를 표시만 한다.
  * 공유는 카운트도 상태도 두지 않는다(정책) — 아이콘 탭으로 공유 시트를 여는 것이 전부다.
+ * 시트 자체는 navigator.share(엔진이 OS 시트를 띄운다)가 1순위고, 이를 지원하지 않는 웹뷰에서만
+ * 네이티브 브릿지에 위임한다 — 자세한 순서와 이유는 아래 share() 참고.
  *
  * 배치: 태그 아래(디바이더 없음), 우측 정렬. 좌우 16(px-4). 버튼 간격 8(gap-2).
  * 버튼 공통: 높이 28 고정 / radius 10 / 아이콘 16 / 아이콘↔텍스트 4 / 배경과의 좌우 마진 8.
@@ -66,11 +72,21 @@ export function PostActionBar({
   }
 
   /**
-   * Web Share API 우선, 미지원 시 링크 복사 fallback.
-   * FIXME: 네이티브 공유 시트 연동(SHARE_* 브릿지 메시지)은 메시지 계약 정의 후 추가.
+   * 공유 시트 열기 — navigator.share → 네이티브 브릿지 → 링크 복사 순.
+   *
+   * navigator.share를 맨 앞에 두는 이유: 이 API는 웹이 그린 UI가 아니라 엔진이 OS 공유 시트를
+   * 직접 present 한다. iOS 웹뷰(WKWebView)가 이를 구현하고 있어 앱 안에서도 이미 네이티브
+   * 시트가 뜬다 — 무조건 브릿지로 보내면 iOS가 SHOW_SHARE_SHEET를 구현·배포하기 전까지
+   * 공유가 무반응이 된다(회신 없는 단방향이라 웹이 실패를 감지해 되돌릴 수도 없다).
+   *
+   * 브릿지는 navigator.share가 없는 웹뷰(Android WebView)를 위한 경로다. 앱이 공유 항목·
+   * 제외 액티비티를 직접 소유해야 할 때가 오면 이 순서만 뒤집으면 된다.
+   *
+   * 공유 URL은 현재 상세의 절대 URL을 환경별 origin 그대로 쓰되 쿼리(정렬 등)·해시는 뗀다.
+   * 열람 맥락일 뿐 공유받는 사람에게는 의미가 없기 때문. (포함 여부는 이슈에서 보류 상태)
    */
   async function share() {
-    const url = window.location.href;
+    const url = `${window.location.origin}${window.location.pathname}`;
 
     if (navigator.share) {
       try {
@@ -78,6 +94,11 @@ export function PostActionBar({
       } catch {
         // 사용자가 공유 시트를 닫은 경우 등 — 무시.
       }
+      return;
+    }
+
+    if (isNativeBridgeAvailable()) {
+      showNativeShareSheet(url);
       return;
     }
 
