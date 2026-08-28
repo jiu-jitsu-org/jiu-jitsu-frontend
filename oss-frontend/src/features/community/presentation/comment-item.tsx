@@ -53,6 +53,17 @@ export function CommentItem({
       </CommentReplies>
     ) : null;
 
+  // 삭제된 댓글은 목록에서 빼지 않고 자리 표시만 남긴다 — 대댓글(children)은 그대로 노출된다.
+  // 신고보다 먼저 본다: 신고해 둔 댓글이 뒤이어 삭제됐다면 최종 상태는 삭제다.
+  // FIXME(#61 후속): 되돌리기(복구)는 복구 API(backend#112) 선행이라 이번 범위에서 제외.
+  if (comment.isDeleted) {
+    return (
+      <CommentPlaceholder message="삭제한 댓글입니다." isReply={isReply}>
+        {replies}
+      </CommentPlaceholder>
+    );
+  }
+
   // 내가 신고한 댓글은 본문 대신 자리 표시만 남긴다(신고자 본인 화면 한정).
   if (comment.isReported) {
     return (
