@@ -57,8 +57,9 @@ export function useFeedRevalidate({
   // "진짜 복귀" 확정 타이머. 다시 가려지면 취소해 기록을 남긴다.
   const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 세 콜백은 useBoardFeed가 useCallback([])으로 만들어 렌더마다 바뀌지 않는다.
-  // 그래서 그대로 의존성에 두어도 아래 effect가 리스너를 재등록하지 않는다.
+  // 세 콜백 모두 참조가 안정적이라(useBoardFeed의 useCallback([]) 또는 그것만 의존하는 래퍼)
+  // 그대로 의존성에 두어도 아래 effect가 리스너를 재등록하지 않는다. 호출부가 여기에 넘기는
+  // removePost는 실제로는 "접었다 제거"라, 이 조건이 깨지면 복귀 감지가 통째로 흔들린다.
   const revalidate = useCallback(async () => {
     const target = peekRevalidateTarget();
     if (target.postIds.length === 0 && target.createdPostId === null) return;
