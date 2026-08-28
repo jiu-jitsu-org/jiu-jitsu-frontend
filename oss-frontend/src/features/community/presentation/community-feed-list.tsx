@@ -87,7 +87,12 @@ export function CommunityFeedList({
     });
   }, []);
 
-  /** 접은 뒤 목록에서 걷어낸다 — 삭제 · 신고 · 숨기기가 모두 이 경로를 탄다. */
+  /**
+   * 접은 뒤 목록에서 걷어낸다 — 카드가 빠지는 모든 경로가 여기로 모인다.
+   *
+   * 목록 ⋮(삭제 · 신고 · 숨기기)와 상세에서 숨긴 신호는 즉시, 상세에서 삭제 · 신고 · 차단한 글은
+   * 복귀 후 재조회 404로 뒤늦게 도착한다(#73). 어느 쪽이든 사라지는 모습은 같아야 한다.
+   */
   const collapseAndRemove = useCallback(
     (postId: number) => {
       setCollapsed(postId, true);
@@ -154,7 +159,13 @@ export function CommunityFeedList({
 
   usePendingToast(handlePendingAction, handleUndoHide);
 
-  useFeedRevalidate({ replacePost, removePost, prependNew });
+  // 404로 걷어내는 카드도 접었다 제거한다 — 삭제 · 신고 · 차단은 상세에서 벌어지고 목록은
+  // 복귀 후 재조회로 알게 되는데, 여기서 곧장 지우면 목록 ⋮ 경로와 달리 카드가 툭 사라진다.
+  useFeedRevalidate({
+    replacePost,
+    removePost: collapseAndRemove,
+    prependNew,
+  });
 
   // 에러 상태에선 자동 재요청을 멈추고, 사용자가 재시도 버튼으로만 다시 시도하게 한다.
   const sentinelRef = useInfiniteScroll({
