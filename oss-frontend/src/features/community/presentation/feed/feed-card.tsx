@@ -317,18 +317,9 @@ export function FeedCardBody({
 
 export function FeedCardImages({
   images,
-  ratio = "auto",
   className,
 }: {
   images: FeedImage[];
-  /**
-   * 이미지 영역 비율.
-   * - `auto`(기본, 피드 카드): 원본 비율 유지 + 최대 높이 458.
-   * - `square`(상세): 1:1 고정 — 상세는 여러 장을 가로 캐러셀로 넘길 예정이라 장마다 높이가
-   *   달라지면 안 된다. 어떤 기준으로 통일할지(크롭 vs 여백)는 정책 확정 대기 중이라,
-   *   지금은 디자인 샘플대로 1:1 + 가운데 크롭만 맞춘다.
-   */
-  ratio?: "auto" | "square";
   className?: string;
 }) {
   const [cover, ...rest] = images;
@@ -339,9 +330,8 @@ export function FeedCardImages({
     <FeedCardCover
       key={cover.url}
       image={cover}
-      // 목록·상세 모두 대표 1장만 노출하므로, 나머지 장수는 대표 위 +N 오버레이로만 알린다.
+      // 목록은 대표 1장만 노출하므로, 나머지 장수는 대표 위 +N 오버레이로만 알린다.
       extraCount={rest.length}
-      ratio={ratio}
       className={className}
     />
   );
@@ -367,27 +357,28 @@ function withRetryParam(url: string, attempt: number): string {
 function FeedCardCover({
   image,
   extraCount,
-  ratio,
   className,
 }: {
   image: FeedImage;
   extraCount: number;
-  ratio: "auto" | "square";
   className?: string;
 }) {
   const [attempt, setAttempt] = useState(0);
   const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
-  // SSR로 그려진 <img>는 하이드레이션 전에 error가 나 onError를 놓칠 수 있어, 부착 직후
-  // 이미 실패한(complete && naturalWidth===0) 상태를 직접 감지한다(아바타와 동일).
-  const detectBrokenImage = useCallback((img: HTMLImageElement | null) => {
-    if (img?.complete && img.naturalWidth === 0) {
-      setFailed(true);
-    }
+  // SSR로 그려진 <img>는 하이드레이션 전에 load/error가 끝나 콜백을 놓칠 수 있어, 부착 직후
+  // 이미 끝난(complete) 상태를 직접 확인한다(아바타와 동일). naturalWidth 0이면 실패다.
+  const detectSettledImage = useCallback((img: HTMLImageElement | null) => {
+    if (!img?.complete) return;
+    if (img.naturalWidth === 0) setFailed(true);
+    else setLoaded(true);
   }, []);
 
   function handleRetry() {
     setFailed(false);
+    // 다시 받는 동안에도 자리는 잡혀 있어야 하므로 플레이스홀더 상태로 되돌린다.
+    setLoaded(false);
     setAttempt((value) => value + 1);
   }
 
@@ -416,20 +407,28 @@ function FeedCardCover({
   return (
     <div className={cn("relative overflow-hidden rounded-2xl", className)}>
       {/* 가로는 카드 내용 폭(343)에 꽉 채운다. 초과분은 object-cover로 center crop. */}
-      {/* auto: 높이는 원본 비율대로 자동, 최대 458(343의 4:3 세로 기준). 최소 높이 없음. */}
+      {/* 높이는 원본 비율대로 자동, 최대 458(343의 4:3 세로 기준). 최소 높이 없음. */}
       {/* 비어 있을 때 채움색: Color/Cool Gray/50 */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        ref={detectBrokenImage}
+        ref={detectSettledImage}
         src={withRetryParam(image.url, attempt)}
         alt={image.alt ?? ""}
+        // FIXME: 서버가 원본 치수를 안 내려줘 항상 undefined다(jiu-jitsu-org/jiu-jitsu-backend#116).
+        // 값이 오기 시작하면 아래 플레이스홀더 분기가 속성 비율을 덮어쓰지 않도록 손봐야 한다.
         width={image.width}
         height={image.height}
+        onLoad={() => setLoaded(true)}
         onError={() => setFailed(true)}
         className={cn(
           // block: inline 이미지의 baseline 여백을 없애 뱃지가 이미지 하단에 정확히 붙게 한다.
           "block w-full bg-[var(--cool-gray-50)] object-cover object-center",
-          ratio === "square" ? "aspect-square" : "max-h-[458px]",
+          loaded
+            ? "max-h-[458px]"
+            : // 로드 전에는 기준 비율 343:220으로 자리를 잡는다. 높이 0으로 시작해 로드 순간
+              // 아래 요소를 밀어내는 시프트를 막는 게 목적이고, 실패 폴백도 같은 343:220이라
+              // 어느 쪽으로 끝나든 확보한 영역이 그대로 유지된다.
+              "aspect-[343/220]",
         )}
       />
       {extraCount > 0 ? (
