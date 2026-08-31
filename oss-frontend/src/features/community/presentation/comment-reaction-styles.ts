@@ -29,3 +29,15 @@ export const COMMENT_REACTION_TEXT =
 /** Active(내가 누른/단) 상태의 카운트 텍스트 색. */
 export const COMMENT_REACTION_TEXT_ACTIVE =
   "text-reaction-bar-active-count-text";
+
+/**
+ * 표시 전용(비활성) 버튼 — 외부 브라우저(비로그인)에서 로그인 기반 반응에 쓴다(#72).
+ *
+ * 누를 수 없으므로 Pressed·Active 상태가 없다. 색은 reaction-bar/disabled/* 패밀리.
+ */
+export const COMMENT_REACTION_READONLY =
+  "inline-flex h-7 items-center gap-1 rounded-[10px] px-2 text-reaction-bar-disabled-icon";
+
+/** 표시 전용 카운트/라벨 텍스트: Body S(14/21). */
+export const COMMENT_REACTION_TEXT_READONLY =
+  "text-sm leading-[21px] text-reaction-bar-disabled-count-text";
