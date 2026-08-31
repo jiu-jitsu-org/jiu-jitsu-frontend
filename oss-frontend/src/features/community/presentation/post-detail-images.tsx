@@ -288,7 +288,10 @@ function CarouselSlide({
         onRetry={handleRetry}
         className={cn("h-full shrink-0", snapAlign)}
         // 실패한 장도 자리를 차지해야 페이징이 어긋나지 않는다. 원본 비율을 모르니 정사각.
-        style={{ width: SLIDE_HEIGHT }}
+        // height 100%: 안내 박스에는 자체 높이가 없어, 주지 않으면 콘텐츠 높이(≈145)로 쪼그라들고
+        // 슬라이드(min(W, Hmax)) 아래가 흰 여백으로 남는다. 1장·피드는 각각 style.height와
+        // aspect 클래스로 높이가 들어와 이 문제가 없었다.
+        style={{ width: SLIDE_HEIGHT, height: "100%" }}
       />
     );
   }
