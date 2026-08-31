@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 
+import { readSettledImage } from "@/features/community/presentation/image-fallback";
 import { cn } from "@/shared/lib/cn";
 import { PersonIcon } from "@/shared/ui/icons";
 
@@ -24,15 +25,11 @@ export function Avatar({
   // 달라져 새 이미지를 다시 시도하므로, 폴백을 풀어주는 초기화 로직이 필요 없다.
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
 
-  // SSR로 그려진 <img>는 하이드레이션 전에 error가 발생해 onError를 놓칠 수 있다.
-  // ref 콜백은 DOM 부착 직후(커밋 시점) 실행되므로 이미 로드 실패한
-  // (complete && naturalWidth===0) 이미지를 그 자리에서 감지해 폴백한다.
+  // 아바타는 실패만 본다 — 성공 시 할 일이 없다(대체 아이콘을 안 띄우면 그만).
   // src가 바뀌면 콜백 identity가 바뀌어 새 이미지에 대해 다시 실행된다.
   const detectBrokenImage = useCallback(
     (img: HTMLImageElement | null) => {
-      if (img?.complete && img.naturalWidth === 0) {
-        setFailedSrc(src ?? null);
-      }
+      if (readSettledImage(img) === "failed") setFailedSrc(src ?? null);
     },
     [src],
   );

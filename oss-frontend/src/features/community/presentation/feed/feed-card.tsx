@@ -9,6 +9,11 @@ import {
   type ReactNode,
 } from "react";
 
+import {
+  ImageLoadError,
+  readSettledImage,
+  withRetryParam,
+} from "@/features/community/presentation/image-fallback";
 import { cn } from "@/shared/lib/cn";
 import {
   BookmarkIcon,
@@ -173,12 +178,9 @@ function formatDateLabel(iso: string): string {
 function FeedCardAvatar({ avatarUrl }: { avatarUrl?: string }) {
   const [failed, setFailed] = useState(false);
 
-  // ref 콜백은 DOM 부착 직후(커밋 시점) 실행되므로, 하이드레이션 전에 이미 깨진
-  // (complete && naturalWidth===0) 이미지를 즉시 감지해 폴백한다 — onError를 놓치는 경우 보완.
+  // 아바타는 실패만 본다 — 성공 시 할 일이 없다(대체 아이콘을 안 띄우면 그만).
   const detectBrokenImage = useCallback((img: HTMLImageElement | null) => {
-    if (img?.complete && img.naturalWidth === 0) {
-      setFailed(true);
-    }
+    if (readSettledImage(img) === "failed") setFailed(true);
   }, []);
 
   const showImage = Boolean(avatarUrl) && !failed;
@@ -338,16 +340,6 @@ export function FeedCardImages({
 }
 
 /**
- * 재시도용 URL — 같은 src를 그대로 다시 넣으면 브라우저가 실패한 응답을 캐시에서 재사용할 수 있어
- * 시도 횟수를 쿼리로 붙여 매번 새 요청으로 만든다.
- * 이미지 주소는 CDN 공개 URL(서명 파라미터 없음)이라 파라미터 추가가 접근을 깨지 않는다.
- */
-function withRetryParam(url: string, attempt: number): string {
-  if (attempt === 0) return url;
-  return `${url}${url.includes("?") ? "&" : "?"}retry=${attempt}`;
-}
-
-/**
  * 대표 이미지 1장 + `+N` 오버레이 + 로드 실패 폴백.
  *
  * 실패하면 빈 회색 박스 대신 안내와 재시도를 보여준다 — 아바타(FeedCardAvatar)와 같은 원칙이되,
@@ -367,12 +359,11 @@ function FeedCardCover({
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
-  // SSR로 그려진 <img>는 하이드레이션 전에 load/error가 끝나 콜백을 놓칠 수 있어, 부착 직후
-  // 이미 끝난(complete) 상태를 직접 확인한다(아바타와 동일). naturalWidth 0이면 실패다.
+  // 커버는 성공도 봐야 한다 — 로드 전 자리를 잡아둔 플레이스홀더를 성공 시점에 풀기 때문이다.
   const detectSettledImage = useCallback((img: HTMLImageElement | null) => {
-    if (!img?.complete) return;
-    if (img.naturalWidth === 0) setFailed(true);
-    else setLoaded(true);
+    const settled = readSettledImage(img);
+    if (settled === "failed") setFailed(true);
+    else if (settled === "loaded") setLoaded(true);
   }, []);
 
   function handleRetry() {
@@ -384,23 +375,12 @@ function FeedCardCover({
 
   if (failed) {
     return (
-      <div className={cn("overflow-hidden rounded-2xl", className)}>
-        {/* 영역 비율은 피드·상세 공통 343:220 — 실패해도 아래 요소가 밀려 올라오지 않는다. */}
-        {/* 내용은 세로 가운데가 아니라, 안내 문구가 컨테이너 top에서 84에 오도록 붙인다. */}
-        <div className="flex aspect-[343/220] w-full flex-col items-center bg-image-load-error-bg pt-[84px]">
-          <p className="text-body-s text-image-load-error-text">
-            이미지를 불러올 수 없어요
-          </p>
-          {/* 재시도: 64(hug) x 32, radius 10 — 라벨이 길어지면 가로로만 늘어난다. */}
-          <button
-            type="button"
-            onClick={handleRetry}
-            className="text-body-s mt-2 inline-flex h-8 min-w-16 items-center justify-center rounded-[10px] bg-button-neutral-default-bg px-2 text-button-neutral-default-text"
-          >
-            재시도
-          </button>
-        </div>
-      </div>
+      <ImageLoadError
+        onRetry={handleRetry}
+        className={className}
+        // 로드 전 플레이스홀더와 같은 343:220 — 실패해도 확보한 영역이 그대로 유지된다.
+        sizeClassName="aspect-[343/220]"
+      />
     );
   }
 

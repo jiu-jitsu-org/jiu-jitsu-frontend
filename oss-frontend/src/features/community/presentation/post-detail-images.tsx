@@ -1,14 +1,13 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type CSSProperties,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { PostImage } from "@/features/community/domain/post";
+import {
+  ImageLoadError,
+  readSettledImage,
+  withRetryParam,
+} from "@/features/community/presentation/image-fallback";
 import { cn } from "@/shared/lib/cn";
 
 /**
@@ -58,15 +57,6 @@ const IMAGE_WIDTH = `calc(100vw - ${SIDE_INSET})`;
 /** 캐러셀 높이 — 전 장 공통 min(W, Hmax). */
 const SLIDE_HEIGHT = `min(${IMAGE_WIDTH}, ${VIEWPORT_HEIGHT_GUARD})`;
 
-/**
- * 재시도용 URL — 같은 src를 그대로 다시 넣으면 브라우저가 실패한 응답을 캐시에서 재사용할 수 있어
- * 시도 횟수를 쿼리로 붙여 매번 새 요청으로 만든다. (피드 카드와 동일 규칙)
- */
-function withRetryParam(url: string, attempt: number): string {
-  if (attempt === 0) return url;
-  return `${url}${url.includes("?") ? "&" : "?"}retry=${attempt}`;
-}
-
 export function PostDetailImages({
   images,
   className,
@@ -109,7 +99,8 @@ function SingleImage({
    */
   const measureCrop = useCallback(() => {
     const img = imageRef.current;
-    if (!img?.complete || img.naturalWidth === 0 || img.clientWidth === 0) {
+    // 아직 로드가 끝나지 않았거나 실패했으면 잴 것이 없다. clientWidth 0은 레이아웃 전.
+    if (!img || readSettledImage(img) !== "loaded" || img.clientWidth === 0) {
       return;
     }
     const naturalRatio = img.naturalHeight / img.naturalWidth;
@@ -123,14 +114,14 @@ function SingleImage({
     return () => window.removeEventListener("resize", measureCrop);
   }, [measureCrop]);
 
-  // SSR로 그려진 <img>는 하이드레이션 전에 load/error가 끝나 콜백을 놓칠 수 있어,
-  // 부착 직후 이미 끝난(complete) 상태를 직접 확인한다.
+  // 크롭 측정에 엘리먼트가 필요해 ref를 함께 보관한다.
+  // 성공이면 그 자리에서 크롭을 재는 것이 이 화면만의 반응이다.
   const attachImage = useCallback(
     (img: HTMLImageElement | null) => {
       imageRef.current = img;
-      if (!img?.complete) return;
-      if (img.naturalWidth === 0) setFailed(true);
-      else measureCrop();
+      const settled = readSettledImage(img);
+      if (settled === "failed") setFailed(true);
+      else if (settled === "loaded") measureCrop();
     },
     [measureCrop],
   );
@@ -281,8 +272,9 @@ function CarouselSlide({
   // snap-always: 스와이프 관성이 스냅 지점을 지나쳐 두 장씩 넘어가는 걸 막는다 — 한 번에 한 장.
   const snapAlign = cn("snap-always", isLast ? "snap-end" : "snap-start");
 
+  // 슬라이드는 실패만 본다 — 성공 시 별도로 할 일이 없다(높이 고정이라 측정이 필요 없음).
   const detectBrokenImage = useCallback((img: HTMLImageElement | null) => {
-    if (img?.complete && img.naturalWidth === 0) setFailed(true);
+    if (readSettledImage(img) === "failed") setFailed(true);
   }, []);
 
   function handleRetry() {
@@ -326,35 +318,3 @@ function CarouselSlide({
   );
 }
 
-/** 로드 실패 안내 + 재시도. 확보한 영역을 유지해 아래 요소가 밀려 올라오지 않게 한다. */
-function ImageLoadError({
-  onRetry,
-  className,
-  style,
-}: {
-  onRetry: () => void;
-  className?: string;
-  style?: CSSProperties;
-}) {
-  return (
-    <div className={cn("overflow-hidden rounded-2xl", className)}>
-      {/* 안내 문구는 세로 가운데가 아니라 컨테이너 top에서 84에 붙인다(피드와 동일 규격). */}
-      <div
-        style={style}
-        className="flex w-full flex-col items-center bg-image-load-error-bg pt-[84px]"
-      >
-        <p className="text-body-s text-image-load-error-text">
-          이미지를 불러올 수 없어요
-        </p>
-        {/* 재시도: 64(hug) x 32, radius 10 — 라벨이 길어지면 가로로만 늘어난다. */}
-        <button
-          type="button"
-          onClick={onRetry}
-          className="text-body-s mt-2 inline-flex h-8 min-w-16 items-center justify-center rounded-[10px] bg-button-neutral-default-bg px-2 text-button-neutral-default-text"
-        >
-          재시도
-        </button>
-      </div>
-    </div>
-  );
-}
