@@ -8,10 +8,10 @@
 export function CommentEmpty() {
   return (
     <div className="flex flex-col items-center gap-3 pb-16 pt-3 text-center">
-      <p className="text-base font-medium text-feed-card-header-username-text">
+      <p className="text-body-m text-feed-card-header-username-text">
         댓글이 아직 없습니다.
       </p>
-      <p className="text-sm leading-[21px] text-feed-card-body-text">
+      <p className="text-body-s text-feed-card-body-text">
         첫 댓글을 남겨주세요! 오스!
       </p>
     </div>

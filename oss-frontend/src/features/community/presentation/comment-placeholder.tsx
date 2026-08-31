@@ -57,7 +57,7 @@ export function CommentPlaceholder({
             className="shrink-0 text-comment-tombstone-icon"
           />
           {/* Body M(16 Medium / 19) */}
-          <p className="min-w-0 flex-1 text-base font-medium leading-[19px]">
+          <p className="min-w-0 flex-1 text-body-m leading-[19px]">
             {message}
           </p>
         </div>

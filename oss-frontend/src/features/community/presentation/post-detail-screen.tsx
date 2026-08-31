@@ -64,10 +64,10 @@ function PostDetailLoading() {
 function PostDetailError({ message }: { message: string }) {
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center gap-2 px-6 text-center">
-      <p className="text-base font-medium text-text-primary">
+      <p className="text-body-m text-text-primary">
         게시글을 불러오지 못했습니다.
       </p>
-      <p className="text-sm text-text-tertiary">{message}</p>
+      <p className="text-body-s text-text-tertiary">{message}</p>
     </div>
   );
 }

@@ -48,7 +48,7 @@ export function CommentSortSelect({ sort }: { sort: CommentSort }) {
         onClick={() => setOpen((value) => !value)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="inline-flex h-8 items-center gap-0.5 pl-2 pr-1 text-xs font-semibold text-comment-sort-select-default-text"
+        className="inline-flex h-8 items-center gap-0.5 pl-2 pr-1 text-button-s text-comment-sort-select-default-text"
       >
         {current.label}
         <ChevronDownIcon size={16} />

@@ -83,12 +83,12 @@ export function ConfirmDialog({
         className="relative w-full max-w-[320px] rounded-[20px] bg-dialog-container-bg px-5 pb-5 pt-5"
       >
         {/* 제목: Title2(Pretendard Semibold 20), 색 dialog/title-text, 좌측 정렬 */}
-        <h2 className="text-left text-xl font-semibold text-dialog-title-text">
+        <h2 className="text-left text-title-2 text-dialog-title-text">
           {title}
         </h2>
         {message ? (
           // 설명: Body M(16/24), 색 dialog/description-text, 좌측 정렬
-          <p className="mt-2 text-left text-base font-medium leading-6 text-dialog-description-text">
+          <p className="mt-2 text-left text-body-m text-dialog-description-text">
             {message}
           </p>
         ) : null}
@@ -99,7 +99,7 @@ export function ConfirmDialog({
           <button
             type="button"
             onClick={onCancel}
-            className="h-[51px] flex-1 rounded-[15px] bg-button-neutral-default-bg text-base font-semibold text-button-neutral-default-text"
+            className="h-[51px] flex-1 rounded-[15px] bg-button-neutral-default-bg text-button-m text-button-neutral-default-text"
           >
             {cancelText}
           </button>
@@ -107,7 +107,7 @@ export function ConfirmDialog({
             type="button"
             onClick={onConfirm}
             className={cn(
-              "h-[51px] flex-1 rounded-[15px] text-base font-semibold text-button-filled-default-text",
+              "h-[51px] flex-1 rounded-[15px] text-button-m text-button-filled-default-text",
               destructive
                 ? "bg-confirm-dialog-destructive-button-bg"
                 : "bg-button-filled-default-bg",

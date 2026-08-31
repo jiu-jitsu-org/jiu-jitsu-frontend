@@ -297,7 +297,7 @@ function FeedLoadingMore() {
 function FeedLoadMoreError({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="flex h-[69px] flex-col items-center justify-center gap-1 px-4">
-      <p className="text-sm text-feed-card-body-text">
+      <p className="text-body-s text-feed-card-body-text">
         게시글을 더 불러오지 못했어요
       </p>
       <button

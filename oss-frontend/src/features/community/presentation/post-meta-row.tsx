@@ -42,7 +42,7 @@ export function PostMetaRow({
     // Label M(12, Medium), 색상 feed-card/header/date-text, 항목 간격 10(gap-2.5)
     <div
       className={cn(
-        "flex items-center gap-2.5 text-xs font-medium text-feed-card-header-date-text",
+        "flex items-center gap-2.5 text-label-m text-feed-card-header-date-text",
         className,
       )}
     >

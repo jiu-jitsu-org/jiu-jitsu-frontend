@@ -220,7 +220,7 @@ function ActionButton({
       >
         <span className="text-reaction-bar-detail-disabled-icon">{icon}</span>
         {text !== null ? (
-          <span className="text-sm leading-[21px] text-reaction-bar-detail-disabled-count-text">
+          <span className="text-body-s text-reaction-bar-detail-disabled-count-text">
             {text}
           </span>
         ) : null}
@@ -253,7 +253,7 @@ function ActionButton({
       {text !== null ? (
         <span
           className={cn(
-            "text-sm leading-[21px]",
+            "text-body-s",
             "text-reaction-bar-detail-default-count-text group-active:text-reaction-bar-detail-pressed-count-text",
             active && "text-reaction-bar-detail-active-count-text",
           )}

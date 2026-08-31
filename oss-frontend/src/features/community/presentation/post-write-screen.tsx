@@ -249,7 +249,7 @@ export function PostWriteScreen() {
           BACK_PRESSED로 위임 → requestClose가 이탈 가드를 처리한다(웹 버튼 없음). */}
       <AppBarShell>
         {/* 가운데 타이틀 — 작성 맥락을 명확히. */}
-        <h1 className="pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-base font-medium text-text-primary">
+        <h1 className="pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-body-m text-text-primary">
           글쓰기 (디자인 미적용 초안)
         </h1>
 
@@ -258,7 +258,7 @@ export function PostWriteScreen() {
           onClick={() => void submit()}
           disabled={!canSubmit}
           className={cn(
-            "ml-auto inline-flex h-10 items-center justify-center rounded-full px-3 text-base font-semibold",
+            "ml-auto inline-flex h-10 items-center justify-center rounded-full px-3 text-button-m",
             // 입력 완료: 브랜드 컬러(button/filled/default-bg). 미완: 비활성 텍스트.
             canSubmit ? "text-button-filled-default-bg" : "text-text-disabled",
           )}
@@ -282,7 +282,7 @@ export function PostWriteScreen() {
                 onClick={() => setCategoryId(category.id)}
                 aria-pressed={selected}
                 className={cn(
-                  "shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors",
+                  "shrink-0 rounded-full border px-3.5 py-1.5 text-body-s transition-colors",
                   selected
                     ? "border-transparent bg-button-filled-default-bg text-button-filled-default-text"
                     : "border-border-subtle text-text-secondary",
@@ -304,9 +304,9 @@ export function PostWriteScreen() {
             maxLength={TITLE_MAX_LENGTH}
             placeholder="제목을 입력하세요"
             aria-label="제목"
-            className="min-w-0 flex-1 text-base font-medium text-feed-card-body-title-text outline-none placeholder:text-text-tertiary"
+            className="min-w-0 flex-1 text-body-m text-feed-card-body-title-text outline-none placeholder:text-text-tertiary"
           />
-          <span className="shrink-0 text-xs font-medium text-text-tertiary tabular-nums">
+          <span className="shrink-0 text-label-m text-text-tertiary tabular-nums">
             {title.length}/{TITLE_MAX_LENGTH}
           </span>
         </div>
@@ -320,11 +320,11 @@ export function PostWriteScreen() {
           aria-label="내용"
           // 폰트·색상은 상세 본문과 동일 토큰(Body S 14/21 / feed-card-body-text) → 입력=상세 미리보기.
           // 남은 영역을 채우되(flex-1) 내용이 길어지면 페이지가 아니라 textarea 내부만 스크롤(min-h-0 + overflow).
-          className="mt-2 min-h-0 flex-1 resize-none overflow-y-auto overscroll-contain px-4 text-sm leading-[21px] text-feed-card-body-text outline-none placeholder:text-text-tertiary"
+          className="mt-2 min-h-0 flex-1 resize-none overflow-y-auto overscroll-contain px-4 text-body-s text-feed-card-body-text outline-none placeholder:text-text-tertiary"
         />
 
         {/* 본문 글자수: 자신이 세는 본문 끝 우측에 둔다(상태값을 하단 액션 툴바와 분리). */}
-        <span className="px-4 pb-3 pt-2 text-right text-xs font-medium text-text-tertiary tabular-nums">
+        <span className="px-4 pb-3 pt-2 text-right text-label-m text-text-tertiary tabular-nums">
           {body.length}/{BODY_MAX_LENGTH}
         </span>
 
@@ -366,7 +366,7 @@ export function PostWriteScreen() {
                 type="button"
                 onClick={() => setTags((prev) => prev.filter((t) => t !== tag))}
                 aria-label={`태그 ${tag} 삭제`}
-                className="inline-flex items-center gap-1 rounded-full bg-tag-chip-selected-bg py-1 pl-2.5 pr-2 text-xs font-medium text-tag-chip-selected-text"
+                className="inline-flex items-center gap-1 rounded-full bg-tag-chip-selected-bg py-1 pl-2.5 pr-2 text-label-m text-tag-chip-selected-text"
               >
                 #{tag}
                 <span aria-hidden className="text-text-tertiary">
@@ -384,7 +384,7 @@ export function PostWriteScreen() {
                 maxLength={MAX_TAG_LENGTH}
                 placeholder={tags.length === 0 ? "#드릴 #스파링" : ""}
                 aria-label="태그 입력"
-                className="min-w-[80px] flex-1 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
+                className="min-w-[80px] flex-1 text-body-s text-text-primary outline-none placeholder:text-text-tertiary"
               />
             ) : null}
           </div>
@@ -424,9 +424,9 @@ export function PostWriteScreen() {
             {/* 사진 첨부(최대 3장). 등록 전까진 로컬 보관 → 등록 시점에만 CDN 업로드. */}
             <ImageIcon size={24} />
             {/* 제목/본문의 n/max 카운터와 같은 어휘로 한도(최대 3장)를 자연스럽게 노출. */}
-            <span className="flex items-center gap-1 text-sm font-medium">
+            <span className="flex items-center gap-1 text-body-s">
               사진
-              <span className="text-xs text-text-tertiary tabular-nums">
+              <span className="text-label-m text-text-tertiary tabular-nums">
                 {attachments.length}/{MAX_IMAGES}
               </span>
             </span>
@@ -439,7 +439,7 @@ export function PostWriteScreen() {
           >
             {/* 탭하면 본문 아래 태그 입력줄을 펼치고 포커스(평소 숨김). 다시 탭하면 접는다. */}
             <HashIcon size={24} />
-            <span className="text-sm font-medium">태그</span>
+            <span className="text-body-s">태그</span>
           </button>
         </div>
       </div>

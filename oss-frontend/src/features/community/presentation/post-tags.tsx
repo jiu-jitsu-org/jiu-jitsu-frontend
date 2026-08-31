@@ -22,7 +22,7 @@ export function PostTags({
       {tags.map((tag) => (
         <li
           key={tag.id}
-          className="text-xs font-medium text-feed-card-tag-text"
+          className="text-label-m text-feed-card-tag-text"
         >
           # {tag.name}
         </li>

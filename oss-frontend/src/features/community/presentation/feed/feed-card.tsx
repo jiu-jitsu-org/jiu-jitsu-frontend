@@ -226,13 +226,13 @@ export function FeedCardHeader({
         <FeedCardAvatar key={author.avatarUrl ?? "none"} avatarUrl={author.avatarUrl} />
         {/* 아바타→닉네임 8, 닉네임→날짜 6 (요소별 간격이 달라 gap 대신 ml로 지정) */}
         {/* 닉네임: BodyM(Pretendard Medium 16) */}
-        <span className="ml-2 text-base font-medium text-feed-card-header-username-text">
+        <span className="ml-2 text-body-m text-feed-card-header-username-text">
           {author.name}
         </span>
         {/* 날짜: Label M(Pretendard Medium 12) */}
         <time
           dateTime={createdAt}
-          className="ml-1.5 text-xs font-medium text-feed-card-header-date-text"
+          className="ml-1.5 text-label-m text-feed-card-header-date-text"
         >
           {dateLabel ?? formatDateLabel(createdAt)}
         </time>
@@ -287,7 +287,7 @@ export function FeedCardBody({
         type={onPress ? "button" : undefined}
         onClick={onPress}
         className={cn(
-          "line-clamp-1 text-left text-base font-medium text-feed-card-body-title-text",
+          "line-clamp-1 text-left text-body-m text-feed-card-body-title-text",
         )}
       >
         {title}
@@ -296,7 +296,7 @@ export function FeedCardBody({
       <p
         ref={bodyRef}
         className={cn(
-          "whitespace-pre-wrap text-sm leading-[21px] text-feed-card-body-text",
+          "whitespace-pre-wrap text-body-s text-feed-card-body-text",
           !expanded && "line-clamp-3",
         )}
       >
@@ -306,7 +306,7 @@ export function FeedCardBody({
         <button
           type="button"
           onClick={() => setExpanded(true)}
-          className="self-start text-sm text-feed-card-body-more-text"
+          className="self-start text-body-s text-feed-card-body-more-text"
         >
           더보기
         </button>
@@ -538,7 +538,7 @@ function ReactionButton({
         // 숫자: Body S(14/21)
         <span
           className={cn(
-            "text-sm leading-[21px] text-reaction-bar-default-count-text",
+            "text-body-s text-reaction-bar-default-count-text",
             active && "text-reaction-bar-active-count-text",
           )}
         >
