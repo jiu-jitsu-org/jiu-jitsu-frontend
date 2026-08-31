@@ -57,6 +57,19 @@ const IMAGE_WIDTH = `calc(100vw - ${SIDE_INSET})`;
 /** 캐러셀 높이 — 전 장 공통 min(W, Hmax). */
 const SLIDE_HEIGHT = `min(${IMAGE_WIDTH}, ${VIEWPORT_HEIGHT_GUARD})`;
 
+/**
+ * 로드 실패 폴백의 높이 비율 — 피드 카드 플레이스홀더(343:220)와 같은 모양으로 맞춘다.
+ *
+ * 실패하면 원본 비율을 알 수 없다(서버가 원본 치수를 안 준다 — jiu-jitsu-backend#116).
+ * 예전에는 그래서 정사각으로 뒀는데, 상세 폭이 기기 폭 기준이라 피드보다 60% 넘게 높아져
+ * 실패한 이미지 하나가 화면을 과하게 차지했다. 모르는 값을 임의로 정할 바에는 이미 화면에
+ * 존재하는 규격(피드)을 따르는 편이 일관된다.
+ */
+const FALLBACK_HEIGHT_RATIO = 220 / 343;
+
+/** 1장 실패 폴백 높이 — 폭 파생이라 기기를 따라가되 Hmax는 넘지 않는다. */
+const SINGLE_FALLBACK_HEIGHT = `min(calc(${IMAGE_WIDTH} * ${FALLBACK_HEIGHT_RATIO}), ${VIEWPORT_HEIGHT_GUARD})`;
+
 export function PostDetailImages({
   images,
   className,
@@ -137,7 +150,8 @@ function SingleImage({
       <ImageLoadError
         onRetry={handleRetry}
         className={className}
-        style={{ height: SLIDE_HEIGHT }}
+        // 성공 시 규격(원본 비율 + 상한)을 쓸 수 없다 — 실패 경로에는 원본 비율 단서가 없다.
+        style={{ height: SINGLE_FALLBACK_HEIGHT }}
       />
     );
   }
@@ -288,9 +302,10 @@ function CarouselSlide({
         onRetry={handleRetry}
         className={cn("h-full shrink-0", snapAlign)}
         // 실패한 장도 자리를 차지해야 페이징이 어긋나지 않는다. 원본 비율을 모르니 정사각.
+        // 1장(SINGLE_FALLBACK_HEIGHT)처럼 낮추지 않는 이유: 스크롤러 높이를 전 장이 공유해
+        // 일부만 실패해도 높이가 하나여야 한다. 낮추면 성공한 장 옆에 빈 공간이 생긴다.
         // height 100%: 안내 박스에는 자체 높이가 없어, 주지 않으면 콘텐츠 높이(≈145)로 쪼그라들고
-        // 슬라이드(min(W, Hmax)) 아래가 흰 여백으로 남는다. 1장·피드는 각각 style.height와
-        // aspect 클래스로 높이가 들어와 이 문제가 없었다.
+        // 슬라이드 아래가 흰 여백으로 남는다.
         style={{ width: SLIDE_HEIGHT, height: "100%" }}
       />
     );
