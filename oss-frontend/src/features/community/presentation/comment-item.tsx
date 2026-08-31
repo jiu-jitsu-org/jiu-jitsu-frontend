@@ -94,26 +94,26 @@ export function CommentItem({
             닉네임↔날짜 간격 6(gap-1.5). */}
         <div className="flex h-6 items-center gap-1.5">
           {/* 닉네임: Body M, feed-card/header/username-text */}
-          <span className="text-base font-medium text-feed-card-header-username-text">
+          <span className="text-body-m text-feed-card-header-username-text">
             {comment.author.nickname}
           </span>
           {comment.isPostAuthor ? (
             // 작성자 배지: comment-author-badge 토큰, radius 4, 패딩 좌우4·상하2, Label M
-            <span className="rounded bg-comment-author-badge-bg px-1 py-0.5 text-xs font-medium text-comment-author-badge-text">
+            <span className="rounded bg-comment-author-badge-bg px-1 py-0.5 text-label-m text-comment-author-badge-text">
               작성자
             </span>
           ) : null}
           {/* 날짜: Label M, feed-card/header/date-text */}
           <time
             dateTime={comment.createdAt}
-            className="text-xs font-medium text-feed-card-header-date-text"
+            className="text-label-m text-feed-card-header-date-text"
           >
             {comment.timeAgo ?? formatCommentDate(comment.createdAt)}
           </time>
         </div>
         {/* 본문: 프로필 행과 간격 7, 닉네임 좌측 정렬(컬럼 기준), n줄 전부 노출(클램프 없음).
             Body S(14/21), feed-card/body/body-text */}
-        <p className="mt-[7px] whitespace-pre-wrap text-sm leading-[21px] text-feed-card-body-text">
+        <p className="mt-[7px] whitespace-pre-wrap text-body-s text-feed-card-body-text">
           {comment.body}
         </p>
 

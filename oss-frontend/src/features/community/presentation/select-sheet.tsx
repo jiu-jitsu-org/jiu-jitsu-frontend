@@ -100,12 +100,12 @@ export function SelectSheet({
         </div>
 
         {/* 제목: Title2(Semibold 20) */}
-        <h2 className="mt-4 text-left text-xl font-semibold text-bottom-sheet-selected-container-title">
+        <h2 className="mt-4 text-left text-title-2 text-bottom-sheet-selected-container-title">
           {title}
         </h2>
         {message ? (
           // 보조 설명: Body S(14/21)
-          <p className="mt-1 text-left text-sm leading-[21px] text-text-secondary">
+          <p className="mt-1 text-left text-body-s text-text-secondary">
             {message}
           </p>
         ) : null}
@@ -126,7 +126,7 @@ export function SelectSheet({
             value={customText}
             onChange={(event) => setCustomText(event.target.value)}
             placeholder={customTextPlaceholder}
-            className="mt-2 h-20 w-full resize-none rounded-[15px] bg-textfield-mutiline-default-bg px-4 py-3 text-sm text-textfield-mutiline-filled-text placeholder:text-textfield-mutiline-default-text"
+            className="mt-2 h-20 w-full resize-none rounded-[15px] bg-textfield-mutiline-default-bg px-4 py-3 text-body-s text-textfield-mutiline-filled-text placeholder:text-textfield-mutiline-default-text"
           />
         ) : null}
 
@@ -146,7 +146,7 @@ export function SelectSheet({
                 })
               : undefined
           }
-          className="mt-4 h-[51px] w-full rounded-[15px] bg-cta-primary-bg text-base font-semibold text-cta-primary-text disabled:bg-cta-primary-disabled-bg disabled:text-cta-primary-disabled-text"
+          className="mt-4 h-[51px] w-full rounded-[15px] bg-cta-primary-bg text-button-m text-cta-primary-text disabled:bg-cta-primary-disabled-bg disabled:text-cta-primary-disabled-text"
         >
           {submitText}
         </button>
@@ -188,7 +188,7 @@ function SheetOption({
         </span>
         <span
           className={cn(
-            "text-base",
+            "text-body-m",
             selected
               ? "font-medium text-bottom-sheet-selected-list-item-label"
               : "font-medium text-bottom-sheet-unselected-list-item-label",

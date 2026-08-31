@@ -48,7 +48,7 @@ export function CommentReplies({
           onClick={() => setExpanded(true)}
           // 높이 19 고정. 텍스트는 대댓글 본문 좌측과 정렬 → 아바타 24 + gap 4 = 28 들여쓰기(pl-7).
           // 폰트 Body M, 색 comment-replies-text.
-          className="flex h-[19px] items-center self-start pl-7 text-base font-medium text-comment-replies-text"
+          className="flex h-[19px] items-center self-start pl-7 text-body-m text-comment-replies-text"
         >
           대댓글 {hiddenCount}개 더보기
         </button>

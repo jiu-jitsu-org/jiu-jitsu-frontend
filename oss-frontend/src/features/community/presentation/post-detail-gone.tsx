@@ -35,7 +35,7 @@ export function PostDetailGone() {
 
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center gap-2 px-6 text-center">
-      <p className="text-base font-medium text-text-primary">{GONE_MESSAGE}</p>
+      <p className="text-body-m text-text-primary">{GONE_MESSAGE}</p>
     </div>
   );
 }

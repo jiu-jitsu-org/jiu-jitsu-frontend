@@ -214,7 +214,7 @@ function ActionButton({
       {text !== null ? (
         <span
           className={cn(
-            "text-sm leading-[21px]",
+            "text-body-s",
             "text-reaction-bar-detail-default-count-text group-active:text-reaction-bar-detail-pressed-count-text",
             active && "text-reaction-bar-detail-active-count-text",
           )}

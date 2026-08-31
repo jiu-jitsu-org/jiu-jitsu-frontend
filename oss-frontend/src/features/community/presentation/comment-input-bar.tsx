@@ -114,7 +114,7 @@ export function CommentInputBar({ postId }: { postId: number }) {
             size={24}
             className="shrink-0 text-comment-input-bar-reply-ref-thread-icon"
           />
-          <span className="min-w-0 flex-1 truncate text-sm leading-[21px] text-comment-input-bar-reply-ref-text">
+          <span className="min-w-0 flex-1 truncate text-body-s text-comment-input-bar-reply-ref-text">
             {target.nickname}님에게 답장
           </span>
           <button
@@ -152,7 +152,7 @@ export function CommentInputBar({ postId }: { postId: number }) {
           value={value}
           onChange={(event) => setValue(event.target.value)}
           placeholder="댓글을 입력해주세요."
-          className="max-h-[125px] flex-1 resize-none overflow-y-auto rounded-[24px] bg-comment-input-bar-bg px-4 py-[10px] text-sm leading-[21px] text-comment-input-bar-text outline-none placeholder:text-comment-input-bar-placeholder"
+          className="max-h-[125px] flex-1 resize-none overflow-y-auto rounded-[24px] bg-comment-input-bar-bg px-4 py-[10px] text-body-s text-comment-input-bar-text outline-none placeholder:text-comment-input-bar-placeholder"
         />
       <button
         type="button"

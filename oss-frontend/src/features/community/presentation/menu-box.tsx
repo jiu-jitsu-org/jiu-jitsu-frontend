@@ -78,7 +78,7 @@ export function MenuItem({
       <button
         type="button"
         onClick={onClick}
-        className="flex h-[41px] w-full items-center px-4 text-sm leading-[21px] text-list-setting-text"
+        className="flex h-[41px] w-full items-center px-4 text-body-s text-list-setting-text"
       >
         {children}
       </button>

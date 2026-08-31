@@ -24,7 +24,7 @@ export function FeedListEnd({
         className,
       )}
     >
-      <p className="text-center text-sm leading-[21px] text-feed-card-end-text">
+      <p className="text-center text-body-s text-feed-card-end-text">
         {message}
       </p>
     </div>

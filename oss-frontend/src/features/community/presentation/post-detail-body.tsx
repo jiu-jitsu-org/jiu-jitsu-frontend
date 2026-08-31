@@ -28,7 +28,7 @@ export function PostDetailBody({
   return (
     <div className="flex flex-col">
       {/* 제목: Body M, 멀티라인 허용 */}
-      <h1 className="text-base font-medium text-feed-card-body-title-text">
+      <h1 className="text-body-m text-feed-card-body-title-text">
         {title}
       </h1>
       {/* 날짜·조회·수정됨: 제목 바로 아래 6 */}
@@ -40,7 +40,7 @@ export function PostDetailBody({
         className="mt-1.5"
       />
       {/* 본문: Body S(14/21), 메타 아래 12, 줄 수 제한 없음(클램프 없음) */}
-      <p className="mt-3 whitespace-pre-wrap text-sm leading-[21px] text-feed-card-body-text">
+      <p className="mt-3 whitespace-pre-wrap text-body-s text-feed-card-body-text">
         {body}
       </p>
     </div>
