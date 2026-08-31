@@ -9,6 +9,7 @@ import {
 import { useCommentReply } from "@/features/community/presentation/comment-reply-context";
 import { COMMENT_INPUT_ELEMENT_ID } from "@/features/community/presentation/comment-input-bar";
 import { cn } from "@/shared/lib/cn";
+import { useIsExternalBrowser } from "@/shared/lib/native-bridge";
 import { CommentIcon } from "@/shared/ui/icons";
 
 /**
@@ -34,12 +35,19 @@ export function CommentReplyButton({
   replied: boolean;
 }) {
   const { startReply } = useCommentReply();
+  // 외부 브라우저(비로그인)에서는 감춘다 — 답글은 하단 입력 바가 있어야 성립하는데
+  // 그 입력 바가 통째로 감춰진다(#72). 열 수 없는 입력의 진입점만 남길 이유가 없다.
+  const externalBrowser = useIsExternalBrowser();
 
   function start() {
     startReply({ parentId, nickname });
     // 포커스는 입력 바가 대상 변화를 감지해 잡지만, 사용자 제스처 컨텍스트가 살아 있는
     // 이 시점에도 한 번 시도한다 — iOS 웹뷰는 제스처 밖 focus()로 키보드가 안 올라온다.
     document.getElementById(COMMENT_INPUT_ELEMENT_ID)?.focus();
+  }
+
+  if (externalBrowser) {
+    return null;
   }
 
   return (
