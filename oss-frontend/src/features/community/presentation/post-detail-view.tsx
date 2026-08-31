@@ -7,6 +7,8 @@ import { PostActionBar } from "@/features/community/presentation/post-action-bar
 import { PostAuthorRow } from "@/features/community/presentation/post-author-row";
 import { PostDetailAppBar } from "@/features/community/presentation/post-detail-app-bar";
 import { PostDetailBody } from "@/features/community/presentation/post-detail-body";
+import { PostDetailFooter } from "@/features/community/presentation/post-detail-footer";
+import { PostDetailHeader } from "@/features/community/presentation/post-detail-header";
 import { PostDetailImages } from "@/features/community/presentation/post-detail-images";
 import { PostTags } from "@/features/community/presentation/post-tags";
 import { KeyboardAwareShell } from "@/features/community/presentation/keyboard-aware-shell";
@@ -34,13 +36,19 @@ export function PostDetailView({
       {/* 고정 높이 셸: 헤더(앱바)는 상단 고정, 본문+댓글만 스크롤, 댓글 입력 바는 키보드 위에 붙는다. */}
       <KeyboardAwareShell
         header={
-          <PostDetailAppBar
-            postId={post.id}
-            isOwner={post.viewer.isOwner}
-            initialNoticeEnabled={post.noticeEnabled}
+          // 앱 웹뷰면 앱바, 외부 브라우저면 '앱 열기' 배너로 교체된다(#72).
+          <PostDetailHeader
+            appBar={
+              <PostDetailAppBar
+                postId={post.id}
+                isOwner={post.viewer.isOwner}
+                initialNoticeEnabled={post.noticeEnabled}
+              />
+            }
           />
         }
-        footer={<CommentInputBar postId={post.id} />}
+        // 외부 브라우저에서는 입력 바를 감춘다(#72) — 세션이 없어 전송이 반드시 실패한다.
+        footer={<PostDetailFooter inputBar={<CommentInputBar postId={post.id} />} />}
       >
         <div>
           {/* 본문 영역: 헤더와 간격 24(pt-6), 좌우 여백 16(px-4), 섹션 간격 16(gap-4: 프로필 row↔제목 row 등) */}
