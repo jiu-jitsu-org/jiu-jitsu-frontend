@@ -220,7 +220,7 @@ function ActionButton({
       >
         <span className="text-reaction-bar-detail-disabled-icon">{icon}</span>
         {text !== null ? (
-          <span className="text-sm leading-[21px] text-reaction-bar-detail-disabled-count-text">
+          <span className="text-body-s text-reaction-bar-detail-disabled-count-text">
             {text}
           </span>
         ) : null}

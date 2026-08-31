@@ -24,7 +24,7 @@ export const COMMENT_REACTION_ICON = "text-reaction-bar-default-icon";
 
 /** 카운트/라벨 텍스트: Body S(14/21). */
 export const COMMENT_REACTION_TEXT =
-  "text-sm leading-[21px] text-reaction-bar-default-count-text group-active:text-reaction-bar-pressed-count-text";
+  "text-body-s text-reaction-bar-default-count-text group-active:text-reaction-bar-pressed-count-text";
 
 /** Active(내가 누른/단) 상태의 카운트 텍스트 색. */
 export const COMMENT_REACTION_TEXT_ACTIVE =
@@ -40,4 +40,4 @@ export const COMMENT_REACTION_READONLY =
 
 /** 표시 전용 카운트/라벨 텍스트: Body S(14/21). */
 export const COMMENT_REACTION_TEXT_READONLY =
-  "text-sm leading-[21px] text-reaction-bar-disabled-count-text";
+  "text-body-s text-reaction-bar-disabled-count-text";
