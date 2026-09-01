@@ -3,11 +3,12 @@
 import type { MouseEvent } from "react";
 
 import { BalanceOptionButton } from "@/features/community/presentation/balance/balance-option-button";
+import { BalanceRemaining } from "@/features/community/presentation/balance/balance-remaining";
 import type {
   BalanceGame,
   BalanceOptionKey,
 } from "@/features/community/domain/balance-game";
-import { CommentIcon, TimerIcon } from "@/shared/ui/icons";
+import { CommentIcon } from "@/shared/ui/icons";
 
 /**
  * 밸런스 게임 풀 카드 — 피드 최상단에 고정 노출된다.
@@ -27,15 +28,15 @@ import { CommentIcon, TimerIcon } from "@/shared/ui/icons";
  */
 export function BalanceGameCard({
   game,
-  /** 이미 완성된 잔여 시간 문구(예: "20시간 15분 46초 남음"). 카운트다운은 상위가 계산한다. */
-  remainingLabel,
   onVote,
   onPressDetail,
+  onExpired,
 }: {
   game: BalanceGame;
-  remainingLabel: string;
   onVote: (option: BalanceOptionKey) => void;
   onPressDetail: () => void;
+  /** 잔여 시간이 0에 닿았을 때(다음 판 재조회 트리거). 카드만 넘긴다 — BalanceRemaining 주석 참조. */
+  onExpired?: () => void;
 }) {
   // 투표가 끝난 상태 = 이미 골랐거나 마감된 판. 표현(커서)에만 쓰고 실제 차단은 투표 훅이 한다.
   const locked = game.myVote !== null || game.closed;
@@ -58,13 +59,14 @@ export function BalanceGameCard({
         오늘의 밸런스 게임
       </h2>
 
-      <p className="mt-1 flex items-center justify-center gap-1 text-text-tertiary">
-        <TimerIcon size={16} />
-        {/*
-          매초 바뀌는 값이라 스크린리더가 계속 읽지 않도록 aria-live를 두지 않는다.
-          남은 시간은 보조 정보이고, 마감되면 카드 자체가 다음 판으로 교체된다.
-        */}
-        <span className="text-label-m">{remainingLabel}</span>
+      {/* 매초 바뀌는 문구는 BalanceRemaining 안에 갇혀 있다 — 카드는 초마다 리렌더되지 않는다. */}
+      <p className="mt-1 text-center text-text-tertiary">
+        <BalanceRemaining
+          endAt={game.endAt}
+          serverTime={game.serverTime}
+          onExpired={onExpired}
+          showIcon
+        />
       </p>
 
       {/* 선택지 사이 간격 8 */}
