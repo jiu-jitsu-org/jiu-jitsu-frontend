@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { BalanceGameCard } from "@/features/community/presentation/balance/balance-game-card";
 import { useBalanceVote } from "@/features/community/presentation/balance/use-balance-vote";
+import { useOpenBalanceDetail } from "@/features/community/presentation/balance/use-open-balance-detail";
 import type { BalanceGame } from "@/features/community/domain/balance-game";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 
@@ -91,6 +92,7 @@ function BalanceGameBody({
   onExpired: () => void;
 }) {
   const vote = useBalanceVote({ game, onVoted: onChange });
+  const openDetail = useOpenBalanceDetail();
 
   return (
     // FIXME(디자인 가이드 미적용): 피드와의 간격·구분선은 잠정값이다.
@@ -98,8 +100,7 @@ function BalanceGameBody({
       <BalanceGameCard
         game={game}
         onVote={vote}
-        // 상세는 다음 이슈다. 진입 경로가 붙기 전까지는 아무 일도 하지 않는다.
-        onPressDetail={() => {}}
+        onPressDetail={() => openDetail(game.contentId)}
         onExpired={onExpired}
       />
     </div>
