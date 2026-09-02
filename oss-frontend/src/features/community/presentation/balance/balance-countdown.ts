@@ -37,6 +37,20 @@ export function formatRemaining(remainMs: number): string {
 }
 
 /**
+ * 소수점 이하 초를 3자리로 자른다.
+ *
+ * 업스트림 serverTime은 나노초까지 온다("2026-09-02T00:59:13.163132088"). ECMAScript가 규정한
+ * Date Time String Format은 소수점 3자리까지라, 그 이상은 엔진별 구현에 맡겨진다. V8은 초과분을
+ * 버리고 파싱하지만 iOS 웹뷰(JavaScriptCore)까지 같다고 볼 근거가 없다. NaN이 나오면 타이머 줄이
+ * 통째로 사라지는 조용한 실패라 미리 규격 안으로 깎는다.
+ *
+ * 타임존 suffix가 붙어도 안전하다 — 소수부만 잘라내고 뒤는 그대로 둔다.
+ */
+function trimFractionalSeconds(iso: string): string {
+  return iso.replace(/(\.\d{3})\d+/, "$1");
+}
+
+/**
  * 응답 시점의 잔여 시간(ms). 파싱할 수 없으면 null.
  *
  * WHY 절대 시각을 쓰지 않는가: 기기 시계가 틀어져 있으면 endAt까지의 거리가 통째로 어긋난다.
@@ -51,8 +65,8 @@ export function readRemainingAtResponse(
   endAt: string,
   serverTime: string,
 ): number | null {
-  const end = Date.parse(endAt);
-  const server = Date.parse(serverTime);
+  const end = Date.parse(trimFractionalSeconds(endAt));
+  const server = Date.parse(trimFractionalSeconds(serverTime));
 
   if (Number.isNaN(end) || Number.isNaN(server)) {
     return null;
