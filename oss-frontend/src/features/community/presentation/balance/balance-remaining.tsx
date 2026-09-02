@@ -38,8 +38,12 @@ export function BalanceRemaining({
   if (label === null) return null;
 
   return (
-    <span className={cn("inline-flex items-center gap-1", className)}>
-      {showIcon ? <TimerIcon size={16} /> : null}
+    // 아이콘 ↔ 텍스트 간격 2 (디자인 실측).
+    <span className={cn("inline-flex items-center gap-0.5", className)}>
+      {/* 아이콘만 interactive-primary — 텍스트(tertiary)와 색이 다르다(디자인 실측). */}
+      {showIcon ? (
+        <TimerIcon size={16} className="text-interactive-primary" />
+      ) : null}
       {/*
         매초 바뀌는 값이라 aria-live를 두지 않는다 — 스크린리더가 초마다 읽으면 카드의 다른
         내용을 들을 수 없다. 남은 시간은 보조 정보이고, 마감되면 카드가 다음 판으로 교체된다.

@@ -105,8 +105,8 @@ function BalanceGameBody({
 
   return (
     <>
-      {/* FIXME(디자인 가이드 미적용): 피드와의 간격·구분선은 잠정값이다. */}
-      <div ref={targetRef} className="border-b border-border-subtle pt-6 pb-4">
+      {/* 카드 위아래 24 + hairline 구분선. 구분선 아래 24는 피드 목록의 pt-6이 만든다. */}
+      <div ref={targetRef} className="border-b border-border-subtle pt-6 pb-6">
         <BalanceGameCard
           game={game}
           onVote={vote}

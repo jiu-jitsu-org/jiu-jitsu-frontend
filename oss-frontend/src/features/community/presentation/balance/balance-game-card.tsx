@@ -63,12 +63,12 @@ export function BalanceGameCard({
       aria-label="오늘의 밸런스 게임"
     >
       {/* 제목·타이머는 가운데 정렬 — 카드 안에서 선택지 묶음보다 상위 정보라는 것을 위계로 드러낸다. */}
-      <h2 className="text-center text-title-3 text-text-primary">
+      <h2 className="text-center text-title-1 text-text-primary">
         오늘의 밸런스 게임
       </h2>
 
       {/* 매초 바뀌는 문구는 BalanceRemaining 안에 갇혀 있다 — 카드는 초마다 리렌더되지 않는다. */}
-      <p className="mt-1 text-center text-text-tertiary">
+      <p className="mt-2 text-center text-text-tertiary">
         <BalanceRemaining
           endAt={game.endAt}
           serverTime={game.serverTime}
@@ -77,8 +77,8 @@ export function BalanceGameCard({
         />
       </p>
 
-      {/* 선택지 사이 간격 8 */}
-      <div className="mt-3 flex flex-col gap-2">
+      {/* 제목블록 → 선택지블록 20, 선택지 사이 4 */}
+      <div className="mt-5 flex flex-col gap-1">
         <BalanceOptionButton
           option={game.optionA}
           selected={game.myVote === "A"}
@@ -95,13 +95,14 @@ export function BalanceGameCard({
 
       {/* 댓글 링크는 우측 정렬 — 카드를 끝맺는 보조 동선이라 시선 흐름의 끝에 둔다. */}
       <div className="mt-2 flex justify-end">
+        {/* 피드 카드 리액션 버튼과 같은 규격(높이 28 · 좌우 8 · radius 10 · 간격 4). */}
         <button
           type="button"
           onClick={onPressDetail}
-          className="flex cursor-pointer items-center gap-1 text-text-tertiary"
+          className="flex h-7 cursor-pointer items-center gap-1 rounded-[10px] px-2 text-text-tertiary"
         >
           <CommentIcon size={16} />
-          <span className="text-label-m">
+          <span className="text-body-s">
             {/* 댓글이 없으면 "보러 갈 것"이 없다 — 첫 댓글을 유도하는 문구로 바꾼다. */}
             {game.commentCount > 0 ? "댓글 보러가기" : "첫 댓글 남기러 가기"}
           </span>
