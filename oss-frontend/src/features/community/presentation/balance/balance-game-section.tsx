@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { BalanceGameCard } from "@/features/community/presentation/balance/balance-game-card";
+import { BalanceStickyBar } from "@/features/community/presentation/balance/balance-sticky-bar";
 import { useBalanceVote } from "@/features/community/presentation/balance/use-balance-vote";
 import { useOpenBalanceDetail } from "@/features/community/presentation/balance/use-open-balance-detail";
+import { useStickyReveal } from "@/features/community/presentation/balance/use-sticky-reveal";
 import type { BalanceGame } from "@/features/community/domain/balance-game";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 
@@ -94,15 +96,39 @@ function BalanceGameBody({
   const vote = useBalanceVote({ game, onVoted: onChange });
   const openDetail = useOpenBalanceDetail();
 
+  // sticky 바는 아직 투표하지 않은 사용자에게만 보인다(비로그인 포함 — 그쪽은 계속 미투표다).
+  // 투표를 마치면 다시 부를 이유가 없으므로 관찰 자체를 끈다.
+  const canReveal = game.myVote === null;
+  const { targetRef, passed } = useStickyReveal<HTMLDivElement>({
+    enabled: canReveal,
+  });
+
   return (
-    // FIXME(디자인 가이드 미적용): 피드와의 간격·구분선은 잠정값이다.
-    <div className="border-b border-border-subtle pt-6 pb-4">
-      <BalanceGameCard
-        game={game}
-        onVote={vote}
-        onPressDetail={() => openDetail(game.contentId)}
-        onExpired={onExpired}
-      />
-    </div>
+    <>
+      {/* FIXME(디자인 가이드 미적용): 피드와의 간격·구분선은 잠정값이다. */}
+      <div ref={targetRef} className="border-b border-border-subtle pt-6 pb-4">
+        <BalanceGameCard
+          game={game}
+          onVote={vote}
+          onPressDetail={() => openDetail(game.contentId)}
+          onExpired={onExpired}
+        />
+      </div>
+
+      {/*
+        카드가 화면 위로 완전히 지나간 뒤에만 뜬다. 카드가 조금이라도 보이는 동안 띄우면
+        같은 내용이 두 번 보이고, 무엇보다 sticky가 카드의 선택지를 가린다.
+
+        만료 통지(onExpired)는 넘기지 않는다 — 카드와 동시에 마운트돼 있어 양쪽이 알리면
+        재조회가 두 번 걸린다(BalanceRemaining 주석 참조).
+      */}
+      {canReveal && passed ? (
+        <BalanceStickyBar
+          endAt={game.endAt}
+          serverTime={game.serverTime}
+          onPress={() => openDetail(game.contentId)}
+        />
+      ) : null}
+    </>
   );
 }
