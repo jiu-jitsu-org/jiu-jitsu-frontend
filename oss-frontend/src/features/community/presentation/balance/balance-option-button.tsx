@@ -31,13 +31,18 @@ const OPTION_STYLES = {
 export function BalanceOptionButton({
   option,
   selected,
-  /** 투표가 끝났는지(내가 이미 골랐거나 마감). true면 탭이 아무 일도 하지 않는다. */
-  locked,
+  /**
+   * 이 선택지를 눌러 투표 상태가 바뀔 수 있는지(정책 + 마감 여부).
+   *
+   * 표현(커서)에만 쓴다. 실제 차단은 투표 훅이 하고, 둘은 balance-vote-policy라는 같은
+   * 출처를 읽는다 — 커서는 되는데 눌러도 안 되는(또는 그 반대) 어긋남을 막기 위해서다.
+   */
+  interactive,
   onPress,
 }: {
   option: BalanceGameOption;
   selected: boolean;
-  locked: boolean;
+  interactive: boolean;
   onPress: () => void;
 }) {
   const styles = OPTION_STYLES[option.key];
@@ -53,7 +58,7 @@ export function BalanceOptionButton({
       className={cn(
         "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors",
         selected ? styles.selected : styles.default,
-        !locked && "cursor-pointer",
+        interactive && "cursor-pointer",
       )}
     >
       {/*

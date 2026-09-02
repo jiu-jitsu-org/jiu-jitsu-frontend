@@ -4,6 +4,7 @@ import type { MouseEvent } from "react";
 
 import { BalanceOptionButton } from "@/features/community/presentation/balance/balance-option-button";
 import { BalanceRemaining } from "@/features/community/presentation/balance/balance-remaining";
+import { canToggleVote } from "@/features/community/presentation/balance/balance-vote-policy";
 import type {
   BalanceGame,
   BalanceOptionKey,
@@ -38,8 +39,15 @@ export function BalanceGameCard({
   /** 잔여 시간이 0에 닿았을 때(다음 판 재조회 트리거). 카드만 넘긴다 — BalanceRemaining 주석 참조. */
   onExpired?: () => void;
 }) {
-  // 투표가 끝난 상태 = 이미 골랐거나 마감된 판. 표현(커서)에만 쓰고 실제 차단은 투표 훅이 한다.
-  const locked = game.myVote !== null || game.closed;
+  /**
+   * 이 선택지를 눌러 상태가 바뀔 수 있는지 — 커서 표현에만 쓴다.
+   *
+   * 선택지마다 답이 다르다. 지금 정책은 "내가 고른 것 재탭 = 취소(가능)",
+   * "다른 것으로 변경(불가)"이라, 투표 후에는 A와 B의 커서가 갈린다.
+   * 판단 출처는 투표 훅과 같은 balance-vote-policy다.
+   */
+  const isInteractive = (option: BalanceOptionKey) =>
+    !game.closed && canToggleVote(game.myVote, option);
 
   function handleCardPress(event: MouseEvent<HTMLElement>) {
     if (event.target instanceof Element && event.target.closest("button, a")) {
@@ -74,13 +82,13 @@ export function BalanceGameCard({
         <BalanceOptionButton
           option={game.optionA}
           selected={game.myVote === "A"}
-          locked={locked}
+          interactive={isInteractive("A")}
           onPress={() => onVote("A")}
         />
         <BalanceOptionButton
           option={game.optionB}
           selected={game.myVote === "B"}
-          locked={locked}
+          interactive={isInteractive("B")}
           onPress={() => onVote("B")}
         />
       </div>
