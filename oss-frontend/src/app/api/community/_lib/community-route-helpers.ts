@@ -100,6 +100,23 @@ export function toErrorResponse(
 }
 
 /**
+ * 컨텐츠 `[contentId]` 동적 세그먼트를 양의 정수로 파싱한다(parsePostId와 동일 규약).
+ *
+ * 밸런스 게임처럼 식별자가 게시글 id가 아니라 컨텐츠 id인 라우트가 쓴다. 값의 성격이 달라
+ * 에러 문구도 달라야 하므로 parsePostId를 재사용하지 않는다.
+ */
+export function parseContentId(
+  raw: string,
+): { contentId: number } | { response: NextResponse } {
+  const contentId = Number(raw);
+  if (!Number.isInteger(contentId) || contentId <= 0) {
+    return { response: jsonError("잘못된 컨텐츠 ID입니다.", 400) };
+  }
+
+  return { contentId };
+}
+
+/**
  * 유저 `[id]` 동적 세그먼트를 양의 정수로 파싱한다(parsePostId와 동일 규약).
  * 차단처럼 대상이 컨텐츠가 아니라 회원인 라우트가 쓴다.
  */

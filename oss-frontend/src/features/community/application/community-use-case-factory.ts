@@ -14,6 +14,9 @@ import { ToggleNoticeUseCase } from "@/features/community/application/toggle-not
 import { ToggleCommentLikeUseCase } from "@/features/community/application/toggle-comment-like";
 import { ToggleLikeUseCase } from "@/features/community/application/toggle-like";
 import { BlockUserUseCase } from "@/features/community/application/block-user";
+import { GetCurrentBalanceGameUseCase } from "@/features/community/application/get-current-balance-game";
+import { VoteBalanceGameUseCase } from "@/features/community/application/vote-balance-game";
+import { ExternalBalanceGameRepository } from "@/features/community/infrastructure/external-balance-game-repository";
 import { ExternalCommunityWriteRepository } from "@/features/community/infrastructure/external-community-write-repository";
 import { ExternalPostRepository } from "@/features/community/infrastructure/external-post-repository";
 import {
@@ -143,4 +146,35 @@ export function createBlockUserUseCase(
   accessToken: string,
 ): BlockUserUseCase {
   return new BlockUserUseCase(createWriteRepository(accessToken));
+}
+
+/**
+ * 밸런스 게임 repository.
+ *
+ * 조회는 비로그인도 가능하고(토큰이 있으면 myVote가 채워진다), 투표는 인증이 필요하다.
+ * 두 동작이 같은 업스트림 컨트롤러라 구현 하나를 토큰 유무만 달리해 조립한다.
+ */
+function createBalanceGameRepository(
+  accessToken: string | null,
+): ExternalBalanceGameRepository {
+  const httpClient = accessToken
+    ? createAuthedServerHttpClient(accessToken)
+    : createServerHttpClient();
+
+  return new ExternalBalanceGameRepository(httpClient);
+}
+
+export function createGetCurrentBalanceGameUseCase(
+  accessToken: string | null,
+): GetCurrentBalanceGameUseCase {
+  return new GetCurrentBalanceGameUseCase(
+    createBalanceGameRepository(accessToken),
+  );
+}
+
+/** 투표는 인증 전용이라 토큰을 강제한다(쓰기 use case와 동일 원칙). */
+export function createVoteBalanceGameUseCase(
+  accessToken: string,
+): VoteBalanceGameUseCase {
+  return new VoteBalanceGameUseCase(createBalanceGameRepository(accessToken));
 }
