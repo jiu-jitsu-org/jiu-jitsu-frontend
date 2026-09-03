@@ -2,7 +2,10 @@
 
 import type { MouseEvent } from "react";
 
-import { BalanceOptionButton } from "@/features/community/presentation/balance/balance-option-button";
+import {
+  BalanceOptionButton,
+  type BalanceOptionState,
+} from "@/features/community/presentation/balance/balance-option-button";
 import { BalanceRemaining } from "@/features/community/presentation/balance/balance-remaining";
 import { canToggleVote } from "@/features/community/presentation/balance/balance-vote-policy";
 import type {
@@ -49,6 +52,17 @@ export function BalanceGameCard({
   const isInteractive = (option: BalanceOptionKey) =>
     !game.closed && canToggleVote(game.myVote, option);
 
+  /**
+   * 선택지 표시 상태.
+   *
+   * 아무도 고르지 않은 default와, 상대를 골라서 밀려난 unselected는 다르다 — 행 배경은 같지만
+   * 캐릭터 패널이 투명해진다. 그래서 "선택됨 여부"가 아니라 세 값으로 넘긴다.
+   */
+  const optionState = (option: BalanceOptionKey): BalanceOptionState => {
+    if (game.myVote === null) return "default";
+    return game.myVote === option ? "selected" : "unselected";
+  };
+
   function handleCardPress(event: MouseEvent<HTMLElement>) {
     if (event.target instanceof Element && event.target.closest("button, a")) {
       return;
@@ -81,13 +95,13 @@ export function BalanceGameCard({
       <div className="mt-5 flex flex-col gap-1">
         <BalanceOptionButton
           option={game.optionA}
-          selected={game.myVote === "A"}
+          state={optionState("A")}
           interactive={isInteractive("A")}
           onPress={() => onVote("A")}
         />
         <BalanceOptionButton
           option={game.optionB}
-          selected={game.myVote === "B"}
+          state={optionState("B")}
           interactive={isInteractive("B")}
           onPress={() => onVote("B")}
         />

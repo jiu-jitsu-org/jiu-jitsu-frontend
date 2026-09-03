@@ -1,6 +1,9 @@
 "use client";
 
-import type { BalanceGameOption } from "@/features/community/domain/balance-game";
+import type {
+  BalanceGameOption,
+  BalanceOptionKey,
+} from "@/features/community/domain/balance-game";
 import { cn } from "@/shared/lib/cn";
 
 /**
@@ -8,37 +11,89 @@ import { cn } from "@/shared/lib/cn";
  *
  * 상태는 상위가 소유(controlled) — 버튼은 표현만 하고 탭을 콜백으로 위임한다(FeedCard와 같은 철학).
  *
- * 리스트에서는 투표율(%)도 진행률 바도 그리지 않는다. 내가 무엇을 골랐는지만 배경색으로 구분한다
- * (percent/result 토큰은 상세 전용이라 여기서 쓰지 않는다). 그 덕분에 **투표 전후 높이가 같아**,
- * 상세에 다녀와도 피드 스크롤이 튀지 않는다 — 이 성질은 의도적으로 지킨다.
+ * 리스트에서는 투표율(%)도 진행률 바도 그리지 않는다(percent/result 토큰은 상세 전용).
+ * 대신 색과 **캐릭터 크기**로 상태를 드러낸다 — 고른 쪽이 커지고 밀려난 쪽이 작아진다.
  *
- * 색은 A(빨강)/B(파랑)로 갈리고 상태(기본/선택됨)로 또 갈려, 클래스 조합을 A/B 한 벌씩 표로 둔다.
+ * 색은 A(빨강)/B(파랑)로 갈리고 상태로 또 갈려, 클래스 조합을 A/B 한 벌씩 표로 둔다.
  * Tailwind는 동적 클래스명을 못 읽으므로 문자열 보간이 아니라 정적 클래스여야 한다.
  */
 
 /**
+ * 선택지 표시 상태.
+ *
+ * default와 unselected를 나눈 이유: 둘 다 연한 행 배경이지만 **캐릭터가 다르다**(디자인 실측).
+ * 아무도 고르지 않았을 때는 패널에 색이 깔리고, 투표가 끝나면 패널 색이 빠지면서 고른 쪽은
+ * 커지고 밀려난 쪽은 작아진다. "선택됨 여부" 하나로는 이 셋을 구분할 수 없다.
+ */
+export type BalanceOptionState = "default" | "selected" | "unselected";
+
+/**
+ * 상태별 캐릭터 크기(디자인 실측). 세 값의 종횡비가 58:66으로 모두 같다 — 같은 아트워크의 배율이다.
+ *
+ * **행 높이를 이 값이 결정한다.** 캐릭터는 행 좌측에 여백 없이 붙어 위아래를 꽉 채우고, 행에는
+ * 세로 패딩이 없다. 그래서 문구가 짧은 한 행 높이 = 캐릭터 높이가 된다.
+ */
+const CHARACTER_SIZE: Record<BalanceOptionState, string> = {
+  default: "h-[66px] w-[58px]",
+  selected: "h-[81.93px] w-[72px]",
+  unselected: "h-[54.62px] w-[48px]",
+};
+
+/**
+ * 상태별 캐릭터 아트워크(174×198 = 58×66의 @3x, 알파 있음).
+ *
+ * 파일명이 색(빨강/파랑)이 아니라 선택지 키(A/B)를 따르는 이유: 어느 쪽이 무슨 색인지는
+ * OPTION_STYLES의 poll-option-a/b 토큰이 이미 정한다. 파일명까지 색으로 부르면 색의 출처가
+ * 둘이 되어, 토큰만 바뀌었을 때 자산이 조용히 어긋난다.
+ *
+ * 아트워크 자체가 상태를 말한다(디자인 원본의 표정 변형):
+ * - default = 곁눈질하는 **회색** 캐릭터. A/B 모두 무채색이고 고개 방향만 좌우로 갈린다.
+ *   투표 전에 색을 내는 것은 캐릭터가 아니라 뒤에 깔리는 characterPanel이다.
+ * - selected = 눈을 크게 뜬 컬러, unselected = 눈이 처진 컬러.
+ *   즉 투표하는 순간 색이 패널에서 캐릭터로 옮겨 간다.
+ *
+ * 경로는 런타임 문자열이라 보간해도 되지만 표로 편다 — 자산 6개가 코드에 그대로 드러나
+ * 빠진 상태를 눈으로 잡을 수 있다.
+ */
+const CHARACTER_SRC: Record<
+  BalanceOptionKey,
+  Record<BalanceOptionState, string>
+> = {
+  A: {
+    default: "/images/balance/character-a-default.png",
+    selected: "/images/balance/character-a-selected.png",
+    unselected: "/images/balance/character-a-unselected.png",
+  },
+  B: {
+    default: "/images/balance/character-b-default.png",
+    selected: "/images/balance/character-b-selected.png",
+    unselected: "/images/balance/character-b-unselected.png",
+  },
+};
+
+/**
  * 선택지별 클래스. key로 뽑아 쓴다(Tailwind가 동적 클래스명을 읽지 못한다).
  *
- * character는 좌측 캐릭터 패널의 배경 — 디자인의 #ffc1bd / #b2d0f8이 각각 *-track 토큰과
- * 같은 값이라 하드코딩 없이 토큰으로 쓴다. 선택됨 상태의 track 토큰도 같은 값이라 상태에
- * 관계없이 하나로 둔다.
+ * characterPanel은 캐릭터 뒤에 깔리는 배경 — 디자인의 #ffc1bd / #b2d0f8이 각각 *-track 토큰과
+ * 같은 값이라 하드코딩 없이 토큰으로 쓴다. **투표 전(default)에만** 깔리고, 투표 후에는 양쪽 다
+ * 투명해져 행 배경이 그대로 비친다.
  */
 const OPTION_STYLES = {
   A: {
     default: "bg-poll-option-a-default-bg text-poll-option-a-default-text",
     selected: "bg-poll-option-a-selected-bg text-poll-option-a-selected-text",
-    character: "bg-poll-option-a-selected-bg-track",
+    characterPanel: "bg-poll-option-a-selected-bg-track",
   },
   B: {
     default: "bg-poll-option-b-default-bg text-poll-option-b-default-text",
     selected: "bg-poll-option-b-selected-bg text-poll-option-b-selected-text",
-    character: "bg-poll-option-b-selected-bg-track",
+    characterPanel: "bg-poll-option-b-selected-bg-track",
   },
 } as const;
 
 export function BalanceOptionButton({
   option,
-  selected,
+  state,
   /**
    * 이 선택지를 눌러 투표 상태가 바뀔 수 있는지(정책 + 마감 여부).
    *
@@ -49,11 +104,12 @@ export function BalanceOptionButton({
   onPress,
 }: {
   option: BalanceGameOption;
-  selected: boolean;
+  state: BalanceOptionState;
   interactive: boolean;
   onPress: () => void;
 }) {
   const styles = OPTION_STYLES[option.key];
+  const selected = state === "selected";
 
   return (
     <button
@@ -68,26 +124,48 @@ export function BalanceOptionButton({
         // 높이는 고정하지 않는다. 문구가 길어지면 행이 늘어나야 하고, 그 최소값(66)은
         // 캐릭터 패널이 만든다.
         "flex w-full items-center gap-2.5 overflow-hidden rounded-xl pr-4 text-left transition-colors",
+        // 행 배경·글자색은 unselected가 default와 같다 — 갈리는 것은 캐릭터 패널뿐이다.
         selected ? styles.selected : styles.default,
         interactive && "cursor-pointer",
       )}
     >
       {/*
-        캐릭터 패널 58×66. 배경색까지가 디자인이고 그 위에 캐릭터 일러스트가 올라간다.
-
-        FIXME(캐릭터 asset): Figma MCP 호출 한도로 파랑 패널을 내려받지 못해 두 쪽 모두 비워 둔다.
-        받으면 이 안에 <img>만 넣으면 된다 — 배경색과 크기는 이미 디자인 값이다.
+        캐릭터 자리. 좌측에 여백 없이 붙고 상태에 따라 크기가 바뀌며, 그 높이가 곧 행 높이다.
+        투표 전에만 뒤에 색이 깔린다.
       */}
       <span
         aria-hidden
-        className={cn("h-[66px] w-[58px] shrink-0", styles.character)}
-      />
+        className={cn(
+          "shrink-0",
+          CHARACTER_SIZE[state],
+          state === "default" && styles.characterPanel,
+        )}
+      >
+        {/*
+          next/image가 아닌 plain img인 이유: 표시 크기가 CHARACTER_SIZE로 이미 고정이라
+          srcset도 지연 로딩도 필요 없고(카드가 피드 최상단이라 항상 즉시 보인다), 자산이
+          13~26KB뿐이라 최적화 왕복이 오히려 요청만 늘린다.
+          (avatar·feed-card가 plain img를 쓰는 이유와는 다르다 — 그쪽은 외부 도메인 때문이다.)
+
+          아트워크 종횡비가 58:66으로 CHARACTER_SIZE 세 값과 모두 같아 contain이면 패널과 정확히
+          겹친다. 장식이라 부모 span의 aria-hidden에 묻히도록 alt는 빈 문자열이다.
+        */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={CHARACTER_SRC[option.key][state]}
+          alt=""
+          className="size-full object-contain"
+        />
+      </span>
 
       {/*
-        문구는 말줄임 없이 다 보여준다 — 선택지가 잘리면 투표가 성립하지 않는다.
-        세로 패딩은 3줄 이상으로 늘어났을 때만 의미가 있다(2줄까지는 패널 66이 높이를 잡는다).
+        문구는 말줄임 없이 다 보여주고 항상 세로 가운데다 — 선택지가 잘리면 투표가 성립하지 않는다.
+
+        세로 패딩이 py-2(16)가 아니라 py-1.5(12)인 이유: 2줄(42) + 패딩이 가장 작은 상태의 캐릭터
+        높이(54.62)를 넘으면 캐릭터가 아니라 문구가 행 높이를 정해 버려 실측값이 깨진다.
+        12이면 54로 아슬하게 아래에 머문다. 3줄부터는 어차피 문구가 행을 늘리므로 그때 여백이 된다.
       */}
-      <span className="min-w-0 flex-1 py-2 text-body-s break-keep">
+      <span className="min-w-0 flex-1 py-1.5 text-body-s break-keep">
         {option.text}
       </span>
     </button>
