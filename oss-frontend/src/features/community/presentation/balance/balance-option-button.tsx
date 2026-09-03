@@ -21,8 +21,8 @@ import { cn } from "@/shared/lib/cn";
 /**
  * 선택지 표시 상태.
  *
- * default와 unselected를 나눈 이유: 둘 다 연한 행 배경이지만 **캐릭터가 다르다**(디자인 실측).
- * 아무도 고르지 않았을 때는 패널에 색이 깔리고, 투표가 끝나면 패널 색이 빠지면서 고른 쪽은
+ * default와 unselected를 나눈 이유: 행 배경도 글자색도 같지만 **캐릭터가 다르다**(디자인 실측).
+ * 투표 전에는 회색 캐릭터가 곁눈질을 하고, 투표가 끝나면 양쪽 다 색이 들어오면서 고른 쪽은
  * 커지고 밀려난 쪽은 작아진다. "선택됨 여부" 하나로는 이 셋을 구분할 수 없다.
  */
 export type BalanceOptionState = "default" | "selected" | "unselected";
@@ -48,9 +48,10 @@ const CHARACTER_SIZE: Record<BalanceOptionState, string> = {
  *
  * 아트워크 자체가 상태를 말한다(디자인 원본의 표정 변형):
  * - default = 곁눈질하는 **회색** 캐릭터. A/B 모두 무채색이고 고개 방향만 좌우로 갈린다.
- *   투표 전에 색을 내는 것은 캐릭터가 아니라 뒤에 깔리는 characterPanel이다.
  * - selected = 눈을 크게 뜬 컬러, unselected = 눈이 처진 컬러.
- *   즉 투표하는 순간 색이 패널에서 캐릭터로 옮겨 간다.
+ *
+ * 즉 투표 전에는 행 배경만 색을 내고 캐릭터는 무채색이다가, 투표하는 순간 캐릭터에 색이 든다.
+ * 캐릭터 뒤에는 어떤 상태에서도 배경을 깔지 않는다 — 행 배경이 그대로 비쳐야 한다(디자인).
  *
  * 경로는 런타임 문자열이라 보간해도 되지만 표로 편다 — 자산 6개가 코드에 그대로 드러나
  * 빠진 상태를 눈으로 잡을 수 있다.
@@ -74,20 +75,17 @@ const CHARACTER_SRC: Record<
 /**
  * 선택지별 클래스. key로 뽑아 쓴다(Tailwind가 동적 클래스명을 읽지 못한다).
  *
- * characterPanel은 캐릭터 뒤에 깔리는 배경 — 디자인의 #ffc1bd / #b2d0f8이 각각 *-track 토큰과
- * 같은 값이라 하드코딩 없이 토큰으로 쓴다. **투표 전(default)에만** 깔리고, 투표 후에는 양쪽 다
- * 투명해져 행 배경이 그대로 비친다.
+ * A가 빨강, B가 파랑이다. default는 투표 전과 밀려난 상태가 함께 쓴다 — 그 둘은 행 배경도
+ * 글자색도 같고 캐릭터만 갈리기 때문이다(BalanceOptionState 주석 참조).
  */
 const OPTION_STYLES = {
   A: {
     default: "bg-poll-option-a-default-bg text-poll-option-a-default-text",
     selected: "bg-poll-option-a-selected-bg text-poll-option-a-selected-text",
-    characterPanel: "bg-poll-option-a-selected-bg-track",
   },
   B: {
     default: "bg-poll-option-b-default-bg text-poll-option-b-default-text",
     selected: "bg-poll-option-b-selected-bg text-poll-option-b-selected-text",
-    characterPanel: "bg-poll-option-b-selected-bg-track",
   },
 } as const;
 
@@ -131,16 +129,9 @@ export function BalanceOptionButton({
     >
       {/*
         캐릭터 자리. 좌측에 여백 없이 붙고 상태에 따라 크기가 바뀌며, 그 높이가 곧 행 높이다.
-        투표 전에만 뒤에 색이 깔린다.
+        어떤 상태에서도 뒤에 배경을 깔지 않는다 — 자산에 알파가 있어 행 배경이 그대로 비친다.
       */}
-      <span
-        aria-hidden
-        className={cn(
-          "shrink-0",
-          CHARACTER_SIZE[state],
-          state === "default" && styles.characterPanel,
-        )}
-      >
+      <span aria-hidden className={cn("shrink-0", CHARACTER_SIZE[state])}>
         {/*
           next/image가 아닌 plain img인 이유: 표시 크기가 CHARACTER_SIZE로 이미 고정이라
           srcset도 지연 로딩도 필요 없고(카드가 피드 최상단이라 항상 즉시 보인다), 자산이

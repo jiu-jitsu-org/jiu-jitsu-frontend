@@ -19,10 +19,7 @@ import { CommentIcon } from "@/shared/ui/icons";
  *
  * 순수 뷰다. 조회·투표·카운트다운은 모두 상위(BalanceGameSection)가 소유하고, 이 컴포넌트는
  * 받은 값을 그리고 탭을 콜백으로 위임한다.
- *
- * FIXME(디자인 가이드 미적용): 디자인 가이드를 받지 못해 간격·타이포·크기는 캡처와 기존 카드
- * (FeedCard) 관례를 보고 잡은 잠정값이다. 색은 토큰(poll-*)을 쓰므로 그대로 두고, 치수만
- * 가이드가 나오면 맞춘다. 구조(탭 분기·요소 순서)는 기능 요구사항이라 바뀌지 않는다.
+
  *
  * 탭이 두 갈래로 갈리는 것이 이 카드의 핵심이다:
  * - 선택지(A/B) → 투표만. 상세로 이동하지 않는다
@@ -55,8 +52,9 @@ export function BalanceGameCard({
   /**
    * 선택지 표시 상태.
    *
-   * 아무도 고르지 않은 default와, 상대를 골라서 밀려난 unselected는 다르다 — 행 배경은 같지만
-   * 캐릭터 패널이 투명해진다. 그래서 "선택됨 여부"가 아니라 세 값으로 넘긴다.
+   * 아무도 고르지 않은 default와, 상대를 골라서 밀려난 unselected는 다르다 — 행 배경도 글자색도
+   * 같지만 캐릭터가 갈린다(회색 곁눈질 ↔ 컬러 슬픔, 크기도 66 ↔ 54.62).
+   * 그래서 "선택됨 여부"가 아니라 세 값으로 넘긴다.
    */
   const optionState = (option: BalanceOptionKey): BalanceOptionState => {
     if (game.myVote === null) return "default";
@@ -73,16 +71,17 @@ export function BalanceGameCard({
   return (
     <section
       onClick={handleCardPress}
-      className="flex cursor-pointer flex-col bg-surface-container px-4"
+      // 배경을 두지 않는다 — 피드 배경이 그대로 비쳐야 한다(디자인). 좌우 16만 준다.
+      className="flex cursor-pointer flex-col px-4"
       aria-label="오늘의 밸런스 게임"
     >
       {/* 제목·타이머는 가운데 정렬 — 카드 안에서 선택지 묶음보다 상위 정보라는 것을 위계로 드러낸다. */}
-      <h2 className="text-center text-title-1 text-text-primary">
+      <h2 className="text-center text-title-1 text-feed-card-body-title-text">
         오늘의 밸런스 게임
       </h2>
 
       {/* 매초 바뀌는 문구는 BalanceRemaining 안에 갇혀 있다 — 카드는 초마다 리렌더되지 않는다. */}
-      <p className="mt-2 text-center text-text-tertiary">
+      <p className="mt-2 text-center text-feed-card-header-date-text">
         <BalanceRemaining
           endAt={game.endAt}
           serverTime={game.serverTime}
