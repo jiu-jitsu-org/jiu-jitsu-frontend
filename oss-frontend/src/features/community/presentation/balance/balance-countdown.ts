@@ -37,6 +37,44 @@ export function formatRemaining(remainMs: number): string {
 }
 
 /**
+ * 표기 조각 — 상세 배지 전용.
+ *
+ * 상세는 숫자와 단위의 타이포·색이 달라(숫자 Title 2, 단위 Body S) 한 문자열로는 그릴 수 없다.
+ * 리스트·sticky 바는 계속 formatRemaining의 문자열을 쓴다 — 규칙이 같아야 하므로 임계값과
+ * 자릿수 처리를 여기서 공유한다.
+ */
+export type RemainingParts =
+  | {
+      kind: "counting";
+      /** 시간이 0이면 null — 단위째 빼서 "42분 08초 남음"이 된다. */
+      hours: number | null;
+      minutes: number;
+      /** 2자리로 채운 초. */
+      seconds: string;
+    }
+  | { kind: "closing-soon" };
+
+/** 남은 밀리초 → 표기 조각. 임계값·자릿수 규칙은 formatRemaining과 같다. */
+export function readRemainingParts(remainMs: number): RemainingParts {
+  if (remainMs < MINUTE_MS) {
+    return { kind: "closing-soon" };
+  }
+
+  const totalSeconds = Math.floor(remainMs / SECOND_MS);
+  const hours = Math.floor(totalSeconds / 3600);
+
+  return {
+    kind: "counting",
+    hours: hours > 0 ? hours : null,
+    minutes: Math.floor((totalSeconds % 3600) / 60),
+    seconds: String(totalSeconds % 60).padStart(2, "0"),
+  };
+}
+
+/** 1분 미만 문구 — 조각으로 나눌 것이 없어 한 덩어리로 쓴다. */
+export const CLOSING_SOON_TEXT = CLOSING_SOON_LABEL;
+
+/**
  * 소수점 이하 초를 3자리로 자른다.
  *
  * 업스트림 serverTime은 나노초까지 온다("2026-09-02T00:59:13.163132088"). ECMAScript가 규정한

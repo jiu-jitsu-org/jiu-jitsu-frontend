@@ -206,6 +206,16 @@
   --feed-card-image-badge-bg: var(--overlay-scrim-heavy);
   --feed-card-image-badge-text: var(--text-on-overlay);
   --feed-card-tag-text: var(--text-tertiary);
+  /* 밸런스 게임 상세 타이머 배지(balance-game/countdown-badge).
+     FIXME: 디자인이 토큰 이름만 지정했고 매핑 값은 아직 못 받았다. 아래는 캡처와 현재 구현을
+     근거로 한 잠정값이다 — 실제 매핑을 받으면 이 네 줄만 바꾸면 된다.
+     배경은 지정에 text-value로 적혀 있었으나 텍스트 토큰이라, 별도 bg 토큰으로 둔다. */
+  --balance-game-countdown-badge-bg: var(--surface-secondary);
+  --balance-game-countdown-badge-text-value: var(--text-primary);
+  --balance-game-countdown-badge-text-label: var(--text-tertiary);
+  --balance-game-countdown-badge-icon-default: var(--icon-tertiary);
+  --balance-game-countdown-badge-icon-active: var(--interactive-primary);
+  --balance-game-countdown-badge-text-ended: var(--text-tertiary);
   --poll-sticky-bar-bg: var(--surface-primary-subtle);
   --poll-sticky-bar-text: var(--interactive-primary);
   --poll-sticky-bar-icon: var(--interactive-primary);

@@ -291,6 +291,12 @@
   --color-feed-card-image-badge-bg: var(--feed-card-image-badge-bg);
   --color-feed-card-image-badge-text: var(--feed-card-image-badge-text);
   --color-feed-card-tag-text: var(--feed-card-tag-text);
+  --color-balance-game-countdown-badge-bg: var(--balance-game-countdown-badge-bg);
+  --color-balance-game-countdown-badge-text-value: var(--balance-game-countdown-badge-text-value);
+  --color-balance-game-countdown-badge-text-label: var(--balance-game-countdown-badge-text-label);
+  --color-balance-game-countdown-badge-icon-default: var(--balance-game-countdown-badge-icon-default);
+  --color-balance-game-countdown-badge-icon-active: var(--balance-game-countdown-badge-icon-active);
+  --color-balance-game-countdown-badge-text-ended: var(--balance-game-countdown-badge-text-ended);
   --color-poll-sticky-bar-bg: var(--poll-sticky-bar-bg);
   --color-poll-sticky-bar-text: var(--poll-sticky-bar-text);
   --color-poll-sticky-bar-icon: var(--poll-sticky-bar-icon);

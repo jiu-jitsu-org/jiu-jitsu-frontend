@@ -3,6 +3,7 @@ import type { CommentList } from "@/features/community/domain/comment";
 import type { CommentSort } from "@/features/community/domain/post";
 import { BalanceDetailActionBar } from "@/features/community/presentation/balance/balance-detail-action-bar";
 import { BalanceDetailAppBar } from "@/features/community/presentation/balance/balance-detail-app-bar";
+import { BalanceDetailMetaRow } from "@/features/community/presentation/balance/balance-detail-meta-row";
 import { BalanceVotePanel } from "@/features/community/presentation/balance/balance-vote-panel";
 import { CommentInputBar } from "@/features/community/presentation/comment-input-bar";
 import { CommentReplyProvider } from "@/features/community/presentation/comment-reply-context";
@@ -62,16 +63,20 @@ export function BalanceDetailView({
         <div>
           {/* 본문 영역: 헤더와 간격 24, 좌우 16 — 게시글 상세와 같은 규격 */}
           <section className="flex flex-col px-4 pt-6">
-            <h1 className="text-center text-title-1 text-feed-card-body-title-text">
+            {/* 제목: Body M · 왼쪽 정렬(디자인 가이드). 게시글 상세와 같은 타이포지만 별개 지정이다. */}
+            <h1 className="text-body-m text-feed-card-body-title-text">
               오늘의 밸런스 게임
             </h1>
+
+            {/* 제목 아래 6 */}
+            <BalanceDetailMetaRow className="mt-1.5" />
 
             <BalanceVotePanel initialGame={game} />
           </section>
 
-          {/* 액션바: 선택지 아래 13, 디바이더 없음, 우측 정렬 — 게시글 상세와 같은 규격 */}
+          {/* 액션바: 선택지 아래 40, 디바이더 없음, 우측 정렬 (게시글 상세는 13 — 별개 지정이다) */}
           <BalanceDetailActionBar
-            className="mt-[13px]"
+            className="mt-10"
             contentId={game.contentId}
             initialLiked={game.isLiked}
             initialLikes={game.likeCount}

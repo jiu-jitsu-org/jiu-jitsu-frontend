@@ -10,7 +10,7 @@ import {
   BalanceOptionButton,
   type BalanceOptionState,
 } from "@/features/community/presentation/balance/balance-option-button";
-import { BalanceRemaining } from "@/features/community/presentation/balance/balance-remaining";
+import { BalanceDetailCountdown } from "@/features/community/presentation/balance/balance-detail-countdown";
 import { readOptionResult } from "@/features/community/presentation/balance/balance-result";
 import { canToggleVote } from "@/features/community/presentation/balance/balance-vote-policy";
 import { useBalanceCloseTransition } from "@/features/community/presentation/balance/use-balance-close-transition";
@@ -97,27 +97,20 @@ export function BalanceVotePanel({ initialGame }: { initialGame: BalanceGame }) 
   return (
     <>
       {/*
-        타이머는 리스트와 달리 알약(pill) 안에 들어간다. 가운데 정렬을 위해 한 겹 감싼다 —
-        inline-flex인 pill 자체는 자기 폭만 차지한다.
-
-        FIXME(Phase 8): pill 배경·여백은 디자인 가이드 전 잠정값이다(캡처 기준).
+        타이머 배지 — 조회수 행 아래 24. 배지 자체가 자기 폭만 차지하는 inline-flex라
+        가운데 정렬을 위해 한 겹 감싼다.
       */}
-      <div className="mt-4 flex justify-center">
-        <span className="inline-flex items-center rounded-full bg-surface-secondary px-4 py-2 text-feed-card-header-date-text">
-          {/* 깜빡임과 마감 문구는 상세 전용이다(리스트·sticky 바는 쓰지 않는다). */}
-          <BalanceRemaining
-            endAt={game.endAt}
-            serverTime={game.serverTime}
-            onExpired={handleExpired}
-            showIcon
-            blinkIcon
-            closed={game.closed}
-          />
-        </span>
+      <div className="mt-6 flex justify-center">
+        <BalanceDetailCountdown
+          endAt={game.endAt}
+          serverTime={game.serverTime}
+          closed={game.closed}
+          onExpired={handleExpired}
+        />
       </div>
 
-      {/* 선택지 사이 4 — 리스트와 같다 */}
-      <div className="mt-5 flex flex-col gap-1">
+      {/* 타이머 아래 16, 선택지 사이 4 */}
+      <div className="mt-4 flex flex-col gap-1">
         <BalanceOptionButton
           option={game.optionA}
           state={optionState("A")}
