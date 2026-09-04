@@ -87,14 +87,16 @@ export function BalanceVotePanel({ initialGame }: { initialGame: BalanceGame }) 
         inline-flex인 pill 자체는 자기 폭만 차지한다.
 
         FIXME(Phase 8): pill 배경·여백은 디자인 가이드 전 잠정값이다(캡처 기준).
-        FIXME(Phase 5): 아이콘 깜빡임과 마감 문구는 아직 없다.
       */}
       <div className="mt-4 flex justify-center">
         <span className="inline-flex items-center rounded-full bg-surface-secondary px-4 py-2 text-feed-card-header-date-text">
+          {/* 깜빡임과 마감 문구는 상세 전용이다(리스트·sticky 바는 쓰지 않는다). */}
           <BalanceRemaining
             endAt={game.endAt}
             serverTime={game.serverTime}
             showIcon
+            blinkIcon
+            closed={game.closed}
           />
         </span>
       </div>

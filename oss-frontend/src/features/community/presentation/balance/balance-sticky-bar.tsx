@@ -78,7 +78,7 @@ function StickyLabel({
   endAt: string;
   serverTime: string;
 }) {
-  const remaining = useBalanceCountdown({ endAt, serverTime });
+  const { label: remaining } = useBalanceCountdown({ endAt, serverTime });
 
   return (
     // 잔여 시간을 만들지 못하면 구분점까지 함께 뺀다 — "오늘의 밸런스 게임 · "로 끝나지 않도록.

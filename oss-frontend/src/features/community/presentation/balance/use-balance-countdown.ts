@@ -10,8 +10,12 @@ import {
 /**
  * 밸런스 게임 잔여 시간 틱.
  *
- * 반환값은 표기 문구다(계산 결과가 아니라). 호출부가 포맷 규칙을 다시 알 필요가 없고,
+ * 반환값의 주인공은 표기 문구다(계산 결과가 아니라) — 호출부가 포맷 규칙을 다시 알 필요가 없고,
  * 풀 카드와 sticky 바가 같은 문구를 공유한다.
+ *
+ * 남은 밀리초를 함께 돌려주는 이유는 **틱을 하나로 유지하기 위해서**다. 상세 타이머는 아이콘을
+ * 1초 주기로 깜빡이는데, 이를 위해 별도 interval을 두면 두 타이머의 위상이 어긋나 깜빡임이
+ * 문구 갱신과 따로 논다. 같은 값에서 파생시키면 항상 같은 박자다.
  *
  * **이 훅은 매초 리렌더를 일으킨다.** 반드시 타이머 문구를 실제로 그리는 말단 컴포넌트에서만
  * 호출한다. 피드 상위에서 호출하면 매초 피드 전체가 리렌더된다.
@@ -27,6 +31,14 @@ import {
 /** 틱 간격(ms). 정책상 1초 갱신. */
 const TICK_MS = 1_000;
 
+/** 카운트다운 한 틱의 상태. */
+export type BalanceCountdown = {
+  /** 표기 문구. 파싱 불가(서버 계약 위반)면 null이다. */
+  label: string | null;
+  /** 남은 밀리초. 파싱 불가면 null. 0이면 마감에 닿은 것이다. */
+  remainMs: number | null;
+};
+
 export function useBalanceCountdown({
   endAt,
   serverTime,
@@ -36,7 +48,7 @@ export function useBalanceCountdown({
   serverTime: string;
   /** 잔여 시간이 0에 닿는 순간 한 번 호출된다(다음 판 재조회 트리거). */
   onExpired?: () => void;
-}): string | null {
+}): BalanceCountdown {
   const responseRemainMs = useMemo(
     () => readRemainingAtResponse(endAt, serverTime),
     [endAt, serverTime],
@@ -97,5 +109,8 @@ export function useBalanceCountdown({
 
   // 파싱 불가(서버 계약 위반)면 문구를 만들지 않는다 — 호출부가 타이머 줄을 통째로 감춘다.
   // "NaN시간 남음"을 보여주느니 아예 없는 편이 낫다.
-  return remainMs === null ? null : formatRemaining(remainMs);
+  return {
+    label: remainMs === null ? null : formatRemaining(remainMs),
+    remainMs,
+  };
 }
