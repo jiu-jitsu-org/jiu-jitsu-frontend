@@ -67,6 +67,14 @@ export type BalanceGame = {
   likeCount: number;
   /** 내가 좋아요를 눌렀는지. 비로그인은 false. */
   isLiked: boolean;
+  /**
+   * 조회수.
+   *
+   * FIXME(jiu-jitsu-backend#124): 업스트림이 아직 내려주지 않는다. 게시글 상세와 같은 이름으로 미리
+   * 자리를 만들어 두고(그쪽도 DTO viewCount → 도메인 views), 필드가 오면 매핑만 살아난다.
+   * 지금은 항상 0이다.
+   */
+  views?: number;
 };
 
 /**

@@ -23,13 +23,21 @@ import { TimerIcon } from "@/shared/ui/icons";
 /** 마감 후 문구. 남은 시간 자리를 통째로 대체한다. */
 const ENDED_TEXT = "투표가 종료되었어요";
 
-/** 숫자 조각 — Title 2. */
+/**
+ * FIXME(jiu-jitsu-frontend#117): 색이 하드코딩이다.
+ *
+ * 디자인이 balance-game/countdown-badge/* 토큰 이름만 지정하고 매핑 값을 주지 않아, 우선
+ * 캡처에서 읽은 값을 그대로 넣는다. 토큰이 정의되면 아래 상수만 클래스로 바꾸면 된다.
+ *
+ * 숫자에 leading-[normal]을 주는 이유: Title 2 토큰의 행간은 28인데 디자인은 "크기 20, 행높이
+ * auto"다. 28이면 상하 여백 8을 지킬 때 배지가 44가 되어 지정 높이 40을 넘는다. 토큰 자체를
+ * 고치면 알럿·바텀시트 제목까지 따라 움직이므로 여기서만 auto로 되돌린다.
+ */
 const VALUE_CLASS =
-  "text-title-2 text-balance-game-countdown-badge-text-value tabular-nums";
+  "text-title-2 leading-[normal] text-[#292a2e] tabular-nums";
 
 /** 단위 조각 — Body S. */
-const LABEL_CLASS =
-  "text-body-s text-balance-game-countdown-badge-text-label";
+const LABEL_CLASS = "text-body-s text-[#9c9ea6]";
 
 export function BalanceDetailCountdown({
   endAt,
@@ -72,19 +80,17 @@ export function BalanceDetailCountdown({
   return (
     // 높이 40 고정 · radius 16 · 조각 사이 간격 5(아이콘 ↔ 첫 숫자 포함).
     // 상하 8은 패딩으로 두되 높이가 40으로 고정이라 실제로는 가운데 정렬이 자리를 잡는다.
-    <div className="inline-flex h-10 items-center gap-[5px] rounded-2xl bg-balance-game-countdown-badge-bg px-4 py-2">
+    <div className="inline-flex h-10 items-center gap-[5px] rounded-2xl bg-[#e6e7e8] px-4 py-2">
       <TimerIcon
         size={16}
         className={cn(
           "shrink-0 transition-colors",
-          iconDimmed
-            ? "text-balance-game-countdown-badge-icon-default"
-            : "text-balance-game-countdown-badge-icon-active",
+          iconDimmed ? "text-[#9c9ea6]" : "text-[#0090ff]",
         )}
       />
 
       {closed ? (
-        <span className="text-body-s text-balance-game-countdown-badge-text-ended">
+        <span className="text-body-s text-[#9c9ea6]">
           {ENDED_TEXT}
         </span>
       ) : parts === null || parts.kind === "closing-soon" ? (

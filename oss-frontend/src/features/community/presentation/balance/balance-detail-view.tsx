@@ -69,7 +69,7 @@ export function BalanceDetailView({
             </h1>
 
             {/* 제목 아래 6 */}
-            <BalanceDetailMetaRow className="mt-1.5" />
+            <BalanceDetailMetaRow views={game.views} className="mt-1.5" />
 
             <BalanceVotePanel initialGame={game} />
           </section>

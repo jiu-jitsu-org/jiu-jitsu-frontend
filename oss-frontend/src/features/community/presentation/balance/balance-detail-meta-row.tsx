@@ -5,14 +5,20 @@
  * (게시글은 날짜 → 조회수, 여기는 조회수 → 날짜) 수정됨 표기가 없다. 무엇보다 밸런스 상세의
  * 디자인 가이드는 게시글과 독립이라, 한쪽을 고칠 때 다른 쪽이 따라 움직이면 안 된다.
  *
- * FIXME(조회수): 밸런스 게임 응답에 조회수 필드가 없다(contentId · endAt · serverTime · closed ·
- * optionA/B · totalVoteCount · myVote · commentCount · likeCount · isLiked가 전부). 지금은 0을
- * 넣어 자리만 잡아 둔다 — BE에 필드가 추가되면 props로 받아 넘기기만 하면 된다.
- *
  * FIXME(날짜): 날짜 표기 정책이 아직 없어 문구를 "날짜"로 하드코딩한다(디자인 요청). 정책이
  * 서면 게시글처럼 서버 timeAgo를 쓸지, 절대 시각을 포맷할지 정한 뒤 교체한다.
  */
-export function BalanceDetailMetaRow({ className }: { className?: string }) {
+export function BalanceDetailMetaRow({
+  views = 0,
+  className,
+}: {
+  /**
+   * 조회수. 업스트림이 아직 내려주지 않아 실제로는 0이다(도메인 BalanceGame.views 주석 참조).
+   * 게시글과 같은 이름으로 받아 두어, 필드가 생기면 이 컴포넌트는 그대로 두면 된다.
+   */
+  views?: number;
+  className?: string;
+}) {
   return (
     // Label M(12/16/500), 색 feed-card/header/date-text, 항목 간격 10, 왼쪽 정렬.
     <div
@@ -21,7 +27,7 @@ export function BalanceDetailMetaRow({ className }: { className?: string }) {
         (className ? ` ${className}` : "")
       }
     >
-      <span>조회 0</span>
+      <span>조회 {views}</span>
       <span>날짜</span>
     </div>
   );

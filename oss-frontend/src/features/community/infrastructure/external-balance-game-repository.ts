@@ -46,6 +46,8 @@ type BalanceGameDto = {
   likeCount: number;
   /** 비로그인은 false. */
   isLiked: boolean;
+  /** 아직 내려오지 않는다 — 게시글과 같은 이름으로 미리 받아 둔다(FIXME는 도메인 참조). */
+  viewCount?: number;
 };
 
 /**
@@ -78,6 +80,7 @@ function toBalanceGame(dto: BalanceGameDto): BalanceGame {
     // 않는 환경에서도 화면이 뜨는 편이 낫다(좋아요 0 · 미선택으로 보인다).
     likeCount: dto.likeCount ?? 0,
     isLiked: dto.isLiked ?? false,
+    views: dto.viewCount ?? 0,
   };
 }
 
