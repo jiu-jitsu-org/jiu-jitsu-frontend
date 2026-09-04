@@ -14,6 +14,7 @@ import { ToggleNoticeUseCase } from "@/features/community/application/toggle-not
 import { ToggleCommentLikeUseCase } from "@/features/community/application/toggle-comment-like";
 import { ToggleLikeUseCase } from "@/features/community/application/toggle-like";
 import { BlockUserUseCase } from "@/features/community/application/block-user";
+import { GetBalanceGameDetailUseCase } from "@/features/community/application/get-balance-game-detail";
 import { GetCurrentBalanceGameUseCase } from "@/features/community/application/get-current-balance-game";
 import { VoteBalanceGameUseCase } from "@/features/community/application/vote-balance-game";
 import { ExternalBalanceGameRepository } from "@/features/community/infrastructure/external-balance-game-repository";
@@ -168,6 +169,15 @@ export function createGetCurrentBalanceGameUseCase(
   accessToken: string | null,
 ): GetCurrentBalanceGameUseCase {
   return new GetCurrentBalanceGameUseCase(
+    createBalanceGameRepository(accessToken),
+  );
+}
+
+/** 상세 단건 조회. 열람은 비로그인도 가능하므로 토큰은 선택 — 있으면 myVote·isLiked가 채워진다. */
+export function createGetBalanceGameDetailUseCase(
+  accessToken: string | null,
+): GetBalanceGameDetailUseCase {
+  return new GetBalanceGameDetailUseCase(
     createBalanceGameRepository(accessToken),
   );
 }

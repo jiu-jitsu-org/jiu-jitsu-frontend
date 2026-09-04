@@ -19,6 +19,16 @@ export interface BalanceGameRepository {
    */
   getCurrent(): Promise<BalanceGame | null>;
   /**
+   * 단건 조회(GET /community/balance-game/{contentId}). 상세 화면이 쓴다.
+   *
+   * getCurrent와 달리 **마감된 판도 돌려준다** — 상세를 보던 중 마감돼도 그 자리에 머물 수
+   * 있어야 하고, 새로고침이 사용자를 다음 판으로 밀어내면 안 된다.
+   *
+   * 없는 컨텐츠면 null이다. 업스트림이 200 + data:null로 주든 404로 주든 호출부가 분기할 것은
+   * "화면을 닫는다" 하나뿐이라 여기서 null로 합친다.
+   */
+  getById(contentId: number): Promise<BalanceGame | null>;
+  /**
    * 투표(POST /community/balance-game/{contentId}/vote). 인증 필요.
    *
    * 서버는 투표가 반영된 최신 상태를 통째로 돌려주므로 호출부는 재조회하지 않는다.

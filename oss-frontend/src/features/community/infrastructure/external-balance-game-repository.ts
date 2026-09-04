@@ -4,7 +4,7 @@ import type {
   BalanceOptionKey,
 } from "@/features/community/domain/balance-game";
 import type { BalanceGameRepository } from "@/features/community/domain/balance-game-repository";
-import type { HttpClient } from "@/shared/lib/http";
+import { HttpError, type HttpClient } from "@/shared/lib/http";
 
 /**
  * 업스트림 밸런스 게임 API를 사용하는 infrastructure 구현.
@@ -43,6 +43,9 @@ type BalanceGameDto = {
   /** 미투표면 null. */
   myVote: BalanceOptionKey | null;
   commentCount: number;
+  likeCount: number;
+  /** 비로그인은 false. */
+  isLiked: boolean;
 };
 
 /**
@@ -71,6 +74,10 @@ function toBalanceGame(dto: BalanceGameDto): BalanceGame {
     totalVoteCount: dto.totalVoteCount ?? 0,
     myVote: dto.myVote ?? null,
     commentCount: dto.commentCount ?? 0,
+    // 좋아요 필드는 나중에 추가된 계약이라 방어적으로 읽는다 — 배포 순서상 아직 내려오지
+    // 않는 환경에서도 화면이 뜨는 편이 낫다(좋아요 0 · 미선택으로 보인다).
+    likeCount: dto.likeCount ?? 0,
+    isLiked: dto.isLiked ?? false,
   };
 }
 
@@ -85,6 +92,21 @@ export class ExternalBalanceGameRepository implements BalanceGameRepository {
     );
 
     return response.data ? toBalanceGame(response.data) : null;
+  }
+
+  async getById(contentId: number): Promise<BalanceGame | null> {
+    // 없는 컨텐츠를 업스트림이 404로 줄지 200 + data:null로 줄지 계약이 확정되지 않았다.
+    // 호출부가 분기할 것은 "화면을 닫는다" 하나뿐이라 두 형태를 여기서 null로 합친다.
+    try {
+      const response = await this.httpClient.get<
+        Envelope<BalanceGameDto | null>
+      >({ path: `${BALANCE_GAME_ENDPOINT_PATH}/${contentId}` });
+
+      return response.data ? toBalanceGame(response.data) : null;
+    } catch (error) {
+      if (error instanceof HttpError && error.status === 404) return null;
+      throw error;
+    }
   }
 
   async vote(

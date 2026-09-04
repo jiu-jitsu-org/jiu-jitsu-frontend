@@ -58,4 +58,19 @@ export type BalanceGame = {
   myVote: BalanceOptionKey | null;
   /** 댓글 수. 0이면 "첫 댓글 남기러 가기"로 노출한다. */
   commentCount: number;
+  /**
+   * 좋아요 수.
+   *
+   * 리스트는 좋아요를 노출하지 않지만 **같은 응답을 상세와 공유**하므로 도메인에 담아 둔다
+   * (imageUrl·voteCount와 같은 이유). 리스트가 나중에 노출하게 되어도 계약을 다시 찾을 일이 없다.
+   */
+  likeCount: number;
+  /** 내가 좋아요를 눌렀는지. 비로그인은 false. */
+  isLiked: boolean;
 };
+
+/**
+ * 저장(북마크)은 업스트림 미지원이라 필드가 없다 — `saveCount`·`isSaved`는 내려오지 않는다.
+ * 밸런스 contentId로 저장을 호출하면 C0008(CONTENT_SAVE_NOT_SUPPORTED)이 온다.
+ * 기획 확인 중이라 뒤집힐 수 있다(docs/balance-game-detail-plan.md §1).
+ */
