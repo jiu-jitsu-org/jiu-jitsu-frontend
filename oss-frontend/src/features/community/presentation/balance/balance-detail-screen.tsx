@@ -2,6 +2,7 @@ import { SessionExpiredRecovery } from "@/features/auth/presentation/session-exp
 import { getBalanceDetailPageData } from "@/features/community/application/get-balance-detail-page-data";
 import type { CommentSort } from "@/features/community/domain/post";
 import { BalanceDetailGone } from "@/features/community/presentation/balance/balance-detail-gone";
+import { BalanceDetailView } from "@/features/community/presentation/balance/balance-detail-view";
 
 /**
  * 밸런스 게임 상세 화면 루트 (서버 컴포넌트).
@@ -11,9 +12,6 @@ import { BalanceDetailGone } from "@/features/community/presentation/balance/bal
  *
  * 리스트와 실패 처리가 정반대인 것에 주의: 리스트는 조회에 실패하면 카드를 조용히 감추지만,
  * 상세는 사용자가 의도적으로 들어온 화면이라 빈 화면을 보여줄 수 없다.
- *
- * FIXME(Phase 2): 본문은 아직 자리만 잡아 둔 상태다. 레이아웃(BalanceDetailView)이 들어오면
- * 아래 임시 렌더를 교체한다 — 조회 경로가 실제로 도는지 먼저 확인할 수 있게 값만 찍어 둔다.
  */
 export async function BalanceDetailScreen({
   contentId,
@@ -45,19 +43,7 @@ export async function BalanceDetailScreen({
 
   const { game, comments } = result.data;
 
-  return (
-    <main className="flex min-h-dvh flex-col gap-2 px-4 py-6">
-      <h1 className="text-title-1 text-feed-card-body-title-text">
-        오늘의 밸런스 게임
-      </h1>
-      <p className="text-body-s text-text-secondary">{game.optionA.text}</p>
-      <p className="text-body-s text-text-secondary">{game.optionB.text}</p>
-      <p className="text-label-m text-text-tertiary">
-        댓글 {comments.items.length} · 좋아요 {game.likeCount} ·{" "}
-        {game.closed ? "마감" : "진행 중"}
-      </p>
-    </main>
-  );
+  return <BalanceDetailView game={game} comments={comments} sort={sort} />;
 }
 
 /** 상세 복구(세션 갱신) 중 표시. */

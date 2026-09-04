@@ -48,7 +48,7 @@ export function PostDetailView({
           />
         }
         // 외부 브라우저에서는 입력 바를 감춘다(#72) — 세션이 없어 전송이 반드시 실패한다.
-        footer={<PostDetailFooter inputBar={<CommentInputBar postId={post.id} />} />}
+        footer={<PostDetailFooter inputBar={<CommentInputBar contentId={post.id} />} />}
       >
         <div>
           {/* 본문 영역: 헤더와 간격 24(pt-6), 좌우 여백 16(px-4), 섹션 간격 16(gap-4: 프로필 row↔제목 row 등) */}
