@@ -4,6 +4,7 @@ import type {
   BalanceGameOption,
   BalanceOptionKey,
 } from "@/features/community/domain/balance-game";
+import type { BalanceOptionResult } from "@/features/community/presentation/balance/balance-result";
 import { cn } from "@/shared/lib/cn";
 
 /**
@@ -82,10 +83,26 @@ const OPTION_STYLES = {
   A: {
     default: "bg-poll-option-a-default-bg text-poll-option-a-default-text",
     selected: "bg-poll-option-a-selected-bg text-poll-option-a-selected-text",
+    emphasizedTrack:
+      "bg-poll-option-a-selected-bg-track text-poll-option-a-selected-text",
+    emphasizedFill: "bg-poll-option-a-selected-bg",
+    emphasizedPercent: "text-poll-option-a-selected-percent-text",
+    resultTrack:
+      "bg-poll-option-a-result-bg-track text-poll-option-a-result-text",
+    resultFill: "bg-poll-option-a-result-bg-fill",
+    resultPercent: "text-poll-option-a-result-percent-text",
   },
   B: {
     default: "bg-poll-option-b-default-bg text-poll-option-b-default-text",
     selected: "bg-poll-option-b-selected-bg text-poll-option-b-selected-text",
+    emphasizedTrack:
+      "bg-poll-option-b-selected-bg-track text-poll-option-b-selected-text",
+    emphasizedFill: "bg-poll-option-b-selected-bg",
+    emphasizedPercent: "text-poll-option-b-selected-percent-text",
+    resultTrack:
+      "bg-poll-option-b-result-bg-track text-poll-option-b-result-text",
+    resultFill: "bg-poll-option-b-result-bg-fill",
+    resultPercent: "text-poll-option-b-result-percent-text",
   },
 } as const;
 
@@ -99,15 +116,41 @@ export function BalanceOptionButton({
    * 출처를 읽는다 — 커서는 되는데 눌러도 안 되는(또는 그 반대) 어긋남을 막기 위해서다.
    */
   interactive,
+  /**
+   * 투표율·진행률 바. null이면 그리지 않는다.
+   *
+   * 리스트는 항상 null이라 카드 높이가 투표 전후로 변하지 않는다(복귀 시 스크롤이 튀지 않도록).
+   * 결과를 그릴지 말지는 정책이라 balance-result가 판단하고, 이 컴포넌트는 받은 대로 그린다.
+   */
+  result = null,
   onPress,
 }: {
   option: BalanceGameOption;
   state: BalanceOptionState;
   interactive: boolean;
+  result?: BalanceOptionResult | null;
   onPress: () => void;
 }) {
   const styles = OPTION_STYLES[option.key];
   const selected = state === "selected";
+
+  /**
+   * 결과를 그릴 때는 행 배경이 **트랙**이 되고 그 위에 fill이 얹힌다 — 행 자체가 진행률 바다.
+   * 강조(내가 고른 쪽·미마감)와 일반 결과는 fill·트랙·글자색이 통째로 다른 한 벌이다.
+   */
+  const resultStyles = result
+    ? result.emphasized
+      ? {
+          track: styles.emphasizedTrack,
+          fill: styles.emphasizedFill,
+          percent: styles.emphasizedPercent,
+        }
+      : {
+          track: styles.resultTrack,
+          fill: styles.resultFill,
+          percent: styles.resultPercent,
+        }
+    : null;
 
   return (
     <button
@@ -121,17 +164,40 @@ export function BalanceOptionButton({
         // 좌측 패딩이 없다 — 캐릭터 패널이 행 왼쪽 끝에 붙어 위아래를 꽉 채운다(디자인 실측).
         // 높이는 고정하지 않는다. 문구가 길어지면 행이 늘어나야 하고, 그 최소값(66)은
         // 캐릭터 패널이 만든다.
-        "flex w-full items-center gap-2.5 overflow-hidden rounded-xl pr-4 text-left transition-colors",
-        // 행 배경·글자색은 unselected가 default와 같다 — 갈리는 것은 캐릭터 패널뿐이다.
-        selected ? styles.selected : styles.default,
+        // relative는 진행률 fill(절대 배치)의 기준이다. 결과를 안 그려도 무해하다.
+        "relative flex w-full items-center gap-2.5 overflow-hidden rounded-xl pr-4 text-left transition-colors",
+        // 결과를 그리면 배경이 트랙으로 바뀐다. 아니면 기존 규칙 —
+        // 행 배경·글자색은 unselected가 default와 같고, 갈리는 것은 캐릭터뿐이다.
+        resultStyles
+          ? resultStyles.track
+          : selected
+            ? styles.selected
+            : styles.default,
         interactive && "cursor-pointer",
       )}
     >
       {/*
+        진행률 fill — 행 좌측부터 percent만큼 덮는다.
+
+        절대 배치라 행 높이에 관여하지 않는다(높이는 캐릭터가 정한다는 규칙이 그대로 유지된다).
+        내용보다 먼저 그려 뒤에 깔리게 하고, 아래 형제들은 relative로 그 위에 올린다.
+      */}
+      {resultStyles ? (
+        <span
+          aria-hidden
+          className={cn("absolute inset-y-0 left-0", resultStyles.fill)}
+          style={{ width: `${result?.percent ?? 0}%` }}
+        />
+      ) : null}
+
+      {/*
         캐릭터 자리. 좌측에 여백 없이 붙고 상태에 따라 크기가 바뀌며, 그 높이가 곧 행 높이다.
         어떤 상태에서도 뒤에 배경을 깔지 않는다 — 자산에 알파가 있어 행 배경이 그대로 비친다.
       */}
-      <span aria-hidden className={cn("shrink-0", CHARACTER_SIZE[state])}>
+      <span
+        aria-hidden
+        className={cn("relative shrink-0", CHARACTER_SIZE[state])}
+      >
         {/*
           next/image가 아닌 plain img인 이유: 표시 크기가 CHARACTER_SIZE로 이미 고정이라
           srcset도 지연 로딩도 필요 없고(카드가 피드 최상단이라 항상 즉시 보인다), 자산이
@@ -156,9 +222,24 @@ export function BalanceOptionButton({
         높이(54.62)를 넘으면 캐릭터가 아니라 문구가 행 높이를 정해 버려 실측값이 깨진다.
         12이면 54로 아슬하게 아래에 머문다. 3줄부터는 어차피 문구가 행을 늘리므로 그때 여백이 된다.
       */}
-      <span className="min-w-0 flex-1 py-1.5 text-body-s break-keep">
+      <span className="relative min-w-0 flex-1 py-1.5 text-body-s break-keep">
         {option.text}
       </span>
+
+      {/*
+        투표율. 문구가 몇 줄이든 세로 가운데에 머물도록 행의 flex 정렬을 그대로 따른다.
+        자릿수가 바뀌어도(9% ↔ 63%) 위치가 흔들리지 않게 tabular-nums를 준다.
+      */}
+      {resultStyles ? (
+        <span
+          className={cn(
+            "relative shrink-0 text-body-s tabular-nums",
+            resultStyles.percent,
+          )}
+        >
+          {result?.percent ?? 0}%
+        </span>
+      ) : null}
     </button>
   );
 }

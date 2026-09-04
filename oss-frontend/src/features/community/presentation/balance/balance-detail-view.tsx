@@ -10,6 +10,7 @@ import {
   type BalanceOptionState,
 } from "@/features/community/presentation/balance/balance-option-button";
 import { BalanceRemaining } from "@/features/community/presentation/balance/balance-remaining";
+import { readOptionResult } from "@/features/community/presentation/balance/balance-result";
 import { CommentInputBar } from "@/features/community/presentation/comment-input-bar";
 import { CommentReplyProvider } from "@/features/community/presentation/comment-reply-context";
 import { CommentSection } from "@/features/community/presentation/comment-section";
@@ -44,8 +45,9 @@ export function BalanceDetailView({
   /**
    * 선택지 표시 상태 — 리스트 카드(BalanceGameCard)와 같은 규칙이다.
    *
-   * 마감 여부는 아직 보지 않는다. 마감이면 양쪽 다 연한 배경이 되어야 하는데(내 선택 강조 없음)
-   * 그 분기는 진행률 바와 함께 들어와야 말이 되므로 Phase 3에서 얹는다.
+   * **마감 여부를 보지 않는 것이 의도적이다.** 마감 후 배경 강조는 사라지지만(readOptionResult가
+   * emphasized: false를 준다) 캐릭터는 내가 고른 그대로 남는다 — 배경 색이 빠져도 무엇을 골랐는지는
+   * 읽을 수 있어야 한다는 판단이다. 크기도 함께 유지되므로 마감 전환 시 행 높이가 변하지 않는다.
    */
   const optionState = (option: BalanceOptionKey): BalanceOptionState => {
     if (game.myVote === null) return "default";
@@ -92,12 +94,14 @@ export function BalanceDetailView({
                 option={game.optionA}
                 state={optionState("A")}
                 interactive={false}
+                result={readOptionResult(game, "A")}
                 onPress={() => {}}
               />
               <BalanceOptionButton
                 option={game.optionB}
                 state={optionState("B")}
                 interactive={false}
+                result={readOptionResult(game, "B")}
                 onPress={() => {}}
               />
             </div>
