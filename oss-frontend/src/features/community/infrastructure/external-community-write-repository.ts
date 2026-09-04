@@ -144,14 +144,28 @@ export class ExternalCommunityWriteRepository
     return response.data?.isHidden ?? true;
   }
 
-  async toggleNotice(postId: number): Promise<boolean> {
-    // PUT /notice/setting/board/{boardId} — 단일 엔드포인트 토글(알림 켜기/끄기).
+  async getNoticeEnabled(contentId: number): Promise<boolean> {
+    // GET /notice/setting/board/{contentId} — 현재 수신 여부. 설정한 적이 없으면 false가 온다.
+    // 토글과 같은 컨트롤러라 응답 형태도 같게 다룬다(봉투 밖 형태도 허용).
+    const response = await this.httpClient.get<
+      Envelope<{ boardId: number; enabled: boolean }> | { enabled: boolean }
+    >({
+      path: `${NOTICE_ENDPOINT_PATH}/setting/board/${contentId}`,
+    });
+
+    if ("data" in response) return response.data.enabled;
+    return response.enabled;
+  }
+
+  async toggleNotice(contentId: number): Promise<boolean> {
+    // PUT /notice/setting/board/{contentId} — 단일 엔드포인트 토글(알림 켜기/끄기).
+    // 경로에 board가 들어가지만 파라미터는 contentId다 — 게시글도 밸런스 게임도 같은 경로를 쓴다.
     // 응답 data.enabled가 토글 후 상태다. 다른 토글(숨김·차단)에서 봉투 없이 내려온 전례가 있어
     // 봉투 밖 형태도 함께 허용한다.
     const response = await this.httpClient.put<
       Envelope<{ boardId: number; enabled: boolean }> | { enabled: boolean }
     >({
-      path: `${NOTICE_ENDPOINT_PATH}/setting/board/${postId}`,
+      path: `${NOTICE_ENDPOINT_PATH}/setting/board/${contentId}`,
     });
 
     if ("data" in response) return response.data.enabled;

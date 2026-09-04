@@ -10,6 +10,7 @@ import { GetPostDetailUseCase } from "@/features/community/application/get-post-
 import { GetPostListUseCase } from "@/features/community/application/get-post-list";
 import { ToggleBookmarkUseCase } from "@/features/community/application/toggle-bookmark";
 import { ToggleHideUseCase } from "@/features/community/application/toggle-hide";
+import { GetNoticeEnabledUseCase } from "@/features/community/application/get-notice-enabled";
 import { ToggleNoticeUseCase } from "@/features/community/application/toggle-notice";
 import { ToggleCommentLikeUseCase } from "@/features/community/application/toggle-comment-like";
 import { ToggleLikeUseCase } from "@/features/community/application/toggle-like";
@@ -123,6 +124,15 @@ export function createToggleNoticeUseCase(
   accessToken: string,
 ): ToggleNoticeUseCase {
   return new ToggleNoticeUseCase(createWriteRepository(accessToken));
+}
+
+/** 알림 수신 여부 조회. 토글과 같은 repository를 쓰고 인증이 필요하다. */
+export function createGetNoticeEnabledUseCase(
+  accessToken: string,
+): GetNoticeEnabledUseCase {
+  return new GetNoticeEnabledUseCase(
+    createWriteRepository(accessToken),
+  );
 }
 
 export function createGetImageUploadAuthUseCase(

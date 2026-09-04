@@ -1,7 +1,8 @@
 import type { BalanceGame } from "@/features/community/domain/balance-game";
 import type { CommentList } from "@/features/community/domain/comment";
 import type { CommentSort } from "@/features/community/domain/post";
-import { AppBarShell } from "@/features/community/presentation/app-bar-shell";
+import { BalanceDetailActionBar } from "@/features/community/presentation/balance/balance-detail-action-bar";
+import { BalanceDetailAppBar } from "@/features/community/presentation/balance/balance-detail-app-bar";
 import { BalanceVotePanel } from "@/features/community/presentation/balance/balance-vote-panel";
 import { CommentInputBar } from "@/features/community/presentation/comment-input-bar";
 import { CommentReplyProvider } from "@/features/community/presentation/comment-reply-context";
@@ -24,21 +25,32 @@ import { PostDetailHeader } from "@/features/community/presentation/post-detail-
  * 외부 브라우저면 앱바 대신 배너 · 입력 바 감춤"이라 컨텐츠 종류와 무관하다(#72). 밸런스 상세도
  * 같은 이유로 같은 처리가 필요하다 — 세션이 없으면 댓글 전송이 반드시 401로 끝난다.
  *
- * FIXME(Phase 7): 리액션 바(댓글쓰기·좋아요·공유)와 앱바의 알림 벨은 아직 없다.
+ * 리액션 바에 저장(북마크)이 없다 — 업스트림이 밸런스 컨텐츠의 저장을 지원하지 않는다.
  */
 export function BalanceDetailView({
   game,
   comments,
   sort,
+  noticeEnabled,
 }: {
   game: BalanceGame;
   comments: CommentList;
   sort: CommentSort;
+  noticeEnabled: boolean;
 }) {
   return (
     <CommentReplyProvider>
       <KeyboardAwareShell
-        header={<PostDetailHeader appBar={<AppBarShell>{null}</AppBarShell>} />}
+        header={
+          <PostDetailHeader
+            appBar={
+              <BalanceDetailAppBar
+                contentId={game.contentId}
+                initialNoticeEnabled={noticeEnabled}
+              />
+            }
+          />
+        }
         footer={
           <PostDetailFooter
             inputBar={<CommentInputBar contentId={game.contentId} />}
@@ -54,6 +66,15 @@ export function BalanceDetailView({
 
             <BalanceVotePanel initialGame={game} />
           </section>
+
+          {/* 액션바: 선택지 아래 13, 디바이더 없음, 우측 정렬 — 게시글 상세와 같은 규격 */}
+          <BalanceDetailActionBar
+            className="mt-[13px]"
+            contentId={game.contentId}
+            initialLiked={game.isLiked}
+            initialLikes={game.likeCount}
+            comments={game.commentCount}
+          />
 
           {/* 디바이더: 풀폭(좌우 여백 없음), 높이 4 — 게시글 상세와 같은 규격 */}
           <div className="mt-6 h-1 bg-divider-bg" />

@@ -1,6 +1,7 @@
 import {
   createGetBalanceGameDetailUseCase,
   createGetCommentsUseCase,
+  createGetNoticeEnabledUseCase,
 } from "@/features/community/application/community-use-case-factory";
 import type { BalanceGame } from "@/features/community/domain/balance-game";
 import type { CommentList } from "@/features/community/domain/comment";
@@ -11,6 +12,13 @@ import { ApiErrorCode, toApiError } from "@/shared/lib/http";
 export type BalanceDetailPageData = {
   game: BalanceGame;
   comments: CommentList;
+  /**
+   * 알림 수신 여부(앱바 종의 초기 상태).
+   *
+   * 게시글은 상세 응답의 noticeEnabled로 받지만 밸런스 응답에는 그 필드가 없어 따로 읽는다.
+   * 비로그인은 받을 설정이 없어 false다.
+   */
+  noticeEnabled: boolean;
 };
 
 export type BalanceDetailPageDataResult =
@@ -36,6 +44,9 @@ const EMPTY_COMMENTS: CommentList = { items: [], total: 0, nextCursor: null };
  *
  * 댓글은 게시글과 같은 업스트림(GET /community/comments?id=)을 쓴다. 파라미터 이름이 postId일
  * 뿐 실제로는 contentId라, 밸런스 게임의 contentId를 그대로 넘기면 된다.
+ *
+ * 알림 설정도 함께 읽는다. 이건 인증이 필요해 토큰이 있을 때만 부르고, 실패해도 화면을 막지
+ * 않는다 — 종이 꺼진 채로 뜨고 탭하면 서버가 진실값으로 정정해 준다.
  */
 export async function getBalanceDetailPageData(
   contentId: number,
@@ -44,19 +55,24 @@ export async function getBalanceDetailPageData(
   const accessToken = await readSessionToken();
 
   try {
-    const [game, comments] = await Promise.all([
+    const [game, comments, noticeEnabled] = await Promise.all([
       createGetBalanceGameDetailUseCase(accessToken).execute(contentId),
       // 댓글이 실패해도 투표 영역은 보여야 한다(graceful degradation).
       createGetCommentsUseCase(accessToken)
         .execute(contentId, sort)
         .catch(() => EMPTY_COMMENTS),
+      accessToken
+        ? createGetNoticeEnabledUseCase(accessToken)
+            .execute(contentId)
+            .catch(() => false)
+        : Promise.resolve(false),
     ]);
 
     if (!game) {
       return { ok: false, reason: "not-found" };
     }
 
-    return { ok: true, data: { game, comments } };
+    return { ok: true, data: { game, comments, noticeEnabled } };
   } catch (error) {
     const apiError = toApiError(error);
 

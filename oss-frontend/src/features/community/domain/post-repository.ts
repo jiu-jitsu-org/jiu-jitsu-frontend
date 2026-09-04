@@ -89,7 +89,17 @@ export interface CommunityWriteRepository {
    * 게시글 알림 수신 토글(PUT /notice/setting/board/{boardId}). 서버가 현재 설정을 뒤집고
    * 결과를 알려주므로, 토글 후의 수신 여부(true=알림 받음)를 반환한다.
    */
-  toggleNotice(postId: number): Promise<boolean>;
+  toggleNotice(contentId: number): Promise<boolean>;
+  /**
+   * 알림 수신 여부 조회(GET /notice/setting/board/{contentId}).
+   *
+   * 읽기인데 쓰기 repository에 있는 이유: 토글(toggleNotice)과 같은 업스트림 컨트롤러이고
+   * 서로의 짝이다. 알림 계약을 두 repository로 쪼개면 한쪽만 보고는 전체를 알 수 없다.
+   *
+   * 게시글 상세는 이걸 부르지 않는다 — 상세 응답에 noticeEnabled가 함께 오기 때문이다.
+   * 밸런스 게임 응답에는 그 필드가 없어 별도로 읽어야 한다.
+   */
+  getNoticeEnabled(contentId: number): Promise<boolean>;
   /** ① ImageKit 업로드용 서명 발급(GET /image/auth). */
   getImageUploadAuth(): Promise<ImageUploadAuth>;
   /** ③ ImageKit 업로드 결과를 서버에 등록(POST /image) → TEMP 이미지. */
