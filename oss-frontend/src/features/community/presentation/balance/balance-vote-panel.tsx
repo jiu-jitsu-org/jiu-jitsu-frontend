@@ -13,6 +13,7 @@ import {
 import { BalanceRemaining } from "@/features/community/presentation/balance/balance-remaining";
 import { readOptionResult } from "@/features/community/presentation/balance/balance-result";
 import { canToggleVote } from "@/features/community/presentation/balance/balance-vote-policy";
+import { useBalanceCloseTransition } from "@/features/community/presentation/balance/use-balance-close-transition";
 import {
   useBalanceVote,
   type BalanceVoteBlockReason,
@@ -26,11 +27,9 @@ import { useToast } from "@/shared/ui";
  * 댓글까지 클라이언트로 끌어올릴 이유는 없다. 댓글은 서버 렌더 상태 그대로 두고 이 패널만
  * 상태를 가진다 — 게시글 상세가 액션바만 클라이언트 leaf로 두는 것과 같은 분할이다.
  *
- * 리스트(BalanceGameSection)와 달리 재조회 트리거를 갖지 않는다. 상세는 지목한 판에 머물러야
- * 하므로 포그라운드 복귀로 다음 판을 끌어오면 안 된다.
- *
- * FIXME(Phase 6): 마감 전환(카운트다운 0 도달)은 아직 없다. onExpired를 받아 closed로
- * 뒤집고 새 게임 안내 토스트를 띄우는 것이 다음 단계다.
+ * 리스트(BalanceGameSection)와 달리 포그라운드 복귀 재조회를 두지 않는다. 상세는 지목한 판에
+ * 머물러야 하므로 복귀했다고 다음 판을 끌어오면 안 된다. 유일한 재조회는 마감 전환뿐이고,
+ * 그때도 화면은 그 판에 남는다(다음 판은 토스트 버튼으로만 간다).
  */
 export function BalanceVotePanel({ initialGame }: { initialGame: BalanceGame }) {
   const [game, setGame] = useState(initialGame);
@@ -64,6 +63,21 @@ export function BalanceVotePanel({ initialGame }: { initialGame: BalanceGame }) 
     onBlocked: handleBlocked,
   });
 
+  /**
+   * 마감 전환 — 최종 집계로 갈아끼운다.
+   *
+   * 재조회에 실패하면(null) 화면에 있는 값을 그대로 두고 closed만 뒤집는다. 투표율이 조금
+   * 낡을 뿐, 마감 표시조차 못 하는 것보다는 낫다.
+   */
+  const handleClosed = useCallback((finalGame: BalanceGame | null) => {
+    setGame((previous) => finalGame ?? { ...previous, closed: true });
+  }, []);
+
+  const handleExpired = useBalanceCloseTransition({
+    contentId: game.contentId,
+    onClosed: handleClosed,
+  });
+
   /** 눌러서 상태가 바뀔 수 있는지 — 커서 표현에만 쓴다(리스트 카드와 같은 규칙). */
   const isInteractive = (option: BalanceOptionKey) =>
     !game.closed && canToggleVote(game.myVote, option);
@@ -94,6 +108,7 @@ export function BalanceVotePanel({ initialGame }: { initialGame: BalanceGame }) 
           <BalanceRemaining
             endAt={game.endAt}
             serverTime={game.serverTime}
+            onExpired={handleExpired}
             showIcon
             blinkIcon
             closed={game.closed}
