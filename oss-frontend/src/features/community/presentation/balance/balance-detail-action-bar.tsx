@@ -19,6 +19,9 @@ import { CommentIcon, HeartIcon, ShareIcon } from "@/shared/ui/icons";
  * 대신 버튼 규격(ReactionBarButton)과 공유 동작(shareCurrentPage)은 공유하므로, 디자인
  * 가이드가 들어오면 두 바가 함께 따라간다.
  *
+ * **남은 세 버튼은 게시글 상세와 완전히 같다** — 카운트 규칙, Active/Pressed 색, 아이콘 fill,
+ * 외부 브라우저 표시 전용 처리까지 동일하다.
+ *
  * 좋아요는 게시글과 **같은 엔드포인트**를 쓴다 — 업스트림 `PUT /board/like/{id}`의 `{id}`가
  * 원래부터 board id가 아니라 contentId라, 밸런스 게임의 contentId를 그대로 넣으면 된다(BE 확인).
  * 그래서 usePostActions를 그대로 쓰되 저장 자리는 쓰지 않는다.
@@ -28,6 +31,7 @@ export function BalanceDetailActionBar({
   initialLiked,
   initialLikes,
   comments,
+  commented = false,
   className,
 }: {
   contentId: number;
@@ -35,6 +39,13 @@ export function BalanceDetailActionBar({
   initialLikes: number;
   /** commentCount. 0이면 "댓글쓰기", 1 이상이면 숫자(게시글 상세와 같은 규칙). */
   comments?: number;
+  /**
+   * 내가 댓글을 남겼는지 — 아이콘을 Active(filled)로 표시한다. 토글 아님.
+   *
+   * 게시글은 서버가 isCommented로 주지만 밸런스 응답에는 없어 댓글 목록에서 도출한다
+   * (get-balance-detail-page-data 참조).
+   */
+  commented?: boolean;
   className?: string;
 }) {
   // 저장은 쓰지 않지만 훅이 한 벌로 관리한다 — 시드만 꺼 두고 토글은 호출하지 않는다.
@@ -53,15 +64,14 @@ export function BalanceDetailActionBar({
 
   return (
     <div className={cn("flex items-center justify-end gap-2 px-4", className)}>
-      {/*
-        댓글은 서버가 준 수를 표시만 한다. 게시글 상세와 달리 "내가 댓글을 남겼는지"(commented)를
-        받지 않아 Active 표시가 없다 — 밸런스 응답에 그 필드가 없다.
-      */}
+      {/* 댓글 수는 서버가 준 값을 표시만 하고, Active는 내가 남긴 댓글이 있을 때다(토글 아님). */}
       <ReactionBarButton
-        icon={<CommentIcon size={16} />}
+        icon={<CommentIcon size={16} filled={commented} />}
         label="댓글쓰기"
         a11yLabel={comments ? `댓글 ${comments}개` : "댓글쓰기"}
         count={comments}
+        active={commented}
+        activeIconColorClass="text-reaction-bar-detail-active-comment-icon"
         readOnly={externalBrowser}
         onClick={focusCommentInput}
       />

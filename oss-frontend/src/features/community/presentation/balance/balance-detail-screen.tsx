@@ -41,7 +41,7 @@ export async function BalanceDetailScreen({
     return <BalanceDetailError message={result.error} />;
   }
 
-  const { game, comments, noticeEnabled } = result.data;
+  const { game, comments, noticeEnabled, commented } = result.data;
 
   return (
     <BalanceDetailView
@@ -49,6 +49,7 @@ export async function BalanceDetailScreen({
       comments={comments}
       sort={sort}
       noticeEnabled={noticeEnabled}
+      commented={commented}
     />
   );
 }

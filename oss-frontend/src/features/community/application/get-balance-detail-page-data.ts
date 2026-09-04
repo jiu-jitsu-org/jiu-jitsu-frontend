@@ -4,7 +4,7 @@ import {
   createGetNoticeEnabledUseCase,
 } from "@/features/community/application/community-use-case-factory";
 import type { BalanceGame } from "@/features/community/domain/balance-game";
-import type { CommentList } from "@/features/community/domain/comment";
+import type { Comment, CommentList } from "@/features/community/domain/comment";
 import type { CommentSort } from "@/features/community/domain/post";
 import { readSessionToken } from "@/shared/lib/auth";
 import { ApiErrorCode, toApiError } from "@/shared/lib/http";
@@ -19,6 +19,14 @@ export type BalanceDetailPageData = {
    * 비로그인은 받을 설정이 없어 false다.
    */
   noticeEnabled: boolean;
+  /**
+   * 내가 이 게임에 댓글을 남겼는지 — 리액션 바의 댓글 아이콘 Active(filled) 표시.
+   *
+   * 게시글은 상세 응답의 isCommented로 받지만 밸런스 응답에는 없다. 대신 댓글 목록에서
+   * 도출한다 — 업스트림이 댓글을 **평배열로 전부** 내려주므로(페이지네이션 없음) 놓치는
+   * 댓글이 없어 서버 필드와 같은 값이 나온다.
+   */
+  commented: boolean;
 };
 
 export type BalanceDetailPageDataResult =
@@ -31,6 +39,18 @@ export type BalanceDetailPageDataResult =
 
 /** 댓글 조회 실패 시 폴백 — 게임만으로도 화면이 뜨도록. */
 const EMPTY_COMMENTS: CommentList = { items: [], total: 0, nextCursor: null };
+
+/**
+ * 내가 쓴 댓글이 하나라도 있는지(대댓글 포함).
+ *
+ * 삭제한 댓글은 세지 않는다 — 자리는 placeholder로 남지만 "내가 남긴 댓글"은 아니다.
+ */
+function hasMyComment(comments: Comment[]): boolean {
+  return comments.some(
+    (comment) =>
+      (comment.isOwner && !comment.isDeleted) || hasMyComment(comment.replies),
+  );
+}
 
 /**
  * 밸런스 게임 상세 Server Component용 페이지 쿼리.
@@ -72,7 +92,15 @@ export async function getBalanceDetailPageData(
       return { ok: false, reason: "not-found" };
     }
 
-    return { ok: true, data: { game, comments, noticeEnabled } };
+    return {
+      ok: true,
+      data: {
+        game,
+        comments,
+        noticeEnabled,
+        commented: hasMyComment(comments.items),
+      },
+    };
   } catch (error) {
     const apiError = toApiError(error);
 
