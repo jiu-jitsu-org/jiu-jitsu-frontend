@@ -32,14 +32,10 @@ export function BalanceDetailView({
   game,
   comments,
   sort,
-  noticeEnabled,
-  commented,
 }: {
   game: BalanceGame;
   comments: CommentList;
   sort: CommentSort;
-  noticeEnabled: boolean;
-  commented: boolean;
 }) {
   return (
     <CommentReplyProvider>
@@ -49,7 +45,7 @@ export function BalanceDetailView({
             appBar={
               <BalanceDetailAppBar
                 contentId={game.contentId}
-                initialNoticeEnabled={noticeEnabled}
+                initialNoticeEnabled={game.noticeEnabled}
               />
             }
           />
@@ -69,7 +65,12 @@ export function BalanceDetailView({
             </h1>
 
             {/* 제목 아래 6 */}
-            <BalanceDetailMetaRow views={game.views} className="mt-1.5" />
+            <BalanceDetailMetaRow
+              views={game.views}
+              createdAt={game.createdAt}
+              timeAgo={game.timeAgo}
+              className="mt-1.5"
+            />
 
             <BalanceVotePanel initialGame={game} />
           </section>
@@ -81,7 +82,7 @@ export function BalanceDetailView({
             initialLiked={game.isLiked}
             initialLikes={game.likeCount}
             comments={game.commentCount}
-            commented={commented}
+            commented={game.commented}
           />
 
           {/* 디바이더: 풀폭(좌우 여백 없음), 높이 4 — 게시글 상세와 같은 규격 */}

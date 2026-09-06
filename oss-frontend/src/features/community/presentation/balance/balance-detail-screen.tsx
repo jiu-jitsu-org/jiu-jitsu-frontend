@@ -41,17 +41,9 @@ export async function BalanceDetailScreen({
     return <BalanceDetailError message={result.error} />;
   }
 
-  const { game, comments, noticeEnabled, commented } = result.data;
+  const { game, comments } = result.data;
 
-  return (
-    <BalanceDetailView
-      game={game}
-      comments={comments}
-      sort={sort}
-      noticeEnabled={noticeEnabled}
-      commented={commented}
-    />
-  );
+  return <BalanceDetailView game={game} comments={comments} sort={sort} />;
 }
 
 /** 상세 복구(세션 갱신) 중 표시. */

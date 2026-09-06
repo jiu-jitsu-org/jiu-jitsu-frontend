@@ -1,3 +1,5 @@
+import { formatDetailDateTime } from "@/features/community/presentation/format-detail-date";
+
 /**
  * 밸런스 게임 상세 메타 행 (서버 컴포넌트): 조회수 · 날짜.
  *
@@ -5,20 +7,26 @@
  * (게시글은 날짜 → 조회수, 여기는 조회수 → 날짜) 수정됨 표기가 없다. 무엇보다 밸런스 상세의
  * 디자인 가이드는 게시글과 독립이라, 한쪽을 고칠 때 다른 쪽이 따라 움직이면 안 된다.
  *
- * FIXME(날짜): 날짜 표기 정책이 아직 없어 문구를 "날짜"로 하드코딩한다(디자인 요청). 정책이
- * 서면 게시글처럼 서버 timeAgo를 쓸지, 절대 시각을 포맷할지 정한 뒤 교체한다.
+ * 날짜 규칙만은 게시글과 같다 — 서버가 계산한 상대 시각(timeAgo)이 정본이고, 없을 때만
+ * createdAt을 절대 시각으로 포맷한다(formatDetailDateTime 공용). FE가 상대 시각을 다시 계산하면
+ * 같은 화면의 댓글 시각과 기준이 갈린다.
  */
 export function BalanceDetailMetaRow({
   views = 0,
+  createdAt,
+  timeAgo,
   className,
 }: {
-  /**
-   * 조회수. 업스트림이 아직 내려주지 않아 실제로는 0이다(도메인 BalanceGame.views 주석 참조).
-   * 게시글과 같은 이름으로 받아 두어, 필드가 생기면 이 컴포넌트는 그대로 두면 된다.
-   */
+  /** 조회수. 0이어도 노출한다(디자인 기준). */
   views?: number;
+  /** 생성 일시(ISO 8601). timeAgo가 없을 때만 포맷해 쓴다. */
+  createdAt?: string;
+  /** 서버가 계산한 상대 시각(예: "9시간 전"). 날짜의 정본. */
+  timeAgo?: string;
   className?: string;
 }) {
+  const date = timeAgo ?? (createdAt ? formatDetailDateTime(createdAt) : null);
+
   return (
     // Label M(12/16/500), 색 feed-card/header/date-text, 항목 간격 10, 왼쪽 정렬.
     <div
@@ -28,7 +36,12 @@ export function BalanceDetailMetaRow({
       }
     >
       <span>조회 {views}</span>
-      <span>날짜</span>
+      {/*
+        날짜는 값이 있을 때만 그린다. 업스트림이 아직 timeAgo·createdAt을 내려주지 않아,
+        빈 문자열이나 "Invalid Date"를 그리는 대신 항목째 뺀다 — 게시글 메타 행이 조회수를
+        필드가 없을 때만 생략하는 것과 같은 규칙이다.
+      */}
+      {date !== null ? <time dateTime={createdAt}>{date}</time> : null}
     </div>
   );
 }
