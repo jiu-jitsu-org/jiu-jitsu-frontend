@@ -1,0 +1,132 @@
+# 프로젝트 보드(https://github.com/orgs/jiu-jitsu-org/projects/1)의 Status 한 칸만 관리합니다.
+#
+# 이슈 생성 → Todo
+# 브랜치에 커밋 push → In Progress
+# PR 생성 → In Review (Draft면 In Progress)
+# 이슈 close / PR merge → Done
+#
+# 라벨·Priority·Platform·Milestone은 건드리지 않습니다.
+# PR 자체는 보드에 올리지 않습니다. 보드에 남는 것은 이슈뿐입니다.
+name: Project Status
+
+on:
+  issues:
+    types: [opened, reopened, closed]
+  pull_request:
+    types: [opened, reopened, ready_for_review, converted_to_draft, closed]
+  push:
+    branches: ['**']
+
+env:
+  PROJECT_NUMBER: "1"
+
+jobs:
+  sync:
+    # 기본 브랜치(develop)로의 push는 제외합니다.
+    # merge 커밋 메시지에 남은 "#125" 때문에 방금 Done이 된 이슈가
+    # 곧바로 In Progress로 되돌아가는 것을 막기 위한 것입니다.
+    if: >-
+      github.event_name != 'push' ||
+      github.ref_name != github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          # 조직 프로젝트는 GITHUB_TOKEN으로 접근할 수 없어 PAT가 필요합니다.
+          # 필요한 권한: project(read/write), repo(read)
+          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
+          script: |
+            const projectNumber = Number(process.env.PROJECT_NUMBER);
+            const { owner, repo } = context.repo;
+
+            // PR에 "Closes #12"로 연결된 이슈들. 커밋 메시지 정규식과 달리
+            // GitHub이 실제로 연결로 인정한 것만 돌려주므로 오탐이 없습니다.
+            const linkedIssues = async (number) => {
+              const r = await github.graphql(`
+                query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){
+                  pullRequest(number:$n){closingIssuesReferences(first:20){nodes{id number}}}
+                }}`, { o: owner, r: repo, n: number });
+              return r.repository.pullRequest.closingIssuesReferences.nodes
+                .map(i => ({ nodeId: i.id, number: i.number }));
+            };
+
+            // 커밋 메시지의 #12 중 "이 저장소에 실제로 열려 있는 이슈"만 남깁니다.
+            // PR 번호와 이미 닫힌 이슈를 여기서 걸러내야 Done이 뒤집히지 않습니다.
+            const openIssuesInCommits = async () => {
+              const numbers = new Set();
+              for (const c of context.payload.commits || []) {
+                for (const m of (c.message || '').matchAll(/#(\d+)/g)) numbers.add(Number(m[1]));
+              }
+              const out = [];
+              for (const number of numbers) {
+                const res = await github.rest.issues
+                  .get({ owner, repo, issue_number: number })
+                  .catch(() => null);
+                const issue = res?.data;
+                if (!issue || issue.pull_request || issue.state !== 'open') continue;
+                out.push({ nodeId: issue.node_id, number });
+              }
+              return out;
+            };
+
+            // 1. 이번 이벤트가 어떤 이슈를 어떤 상태로 옮겨야 하는지 정합니다.
+            let status = null;
+            let targets = [];
+
+            if (context.eventName === 'issues') {
+              const issue = context.payload.issue;
+              status = { opened: 'Todo', reopened: 'Todo', closed: 'Done' }[context.payload.action];
+              targets = [{ nodeId: issue.node_id, number: issue.number }];
+            } else if (context.eventName === 'pull_request') {
+              const pr = context.payload.pull_request;
+              const action = context.payload.action;
+              if (action === 'closed') status = pr.merged ? 'Done' : null;
+              else if (action === 'converted_to_draft') status = 'In Progress';
+              else status = pr.draft ? 'In Progress' : 'In Review';
+              if (status) targets = await linkedIssues(pr.number);
+            } else if (context.eventName === 'push') {
+              status = 'In Progress';
+              targets = await openIssuesInCommits();
+            }
+
+            if (!status || targets.length === 0) {
+              core.info('옮길 대상이 없습니다.');
+              return;
+            }
+
+            // 2. Status 필드를 이름으로 바로 집습니다.
+            //    예전 워크플로가 items(first:100)을 훑어 아이템을 찾다가
+            //    보드가 100개를 넘은 뒤로 전부 "not in project"가 됐던 자리입니다.
+            const project = (await github.graphql(`
+              query($org:String!,$n:Int!){organization(login:$org){projectV2(number:$n){
+                id
+                field(name:"Status"){... on ProjectV2SingleSelectField{id options{id name}}}
+              }}}`, { org: owner, n: projectNumber })).organization.projectV2;
+
+            const field = project.field;
+            const option = field?.options.find(o => o.name === status);
+            if (!option) {
+              // 조용히 넘어가면 원인을 찾을 수 없으므로 여기서 실패시킵니다.
+              core.setFailed(
+                `보드의 Status 필드에 "${status}" 옵션이 없습니다. ` +
+                `현재 옵션: ${(field?.options ?? []).map(o => o.name).join(', ') || '(Status 필드 없음)'}`
+              );
+              return;
+            }
+
+            // 3. 보드에 올리고 Status를 바꿉니다.
+            //    addProjectV2ItemById는 이미 있는 아이템이면 그 아이템을 그대로
+            //    돌려줍니다. 그래서 "찾기"와 "추가"를 한 번에 처리할 수 있습니다.
+            for (const t of targets) {
+              const itemId = (await github.graphql(`
+                mutation($p:ID!,$c:ID!){addProjectV2ItemById(input:{projectId:$p,contentId:$c}){item{id}}}`,
+                { p: project.id, c: t.nodeId })).addProjectV2ItemById.item.id;
+
+              await github.graphql(`
+                mutation($p:ID!,$i:ID!,$f:ID!,$o:String!){updateProjectV2ItemFieldValue(
+                  input:{projectId:$p,itemId:$i,fieldId:$f,value:{singleSelectOptionId:$o}}
+                ){clientMutationId}}`,
+                { p: project.id, i: itemId, f: field.id, o: option.id });
+
+              core.info(`#${t.number} → ${status}`);
+            }
