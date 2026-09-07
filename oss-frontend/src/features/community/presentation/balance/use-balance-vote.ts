@@ -20,13 +20,30 @@ import { bffFetch } from "@/shared/lib/http/bff-fetch";
  * 얹어 최종 판단만 한다. 서버는 취소/변경을 모두 허용하므로 여기서 막지 않으면 그대로 나간다.
  */
 
+/**
+ * 탭을 막은 이유. 호출부가 안내를 띄울지 말지 고르는 데 쓴다.
+ *
+ * 리스트는 어느 쪽도 안내하지 않고(카드 위에서 조용히 아무 일 없음), 상세는 `closed`만
+ * 토스트로 알린다 — 마감은 사용자가 모르고 누른 것이지만, 재투표 제한은 정책상 "반응 없음"이
+ * 곧 의도된 피드백이다.
+ */
+export type BalanceVoteBlockReason = "closed" | "policy";
+
+
 export function useBalanceVote({
   game,
   onVoted,
+  onBlocked,
 }: {
   game: BalanceGame;
   /** 낙관적 반영과 서버 확정값 반영에 모두 쓰인다. */
   onVoted: (next: BalanceGame) => void;
+  /**
+   * 탭이 투표로 이어지지 않았을 때. 넘기지 않으면 지금까지처럼 조용히 무시한다.
+   *
+   * 세션 없음은 여기로 오지 않는다 — 그쪽은 이미 로그인 유도라는 반응이 있다.
+   */
+  onBlocked?: (reason: BalanceVoteBlockReason) => void;
 }): (option: BalanceOptionKey) => void {
   const { status, requireAuth } = useAuth();
 
@@ -40,6 +57,14 @@ export function useBalanceVote({
       // 로그인한 사용자에게 로그인 유도가 뜬다.
       if (status === "loading") return;
 
+      // 마감 확인이 로그인보다 앞선다: 마감된 판은 로그인해도 투표할 수 없어, 먼저 물으면
+      // 아무것도 할 수 없는 사용자에게 로그인을 요구하게 된다.
+      // 서버도 C0007로 막지만 굳이 왕복해서 실패를 받을 이유가 없다.
+      if (game.closed) {
+        onBlocked?.("closed");
+        return;
+      }
+
       if (status !== "authenticated") {
         // no-op을 넘기는 이유: requireAuth는 로그인 성공 시 보관한 행위를 자동 실행한다.
         // 정책은 "로그인 후 다시 눌러야 함"이라 복귀시킬 행위를 비워 둔다.
@@ -47,12 +72,12 @@ export function useBalanceVote({
         return;
       }
 
-      // 정책이 막는 조합(지금은 다른 선택지로 변경)은 조용히 무시한다 — 눌러도 아무 일이 없다.
-      if (!canToggleVote(game.myVote, option)) return;
-
-      // 마감된 판은 투표 대상이 아니다(교체 직전 구간). 서버도 C0007로 막지만
-      // 굳이 왕복해서 실패를 받을 이유가 없다.
-      if (game.closed) return;
+      // 정책이 막는 조합(지금은 다른 선택지로 변경)은 눌러도 아무 일이 없다.
+      // "반응 없음"이 곧 의도된 피드백이라 호출부에도 안내를 권하지 않는다.
+      if (!canToggleVote(game.myVote, option)) {
+        onBlocked?.("policy");
+        return;
+      }
 
       if (votingRef.current) return;
       votingRef.current = true;
@@ -94,6 +119,6 @@ export function useBalanceVote({
       })();
     },
     // 실패 문구는 아직 정해지지 않았다 → 롤백만 하고 아무것도 띄우지 않는다(정책: 동작 안 함).
-    [game, onVoted, requireAuth, status],
+    [game, onBlocked, onVoted, requireAuth, status],
   );
 }

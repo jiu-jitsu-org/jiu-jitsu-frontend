@@ -66,7 +66,7 @@ export function PostDetailAppBar({
   // (정상/에러 어느 화면이든 네이티브가 처리하므로 웹 측 back 코드가 필요 없다.)
 
   /**
-   * 알림 받기 토글 → 서버 저장(POST /api/community/posts/{id}/notice).
+   * 알림 받기 토글 → 서버 저장(POST /api/community/notice-setting/{contentId}).
    *
    * 종 아이콘은 탭 즉시 뒤집되(반응성), 안내 토스트는 서버가 저장을 확정한 뒤에 띄운다 —
    * 낙관적으로 먼저 띄우면 실패 시 "받아요" 다음에 "실패했습니다"가 겹쳐 상반된 안내가 된다.
@@ -88,7 +88,7 @@ export function PostDetailAppBar({
     setAlarmPending(true);
     try {
       const response = await bffFetch(
-        `/api/community/posts/${postId}/notice`,
+        `/api/community/notice-setting/${postId}`,
         { method: "POST" },
       );
 

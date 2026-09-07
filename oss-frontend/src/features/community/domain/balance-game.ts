@@ -4,8 +4,11 @@
  * 업스트림: GET /community/balance-game (오늘의 게임) · POST /community/balance-game/{id}/vote
  * 응답 계약. 하루 1개 주제가 24시간 단위로 갱신되며, 마감되면 서버가 다음 주제로 교체한다.
  *
- * 게시글(PostSummary)과 달리 작성자·이미지 목록·좋아요/저장이 없고, 식별자도 게시글 id가 아닌
+ * 게시글(PostSummary)과 달리 작성자·이미지 목록·저장이 없고, 식별자도 게시글 id가 아닌
  * contentId다. 댓글은 게시글과 같은 API(GET /community/comments?id=)를 contentId로 호출한다.
+ *
+ * 뷰어 상태(commented·isLiked·noticeEnabled)와 메타(views·createdAt·timeAgo)는 게시글 상세와
+ * 같은 필드를 같은 이름 규칙으로 받는다 — 두 상세가 같은 리액션 바·메타 행을 쓰기 때문이다.
  */
 
 /** 선택지 식별자. 투표 요청 body의 option 값과 같다. */
@@ -58,4 +61,56 @@ export type BalanceGame = {
   myVote: BalanceOptionKey | null;
   /** 댓글 수. 0이면 "첫 댓글 남기러 가기"로 노출한다. */
   commentCount: number;
+  /**
+   * 내가 이 게임에 댓글을 남겼는지 — 리액션 바의 댓글 아이콘 Active(filled).
+   *
+   * 토글이 아니라 표시 전용이다. 게시글 상세(PostDetail.viewer.commented)와 의미도 이름 규칙도
+   * 같다 — 업스트림 DTO의 isCommented를 그대로 받는다. 비로그인은 false.
+   */
+  commented: boolean;
+  /**
+   * 좋아요 수.
+   *
+   * 리스트는 좋아요를 노출하지 않지만 **같은 응답을 상세와 공유**하므로 도메인에 담아 둔다
+   * (imageUrl·voteCount와 같은 이유). 리스트가 나중에 노출하게 되어도 계약을 다시 찾을 일이 없다.
+   */
+  likeCount: number;
+  /** 내가 좋아요를 눌렀는지. 비로그인은 false. */
+  isLiked: boolean;
+  /**
+   * 알림 수신 여부 — 상세 앱바 종의 초기 상태.
+   *
+   * 상세 응답에 함께 오므로 진입할 때 `GET /notice/setting/board/{contentId}`를 따로 부르지
+   * 않는다(게시글 상세가 noticeEnabled를 상세 응답으로 받는 것과 같다). 미설정·비로그인은 false.
+   */
+  noticeEnabled: boolean;
+  /**
+   * 생성 일시(ISO 8601).
+   *
+   * 메타 행 날짜의 **폴백**이다 — 정본은 timeAgo이고, 이 값은 timeAgo가 없을 때만 포맷해 쓴다.
+   *
+   * optional인 이유: 업스트림이 아직 내려주지 않는다(jiu-jitsu-backend 요청 중). 필수로 두면
+   * 타입만 통과하고 런타임에 undefined가 흘러 날짜 자리가 조용히 깨진다. 둘 다 없으면 메타 행이
+   * 날짜를 아예 그리지 않는다.
+   */
+  createdAt?: string;
+  /**
+   * 서버가 계산한 상대 시각(예: "9시간 전"). 메타 행 날짜의 정본.
+   *
+   * FE에서 다시 계산하지 않는다 — 게시글·댓글과 기준이나 문구가 어긋나면 같은 화면 안에서
+   * 시각 표기가 둘로 갈린다.
+   */
+  timeAgo?: string;
+  /**
+   * 조회수.
+   *
+   * 게시글 상세와 같은 매핑이다(DTO viewCount → 도메인 views). 0도 그대로 노출한다.
+   */
+  views?: number;
 };
+
+/**
+ * 저장(북마크)은 업스트림 미지원이라 필드가 없다 — `saveCount`·`isSaved`는 내려오지 않는다.
+ * 밸런스 contentId로 저장을 호출하면 C0008(CONTENT_SAVE_NOT_SUPPORTED)이 온다.
+ * 기획 확인 중이라 뒤집힐 수 있다(docs/balance-game-detail-plan.md §1).
+ */

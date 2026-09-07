@@ -12,6 +12,7 @@ import type {
   BalanceGame,
   BalanceOptionKey,
 } from "@/features/community/domain/balance-game";
+import { cn } from "@/shared/lib/cn";
 import { CommentIcon } from "@/shared/ui/icons";
 
 /**
@@ -108,14 +109,35 @@ export function BalanceGameCard({
 
       {/* 댓글 링크는 우측 정렬 — 카드를 끝맺는 보조 동선이라 시선 흐름의 끝에 둔다. */}
       <div className="mt-2 flex justify-end">
-        {/* 피드 카드 리액션 버튼과 같은 규격(높이 28 · 좌우 8 · radius 10 · 간격 4). */}
+        {/*
+          피드 카드 리액션 버튼과 같은 규격(높이 28 · 좌우 8 · radius 10 · 간격 4).
+
+          Active(내가 댓글을 남김) 표시는 게시글 피드 카드(FeedCardReactions)와 **같은 규칙**이다
+          — 아이콘이 filled로 바뀌고 reaction-bar/active 토큰으로 올라간다. 토글이 아니라 표시
+          전용이라는 것도 같다.
+
+          다만 Default는 게시글 카드와 다르다. 그쪽은 카운트 숫자를 붙이는 리액션 버튼이라
+          아이콘이 reaction-bar/default/icon(더 연한 색)이지만, 이 버튼은 숫자 대신 문구를 다는
+          링크에 가까워 아이콘과 문구가 같은 색이어야 한 덩어리로 읽힌다.
+        */}
         <button
           type="button"
           onClick={onPressDetail}
-          className="flex h-7 cursor-pointer items-center gap-1 rounded-[10px] px-2 text-text-tertiary"
+          aria-pressed={game.commented}
+          className={cn(
+            "flex h-7 cursor-pointer items-center gap-1 rounded-[10px] px-2",
+            game.commented
+              ? "text-reaction-bar-active-comment-icon"
+              : "text-text-tertiary",
+          )}
         >
-          <CommentIcon size={16} />
-          <span className="text-body-s">
+          <CommentIcon size={16} filled={game.commented} />
+          <span
+            className={cn(
+              "text-body-s",
+              game.commented && "text-reaction-bar-active-count-text",
+            )}
+          >
             {/* 댓글이 없으면 "보러 갈 것"이 없다 — 첫 댓글을 유도하는 문구로 바꾼다. */}
             {game.commentCount > 0 ? "댓글 보러가기" : "첫 댓글 남기러 가기"}
           </span>

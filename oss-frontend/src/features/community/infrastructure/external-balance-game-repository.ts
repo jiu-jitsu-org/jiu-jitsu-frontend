@@ -4,7 +4,7 @@ import type {
   BalanceOptionKey,
 } from "@/features/community/domain/balance-game";
 import type { BalanceGameRepository } from "@/features/community/domain/balance-game-repository";
-import type { HttpClient } from "@/shared/lib/http";
+import { HttpError, type HttpClient } from "@/shared/lib/http";
 
 /**
  * 업스트림 밸런스 게임 API를 사용하는 infrastructure 구현.
@@ -43,6 +43,19 @@ type BalanceGameDto = {
   /** 미투표면 null. */
   myVote: BalanceOptionKey | null;
   commentCount: number;
+  /** 내가 댓글을 남겼는지. 비로그인은 false. */
+  isCommented: boolean;
+  likeCount: number;
+  /** 비로그인은 false. */
+  isLiked: boolean;
+  /** 조회수. */
+  viewCount?: number;
+  /** 미설정이면 null로 오므로 매핑 시 false로 정규화(게시글 상세와 같다). */
+  noticeEnabled?: boolean | null;
+  /** 생성 일시. 아직 내려오지 않는다 — 없으면 메타 행이 날짜를 그리지 않는다. */
+  createdAt?: string;
+  /** 서버가 계산한 상대 시각(예: "9시간 전"). 메타 행 날짜의 정본. */
+  timeAgo?: string;
 };
 
 /**
@@ -71,6 +84,17 @@ function toBalanceGame(dto: BalanceGameDto): BalanceGame {
     totalVoteCount: dto.totalVoteCount ?? 0,
     myVote: dto.myVote ?? null,
     commentCount: dto.commentCount ?? 0,
+    // 좋아요·댓글여부·알림·조회수는 나중에 추가된 계약이라 방어적으로 읽는다 — 배포 순서상 아직
+    // 내려오지 않는 환경에서도 화면이 뜨는 편이 낫다(카운트 0 · 미선택 · 종 꺼짐으로 보인다).
+    commented: dto.isCommented ?? false,
+    likeCount: dto.likeCount ?? 0,
+    isLiked: dto.isLiked ?? false,
+    noticeEnabled: dto.noticeEnabled ?? false,
+    // 날짜는 폴백을 만들지 않는다 — 없는 시각을 지어내는 것보다 화면이 비는 편이 낫고,
+    // 메타 행이 timeAgo → createdAt 순으로 알아서 물러선다.
+    createdAt: dto.createdAt,
+    timeAgo: dto.timeAgo,
+    views: dto.viewCount ?? 0,
   };
 }
 
@@ -85,6 +109,21 @@ export class ExternalBalanceGameRepository implements BalanceGameRepository {
     );
 
     return response.data ? toBalanceGame(response.data) : null;
+  }
+
+  async getById(contentId: number): Promise<BalanceGame | null> {
+    // 없는 컨텐츠를 업스트림이 404로 줄지 200 + data:null로 줄지 계약이 확정되지 않았다.
+    // 호출부가 분기할 것은 "화면을 닫는다" 하나뿐이라 두 형태를 여기서 null로 합친다.
+    try {
+      const response = await this.httpClient.get<
+        Envelope<BalanceGameDto | null>
+      >({ path: `${BALANCE_GAME_ENDPOINT_PATH}/${contentId}` });
+
+      return response.data ? toBalanceGame(response.data) : null;
+    } catch (error) {
+      if (error instanceof HttpError && error.status === 404) return null;
+      throw error;
+    }
   }
 
   async vote(

@@ -1,3 +1,4 @@
+import { formatDetailDateTime } from "@/features/community/presentation/format-detail-date";
 import { cn } from "@/shared/lib/cn";
 
 /**
@@ -10,20 +11,6 @@ import { cn } from "@/shared/lib/cn";
  * FE에서 다시 계산하지 않는다. 구버전 응답 등으로 없을 때만 createdAt을 절대 시각으로 포맷해 폴백한다.
  * 조회수(views)는 0이어도 노출한다(디자인 기준). 필드 자체가 없을 때만 생략.
  */
-
-/** ISO → "YY년 M월 D일 HH:mm". 파싱 실패 시 원문 반환. */
-function formatPostDateTime(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return iso;
-
-  const yy = String(date.getFullYear()).slice(2);
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  const hh = String(date.getHours()).padStart(2, "0");
-  const mm = String(date.getMinutes()).padStart(2, "0");
-
-  return `${yy}년 ${month}월 ${day}일 ${hh}:${mm}`;
-}
 
 export function PostMetaRow({
   createdAt,
@@ -47,7 +34,7 @@ export function PostMetaRow({
       )}
     >
       <time dateTime={createdAt}>
-        {timeAgo ?? formatPostDateTime(createdAt)}
+        {timeAgo ?? formatDetailDateTime(createdAt)}
       </time>
       {typeof views === "number" ? <span>조회 {views}</span> : null}
       {edited ? <span>수정됨</span> : null}

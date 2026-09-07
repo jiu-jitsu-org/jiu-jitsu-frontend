@@ -11,6 +11,9 @@ import { TimerIcon } from "@/shared/ui/icons";
  * 트리 전체가 매초 리렌더된다. 실제로 매초 달라지는 것은 이 문구 하나뿐이므로, 여기까지
  * 내려와서 훅을 부른다 — 리렌더가 이 span 밖으로 새지 않는다.
  *
+ * **리스트 카드와 sticky 바 전용이다.** 상세는 숫자와 단위의 타이포가 갈리는 배지라 별도
+ * 컴포넌트(BalanceDetailCountdown)를 쓴다 — 상세 디자인을 고쳐도 이쪽이 움직이지 않게.
+ *
  * 문구를 만들 수 없으면(서버가 준 시각을 파싱하지 못함) 줄 전체를 감춘다. 아이콘만 덩그러니
  * 남지 않도록 아이콘도 이 컴포넌트가 함께 소유한다.
  */
@@ -33,7 +36,7 @@ export function BalanceRemaining({
   showIcon?: boolean;
   className?: string;
 }) {
-  const label = useBalanceCountdown({ endAt, serverTime, onExpired });
+  const { label } = useBalanceCountdown({ endAt, serverTime, onExpired });
 
   if (label === null) return null;
 

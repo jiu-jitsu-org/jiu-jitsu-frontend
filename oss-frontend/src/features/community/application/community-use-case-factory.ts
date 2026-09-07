@@ -10,10 +10,12 @@ import { GetPostDetailUseCase } from "@/features/community/application/get-post-
 import { GetPostListUseCase } from "@/features/community/application/get-post-list";
 import { ToggleBookmarkUseCase } from "@/features/community/application/toggle-bookmark";
 import { ToggleHideUseCase } from "@/features/community/application/toggle-hide";
+import { GetNoticeEnabledUseCase } from "@/features/community/application/get-notice-enabled";
 import { ToggleNoticeUseCase } from "@/features/community/application/toggle-notice";
 import { ToggleCommentLikeUseCase } from "@/features/community/application/toggle-comment-like";
 import { ToggleLikeUseCase } from "@/features/community/application/toggle-like";
 import { BlockUserUseCase } from "@/features/community/application/block-user";
+import { GetBalanceGameDetailUseCase } from "@/features/community/application/get-balance-game-detail";
 import { GetCurrentBalanceGameUseCase } from "@/features/community/application/get-current-balance-game";
 import { VoteBalanceGameUseCase } from "@/features/community/application/vote-balance-game";
 import { ExternalBalanceGameRepository } from "@/features/community/infrastructure/external-balance-game-repository";
@@ -124,6 +126,15 @@ export function createToggleNoticeUseCase(
   return new ToggleNoticeUseCase(createWriteRepository(accessToken));
 }
 
+/** 알림 수신 여부 조회. 토글과 같은 repository를 쓰고 인증이 필요하다. */
+export function createGetNoticeEnabledUseCase(
+  accessToken: string,
+): GetNoticeEnabledUseCase {
+  return new GetNoticeEnabledUseCase(
+    createWriteRepository(accessToken),
+  );
+}
+
 export function createGetImageUploadAuthUseCase(
   accessToken: string,
 ): GetImageUploadAuthUseCase {
@@ -168,6 +179,15 @@ export function createGetCurrentBalanceGameUseCase(
   accessToken: string | null,
 ): GetCurrentBalanceGameUseCase {
   return new GetCurrentBalanceGameUseCase(
+    createBalanceGameRepository(accessToken),
+  );
+}
+
+/** 상세 단건 조회. 열람은 비로그인도 가능하므로 토큰은 선택 — 있으면 myVote·isLiked가 채워진다. */
+export function createGetBalanceGameDetailUseCase(
+  accessToken: string | null,
+): GetBalanceGameDetailUseCase {
+  return new GetBalanceGameDetailUseCase(
     createBalanceGameRepository(accessToken),
   );
 }
