@@ -63,7 +63,9 @@ export function PostDetailView({
               edited={post.edited}
             />
             {post.images.length > 0 ? (
-              // 상세 전용 규격(#57): 1장은 원본 비율 + 상한 크롭, 여러 장은 높이 고정.
+              // 이미지 규격(#121): 허용 비율 4:5~1.91:1, 벗어나면 center crop.
+              // 1장은 폭 고정 + 높이 원본 비율, 여러 장은 높이 고정 + 폭 원본 비율.
+              // 여러 장일 때 스크롤 영역은 이 article의 px-4를 벗어나 화면 폭까지 넓어진다.
               <PostDetailImages images={post.images} />
             ) : null}
             {/* 본문(또는 이미지) 아래 태그 24 = article gap-4(16) + mt-2(8) */}
