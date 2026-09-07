@@ -10,6 +10,10 @@ import {
 } from "react";
 
 import {
+  IMAGE_MAX_HEIGHT,
+  IMAGE_MIN_HEIGHT,
+} from "@/features/community/presentation/image-aspect";
+import {
   ImageLoadError,
   readSettledImage,
   withRetryParam,
@@ -386,8 +390,9 @@ function FeedCardCover({
 
   return (
     <div className={cn("relative overflow-hidden rounded-2xl", className)}>
-      {/* 가로는 카드 내용 폭(343)에 꽉 채운다. 초과분은 object-cover로 center crop. */}
-      {/* 높이는 원본 비율대로 자동, 최대 458(343의 4:3 세로 기준). 최소 높이 없음. */}
+      {/* 가로는 카드 내용 폭(= 화면 폭 − 32)에 꽉 채운다. */}
+      {/* 높이는 원본 비율대로 자동. 허용 비율 4:5 ~ 1.91:1 밖이면 object-cover가 center crop. */}
+      {/* 규격은 상세 1장과 같고 상수는 image-aspect.ts가 단일 출처다(#121). */}
       {/* 비어 있을 때 채움색: Color/Cool Gray/50 */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -400,15 +405,19 @@ function FeedCardCover({
         height={image.height}
         onLoad={() => setLoaded(true)}
         onError={() => setFailed(true)}
+        // 로드 전에는 아래 aspect 클래스가 높이를 잡는다 — 같이 주면 서로 싸우므로 그때는 걸지 않는다.
+        style={
+          loaded
+            ? { minHeight: IMAGE_MIN_HEIGHT, maxHeight: IMAGE_MAX_HEIGHT }
+            : undefined
+        }
         className={cn(
           // block: inline 이미지의 baseline 여백을 없애 뱃지가 이미지 하단에 정확히 붙게 한다.
           "block w-full bg-[var(--cool-gray-50)] object-cover object-center",
-          loaded
-            ? "max-h-[458px]"
-            : // 로드 전에는 기준 비율 343:220으로 자리를 잡는다. 높이 0으로 시작해 로드 순간
-              // 아래 요소를 밀어내는 시프트를 막는 게 목적이고, 실패 폴백도 같은 343:220이라
-              // 어느 쪽으로 끝나든 확보한 영역이 그대로 유지된다.
-              "aspect-[343/220]",
+          // 로드 전에는 기준 비율 343:220으로 자리를 잡는다. 높이 0으로 시작해 로드 순간
+          // 아래 요소를 밀어내는 시프트를 막는 게 목적이고, 실패 폴백도 같은 343:220이라
+          // 어느 쪽으로 끝나든 확보한 영역이 그대로 유지된다.
+          !loaded && "aspect-[343/220]",
         )}
       />
       {extraCount > 0 ? (
