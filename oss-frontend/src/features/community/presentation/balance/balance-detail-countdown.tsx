@@ -37,7 +37,25 @@ const VALUE_CLASS =
   "text-title-2 leading-[normal] text-[#292a2e] tabular-nums";
 
 /** 단위 조각 — Body S. */
-const LABEL_CLASS = "text-body-s text-[#9c9ea6]";
+const LABEL_CLASS = "text-body-s text-[#70737c]";
+
+/**
+ * 마감 문구 — Body S. 색이 LABEL_CLASS(단위)와 갈린다.
+ *
+ * 마감 배지는 진행 중과 **색 체계가 통째로 다르다**: 남은 시간이 사라지고 문구 하나만 남으므로
+ * 그 한 줄이 배지의 주 정보가 된다 — 보조 정보인 단위 색(#70737c)이 아니라 숫자와 같은
+ * 무게(#292a2e)로 올라간다. 아이콘도 같은 이유로 ICON_ENDED_CLASS를 따로 쓴다.
+ */
+const ENDED_TEXT_CLASS = "text-body-s text-[#292a2e]";
+
+/**
+ * 아이콘 색 3종. 깜빡임 2색(default ↔ active)과 **마감색이 별개**다.
+ *
+ * 마감은 깜빡임이 멈춘 상태가 아니라 따로 지정된 상태라, 두 위상 어느 쪽도 재사용할 수 없다.
+ */
+const ICON_DEFAULT_CLASS = "text-[#70737c]";
+const ICON_ACTIVE_CLASS = "text-[#0090ff]";
+const ICON_ENDED_CLASS = "text-[#292a2e]";
 
 export function BalanceDetailCountdown({
   endAt,
@@ -75,24 +93,26 @@ export function BalanceDetailCountdown({
   const iconDimmed =
     !closed && remainMs !== null && Math.floor(remainMs / 1000) % 2 === 1;
 
+  // 마감이 깜빡임의 한 위상이 아니므로 3분기다(ICON_ENDED_CLASS 주석 참고).
+  const iconColorClass = closed
+    ? ICON_ENDED_CLASS
+    : iconDimmed
+      ? ICON_DEFAULT_CLASS
+      : ICON_ACTIVE_CLASS;
+
   const parts = remainMs === null ? null : readRemainingParts(remainMs);
 
   return (
     // 높이 40 고정 · radius 16 · 조각 사이 간격 5(아이콘 ↔ 첫 숫자 포함).
     // 상하 8은 패딩으로 두되 높이가 40으로 고정이라 실제로는 가운데 정렬이 자리를 잡는다.
-    <div className="inline-flex h-10 items-center gap-[5px] rounded-2xl bg-[#e6e7e8] px-4 py-2">
+    <div className="inline-flex h-10 items-center gap-[5px] rounded-2xl bg-[#edeff0] px-4 py-2">
       <TimerIcon
         size={16}
-        className={cn(
-          "shrink-0 transition-colors",
-          iconDimmed ? "text-[#9c9ea6]" : "text-[#0090ff]",
-        )}
+        className={cn("shrink-0 transition-colors", iconColorClass)}
       />
 
       {closed ? (
-        <span className="text-body-s text-[#9c9ea6]">
-          {ENDED_TEXT}
-        </span>
+        <span className={ENDED_TEXT_CLASS}>{ENDED_TEXT}</span>
       ) : parts === null || parts.kind === "closing-soon" ? (
         // 1분 미만은 셀 숫자가 없어 단위와 같은 폼(Body S)으로 한 덩어리다.
         <span className={LABEL_CLASS}>{CLOSING_SOON_TEXT}</span>
