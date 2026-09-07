@@ -26,6 +26,7 @@ import { cn } from "@/shared/lib/cn";
  * - 허용 비율 4:5 ~ 1.91:1. 벗어나는 장만 center crop — 세로가 길면 상하, 가로가 길면 좌우.
  * - 1장: 폭 W 고정, 높이는 원본 비율 자동.
  * - 2장 이상: 높이 W 고정(장을 넘길 때 영역이 출렁이면 안 된다), 폭은 장마다 원본 비율 자동.
+ *   스크롤 영역만 화면 폭까지 넓히고(-mx-4), 좌우 16은 첫 장 앞 · 끝 장 뒤에만 둔다.
  *
  * 규격 상수는 목록 카드와 공유한다(image-aspect.ts) — 1장과 목록 카드가 같은 규칙이 되면서,
  * 각자 들고 있으면 정책이 바뀔 때 한쪽만 고쳐진다. 컴포넌트는 그래도 나눠 둔다: 이쪽은
@@ -179,10 +180,14 @@ function ImageCarousel({
   }, [syncHasNext]);
 
   return (
-    <div className={cn("relative", className)}>
+    // -mx-4: 부모 article의 px-4를 상쇄해 스크롤 영역을 화면 폭까지 넓힌다.
+    // 여백 안에 스크롤러를 두면 장이 화면 끝이 아니라 16 지점에서 잘려, 스크롤하는 내내
+    // 좌우에 흰 띠가 남는다. 여백은 스크롤러 안쪽 px-4가 맡아 첫 장 왼쪽과 끝 장 오른쪽에만 생긴다.
+    <div className={cn("relative -mx-4", className)}>
       {/*
         스냅 없는 자유 가로 스크롤. 폭이 장마다 달라 "한 화면 = 한 장"이 성립하지 않는데,
         스냅으로 한 장씩 끊으면 넓은 장에서 스크롤이 끌려가는 느낌이 난다.
+        px-4: 첫 장 왼쪽 · 끝 장 오른쪽 여백 16. 장 사이는 gap이 맡는다.
         overscroll-x-contain: 캐러셀 끝에서 웹뷰 뒤로가기 제스처가 먹지 않게 한다.
         스크롤바는 감춘다(모바일 전용 UI).
       */}
@@ -190,7 +195,7 @@ function ImageCarousel({
         ref={attachScroller}
         onScroll={syncHasNext}
         style={{ height: SLIDE_HEIGHT, gap: SLIDE_GAP }}
-        className="relative flex overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="relative flex overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {images.map((image, index) => (
           <CarouselSlide
@@ -202,6 +207,7 @@ function ImageCarousel({
       </div>
       {hasNext ? (
         // 우측 페이드 — 더 넘길 장이 있다는 유일한 신호(N/M 인디케이터는 두지 않는다).
+        // 래퍼가 full-bleed라 화면 오른쪽 끝에 붙는다 — 장이 잘리는 지점과 같다.
         // inset-y-0: 높이는 스크롤러(= 이미지 높이)와 동일.
         // pointer-events-none: 스와이프를 가로채면 안 된다.
         <span
