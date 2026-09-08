@@ -64,6 +64,17 @@ export function CommentItem({
     );
   }
 
+  // 차단한 회원의 댓글도 자리 표시만 남긴다(차단한 본인 화면 한정 · #53).
+  // 신고보다 먼저 본다: 차단은 작성자 단위라 그 회원의 댓글 전체에 걸리는 넓은 상태고,
+  // 서버가 본문·작성자를 마스킹해 내려주므로 신고 문구로 그릴 원문 자체가 없다.
+  if (comment.isBlocked) {
+    return (
+      <CommentPlaceholder message="차단한 댓글입니다." isReply={isReply}>
+        {replies}
+      </CommentPlaceholder>
+    );
+  }
+
   // 내가 신고한 댓글은 본문 대신 자리 표시만 남긴다(신고자 본인 화면 한정).
   if (comment.isReported) {
     return (

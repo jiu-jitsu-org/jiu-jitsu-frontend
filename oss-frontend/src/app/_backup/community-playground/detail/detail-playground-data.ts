@@ -68,6 +68,7 @@ function makeReply(id: number): Comment {
     replied: false,
     isDeleted: false,
     isReported: false,
+    isBlocked: false,
     replies: [],
   };
 }
@@ -89,6 +90,7 @@ const MOCK_COMMENT_ITEMS: Comment[] = [
     replied: false,
     isDeleted: false,
     isReported: false,
+    isBlocked: false,
     replies: [],
   },
   {
@@ -106,6 +108,7 @@ const MOCK_COMMENT_ITEMS: Comment[] = [
     replied: false,
     isDeleted: false,
     isReported: false,
+    isBlocked: false,
     replies: [],
   },
   {
@@ -122,6 +125,7 @@ const MOCK_COMMENT_ITEMS: Comment[] = [
     replied: false,
     isDeleted: false,
     isReported: false,
+    isBlocked: false,
     replies: [],
   },
   {
@@ -139,6 +143,7 @@ const MOCK_COMMENT_ITEMS: Comment[] = [
     replied: true,
     isDeleted: false,
     isReported: false,
+    isBlocked: false,
     // 대댓글 4개 → 최초 2개 노출 + "대댓글 2개 더보기"
     replies: [makeReply(101), makeReply(102), makeReply(103), makeReply(104)],
   },
