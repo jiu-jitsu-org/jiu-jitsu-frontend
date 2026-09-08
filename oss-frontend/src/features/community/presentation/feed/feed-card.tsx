@@ -399,8 +399,11 @@ function FeedCardCover({
         ref={detectSettledImage}
         src={withRetryParam(image.url, attempt)}
         alt={image.alt ?? ""}
-        // FIXME: 서버가 원본 치수를 안 내려줘 항상 undefined다(jiu-jitsu-org/jiu-jitsu-backend#116).
-        // 값이 오기 시작하면 아래 플레이스홀더 분기가 속성 비율을 덮어쓰지 않도록 손봐야 한다.
+        // 서버는 원본 치수를 내려주지 않고, 요청도 접었다(jiu-jitsu-org/jiu-jitsu-backend#116
+        // — 기능 결함이 아니라 시프트 품질 문제라 감수하기로 확정). 그래서 실사용에서는 늘
+        // undefined이고, 로드 전 높이는 아래 343:220 플레이스홀더가 근사로 잡는다. 원본 비율이
+        // 다른 장은 로드 순간 한 번 보정 시프트가 남는다.
+        // 값을 넘기는 호출부가 생기면 아래 플레이스홀더 분기가 속성 비율을 덮어쓰지 않게 손봐야 한다.
         width={image.width}
         height={image.height}
         onLoad={() => setLoaded(true)}
