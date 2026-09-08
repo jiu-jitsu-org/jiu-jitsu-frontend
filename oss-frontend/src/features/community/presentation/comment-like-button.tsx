@@ -75,15 +75,24 @@ export function CommentLikeButton({
         return;
       }
 
-      // 서버 권위값으로 보정(낙관적 결과와 다르면 카운트도 맞춘다).
-      const body = (await response.json().catch(() => null)) as
-        | { data?: { liked?: boolean } }
-        | null;
-      const authoritative = body?.data?.liked;
-      if (typeof authoritative === "boolean" && authoritative !== next) {
-        setLiked(authoritative);
-        setCount(prevCount + (authoritative ? 1 : 0) - (prevLiked ? 1 : 0));
-      }
+      // 서버 권위값으로 보정한다(data.liked + data.likeCount).
+      const data = (
+        (await response.json().catch(() => null)) as {
+          data?: { liked?: boolean; likeCount?: number };
+        } | null
+      )?.data;
+      const authoritative = data?.liked;
+      if (typeof authoritative !== "boolean") return;
+
+      setLiked(authoritative);
+      // 카운트는 서버가 토글 직후 값을 내려주므로 그대로 확정한다 — 낙관값과 결과가 같아도
+      // 마찬가지다. 로컬 ±1은 요청 사이에 끼어든 다른 사용자의 좋아요를 놓쳐 실제 값과 어긋난다.
+      // 응답에 카운트가 없는 구버전 폴백만 토글 전 기준점에서 재계산한다.
+      setCount(
+        typeof data?.likeCount === "number"
+          ? Math.max(0, data.likeCount)
+          : Math.max(0, prevCount + (authoritative ? 1 : 0) - (prevLiked ? 1 : 0)),
+      );
     } finally {
       setPending(false);
     }

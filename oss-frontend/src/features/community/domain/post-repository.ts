@@ -35,6 +35,14 @@ export interface PostRepository {
 }
 
 /**
+ * 댓글 좋아요 토글 결과. 게시글 좋아요(ToggleLikeResult)와 같은 이유로 카운트를 함께 받는다.
+ */
+export type ToggleCommentLikeResult = {
+  liked: boolean;
+  likeCount?: number;
+};
+
+/**
  * 좋아요 토글 결과.
  *
  * likeCount는 토글 직후 서버가 계산한 좋아요 수다. 그 사이 다른 사용자의 좋아요가
@@ -80,8 +88,8 @@ export interface CommunityWriteRepository {
   deletePost(postId: number): Promise<void>;
   /** 게시글/댓글 신고(POST /reports). 동일 대상 중복 신고는 서버가 막는다. 결과 본문이 없어 void. */
   report(input: CreateReportInput): Promise<void>;
-  /** 댓글 좋아요 토글(등록/취소). 토글 후의 좋아요 상태(isLiked)를 반환. */
-  toggleCommentLike(commentId: number): Promise<boolean>;
+  /** 댓글 좋아요 토글(등록/취소). 토글 후의 좋아요 상태(isLiked)와 좋아요 수(likeCount)를 반환. */
+  toggleCommentLike(commentId: number): Promise<ToggleCommentLikeResult>;
   /**
    * 게시글 좋아요 토글(PUT /board/like/{id}). 서버가 현재 상태를 뒤집고
    * 결과를 알려주므로, 토글 후의 좋아요 여부(isLiked)와 좋아요 수(likeCount)를 반환한다.
