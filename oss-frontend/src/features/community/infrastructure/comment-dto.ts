@@ -57,14 +57,15 @@ export type CommentDto = {
    */
   isBlocked?: boolean;
   /**
-   * 답글 총 개수. childrenList는 상위 N개만 내려오는 잘린 목록이라 여기서 세면 안 된다.
-   * FIXME(필드명 미확정): 아직 응답에 없다 — BE 확정 시 이름 정합 필요.
+   * 답글 총 개수. childrenList는 상위 N개만 내려오는 잘린 목록이라 여기서 세면 안 된다(#62).
+   * 삭제·차단된 자식도 포함한 전체 수가 정책상 맞는 값이라 프론트에서 걸러내지 않는다(backend#117 검증).
    */
-  replyCount?: number;
+  childCount?: number;
   /**
    * 내가 이 댓글에 답글을 단 적 있는지(답글 아이콘 fill 판단).
    * 잘린 childrenList로는 알 수 없어 서버 계산이 필요하다.
-   * FIXME(필드명 미확정): 아직 응답에 없다 — BE 확정 시 이름 정합 필요.
+   * FIXME(의미 미확정): 실측값이 항상 childCount > 0과 일치해 "답글 존재 여부"일 가능성이 있다.
+   *   그렇다면 남의 댓글에도 아이콘이 채워진다 — 다른 계정 댓글로 확인 후 정리 필요.
    */
   isReplied?: boolean;
 };
@@ -77,7 +78,7 @@ export type CommentDto = {
  *
  * replyCount·replied는 반드시 서버값이어야 한다 — 정책상 childrenList는 상위 N개만 내려오는
  *   잘린 목록이라(나머지는 별도 "더보기" 화면), 개수도 "내가 답글을 달았는지"도 여기서 셀 수 없다.
- *   FIXME(스펙 공백): 두 필드가 아직 응답에 없어 잘린 목록 기준으로 폴백한다 — 실제보다 작게 나온다.
+ *   두 값 모두 응답에 있다(childCount·isReplied) — 아래 폴백은 필드 누락 시의 안전망일 뿐이다.
  */
 export function toComment(dto: CommentDto): Comment {
   const children = dto.childrenList ?? [];
@@ -100,7 +101,7 @@ export function toComment(dto: CommentDto): Comment {
     likeCount: dto.likes,
     liked: dto.isLiked,
     // 서버값 우선. 없으면 내려온 자식 수로 폴백하되, 잘린 목록이라 실제 개수보다 작을 수 있다.
-    replyCount: dto.replyCount ?? children.length,
+    replyCount: dto.childCount ?? children.length,
     replied: dto.isReplied ?? false,
     // 같은 값의 중복 필드라 한쪽만 와도 삭제로 본다. 둘 다 없으면 삭제가 아닌 것으로 둔다.
     isDeleted: dto.isDeleted ?? dto.deletedYn ?? false,
