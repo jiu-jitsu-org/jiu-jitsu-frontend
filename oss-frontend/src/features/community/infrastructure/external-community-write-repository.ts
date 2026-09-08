@@ -14,6 +14,7 @@ import type {
 } from "@/features/community/domain/post";
 import type {
   CommunityWriteRepository,
+  ToggleCommentLikeResult,
   ToggleLikeResult,
   ToggleSaveResult,
 } from "@/features/community/domain/post-repository";
@@ -92,16 +93,21 @@ export class ExternalCommunityWriteRepository
     });
   }
 
-  async toggleCommentLike(commentId: number): Promise<boolean> {
-    // POST /community/comments/like — 단일 엔드포인트 토글(등록/취소). 응답 data.isLiked가 토글 후 상태.
+  async toggleCommentLike(commentId: number): Promise<ToggleCommentLikeResult> {
+    // POST /community/comments/like — 단일 엔드포인트 토글(등록/취소).
+    // 응답 data.isLiked가 토글 후 상태, likeCount가 토글 직후 서버 기준 좋아요 수다.
+    // likeCount는 구버전 응답 호환을 위해 optional — 없으면 그대로 undefined로 흘려보낸다.
     const response = await this.httpClient.post<
-      Envelope<{ commentId: number; isLiked: boolean }>
+      Envelope<{ commentId: number; isLiked: boolean; likeCount?: number }>
     >({
       path: `${COMMENT_ENDPOINT_PATH}/like`,
       body: { commentId },
     });
 
-    return response.data.isLiked;
+    return {
+      liked: response.data.isLiked,
+      likeCount: response.data.likeCount,
+    };
   }
 
   async toggleLike(postId: number): Promise<ToggleLikeResult> {
