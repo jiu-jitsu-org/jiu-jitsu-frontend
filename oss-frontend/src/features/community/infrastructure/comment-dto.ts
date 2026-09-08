@@ -15,19 +15,24 @@ export type CommentDto = {
   contentId: number;
   /** 부모 댓글 id. 최상위 댓글은 null 또는 0(백엔드가 둘 다 사용). */
   parentId: number | null;
-  body: string;
+  /** 본문. 차단·삭제처럼 서버가 마스킹하는 경우 null로 온다. */
+  body: string | null;
   /** 좋아요 수. */
   likes: number;
   /** 내가 좋아요 했는지. */
   isLiked: boolean;
   /** 내 댓글 여부(삭제 노출 판단). */
   isAuthor: boolean;
+  /**
+   * 작성자. 차단한 회원의 댓글은 서버가 전 필드를 null로 마스킹해 내려준다(backend#105).
+   * placeholder만 그리므로 값은 쓰이지 않지만, 타입은 실제 응답을 따라 nullable로 둔다.
+   */
   author: {
-    id: number;
-    nickname: string;
+    id: number | null;
+    nickname: string | null;
     /** 프로필 이미지(없으면 null). */
     profileImage: { id: number; imageUrl: string } | null;
-  };
+  } | null;
   /** 작성 시각(ISO 8601). */
   createdAt: string;
   /**
@@ -46,6 +51,11 @@ export type CommentDto = {
   isDeleted?: boolean;
   isReported?: boolean;
   deletedYn?: boolean;
+  /**
+   * 차단한 작성자의 댓글인지(backend#105 · #53). 신고와 마찬가지로 차단한 계정 화면에서만 true다.
+   * 서버가 제거하지 않고 본문·작성자를 마스킹한 채 내려주므로, 프론트는 자리를 남겨 스레드를 유지한다.
+   */
+  isBlocked?: boolean;
   /**
    * 답글 총 개수. childrenList는 상위 N개만 내려오는 잘린 목록이라 여기서 세면 안 된다.
    * FIXME(필드명 미확정): 아직 응답에 없다 — BE 확정 시 이름 정합 필요.
@@ -75,12 +85,14 @@ export function toComment(dto: CommentDto): Comment {
   return {
     id: dto.id,
     postId: dto.contentId,
+    // 차단 댓글은 작성자가 통째로 마스킹돼 온다 — placeholder로 갈리므로 화면에 쓰이지 않는
+    // 값이지만, 타입 계약(비-nullable)을 지키려 빈 값으로 정규화한다.
     author: {
-      userId: dto.author.id,
-      nickname: dto.author.nickname,
-      avatarUrl: dto.author.profileImage?.imageUrl ?? null,
+      userId: dto.author?.id ?? 0,
+      nickname: dto.author?.nickname ?? "",
+      avatarUrl: dto.author?.profileImage?.imageUrl ?? null,
     },
-    body: dto.body,
+    body: dto.body ?? "",
     createdAt: dto.createdAt,
     timeAgo: dto.timeAgo,
     isOwner: dto.isAuthor,
@@ -94,6 +106,8 @@ export function toComment(dto: CommentDto): Comment {
     isDeleted: dto.isDeleted ?? dto.deletedYn ?? false,
     // 서버가 신고자 본인에게만 true로 내려준다. 필드가 없으면 가리지 않는다(원문 노출이 안전한 기본값).
     isReported: dto.isReported ?? false,
+    // 차단도 계정별로 갈린다. 필드가 없으면 가리지 않는다(원문 노출이 안전한 기본값).
+    isBlocked: dto.isBlocked ?? false,
     replies: children.map(toComment),
   };
 }
