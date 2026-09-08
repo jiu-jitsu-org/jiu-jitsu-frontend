@@ -62,12 +62,12 @@ export function useFeedRevalidate({
   // removePost는 실제로는 "접었다 제거"라, 이 조건이 깨지면 복귀 감지가 통째로 흔들린다.
   const revalidate = useCallback(async () => {
     const target = peekRevalidateTarget();
-    if (target.postIds.length === 0 && target.createdPostId === null) return;
+    if (target.posts.length === 0 && target.createdPostId === null) return;
 
     const createdPostId = target.createdPostId;
     await Promise.all([
-      ...target.postIds.map((postId) =>
-        revalidatePost(postId, { replacePost, removePost }),
+      ...target.posts.map(({ id }) =>
+        revalidatePost(id, { replacePost, removePost }),
       ),
       createdPostId !== null
         ? revalidateFirstPage(createdPostId, { prependNew })

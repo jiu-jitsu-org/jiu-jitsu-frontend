@@ -27,15 +27,27 @@ const CREATED_POST_KEY = "feed-created-post";
  */
 const CREATED_TTL_MS = 30_000;
 
+/**
+ * 갱신 대상 한 건. mark는 "이번 진입"을 구분하는 표식이다.
+ *
+ * WHY id만으로는 부족한가: 복귀 확정을 기다리는 동안(clearRevalidated 유예) 같은 글을 다시 열면,
+ * 새 기록과 방금 처리한 기록이 id로는 구별되지 않아 삭제가 새 기록까지 걷어간다. 그러면 그 진입에서
+ * 누른 좋아요·저장이 목록에 영영 반영되지 않는다(실측: 상세 → 즉시 뒤로 → 재진입 → 좋아요 → 복귀).
+ */
+export type DirtyPost = {
+  id: number;
+  mark: number;
+};
+
 /** 복귀 시 다시 읽어야 할 목록 상태. */
 export type FeedRevalidateTarget = {
-  /** 단건 재조회 대상 게시글 id. */
-  postIds: number[];
+  /** 단건 재조회 대상 게시글. */
+  posts: DirtyPost[];
   /** 내가 방금 등록한 글 id. 있으면 첫 페이지를 다시 읽어 앞에 붙인다. */
   createdPostId: number | null;
 };
 
-function readIds(): number[] {
+function readPosts(): DirtyPost[] {
   if (typeof window === "undefined") return [];
 
   try {
@@ -45,7 +57,20 @@ function readIds(): number[] {
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
 
-    return parsed.filter((id): id is number => typeof id === "number");
+    return parsed.flatMap((entry): DirtyPost[] => {
+      // 표식 도입 이전 형태(id만 담긴 배열)도 받는다 — 배포 시점에 이미 기록을 남긴 웹뷰가
+      // 살아 있어, 무시하면 그 글만 복귀 갱신을 건너뛴다.
+      if (typeof entry === "number") return [{ id: entry, mark: 0 }];
+      if (
+        typeof entry === "object" &&
+        entry !== null &&
+        typeof (entry as DirtyPost).id === "number" &&
+        typeof (entry as DirtyPost).mark === "number"
+      ) {
+        return [entry as DirtyPost];
+      }
+      return [];
+    });
   } catch {
     // 사파리 프라이빗 모드 등 스토리지 차단 환경. 갱신이 늦어질 뿐 화면이 깨지지는 않는다.
     return [];
@@ -56,17 +81,17 @@ function readIds(): number[] {
  * 이 게시글을 갱신 대상으로 기록한다 — 상세를 열 때 호출.
  *
  * 상세에서 또 다른 글로 이동하는 경로가 생기면 대상이 복수가 되므로 처음부터 목록으로 다룬다.
+ * 이미 있는 글이어도 표식을 새로 찍는다 — 그래야 앞선 복귀의 삭제가 이번 진입을 건드리지 못한다.
  */
 export function markPostDirty(postId: number): void {
   if (typeof window === "undefined") return;
 
   try {
-    const ids = readIds();
-    if (ids.includes(postId)) return;
+    const rest = readPosts().filter((post) => post.id !== postId);
 
     window.sessionStorage.setItem(
       DIRTY_POSTS_KEY,
-      JSON.stringify([...ids, postId]),
+      JSON.stringify([...rest, { id: postId, mark: Date.now() }]),
     );
   } catch {
     // 위와 같음 — 조용히 포기한다.
@@ -124,23 +149,26 @@ function readCreatedPostId(): number | null {
  * 목록에 영영 반영되지 않는다. 읽기와 삭제를 나눠 "진짜 복귀"가 확인된 뒤에만 지운다.
  */
 export function peekRevalidateTarget(): FeedRevalidateTarget {
-  if (typeof window === "undefined") return { postIds: [], createdPostId: null };
+  if (typeof window === "undefined") return { posts: [], createdPostId: null };
 
-  return { postIds: readIds(), createdPostId: readCreatedPostId() };
+  return { posts: readPosts(), createdPostId: readCreatedPostId() };
 }
 
 /**
- * 처리 완료된 항목만 골라 지운다.
+ * 처리 완료된 항목만 골라 지운다 — **읽은 그 표식과 일치할 때만**.
  *
  * 통째로 비우지 않는 이유: 읽은 뒤 삭제까지 사이에 새 기록이 들어올 수 있다(상세를 다시 열었을 때).
- * 그 기록까지 지우면 방금 연 글이 갱신 대상에서 빠진다.
+ * 그 기록까지 지우면 방금 연 글이 갱신 대상에서 빠진다. 같은 글을 다시 연 경우는 id가 겹쳐
+ * 구별되지 않으므로 표식(mark)까지 함께 본다.
  */
 export function clearRevalidated(target: FeedRevalidateTarget): void {
   if (typeof window === "undefined") return;
 
   try {
-    const done = new Set(target.postIds);
-    const rest = readIds().filter((id) => !done.has(id));
+    const done = new Set(target.posts.map((post) => `${post.id}:${post.mark}`));
+    const rest = readPosts().filter(
+      (post) => !done.has(`${post.id}:${post.mark}`),
+    );
 
     if (rest.length > 0) {
       window.sessionStorage.setItem(DIRTY_POSTS_KEY, JSON.stringify(rest));
