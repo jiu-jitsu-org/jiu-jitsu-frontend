@@ -14,6 +14,7 @@ import type {
 } from "@/features/community/domain/post";
 import type {
   CommunityWriteRepository,
+  ToggleLikeResult,
   ToggleSaveResult,
 } from "@/features/community/domain/post-repository";
 import type { CreateReportInput } from "@/features/community/domain/report";
@@ -27,7 +28,7 @@ import type { HttpClient } from "@/shared/lib/http";
  * 댓글 생성은 Swagger 확정 계약(POST /community/comments, body { contentId, parentId, body }).
  * 대댓글은 parentId에 부모 댓글 id를 넣어 같은 엔드포인트로 보낸다.
  * 게시글 삭제는 Swagger 확정 계약(DELETE /board/{id}) — 200 OK, 응답 본문은 사용하지 않는다.
- * 좋아요는 Swagger 확정 계약(PUT /board/like/{id}) — 서버가 토글하고 isLiked를 돌려준다.
+ * 좋아요는 Swagger 확정 계약(PUT /board/like/{id}) — 서버가 토글하고 isLiked·likeCount를 돌려준다.
  * 저장(북마크)은 Swagger 확정 계약(PUT /board/save/{id}) — 서버가 토글하고 isSaved·saveCount를 돌려준다.
  * 게시글 알림 수신은 Swagger 확정 계약(PUT /notice/setting/board/{boardId}) — 서버가 토글하고
  * enabled를 돌려준다. 게시글이 아니라 알림 도메인(notice-controller)에 있어 경로 prefix가 다르다.
@@ -103,15 +104,20 @@ export class ExternalCommunityWriteRepository
     return response.data.isLiked;
   }
 
-  async toggleLike(postId: number): Promise<boolean> {
-    // PUT /board/like/{id} — 단일 엔드포인트 토글(등록/취소). 응답 data.isLiked가 토글 후 상태.
+  async toggleLike(postId: number): Promise<ToggleLikeResult> {
+    // PUT /board/like/{id} — 단일 엔드포인트 토글(등록/취소).
+    // 응답 data.isLiked가 토글 후 상태, likeCount가 토글 직후 서버 기준 좋아요 수다.
+    // likeCount는 구버전 응답 호환을 위해 optional — 없으면 그대로 undefined로 흘려보낸다.
     const response = await this.httpClient.put<
-      Envelope<{ contentID: number; isLiked: boolean }>
+      Envelope<{ contentID: number; isLiked: boolean; likeCount?: number }>
     >({
       path: `${BOARD_ENDPOINT_PATH}/like/${postId}`,
     });
 
-    return response.data.isLiked;
+    return {
+      liked: response.data.isLiked,
+      likeCount: response.data.likeCount,
+    };
   }
 
   async toggleSave(postId: number): Promise<ToggleSaveResult> {

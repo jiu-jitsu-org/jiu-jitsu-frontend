@@ -86,40 +86,37 @@ export function usePostActions(postId: number, initial: PostActionsSeed) {
         throw new Error(`${kind} request failed: ${response.status}`);
       }
 
-      // 서버 권위값으로 낙관적 상태를 보정한다(like=data.liked, bookmark=data.saved + data.saveCount).
-      const body = (await response.json().catch(() => null)) as
-        | { data?: { liked?: boolean; saved?: boolean; saveCount?: number } }
-        | null;
-      const authoritative =
-        kind === "like" ? body?.data?.liked : body?.data?.saved;
+      // 서버 권위값으로 낙관적 상태를 보정한다
+      // (like=data.liked + data.likeCount, bookmark=data.saved + data.saveCount).
+      const data = (
+        (await response.json().catch(() => null)) as {
+          data?: {
+            liked?: boolean;
+            likeCount?: number;
+            saved?: boolean;
+            saveCount?: number;
+          };
+        } | null
+      )?.data;
+      const authoritative = kind === "like" ? data?.liked : data?.saved;
       if (typeof authoritative === "boolean") {
-        // 응답에 카운트가 없을 때의 폴백 — 토글 전 기준점에서 서버 진실값으로 재계산.
-        const localCount = Math.max(
-          0,
-          prevCount + (authoritative ? 1 : 0) - (wasActive ? 1 : 0),
+        // 카운트는 서버가 토글 직후 값을 내려주므로 그대로 확정한다.
+        // 로컬 ±1은 요청 사이에 끼어든 다른 사용자의 토글을 놓쳐 실제 값과 어긋난다.
+        const serverCount = kind === "like" ? data?.likeCount : data?.saveCount;
+        // 응답에 카운트가 없는 구버전 폴백 — 토글 전 기준점에서 서버 진실값으로 재계산.
+        const nextCount =
+          typeof serverCount === "number"
+            ? Math.max(0, serverCount)
+            : Math.max(
+                0,
+                prevCount + (authoritative ? 1 : 0) - (wasActive ? 1 : 0),
+              );
+
+        setState((prev) =>
+          kind === "like"
+            ? { ...prev, liked: authoritative, likes: nextCount }
+            : { ...prev, bookmarked: authoritative, saves: nextCount },
         );
-
-        if (kind === "like") {
-          // 좋아요 토글 응답에는 아직 카운트가 없다(저장 수만 추가됨) → 로컬 계산 유지.
-          setState((prev) => ({
-            ...prev,
-            liked: authoritative,
-            likes: localCount,
-          }));
-          return;
-        }
-
-        // 저장 수는 서버가 토글 직후 값(saveCount)을 내려주므로 그대로 확정한다.
-        // 로컬 ±1은 요청 사이에 끼어든 다른 사용자의 저장을 놓쳐 실제 값과 어긋난다.
-        const serverSaveCount = body?.data?.saveCount;
-        setState((prev) => ({
-          ...prev,
-          bookmarked: authoritative,
-          saves:
-            typeof serverSaveCount === "number"
-              ? Math.max(0, serverSaveCount)
-              : localCount,
-        }));
       }
     } catch {
       // 2) 실패 시 롤백
