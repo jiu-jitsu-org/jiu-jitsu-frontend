@@ -26,10 +26,7 @@ export async function PostDetailScreen({
     // 만료 토큰 → 클라이언트가 네이티브 갱신 후 이 화면을 재실행(router.refresh)해 인증 상태로 복구.
     if (result.reason === "session-expired") {
       return (
-        <SessionExpiredRecovery
-          loading={<PostDetailLoading />}
-          fallback={<PostDetailError message="다시 로그인해 주세요." />}
-        />
+        <SessionExpiredRecovery loading={<PostDetailLoading />} />
       );
     }
 

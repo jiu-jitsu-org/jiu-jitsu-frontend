@@ -51,10 +51,7 @@ function renderFeed(
   if (!result.ok) {
     if (result.reason === "session-expired") {
       return (
-        <SessionExpiredRecovery
-          loading={<FeedLoading />}
-          fallback={<FeedErrorState />}
-        />
+        <SessionExpiredRecovery loading={<FeedLoading />} />
       );
     }
     return <FeedErrorState />;
