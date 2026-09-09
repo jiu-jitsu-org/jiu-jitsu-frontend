@@ -24,31 +24,17 @@ function formatCommentDate(iso: string): string {
 export function CommentItem({
   comment,
   isReply = false,
-  replyParentId,
 }: {
   comment: Comment;
-  /** 대댓글이면 아바타 앞에 분기 아이콘을 붙인다. */
+  /** 대댓글이면 아바타 앞에 분기 아이콘을 붙이고, 답글 버튼을 감춘다. */
   isReply?: boolean;
-  /**
-   * 이 행의 답글 버튼이 서버로 보낼 parentId.
-   * 최상위 댓글은 자기 id, 대댓글은 부모(최상위) id가 들어온다 — 중첩을 1단계로 묶기 위함.
-   */
-  replyParentId?: number;
 }) {
-  // 대댓글에서 답글을 달아도 최상위 댓글 아래에 붙는다(무한 중첩 방지).
-  const parentId = replyParentId ?? comment.id;
-
   // 대댓글 렌더는 원문·placeholder가 공유한다 — 부모가 가려져도 스레드는 유지되기 때문.
   const replies =
     comment.replies.length > 0 ? (
       <CommentReplies commentId={comment.id} totalCount={comment.replyCount}>
         {comment.replies.map((reply) => (
-          <CommentItem
-            key={reply.id}
-            comment={reply}
-            isReply
-            replyParentId={comment.id}
-          />
+          <CommentItem key={reply.id} comment={reply} isReply />
         ))}
       </CommentReplies>
     ) : null;
@@ -128,16 +114,21 @@ export function CommentItem({
           {comment.body}
         </p>
 
-        {/* 본문 바로 하단 반응 행(본문과 간격 0): 답글 · 좋아요(+카운트) · ⋮. 높이 28 고정, 우측 정렬.
-            버튼 사이 간격 4(gap-1). 색/상태는 comment-reaction-styles가 단일 출처. */}
+        {/* 본문 바로 하단 반응 행(본문과 간격 0): (최상위만) 답글 · 좋아요(+카운트) · ⋮.
+            높이 28 고정, 우측 정렬. 버튼 사이 간격 4(gap-1).
+            색/상태는 comment-reaction-styles가 단일 출처. */}
         <div className="flex h-7 items-center justify-end gap-1">
-          {/* 답글: 탭하면 하단 입력 바가 답글 모드로 전환된다. */}
-          <CommentReplyButton
-            parentId={parentId}
-            nickname={comment.author.nickname}
-            replyCount={comment.replyCount}
-            replied={comment.replied}
-          />
+          {/* 답글은 최상위 댓글에만 둔다(#131) — 대댓글에 대댓글이 달리지 않는 구조라
+              대댓글의 답글 버튼은 탭한 대상(대댓글 작성자)이 아니라 최상위 스레드에 붙어
+              가리키는 대상이 어긋났고, replyCount도 자기 자식 수라 항상 0이었다. */}
+          {isReply ? null : (
+            <CommentReplyButton
+              parentId={comment.id}
+              nickname={comment.author.nickname}
+              replyCount={comment.replyCount}
+              replied={comment.replied}
+            />
+          )}
           <CommentLikeButton
             commentId={comment.id}
             initialLiked={comment.liked}
