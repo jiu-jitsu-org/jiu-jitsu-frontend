@@ -52,10 +52,8 @@ type BalanceGameDto = {
   viewCount?: number;
   /** 미설정이면 null로 오므로 매핑 시 false로 정규화(게시글 상세와 같다). */
   noticeEnabled?: boolean | null;
-  /** 생성 일시. 아직 내려오지 않는다 — 없으면 메타 행이 날짜를 그리지 않는다. */
-  createdAt?: string;
-  /** 서버가 계산한 상대 시각(예: "9시간 전"). 메타 행 날짜의 정본. */
-  timeAgo?: string;
+  /** 게임 진행 날짜(ISO 8601 date, 시각 없음 — 예: "2026-09-10"). */
+  gameDate?: string;
 };
 
 /**
@@ -90,10 +88,9 @@ function toBalanceGame(dto: BalanceGameDto): BalanceGame {
     likeCount: dto.likeCount ?? 0,
     isLiked: dto.isLiked ?? false,
     noticeEnabled: dto.noticeEnabled ?? false,
-    // 날짜는 폴백을 만들지 않는다 — 없는 시각을 지어내는 것보다 화면이 비는 편이 낫고,
-    // 메타 행이 timeAgo → createdAt 순으로 알아서 물러선다.
-    createdAt: dto.createdAt,
-    timeAgo: dto.timeAgo,
+    // 날짜는 폴백을 만들지 않는다 — 없는 날짜를 endAt 등으로 지어내면 마감 정책이 바뀔 때
+    // 하루씩 밀린 값을 조용히 그린다. 값이 없으면 메타 행이 날짜 항목째 뺀다.
+    gameDate: dto.gameDate,
     views: dto.viewCount ?? 0,
   };
 }
