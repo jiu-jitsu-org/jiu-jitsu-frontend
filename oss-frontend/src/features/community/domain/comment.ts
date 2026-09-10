@@ -54,6 +54,17 @@ export type Comment = {
 };
 
 /**
+ * 대댓글 추가 조회 한 페이지(backend#115).
+ *
+ * 서버가 Spring Slice로 내려줘 총 개수가 없다 — "다음 페이지가 있는지"만 알 수 있다.
+ * 「대댓글 더보기」는 개수를 표기하지 않는 정책(#62)이라 이 정보로 충분하다.
+ */
+export type ReplyPage = {
+  items: Comment[];
+  hasNext: boolean;
+};
+
+/**
  * 페이지네이션을 포함한 댓글 목록.
  *
  * nextCursor가 null/undefined면 다음 페이지가 없다. (커서 방식 가정 — 백엔드 확인 필요)

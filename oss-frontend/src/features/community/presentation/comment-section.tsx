@@ -14,9 +14,13 @@ import { CommentSortSelect } from "@/features/community/presentation/comment-sor
 export function CommentSection({
   comments,
   sort,
+  postAuthorId,
 }: {
   comments: CommentListData;
   sort: CommentSort;
+  /** 게시글 작성자 id — 대댓글 더보기로 불러온 줄의 "작성자" 배지 판정에 쓴다.
+      밸런스 게임은 작성자가 없는 컨텐츠라 넘기지 않는다. */
+  postAuthorId?: number | null;
 }) {
   const hasComments = comments.items.length > 0;
 
@@ -34,7 +38,11 @@ export function CommentSection({
       {hasComments ? (
         // 최신순 버튼 바텀↔첫 댓글 24 = 정렬 row pb-3(12) + 여기 pt-3(12). 하단 여유 pb-4.
         <div className="px-4 pb-4 pt-3">
-          <CommentList comments={comments.items} />
+          <CommentList
+            comments={comments.items}
+            sort={sort}
+            postAuthorId={postAuthorId}
+          />
         </div>
       ) : (
         <CommentEmpty />
