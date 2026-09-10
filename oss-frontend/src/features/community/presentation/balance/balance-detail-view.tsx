@@ -67,8 +67,7 @@ export function BalanceDetailView({
             {/* 제목 아래 6 */}
             <BalanceDetailMetaRow
               views={game.views}
-              createdAt={game.createdAt}
-              timeAgo={game.timeAgo}
+              gameDate={game.gameDate}
               className="mt-1.5"
             />
 

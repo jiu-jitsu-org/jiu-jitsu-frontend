@@ -7,8 +7,9 @@
  * 게시글(PostSummary)과 달리 작성자·이미지 목록·저장이 없고, 식별자도 게시글 id가 아닌
  * contentId다. 댓글은 게시글과 같은 API(GET /community/comments?id=)를 contentId로 호출한다.
  *
- * 뷰어 상태(commented·isLiked·noticeEnabled)와 메타(views·createdAt·timeAgo)는 게시글 상세와
- * 같은 필드를 같은 이름 규칙으로 받는다 — 두 상세가 같은 리액션 바·메타 행을 쓰기 때문이다.
+ * 뷰어 상태(commented·isLiked·noticeEnabled)와 조회수(views)는 게시글 상세와 같은 필드를 같은
+ * 이름 규칙으로 받는다 — 두 상세가 같은 리액션 바를 쓰기 때문이다. 날짜만은 규칙이 다르다
+ * (createdAt·timeAgo가 아니라 gameDate).
  */
 
 /** 선택지 식별자. 투표 요청 body의 option 값과 같다. */
@@ -85,22 +86,17 @@ export type BalanceGame = {
    */
   noticeEnabled: boolean;
   /**
-   * 생성 일시(ISO 8601).
+   * 게임이 진행된 날짜(ISO 8601 date, 시각 없음 — 예: "2026-09-10"). 메타 행 날짜의 정본.
    *
-   * 메타 행 날짜의 **폴백**이다 — 정본은 timeAgo이고, 이 값은 timeAgo가 없을 때만 포맷해 쓴다.
+   * 밸런스는 timeAgo("n분 전")를 쓰지 않고 **진행일**만 노출한다(기획 정책). createdAt은
+   * 운영자 등록 시각이라 심야 등록 시 진행일과 하루 어긋나 쓸 수 없고, endAt도 안 된다 —
+   * 지금은 당일 23:59:59라 날짜가 맞아떨어지지만 그건 카운트다운 기준값이라 마감 정책이
+   * 바뀌면(예: 익일 새벽 마감) 날짜가 하루 밀린다.
    *
-   * optional인 이유: 업스트림이 아직 내려주지 않는다(jiu-jitsu-backend 요청 중). 필수로 두면
-   * 타입만 통과하고 런타임에 undefined가 흘러 날짜 자리가 조용히 깨진다. 둘 다 없으면 메타 행이
-   * 날짜를 아예 그리지 않는다.
+   * optional인 이유: 다른 나중 계약과 같은 방어적 읽기다. 필수로 두면 타입만 통과하고 런타임에
+   * undefined가 흘러 날짜 자리가 조용히 깨진다. 없으면 메타 행이 날짜를 아예 그리지 않는다.
    */
-  createdAt?: string;
-  /**
-   * 서버가 계산한 상대 시각(예: "9시간 전"). 메타 행 날짜의 정본.
-   *
-   * FE에서 다시 계산하지 않는다 — 게시글·댓글과 기준이나 문구가 어긋나면 같은 화면 안에서
-   * 시각 표기가 둘로 갈린다.
-   */
-  timeAgo?: string;
+  gameDate?: string;
   /**
    * 조회수.
    *
