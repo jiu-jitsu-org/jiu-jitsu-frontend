@@ -32,7 +32,7 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [value, setValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const { target, cancelReply, completeReply } = useCommentReply();
+  const { target, cancelReply } = useCommentReply();
   // 키보드가 떠 있는 동안엔 홈 인디케이터(safe-area)가 키보드에 가려 의미가 없으므로 하단 패딩 0.
   const rect = useViewportRect();
 
@@ -85,12 +85,10 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
       }
 
       setValue("");
-      // 답글이면 해당 묶음을 펼쳐 방금 쓴 답글이 보이게 한다(접혀 있으면 안 보임).
-      if (parentId) {
-        completeReply(parentId);
-      } else {
-        cancelReply();
-      }
+      // 답글도 최상위 댓글도 대상 해제만 한다. 서버가 대댓글을 상위 3개로 잘라 내려주므로
+      // 작성된 순에서 답글이 3개를 넘으면 방금 쓴 답글이 미리보기 밖(맨 뒤)에 남는다 —
+      // 그때는 「대댓글 더보기」로 확인한다(#62).
+      cancelReply();
       // 서버 렌더 목록 재요청 — 새 댓글이 정렬 규칙에 맞게 반영된다.
       router.refresh();
     } finally {

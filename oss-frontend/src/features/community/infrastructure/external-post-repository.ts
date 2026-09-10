@@ -1,4 +1,7 @@
-import type { CommentList } from "@/features/community/domain/comment";
+import type {
+  CommentList,
+  ReplyPage,
+} from "@/features/community/domain/comment";
 import type {
   CommentSort,
   PostDetail,
@@ -32,9 +35,16 @@ import type { HttpClient } from "@/shared/lib/http";
  *
  * 댓글 목록: GET /community/comments?id={게시글id}&sortType=CREATE_DESC|CREATE_ASC.
  *   응답 봉투 data는 댓글 DTO 평배열이라 toComment로 매핑해 CommentList로 조립한다(서버 페이지네이션 없음).
+ *   대댓글은 이 응답에 상위 3개만 딸려 오고(backend#111), 나머지는 아래 getReplies로 이어 받는다.
  */
 const BOARD_ENDPOINT_PATH = "/api/board";
 const COMMENT_ENDPOINT_PATH = "/api/community/comments";
+
+/**
+ * 대댓글 추가 조회 한 페이지 크기 — 서버가 정한 고정값(backend#115).
+ * 요청에 실어 보내는 값이 아니라, last가 없는 응답에서 다음 페이지 유무를 추정할 때만 쓴다.
+ */
+const REPLY_PAGE_SIZE = 10;
 
 /** 도메인 정렬 → 업스트림 sortType 쿼리 값. */
 const COMMENT_SORT_TYPE: Record<CommentSort, string> = {
@@ -47,6 +57,17 @@ type Envelope<T> = {
   code: string;
   message: string;
   data: T;
+};
+
+/**
+ * GET /community/comments/{id}/replies 성공 응답 DTO(봉투 data 안의 형태).
+ *
+ * Spring Slice 직렬화라 totalElements가 없다 — 남은 개수는 알 수 없고 last로만 판단한다.
+ */
+type ReplySliceDto = {
+  content?: CommentDto[] | null;
+  /** 마지막 페이지 여부. 다음 페이지 존재 판정의 정본. */
+  last?: boolean;
 };
 
 /** GET /board/{id} 성공 응답 DTO(봉투 data 안의 형태). */
@@ -257,5 +278,30 @@ export class ExternalPostRepository implements PostRepository {
     const items = (response.data ?? []).map(toComment);
     // 서버 커서 페이지네이션 미제공 — 전체 목록을 한 번에 반환한다.
     return { items, total: items.length, nextCursor: null };
+  }
+
+  async getReplies(
+    parentCommentId: number,
+    sort: CommentSort,
+    page: number,
+  ): Promise<ReplyPage> {
+    // GET /community/comments/{id}/replies?page=&sortType= → 봉투 data는 Slice.
+    // 서버가 미리보기 3개를 제외하고 내려주므로 오프셋 계산은 하지 않는다.
+    const response = await this.httpClient.get<Envelope<ReplySliceDto>>({
+      path: `${COMMENT_ENDPOINT_PATH}/${parentCommentId}/replies`,
+      query: { page, sortType: COMMENT_SORT_TYPE[sort] },
+    });
+
+    const items = (response.data?.content ?? []).map(toComment);
+
+    return {
+      items,
+      // last가 빠진 응답에서는 "가득 찬 페이지면 더 있다"로 폴백한다. 여기서 잘못 false를 주면
+      // 버튼이 사라져 나머지 대댓글에 접근할 수단이 아예 없어지기 때문이다.
+      hasNext:
+        typeof response.data?.last === "boolean"
+          ? !response.data.last
+          : items.length >= REPLY_PAGE_SIZE,
+    };
   }
 }

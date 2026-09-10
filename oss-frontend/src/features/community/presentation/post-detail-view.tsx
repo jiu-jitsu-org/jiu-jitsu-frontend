@@ -88,7 +88,11 @@ export function PostDetailView({
           <div className="mt-6 h-1 bg-divider-bg" />
 
           {/* 댓글 섹션 */}
-          <CommentSection comments={comments} sort={sort} />
+          <CommentSection
+            comments={comments}
+            sort={sort}
+            postAuthorId={post.author.userId}
+          />
         </div>
       </KeyboardAwareShell>
     </CommentReplyProvider>

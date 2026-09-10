@@ -1,4 +1,8 @@
-import type { Comment, CommentList } from "@/features/community/domain/comment";
+import type {
+  Comment,
+  CommentList,
+  ReplyPage,
+} from "@/features/community/domain/comment";
 import type {
   ImageUploadAuth,
   RegisterImageInput,
@@ -32,6 +36,19 @@ export interface PostRepository {
     sort: CommentSort,
     cursor?: string,
   ): Promise<CommentList>;
+  /**
+   * 부모 댓글의 대댓글 추가 조회(GET /community/comments/{id}/replies).
+   *
+   * 게시글 상세의 childrenList는 상위 3개로 잘려 오고(backend#111), 그 다음부터를 이 API가
+   * 10개씩 내려준다. 서버가 미리보기 3개를 빼고 주므로 호출부는 page를 0,1,2…로 올리기만 하면 된다.
+   *
+   * sort는 댓글 목록과 반드시 같은 값을 넘긴다 — 정렬이 어긋나면 이미 본 대댓글이 다시 오거나 빠진다.
+   */
+  getReplies(
+    parentCommentId: number,
+    sort: CommentSort,
+    page: number,
+  ): Promise<ReplyPage>;
 }
 
 /**

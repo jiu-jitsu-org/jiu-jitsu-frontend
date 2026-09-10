@@ -1,4 +1,7 @@
+"use client";
+
 import type { Comment } from "@/features/community/domain/comment";
+import type { CommentSort } from "@/features/community/domain/post";
 import { Avatar } from "@/features/community/presentation/avatar";
 import { CommentLikeButton } from "@/features/community/presentation/comment-like-button";
 import { CommentReplyButton } from "@/features/community/presentation/comment-reply-button";
@@ -16,27 +19,42 @@ function formatCommentDate(iso: string): string {
 }
 
 /**
- * 단일 댓글 행 (서버 컴포넌트, 초안).
+ * 단일 댓글 행 (클라이언트 컴포넌트, 초안).
  *
  * 구성: (대댓글이면 분기 아이콘 +) 아바타 + 닉네임(+"작성자" 배지) + 날짜 / 본문 / 반응 행.
+ *
+ * WHY 클라이언트인가: 「대댓글 더보기」로 불러오는 대댓글은 브라우저에서 렌더해야 한다(#62).
+ * 서버 렌더 전용으로 두면 미리보기용/추가 로드용 댓글 행을 두 벌 만들게 되고, 그 순간부터
+ * 같은 줄인데 다르게 보이기 시작한다. 서버 전용 의존이 없고 자식(좋아요·답글·⋮)은 이미
+ * 전부 클라이언트 leaf라 옮기는 비용은 상세 초기 번들 증가뿐이다.
+ *
  * FIXME(초안): 반응 토글·답글·⋮ 메뉴 동작과 정확한 디자인 토큰/간격은 가이드 확정 후 적용.
  */
 export function CommentItem({
   comment,
+  sort,
+  postAuthorId,
   isReply = false,
 }: {
   comment: Comment;
+  /** 대댓글 추가 조회에 그대로 넘길 정렬 — 목록과 어긋나면 중복·누락이 생긴다. */
+  sort: CommentSort;
+  /** 게시글 작성자 id — 추가 로드된 대댓글의 "작성자" 배지 판정용(CommentReplies로 전달). */
+  postAuthorId?: number | null;
   /** 대댓글이면 아바타 앞에 분기 아이콘을 붙이고, 답글 버튼을 감춘다. */
   isReply?: boolean;
 }) {
   // 대댓글 렌더는 원문·placeholder가 공유한다 — 부모가 가려져도 스레드는 유지되기 때문.
+  // 미리보기가 비어도 총 개수가 있으면 그려야 한다 — 「대댓글 더보기」가 유일한 접근 경로다.
   const replies =
-    comment.replies.length > 0 ? (
-      <CommentReplies commentId={comment.id} totalCount={comment.replyCount}>
-        {comment.replies.map((reply) => (
-          <CommentItem key={reply.id} comment={reply} isReply />
-        ))}
-      </CommentReplies>
+    comment.replies.length > 0 || comment.replyCount > 0 ? (
+      <CommentReplies
+        parentId={comment.id}
+        sort={sort}
+        totalCount={comment.replyCount}
+        replies={comment.replies}
+        postAuthorId={postAuthorId}
+      />
     ) : null;
 
   // 삭제된 댓글은 목록에서 빼지 않고 자리 표시만 남긴다 — 대댓글(children)은 그대로 노출된다.
@@ -144,7 +162,7 @@ export function CommentItem({
         </div>
 
         {/* 대댓글: 같은 댓글 폼을 들여쓰기로 재사용(콘텐츠 컬럼 안에 두어 부모 닉네임 기준 정렬).
-            최초 2개만 노출, 초과분은 "대댓글 N개 더보기"로 펼침. */}
+            서버가 준 미리보기 3개를 그리고, 더 있으면 「대댓글 더보기」로 10개씩 이어 받는다. */}
         {replies}
       </div>
     </li>

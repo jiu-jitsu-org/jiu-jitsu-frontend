@@ -42,7 +42,10 @@ export type CommentDto = {
   timeAgo?: string;
   /** 수정 시각(ISO 8601). */
   updatedAt?: string | null;
-  /** 대댓글 목록(같은 DTO 형태). */
+  /**
+   * 대댓글 **미리보기** 목록(같은 DTO 형태). 서버가 sortType 기준 상위 3개까지만 내려준다.
+   * 4번째부터는 GET /community/comments/{id}/replies로 따로 가져온다(backend#115).
+   */
   childrenList?: CommentDto[] | null;
   /**
    * 삭제/신고 여부. 둘 다 placeholder 노출 판단에 쓴다(신고 #48 · 삭제 #61).
@@ -57,7 +60,7 @@ export type CommentDto = {
    */
   isBlocked?: boolean;
   /**
-   * 답글 총 개수. childrenList는 상위 N개만 내려오는 잘린 목록이라 여기서 세면 안 된다(#62).
+   * 답글 총 개수. childrenList는 서버가 상위 3개로 자른 목록이라 여기서 세면 안 된다(#62).
    * 삭제·차단된 자식도 포함한 전체 수가 정책상 맞는 값이라 프론트에서 걸러내지 않는다(backend#117 검증).
    */
   childCount?: number;
@@ -76,9 +79,8 @@ export type CommentDto = {
  * isPostAuthor: 응답에 직접 필드가 없어 여기선 false로 두고, 게시글 작성자 id를 아는
  *   get-post-detail-page-data에서 댓글 author id와 비교해 최종 확정한다(작성자 배지).
  *
- * replyCount·replied는 반드시 서버값이어야 한다 — 정책상 childrenList는 상위 N개만 내려오는
- *   잘린 목록이라(나머지는 별도 "더보기" 화면), 개수도 "내가 답글을 달았는지"도 여기서 셀 수 없다.
- *   두 값 모두 응답에 있다(childCount·isReplied) — 아래 폴백은 필드 누락 시의 안전망일 뿐이다.
+ * replyCount·replied는 반드시 서버값이어야 한다 — childrenList는 서버가 상위 3개로 자른
+ *   목록이라(backend#111) 여기서 세면 답글이 몇 개든 항상 3이 된다.
  */
 export function toComment(dto: CommentDto): Comment {
   const children = dto.childrenList ?? [];
@@ -100,8 +102,9 @@ export function toComment(dto: CommentDto): Comment {
     isPostAuthor: false,
     likeCount: dto.likes,
     liked: dto.isLiked,
-    // 서버값 우선. 없으면 내려온 자식 수로 폴백하되, 잘린 목록이라 실제 개수보다 작을 수 있다.
-    replyCount: dto.childCount ?? children.length,
+    // children.length로 폴백하지 않는다 — 잘린 목록이라 항상 3을 돌려주고, 그러면
+    // 「대댓글 더보기」 노출 판정(replyCount > 내려온 개수)이 영영 거짓이 된다.
+    replyCount: dto.childCount ?? 0,
     replied: dto.isReplied ?? false,
     // 같은 값의 중복 필드라 한쪽만 와도 삭제로 본다. 둘 다 없으면 삭제가 아닌 것으로 둔다.
     isDeleted: dto.isDeleted ?? dto.deletedYn ?? false,

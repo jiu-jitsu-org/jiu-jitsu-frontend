@@ -5,6 +5,7 @@ import { DeleteCommentUseCase } from "@/features/community/application/delete-co
 import { DeletePostUseCase } from "@/features/community/application/delete-post";
 import { GetCommentsUseCase } from "@/features/community/application/get-comments";
 import { GetImageUploadAuthUseCase } from "@/features/community/application/get-image-upload-auth";
+import { GetRepliesUseCase } from "@/features/community/application/get-replies";
 import { RegisterImageUseCase } from "@/features/community/application/register-image";
 import { GetPostDetailUseCase } from "@/features/community/application/get-post-detail";
 import { GetPostListUseCase } from "@/features/community/application/get-post-list";
@@ -61,6 +62,12 @@ export function createGetCommentsUseCase(
   accessToken: string | null,
 ): GetCommentsUseCase {
   return new GetCommentsUseCase(createReadRepository(accessToken));
+}
+
+export function createGetRepliesUseCase(
+  accessToken: string | null,
+): GetRepliesUseCase {
+  return new GetRepliesUseCase(createReadRepository(accessToken));
 }
 
 /** 쓰기 use case는 인증 토큰을 강제한다. */

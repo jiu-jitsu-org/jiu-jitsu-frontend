@@ -26,12 +26,6 @@ type CommentReplyContextValue = {
   startReply: (target: ReplyTarget) => void;
   /** 칩 × 또는 등록 완료 → 대상 해제. */
   cancelReply: () => void;
-  /**
-   * 방금 답글이 달린 최상위 댓글 id.
-   * 대댓글이 접혀 있으면 새로 단 답글이 안 보이므로, 이 값으로 해당 묶음만 펼친다.
-   */
-  justRepliedTo: number | null;
-  completeReply: (parentId: number) => void;
 };
 
 const CommentReplyContext = createContext<CommentReplyContextValue | null>(null);
@@ -44,7 +38,6 @@ const CommentReplyContext = createContext<CommentReplyContextValue | null>(null)
  */
 export function CommentReplyProvider({ children }: { children: ReactNode }) {
   const [target, setTarget] = useState<ReplyTarget | null>(null);
-  const [justRepliedTo, setJustRepliedTo] = useState<number | null>(null);
 
   const startReply = useCallback((next: ReplyTarget) => {
     setTarget(next);
@@ -54,14 +47,9 @@ export function CommentReplyProvider({ children }: { children: ReactNode }) {
     setTarget(null);
   }, []);
 
-  const completeReply = useCallback((parentId: number) => {
-    setTarget(null);
-    setJustRepliedTo(parentId);
-  }, []);
-
   const value = useMemo(
-    () => ({ target, startReply, cancelReply, justRepliedTo, completeReply }),
-    [target, startReply, cancelReply, justRepliedTo, completeReply],
+    () => ({ target, startReply, cancelReply }),
+    [target, startReply, cancelReply],
   );
 
   return (
@@ -83,8 +71,6 @@ export function useCommentReply(): CommentReplyContextValue {
       target: null,
       startReply: () => {},
       cancelReply: () => {},
-      justRepliedTo: null,
-      completeReply: () => {},
     }
   );
 }
