@@ -104,7 +104,10 @@ export function CommentMenu({
   /** 차단: 확인 알럿 → POST → 성공 시 목록 갱신. */
   async function handleBlock() {
     const confirmed = await confirm({
+      // title은 titleParts를 모르는 구버전 앱용 완성 문자열 — 둘의 내용이 어긋나면 안 된다.
       title: `${authorNickname}님 차단`,
+      // 1줄 고정 정책: 긴 닉네임만 말줄임하고 "님 차단"은 항상 온전히 보이게 경계를 넘긴다.
+      titleParts: { truncatable: authorNickname, suffix: "님 차단" },
       message: "차단하면 해당 유저의 글과 댓글이 보이지 않아요.",
       confirmText: "차단",
       destructive: true,

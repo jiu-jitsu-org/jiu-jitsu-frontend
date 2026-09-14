@@ -1,9 +1,11 @@
 # 네이티브 알럿·바텀시트 브릿지
 
-> **상태: 웹 구현 완료 / 네이티브 미구현.**
-> 메시지 계약은 `src/shared/lib/native-bridge/messages.ts`에 반영됐고, 웹은 이 계약으로 요청을 보냅니다.
-> 다만 **앱에는 아직 수신부가 없어** 실기기에서는 웹 폴백이 아니라 **무응답 → 취소**로 처리됩니다
-> (네이티브 배포 전까지 앱에서 알럿이 뜨지 않음). 브라우저 단독 실행은 웹 폴백으로 정상 동작합니다.
+> **상태: 웹·iOS 구현 완료.** 메시지 계약은 `src/shared/lib/native-bridge/messages.ts`가 정본이고,
+> iOS는 알럿·선택 시트 수신부를 갖추고 있습니다. 브라우저 단독 실행은 웹 폴백으로 동작합니다.
+>
+> 계약을 확장하는 필드(`titleParts` 등)는 **항상 선택(optional)** 으로 추가합니다 — 새 필드를 모르는
+> 구버전 앱이 기존 필드만으로 그릴 수 있어야 하고, 앱 업데이트 전에도 웹이 먼저 배포될 수 있어야 합니다.
+> `titleParts` 네이티브 렌더링은 jiu-jitsu-ios#32에서 반영됐습니다.
 
 커뮤니티 게시글 ⋮ 메뉴(삭제/신고/숨기기/수정)의 확인 알럿과 신고 바텀시트를
 **네이티브가 그리고, API는 웹이 계속 태우는** 방식으로 정리한 내용입니다.
@@ -86,12 +88,37 @@
 ```ts
 {
   requestId: string;              // 웹 발급, 응답 매칭용
-  title: string;
+  title: string;                  // 완성 제목 — titleParts가 있어도 항상 채움(구버전 앱 호환)
+  titleParts?: {                  // 제목 일부만 말줄임해야 할 때(닉네임 등)
+    truncatable: string;          //   폭이 모자라면 tail 말줄임되는 부분
+    suffix: string;               //   절대 잘리지 않는 접미사
+  };
   message?: string;
   confirmText: string;
   cancelText?: string;            // 기본 "취소"
   destructive?: boolean;          // true면 확인 버튼 빨강
   dismissOnOutsideTap?: boolean;  // 기본 true (바깥 탭 = 취소)
+}
+```
+
+**제목 렌더링 규칙 (`titleParts`)**
+
+- 제목은 **1줄 고정**입니다. `titleParts`가 있으면 `title` 대신 `truncatable + suffix`를 한 줄에 이어 그리고,
+  폭이 모자라면 **`truncatable`만 tail(…) 말줄임**합니다. `suffix`는 어떤 경우에도 온전히 보여야 합니다.
+- `titleParts`가 없으면 기존처럼 `title`을 그대로 씁니다.
+- 웹은 `titleParts`를 보낼 때도 `title`을 같은 내용의 완성 문자열로 **반드시 함께** 채웁니다.
+  `titleParts`를 모르는 구버전 앱이 `title`로 그리기 위함이며, 둘의 내용이 어긋나면 안 됩니다.
+- 왜 웹이 잘라 보내지 않나: 말줄임 폭은 기기 폭·폰트에 따라 렌더링 시점에만 정해지므로 알럿을 그리는 쪽만 알 수 있습니다.
+  웹은 "어디까지가 닉네임인지" 경계만 넘깁니다.
+- 현재 사용처: 댓글 ⋮ → 차단 알럿 `"{닉네임}님 차단"` → `{ truncatable: 닉네임, suffix: "님 차단" }`.
+  삭제/신고처럼 제목이 고정 문구인 알럿은 `titleParts` 없이 `title`만 보냅니다.
+
+iOS 구현 예시:
+
+```swift
+HStack(spacing: 0) {
+    Text(parts.truncatable).lineLimit(1).truncationMode(.tail)
+    Text(parts.suffix).fixedSize()
 }
 ```
 
@@ -276,7 +303,9 @@
 | 웹 | 웹 폴백 선택 시트 (`select-sheet.tsx`) — 디자인 반영 | ✅ |
 | 웹 | 숨기기 + 되돌리기 토스트 (`PUT /board/hide/{id}`) | ✅ |
 | 웹 | 토스트 액션 버튼 지원 (`shared/ui/toast.tsx`) | ✅ |
-| iOS | 알럿 셸 1개 + 바텀시트 셸 1개, 메시지 2쌍 처리 | ⬜ |
+| iOS | 알럿 셸 1개 + 바텀시트 셸 1개, 메시지 2쌍 처리 | ✅ |
+| 웹 | 차단 알럿 제목 `titleParts` 전달 + 폴백 `ConfirmDialog` 1줄 말줄임 (#137) | ✅ |
+| iOS | `titleParts` 렌더링 (jiu-jitsu-ios#32) | ✅ |
 | 웹 | 상세 화면 숨기기 (동작 정의 필요) | ⬜ |
 | 웹 | 수정 화면 `/community/{id}/edit` | ⬜ |
 

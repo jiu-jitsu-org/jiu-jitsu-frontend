@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 
 import { cn } from "@/shared/lib/cn";
+import type { ConfirmDialogTitleParts } from "@/shared/lib/native-bridge";
 
 const DIALOG_FADE_MS = 200;
 
@@ -15,6 +16,7 @@ const DIALOG_FADE_MS = 200;
 export function ConfirmDialog({
   open,
   title,
+  titleParts,
   message,
   cancelText = "취소",
   confirmText,
@@ -24,6 +26,8 @@ export function ConfirmDialog({
 }: {
   open: boolean;
   title: ReactNode;
+  /** 있으면 title 대신 "말줄임 부분 + 온전한 접미사" 조합으로 1줄 고정 렌더(네이티브 알럿과 같은 정책). */
+  titleParts?: ConfirmDialogTitleParts;
   message?: ReactNode;
   cancelText?: string;
   confirmText: string;
@@ -83,9 +87,18 @@ export function ConfirmDialog({
         className="relative w-full max-w-[320px] rounded-[20px] bg-dialog-container-bg px-5 pb-5 pt-5"
       >
         {/* 제목: Title2(Pretendard Semibold 20), 색 dialog/title-text, 좌측 정렬 */}
-        <h2 className="text-left text-title-2 text-dialog-title-text">
-          {title}
-        </h2>
+        {titleParts ? (
+          // 1줄 고정: 닉네임(truncatable)만 tail 말줄임, 접미사는 shrink-0으로 항상 온전히.
+          // flex 자식이 min-width:auto로 내용만큼 버티면 truncate가 안 걸리므로 min-w-0 필요.
+          <h2 className="flex min-w-0 text-left text-title-2 text-dialog-title-text">
+            <span className="truncate">{titleParts.truncatable}</span>
+            <span className="shrink-0">{titleParts.suffix}</span>
+          </h2>
+        ) : (
+          <h2 className="text-left text-title-2 text-dialog-title-text">
+            {title}
+          </h2>
+        )}
         {message ? (
           // 설명: Body M(16/24), 색 dialog/description-text, 좌측 정렬
           <p className="mt-2 text-left text-body-m text-dialog-description-text">
