@@ -16,6 +16,7 @@ import {
   readSettledImage,
   withRetryParam,
 } from "@/features/community/presentation/image-fallback";
+import { PostImageViewer } from "@/features/community/presentation/post-image-viewer";
 import { cn } from "@/shared/lib/cn";
 
 /**
@@ -33,6 +34,7 @@ import { cn } from "@/shared/lib/cn";
  * 캐러셀과 스크롤 상태를, 목록은 +N 오버레이를 가져 합치면 어느 쪽도 아닌 분기 덩어리가 된다.
  *
  * 크롭됐다는 표시는 두지 않는다 — 크롭 여부와 무관하게 이미지를 탭하면 뷰어가 열린다(#94).
+ * 이미지 자체가 진입 영역이라 별도 버튼·배지가 없고, 뷰어는 탭한 장부터 시작한다.
  * 캐러셀 위치를 알리는 N/M 인디케이터도 두지 않는다.
  *
  * 크기를 JS 측정이 아니라 CSS로 푼 이유: 측정 후 반영하면 첫 페인트에서 한 번 튄다.
@@ -73,16 +75,41 @@ export function PostDetailImages({
   images: PostImage[];
   className?: string;
 }) {
+  // 뷰어에서 보고 있는 장. null이면 닫힘. 뷰어 상태를 여기서 소유해야 1장·캐러셀 어느 경로든 같은 뷰어를 연다.
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const closeViewer = useCallback(() => setViewerIndex(null), []);
+
   const [cover, ...rest] = images;
   if (!cover) return null;
 
-  // 1장과 캐러셀은 규격이 완전히 달라(폭 고정 vs 높이 고정) 경로를 나눈다.
-  if (rest.length === 0) {
-    // key=URL: 이미지가 바뀌면 재마운트해 폴백 상태를 초기화한다.
-    return <SingleImage key={cover.imageUrl} image={cover} className={className} />;
-  }
-
-  return <ImageCarousel images={images} className={className} />;
+  return (
+    <>
+      {/* 1장과 캐러셀은 규격이 완전히 달라(폭 고정 vs 높이 고정) 경로를 나눈다. */}
+      {rest.length === 0 ? (
+        // key=URL: 이미지가 바뀌면 재마운트해 폴백 상태를 초기화한다.
+        <SingleImage
+          key={cover.imageUrl}
+          image={cover}
+          className={className}
+          onOpen={() => setViewerIndex(0)}
+        />
+      ) : (
+        <ImageCarousel
+          images={images}
+          className={className}
+          onOpen={setViewerIndex}
+        />
+      )}
+      {viewerIndex !== null ? (
+        // 마운트 = 열림. 닫힘 페이드는 뷰어가 안에서 돌리고 끝난 뒤 onClose를 부르므로 여기선 마운트만 끊는다.
+        <PostImageViewer
+          images={images}
+          initialIndex={viewerIndex}
+          onClose={closeViewer}
+        />
+      ) : null}
+    </>
+  );
 }
 
 /**
@@ -92,9 +119,11 @@ export function PostDetailImages({
 function SingleImage({
   image,
   className,
+  onOpen,
 }: {
   image: PostImage;
   className?: string;
+  onOpen: () => void;
 }) {
   const [attempt, setAttempt] = useState(0);
   const [failed, setFailed] = useState(false);
@@ -121,7 +150,13 @@ function SingleImage({
   }
 
   return (
-    <div className={cn("relative overflow-hidden rounded-2xl", className)}>
+    // 이미지 전체가 뷰어 진입 버튼이다(#94) — 실패 폴백은 열 것이 없어 버튼이 아니다.
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label="이미지 크게 보기"
+      className={cn("relative block w-full overflow-hidden rounded-2xl", className)}
+    >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         ref={detectBrokenImage}
@@ -136,7 +171,7 @@ function SingleImage({
         // block: inline 이미지의 baseline 여백을 없앤다.
         className="block w-full bg-[var(--cool-gray-50)] object-cover object-center"
       />
-    </div>
+    </button>
   );
 }
 
@@ -149,9 +184,12 @@ function SingleImage({
 function ImageCarousel({
   images,
   className,
+  onOpen,
 }: {
   images: PostImage[];
   className?: string;
+  /** 탭한 장의 index — 뷰어는 그 장부터 시작한다. */
+  onOpen: (index: number) => void;
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [hasNext, setHasNext] = useState(false);
@@ -202,7 +240,8 @@ function ImageCarousel({
           <CarouselSlide
             key={image.imageUrl}
             image={image}
-            label={`이미지 ${index + 1} / ${images.length}`}
+            label={`이미지 ${index + 1} / ${images.length} 크게 보기`}
+            onOpen={() => onOpen(index)}
           />
         ))}
       </div>
@@ -231,9 +270,11 @@ function ImageCarousel({
 function CarouselSlide({
   image,
   label,
+  onOpen,
 }: {
   image: PostImage;
   label: string;
+  onOpen: () => void;
 }) {
   const [attempt, setAttempt] = useState(0);
   const [failed, setFailed] = useState(false);
@@ -264,13 +305,18 @@ function CarouselSlide({
   }
 
   return (
-    <div className="relative h-full shrink-0 overflow-hidden rounded-2xl">
+    // 장 전체가 뷰어 진입 버튼이다(#94). 스크롤 중 손을 떼는 것과 탭은 브라우저가 구분한다(click 미발화).
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={label}
+      className="relative h-full shrink-0 overflow-hidden rounded-2xl"
+    >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         ref={detectBrokenImage}
         src={withRetryParam(image.imageUrl, attempt)}
         alt=""
-        aria-label={label}
         style={{
           // width:auto + 높이 고정 → 브라우저가 원본 비율대로 폭을 잡는다.
           // min/max-width가 허용 범위 밖만 잘라내므로 장별 폭 계산이 필요 없다.
@@ -281,6 +327,6 @@ function CarouselSlide({
         onError={() => setFailed(true)}
         className="block h-full bg-[var(--cool-gray-50)] object-cover object-center"
       />
-    </div>
+    </button>
   );
 }
