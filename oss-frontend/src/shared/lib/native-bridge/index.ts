@@ -7,6 +7,7 @@ export type {
   BridgeMessage,
   ConfirmDialogPayload,
   ConfirmDialogResult,
+  ConfirmDialogTitleParts,
   InboundMessage,
   OpenSubviewPayload,
   SelectSheetOption,

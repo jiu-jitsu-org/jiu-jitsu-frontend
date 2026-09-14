@@ -8,6 +8,7 @@ import {
   isNativeBridgeAvailable,
   requestNativeConfirm,
   requestNativeSelectSheet,
+  type ConfirmDialogTitleParts,
   type SelectSheetOption,
 } from "@/shared/lib/native-bridge";
 
@@ -26,6 +27,8 @@ const FADE_OUT_MS = 200;
 
 type ConfirmOptions = {
   title: string;
+  /** 제목에 가변 문자열(닉네임 등)이 섞여 일부만 말줄임해야 할 때. title은 구버전 앱 호환용으로 함께 넘긴다. */
+  titleParts?: ConfirmDialogTitleParts;
   message?: string;
   confirmText: string;
   cancelText?: string;
@@ -124,6 +127,7 @@ export function useNativeDialog() {
         <ConfirmDialog
           open={confirmState.open}
           title={confirmState.options.title}
+          titleParts={confirmState.options.titleParts}
           message={confirmState.options.message}
           confirmText={confirmState.options.confirmText}
           cancelText={confirmState.options.cancelText}

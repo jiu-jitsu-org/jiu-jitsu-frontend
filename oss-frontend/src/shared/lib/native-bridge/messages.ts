@@ -82,6 +82,20 @@ export type OpenSubviewPayload = {
 };
 
 /**
+ * 확인 알럿 제목을 "말줄임 가능한 부분 + 항상 온전히 보여야 하는 접미사"로 나눈 것.
+ *
+ * WHY: "{닉네임}님 차단"처럼 가변 문자열이 섞인 제목은 1줄 고정 정책상 닉네임만 tail 말줄임하고
+ * "님 차단"은 항상 보여야 한다. 말줄임 폭은 렌더링 시점에만 정해지므로 웹이 잘라 보낼 수 없고,
+ * 완성 문자열 하나로는 알럿을 그리는 쪽이 닉네임 경계를 알 수 없어 경계를 계약으로 넘긴다.
+ */
+export type ConfirmDialogTitleParts = {
+  /** 폭이 모자라면 tail 말줄임되는 부분(닉네임 등). */
+  truncatable: string;
+  /** 절대 잘리지 않는 접미사("님 차단" 등). */
+  suffix: string;
+};
+
+/**
  * `SHOW_CONFIRM_DIALOG` payload — 네이티브가 그릴 확인 알럿.
  *
  * 문구·라벨은 전부 웹이 채운다(네이티브는 셸만 소유). destructive면 확인 버튼을 위험색으로 그린다.
@@ -89,7 +103,10 @@ export type OpenSubviewPayload = {
 export type ConfirmDialogPayload = {
   /** 웹이 발급하는 요청 식별자 — 결과 회신을 이 값으로 매칭한다. */
   requestId: string;
+  /** 완성 제목. titleParts가 있어도 항상 채운다 — titleParts를 모르는 구버전 앱은 이 값으로 그린다. */
   title: string;
+  /** 있으면 title 대신 이 조합으로 그린다(truncatable만 말줄임, suffix는 온전히). */
+  titleParts?: ConfirmDialogTitleParts;
   message?: string;
   confirmText: string;
   /** 미지정 시 네이티브가 "취소"를 쓴다. */
