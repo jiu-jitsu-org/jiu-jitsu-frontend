@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import {
   createGetCommentsUseCase,
   createGetPostDetailUseCase,
@@ -17,6 +19,17 @@ export type PostDetailPageDataResult =
   // 만료 토큰 — 서버는 갱신 불가하니 클라이언트가 네이티브 갱신 후 재조회(SSR 재실행)한다.
   | { ok: false; reason: "session-expired" }
   | { ok: false; reason: "error"; status: number; code: string; error: string };
+
+/**
+ * 게시글 상세 단건 조회 — 한 요청 안에서 한 번만 나간다.
+ *
+ * 같은 요청에서 generateMetadata(공유 미리보기)와 페이지 본문이 각각 상세를 필요로 한다.
+ * React cache로 묶어 업스트림 호출을 한 번으로 합친다(같은 postId·토큰이면 결과 공유).
+ */
+export const loadPostDetail = cache(
+  (postId: number, accessToken: string | null): Promise<PostDetail> =>
+    createGetPostDetailUseCase(accessToken).execute(postId),
+);
 
 /** 댓글 API 미연동 시 폴백(상세만으로도 화면이 뜨도록). */
 const EMPTY_COMMENTS: CommentList = { items: [], total: 0, nextCursor: null };
@@ -55,7 +68,7 @@ export async function getPostDetailPageData(
   const accessToken = await readSessionToken();
 
   try {
-    const post = await createGetPostDetailUseCase(accessToken).execute(postId);
+    const post = await loadPostDetail(postId, accessToken);
 
     // 댓글 목록 조회가 실패해도 게시글 상세는 보이도록 빈 목록으로 폴백(graceful degradation).
     const comments = await createGetCommentsUseCase(accessToken)

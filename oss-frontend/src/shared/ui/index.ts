@@ -7,3 +7,7 @@ export { BackButton } from "./back-button";
 export { ToastProvider, useToast } from "./toast";
 export { enqueuePendingToast, usePendingToast } from "./pending-toast";
 export type { PendingToastAction } from "./pending-toast";
+export {
+  OpenInAppPromptProvider,
+  useOpenInAppPrompt,
+} from "./open-in-app-prompt";

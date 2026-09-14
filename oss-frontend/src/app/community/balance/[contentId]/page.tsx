@@ -1,7 +1,45 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { getBalanceShareMetadata } from "@/features/community/application/get-balance-share-metadata";
 import { normalizeCommentSort } from "@/features/community/domain/post";
 import { BalanceDetailScreen } from "@/features/community/presentation/balance/balance-detail-screen";
+import { getRequestOrigin } from "@/shared/lib/request-origin";
+import { buildShareMetadata } from "@/shared/lib/site-metadata";
+
+type BalancePageParams = Promise<{ contentId: string }>;
+
+/** URL의 contentId를 정수로 푼다. 잘못된 URL이면 null. */
+function parseContentId(contentId: string): number | null {
+  const parsed = Number(contentId);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+/**
+ * 공유 미리보기 메타데이터 — "오늘의 밸런스 게임 · A vs B" (게시글 상세와 같은 규칙).
+ * 요약 실패는 루트 기본 메타데이터로 두고, 에러 화면 분기는 BalanceDetailScreen이 맡는다.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: BalancePageParams;
+}): Promise<Metadata> {
+  const { contentId } = await params;
+  const parsed = parseContentId(contentId);
+  if (parsed === null) return {};
+
+  const [share, origin] = await Promise.all([
+    getBalanceShareMetadata(parsed),
+    getRequestOrigin(),
+  ]);
+  if (!share) return {};
+
+  return buildShareMetadata({
+    metadataBase: origin,
+    title: share.title,
+    description: share.description,
+  });
+}
 
 /**
  * 밸런스 게임 상세 라우트 (얇은 엔트리).
@@ -17,14 +55,14 @@ export default async function BalanceGameDetailPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ contentId: string }>;
+  params: BalancePageParams;
   searchParams: Promise<{ sort?: string }>;
 }) {
   const { contentId } = await params;
   const { sort } = await searchParams;
 
-  const parsed = Number(contentId);
-  if (!Number.isInteger(parsed) || parsed <= 0) {
+  const parsed = parseContentId(contentId);
+  if (parsed === null) {
     notFound();
   }
 

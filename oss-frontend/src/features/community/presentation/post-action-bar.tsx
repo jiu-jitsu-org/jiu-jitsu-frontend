@@ -3,9 +3,9 @@
 import { COMMENT_INPUT_ELEMENT_ID } from "@/features/community/presentation/comment-input-bar";
 import { ReactionBarButton } from "@/features/community/presentation/reaction-bar-button";
 import { shareCurrentPage } from "@/features/community/presentation/share-current-page";
+import { useOpenInAppGuard } from "@/features/community/presentation/use-open-in-app-guard";
 import { usePostActions } from "@/features/community/presentation/use-post-actions";
 import { cn } from "@/shared/lib/cn";
-import { useIsExternalBrowser } from "@/shared/lib/native-bridge";
 import {
   BookmarkIcon,
   CommentIcon,
@@ -65,8 +65,8 @@ export function PostActionBar({
       saves: initialSaves,
     });
 
-  // 외부 브라우저(비로그인)에서는 로그인 기반 액션을 표시 전용으로 내린다(#72).
-  const externalBrowser = useIsExternalBrowser();
+  // 외부 브라우저(비로그인)에서는 로그인 기반 액션을 탭하면 앱 안내를 띄운다(useOpenInAppGuard 참고).
+  const { externalBrowser, guard } = useOpenInAppGuard();
 
   function focusCommentInput() {
     document.getElementById(COMMENT_INPUT_ELEMENT_ID)?.focus();
@@ -81,8 +81,10 @@ export function PostActionBar({
         count={comments}
         active={commented}
         activeIconColorClass="text-reaction-bar-detail-active-comment-icon"
-        readOnly={externalBrowser}
-        onClick={focusCommentInput}
+        onClick={guard(
+          focusCommentInput,
+          "댓글은 OSS 앱에서 로그인 후 남길 수 있어요.",
+        )}
       />
       <ReactionBarButton
         icon={<HeartIcon size={16} filled={liked} />}
@@ -92,8 +94,10 @@ export function PostActionBar({
         active={liked}
         pressable
         activeIconColorClass="text-reaction-bar-detail-active-like-icon"
-        readOnly={externalBrowser}
-        onClick={toggleLike}
+        onClick={guard(
+          toggleLike,
+          "좋아요는 OSS 앱에서 로그인 후 누를 수 있어요.",
+        )}
       />
       <ReactionBarButton
         icon={<BookmarkIcon size={16} filled={bookmarked} />}
@@ -104,17 +108,22 @@ export function PostActionBar({
         active={bookmarked}
         pressable
         activeIconColorClass="text-reaction-bar-detail-active-bookmark-icon"
-        readOnly={externalBrowser}
-        onClick={toggleBookmark}
+        onClick={guard(
+          toggleBookmark,
+          "북마크는 OSS 앱에서 로그인 후 저장할 수 있어요.",
+        )}
       />
       {/* 공유는 카운트도 Active 표시도 없다 — 공유 수·공유 기록을 두지 않기로 확정된 정책.
-          로그인이 필요 없는 유일한 액션이라 외부 브라우저에서도 그대로 활성이다(#72). */}
-      <ReactionBarButton
-        icon={<ShareIcon size={16} />}
-        label="공유하기"
-        hideLabel
-        onClick={() => void shareCurrentPage()}
-      />
+          외부 브라우저(공유 링크로 들어온 화면)에서는 감춘다 — "공유받은 페이지를 다시 공유"는
+          부자연스럽고, 필요하면 브라우저 자체 공유가 있다. */}
+      {externalBrowser ? null : (
+        <ReactionBarButton
+          icon={<ShareIcon size={16} />}
+          label="공유하기"
+          hideLabel
+          onClick={() => void shareCurrentPage()}
+        />
+      )}
     </div>
   );
 }

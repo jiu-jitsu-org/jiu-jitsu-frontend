@@ -22,7 +22,6 @@ export function ReactionBarButton({
   hideLabel = false,
   active = false,
   pressable = false,
-  readOnly = false,
   activeIconColorClass,
   onClick,
 }: {
@@ -36,41 +35,11 @@ export function ReactionBarButton({
   active?: boolean;
   /** 토글 버튼인지 — aria-pressed를 붙일지 결정한다(댓글쓰기·공유는 토글이 아니다). */
   pressable?: boolean;
-  /**
-   * 누를 수 없는 표시 전용인지 — 외부 브라우저(비로그인)에서 로그인 기반 액션에 쓴다(#72).
-   * 카운트는 콘텐츠의 일부라 남기고, 탭 대상만 없앤다.
-   */
-  readOnly?: boolean;
   activeIconColorClass?: string;
   onClick?: () => void;
 }) {
   const showCount = typeof count === "number" && count > 0;
   const text = showCount ? String(count) : hideLabel ? null : label;
-
-  // 표시 전용: 탭 대상을 없애되 카운트는 남긴다. 아이콘+숫자를 하나의 의미 단위로 읽히게
-  // role="img" + aria-label로 묶는다(span의 aria-label은 role 없이는 무시될 수 있다).
-  //
-  // 배경은 Default를 그대로 쓴다 — reaction-bar/detail에 disabled 배경 토큰이 없다.
-  // 아이콘·텍스트만 detail/disabled로 내린다(상세 바는 detail 패밀리를 쓴다는 이 파일의 규칙).
-  if (readOnly) {
-    return (
-      <span
-        role="img"
-        aria-label={a11yLabel ?? label}
-        className={cn(
-          "inline-flex h-7 items-center rounded-[10px] bg-reaction-bar-detail-default-bg px-2",
-          text !== null && "gap-1",
-        )}
-      >
-        <span className="text-reaction-bar-detail-disabled-icon">{icon}</span>
-        {text !== null ? (
-          <span className="text-body-s text-reaction-bar-detail-disabled-count-text">
-            {text}
-          </span>
-        ) : null}
-      </span>
-    );
-  }
 
   return (
     <button
