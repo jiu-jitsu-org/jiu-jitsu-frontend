@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import {
   createGetBalanceGameDetailUseCase,
   createGetCommentsUseCase,
@@ -24,6 +26,15 @@ export type BalanceDetailPageDataResult =
   // 만료 토큰 — 서버는 갱신 불가하니 클라이언트가 네이티브 갱신 후 재조회(SSR 재실행)한다.
   | { ok: false; reason: "session-expired" }
   | { ok: false; reason: "error"; status: number; code: string; error: string };
+
+/**
+ * 밸런스 게임 단건 조회 — 한 요청 안에서 한 번만 나간다(게시글의 loadPostDetail과 같은 이유).
+ * generateMetadata(공유 미리보기)와 페이지 본문이 같은 조회를 공유한다.
+ */
+export const loadBalanceGameDetail = cache(
+  (contentId: number, accessToken: string | null): Promise<BalanceGame | null> =>
+    createGetBalanceGameDetailUseCase(accessToken).execute(contentId),
+);
 
 /** 댓글 조회 실패 시 폴백 — 게임만으로도 화면이 뜨도록. */
 const EMPTY_COMMENTS: CommentList = { items: [], total: 0, nextCursor: null };
@@ -52,7 +63,7 @@ export async function getBalanceDetailPageData(
 
   try {
     const [game, comments] = await Promise.all([
-      createGetBalanceGameDetailUseCase(accessToken).execute(contentId),
+      loadBalanceGameDetail(contentId, accessToken),
       // 댓글이 실패해도 투표 영역은 보여야 한다(graceful degradation).
       createGetCommentsUseCase(accessToken)
         .execute(contentId, sort)

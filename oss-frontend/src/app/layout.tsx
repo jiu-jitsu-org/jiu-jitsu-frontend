@@ -1,13 +1,28 @@
 import type { Metadata, Viewport } from "next";
 
 import { AuthProvider } from "@/features/auth/presentation/auth-provider";
-import { ToastProvider } from "@/shared/ui";
+import { OpenInAppPromptProvider, ToastProvider } from "@/shared/ui";
+import {
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  buildOpenGraph,
+} from "@/shared/lib/site-metadata";
 
 import "./globals.css";
 
+/**
+ * 전역 기본 메타데이터 — 상세 라우트(generateMetadata)가 덮어쓰지 않은 페이지의 공유 미리보기.
+ *
+ * 카카오톡 등 링크 미리보기는 og:* 를 읽는다. 없으면 페이지 첫 <img>와 `<title>`을 임의로 긁어가
+ * 작성자 아바타 + "oss-frontend" 같은 엉뚱한 카드가 나온다 — 그래서 루트에서도 기본값을 깔아 둔다.
+ */
 export const metadata: Metadata = {
-  title: "oss-frontend",
-  description: "Next.js App Router frontend with src-based structure",
+  title: SITE_NAME,
+  description: SITE_DESCRIPTION,
+  openGraph: buildOpenGraph({
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+  }),
 };
 
 // 네이티브 웹뷰 내 핀치 줌·더블탭 확대 차단 (확대 시 좌우 오버스크롤 인디케이터 발생)
@@ -34,10 +49,14 @@ export default function RootLayout({
   return (
     <html lang="ko" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
-        {/* 전역 인증/세션 + 네이티브 브릿지 소유자 / 전역 토스트 */}
-        <AuthProvider>
-          <ToastProvider>{children}</ToastProvider>
-        </AuthProvider>
+        {/* "앱에서 계속하기" 안내가 AuthProvider 바깥에 있는 이유: 네이티브가 없을 때(외부 브라우저)
+            requireAuth의 로그인 유도가 이 안내로 떨어져야 하므로 AuthProvider가 이를 소비한다. */}
+        <OpenInAppPromptProvider>
+          {/* 전역 인증/세션 + 네이티브 브릿지 소유자 / 전역 토스트 */}
+          <AuthProvider>
+            <ToastProvider>{children}</ToastProvider>
+          </AuthProvider>
+        </OpenInAppPromptProvider>
       </body>
     </html>
   );
