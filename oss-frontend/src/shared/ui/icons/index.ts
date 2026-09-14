@@ -20,3 +20,5 @@ export { SendIcon } from "./send-icon";
 export { CloseIcon } from "./close-icon";
 export { AlertTriangleIcon } from "./alert-triangle-icon";
 export { TimerIcon } from "./timer-icon";
+export { CheckIcon } from "./check-icon";
+export { TagIcon } from "./tag-icon";
