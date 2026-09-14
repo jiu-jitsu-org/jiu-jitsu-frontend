@@ -31,9 +31,11 @@ import { markPostCreated } from "@/features/community/presentation/dirty-posts";
 import { useAutoResizeTextarea } from "./use-auto-resize-textarea";
 import { MAX_IMAGES, useImageAttachments } from "./use-image-attachments";
 
-/** 본문 최대 글자 수. 카운터/입력 제한 단일 출처. */
+/** 본문 글자 수 범위(10~800). 최대는 카운터/입력 제한, 최소는 등록 조건의 단일 출처. */
+const BODY_MIN_LENGTH = 10;
 const BODY_MAX_LENGTH = 800;
-/** 제목 최대 글자 수. */
+/** 제목 글자 수 범위(2~45). */
+const TITLE_MIN_LENGTH = 2;
 const TITLE_MAX_LENGTH = 45;
 /** 태그 최대 개수. */
 const MAX_TAGS = 10;
@@ -62,7 +64,7 @@ const CATEGORIES: { id: number; name: string }[] = [
  *
  * 디자인: 44 앱바(좌 뒤로가기 tint 버튼 · 가운데 "글쓰기" · 우 체크 filled 버튼) → 카테고리 칩 가로
  * 스크롤 → 제목(Title 1) → 본문(Title 3) → "# 태그" 입력줄 → 안내문이 한 흐름으로 이어져 main 전체가
- * 스크롤된다. 첨부 썸네일 줄과 사진·태그 툴바는 바닥(=키보드 위)에 고정.
+ * 스크롤된다(첨부 썸네일은 본문과 태그 사이). 사진·태그 툴바만 바닥(=키보드 위)에 고정.
  *
  * compose 패턴:
  * - 우측 체크는 카테고리·제목·본문이 모두 채워지기 전엔 비활성(댓글 입력바의 canSubmit과 동일 철학).
@@ -111,11 +113,12 @@ export function PostWriteScreen() {
     uploadAll,
   } = useImageAttachments();
 
-  // 등록 가능: 카테고리 선택 + 제목·본문 모두 공백 아님 + 전송 중 아님.
+  // 등록 가능: 카테고리 선택 + 제목 2자↑ + 본문 10자↑(앞뒤 공백 제외) + 전송 중 아님.
+  // 최대(45/800)는 maxLength가 입력 단계에서 막으므로 여기서 다시 보지 않는다.
   const canSubmit =
     categoryId !== null &&
-    title.trim().length > 0 &&
-    body.trim().length > 0 &&
+    title.trim().length >= TITLE_MIN_LENGTH &&
+    body.trim().length >= BODY_MIN_LENGTH &&
     !submitting;
   // 한 글자라도 적었거나 카테고리/이미지를 골랐으면 "작성 중" → 닫기 시 이탈 가드를 띄운다.
   const isDirty =
@@ -337,9 +340,13 @@ export function PostWriteScreen() {
       {/* 본문 영역: 제목 → 본문 → 태그 → 안내문이 한 덩어리로 스크롤된다(main 내부 스크롤).
           제목·본문 textarea는 자동으로 자라므로 스크롤은 이 main에서만 일어난다. */}
       <main className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 pb-6">
-        {/* 제목: Title 1(22/32 semibold), 여러 줄 허용(45자). 카테고리↔제목 간격 24(mt-6). */}
+        {/* 제목: Title 1(22/32 semibold), 여러 줄 허용(45자). 카테고리↔제목 간격 24(mt-6).
+            첫 진입 시 제목에 자동 포커스 → 바로 타이핑 시작(정책). 키보드가 함께 올라오려면 WKWebView가
+            사용자 제스처 없는 focus를 허용해야 한다(keyboardDisplayRequiresUserAction = false).
+            FIXME: 앱에서 진입 시 키보드가 안 뜨면 iOS 쪽 위 설정 확인 — 웹에서는 autoFocus 이상 할 수 없다. */}
         <textarea
           ref={titleRef}
+          autoFocus
           value={title}
           onChange={(event) => handleTitleChange(event.target.value)}
           onKeyDown={handleTitleKeyDown}
@@ -351,7 +358,7 @@ export function PostWriteScreen() {
         />
         <CharCounter length={title.length} max={TITLE_MAX_LENGTH} />
 
-        {/* 본문: Title 3(18/28 semibold), 800자. 제목↔본문 간격 24(카운터가 뜨면 카운터 아래 8). */}
+        {/* 본문: Title 3(18/28 semibold), 800자. 카운터 아래 8. */}
         <textarea
           ref={bodyRef}
           value={body}
@@ -360,12 +367,44 @@ export function PostWriteScreen() {
           rows={1}
           placeholder="내용을 입력해주세요"
           aria-label="내용"
-          className={cn(
-            "w-full resize-none overflow-hidden text-title-3 text-text-primary outline-none placeholder:text-text-tertiary",
-            title.length > 0 ? "mt-2" : "mt-6",
-          )}
+          className="mt-2 w-full resize-none overflow-hidden text-title-3 text-text-primary outline-none placeholder:text-text-tertiary"
         />
         <CharCounter length={body.length} max={BODY_MAX_LENGTH} />
+
+        {/* 첨부 이미지 미리보기 — 본문 → 사진 → 태그 순서 고정(정책). 가로 스크롤, 썸네일 60 + 우상단 ✕(즉시
+            삭제, 확인 없음). ✕가 썸네일 밖으로 나가므로 위쪽 여백(pt-3)을 둬 스크롤 컨테이너에 잘리지 않게
+            하고, main의 px-4를 -mx-4/px-4로 되돌려 마지막 썸네일의 ✕도 오른쪽 패딩 안에 들어오게 한다.
+            등록 전엔 CDN 업로드 안 됨(지연 업로드). 미리보기는 로컬 File의 object URL(blob:)이라
+            next/image가 아닌 img로 그린다. */}
+        {attachments.length > 0 ? (
+          <ul className="-mx-4 mt-2 flex gap-4 overflow-x-auto px-4 pt-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {attachments.map((image) => (
+              <li key={image.localId} className="relative shrink-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={image.preview}
+                  alt="첨부 이미지 미리보기"
+                  style={{ width: THUMBNAIL_SIZE, height: THUMBNAIL_SIZE }}
+                  className="rounded-lg object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => remove(image.localId)}
+                  aria-label="첨부 이미지 삭제"
+                  style={{
+                    width: THUMBNAIL_REMOVE_SIZE,
+                    height: THUMBNAIL_REMOVE_SIZE,
+                    top: -THUMBNAIL_REMOVE_SIZE / 2,
+                    right: -THUMBNAIL_REMOVE_SIZE / 2,
+                  }}
+                  className="absolute inline-flex items-center justify-center rounded-full bg-surface-tertiary text-icon-primary"
+                >
+                  <CloseIcon size={14} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
 
         {/* 태그 입력줄: 본문 아래 항상 노출(상세가 본문 뒤에 "# 태그"를 두므로 위치 모델 일치).
             확정된 태그는 "# 이름"(브랜드 텍스트 컬러), 입력 중 텍스트도 같은 색 → 곧 태그가 될 것을 예고.
@@ -411,40 +450,6 @@ export function PostWriteScreen() {
           있습니다.
         </p>
       </main>
-
-      {/* 첨부 이미지 미리보기 — 툴바 바로 위 고정, 가로 스크롤. 썸네일 60 + 우상단 ✕(모서리에 걸침).
-          ✕가 썸네일 밖으로 나가므로 위쪽 여백(pt-3)을 둬 스크롤 컨테이너에 잘리지 않게 한다.
-          등록 전엔 CDN 업로드 안 됨(지연 업로드). 미리보기는 로컬 File의 object URL(blob:)이라
-          next/image가 아닌 img로 그린다. */}
-      {attachments.length > 0 ? (
-        <ul className="flex shrink-0 gap-4 overflow-x-auto px-4 pb-2 pt-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {attachments.map((image) => (
-            <li key={image.localId} className="relative shrink-0">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={image.preview}
-                alt="첨부 이미지 미리보기"
-                style={{ width: THUMBNAIL_SIZE, height: THUMBNAIL_SIZE }}
-                className="rounded-lg object-cover"
-              />
-              <button
-                type="button"
-                onClick={() => remove(image.localId)}
-                aria-label="첨부 이미지 삭제"
-                style={{
-                  width: THUMBNAIL_REMOVE_SIZE,
-                  height: THUMBNAIL_REMOVE_SIZE,
-                  top: -THUMBNAIL_REMOVE_SIZE / 2,
-                  right: -THUMBNAIL_REMOVE_SIZE / 2,
-                }}
-                className="absolute inline-flex items-center justify-center rounded-full bg-surface-tertiary text-icon-primary"
-              >
-                <CloseIcon size={14} />
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
 
       {/* 하단 툴바: 사진·태그 입력 보조 액션 전용. 셸의 마지막 자식이라 항상 바닥(=키보드 위)에 붙는다.
           디자인은 구분선 없이 두 액션을 좌·우 절반에 각각 가운데 정렬한다.
@@ -513,13 +518,11 @@ export function PostWriteScreen() {
 }
 
 /**
- * 글자 수 카운터(n/max) — 자신이 세는 입력칸 바로 아래 우측.
+ * 글자 수 카운터(n/max) — 자신이 세는 입력칸 바로 아래 우측, 항상 노출(정책).
  *
- * 비어 있으면 그리지 않는다(빈 화면에 숫자만 떠 있지 않게). 한도에 닿으면 error 색으로 바꿔
- * "더 못 치는 이유"를 즉시 알린다(maxLength가 조용히 입력을 막는 걸 보완).
+ * 한도에 닿으면 error 색으로 바꿔 "더 못 치는 이유"를 즉시 알린다(maxLength가 조용히 입력을 막는 걸 보완).
  */
 function CharCounter({ length, max }: { length: number; max: number }) {
-  if (length === 0) return null;
   return (
     <span
       className={cn(
