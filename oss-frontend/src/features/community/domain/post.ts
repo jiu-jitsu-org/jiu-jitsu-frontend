@@ -87,6 +87,24 @@ export type CreatePostInput = {
   imageFileIdList: number[];
 };
 
+/**
+ * 게시글 수정 화면 초기값 — 상세(PostDetail)에서 편집 가능한 필드만 추린 것.
+ * 이미지는 삭제만 가능하므로 id·url만 있으면 되고(PostImage), 태그는 이름만 편집한다.
+ */
+export type PostEditInitial = {
+  categoryId: number;
+  title: string;
+  body: string;
+  images: PostImage[];
+  tags: string[];
+};
+
+/**
+ * 게시글 수정 요청 — PUT /board/{id} body. 생성과 같은 필드이며 imageFileIdList는
+ * "남길 이미지 전체" 목록(삭제 = 목록에서 빼기). 수정 화면은 추가·크롭이 없어 기존 id만 보낸다.
+ */
+export type UpdatePostInput = CreatePostInput;
+
 /** 게시글 생성 결과. 최소한 생성된 글 id를 받는다(상세 이동용). */
 export type CreatedPost = {
   id: number;

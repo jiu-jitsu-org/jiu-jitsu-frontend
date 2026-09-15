@@ -30,8 +30,16 @@ import {
   TagIcon,
 } from "@/shared/ui/icons";
 
+import type {
+  PostEditInitial,
+  PostImage,
+} from "@/features/community/domain/post";
+import {
+  markPostCreated,
+  markPostDirty,
+} from "@/features/community/presentation/dirty-posts";
 import { createPost, WriteRequestError } from "./community-write-client";
-import { markPostCreated } from "@/features/community/presentation/dirty-posts";
+import { PostEditImageViewer } from "./post-edit-image-viewer";
 import { PostImageCropEditor } from "./post-image-crop-editor";
 import { useAutoResizeTextarea } from "./use-auto-resize-textarea";
 import {
@@ -95,22 +103,43 @@ const CATEGORIES: { id: number; name: string }[] = [
  * imageFileIdList를 확보해 두고, ④ POST /api/community/board로 생성. categoryId는 헤더와 제목
  * 사이의 카테고리 칩에서 사용자가 고른 값을 전송하며, 미선택이면 등록 탭 시 토스트로 막는다. 남은 공백:
  * - tags: /board 계약에 태그 필드가 없어 입력은 받되 전송하지 않음(백엔드 확정 시 연결).
+ *
+ * 수정 모드(edit): 같은 폼을 기존 값으로 채워 연다. 작성과 다른 점만 분기한다 —
+ * - 완료(✓)는 변경 사항이 없으면 비활성으로 시작하고, 뒤로가기도 변경 없으면 다이얼로그 없이 닫는다.
+ * - 이미지는 등록된 것(PostImage)을 삭제만 할 수 있다(추가·크롭 없음, 사진 툴바 비활성). 썸네일 탭은
+ *   편집기가 아니라 보기 전용 상세(PostEditImageViewer)를 연다.
+ * - FIXME(api-connect): 저장은 PUT /api/community/posts/{id}(업스트림 PUT /board/{id})로 연결 예정.
+ *   지금은 목 단계라 성공 토스트 + 닫기만 한다.
  */
-export function PostWriteScreen() {
+export function PostWriteScreen({
+  edit,
+}: {
+  /** 있으면 수정 모드 — 이 글의 기존 값으로 폼을 채운다. */
+  edit?: { postId: number; initial: PostEditInitial };
+} = {}) {
   const router = useRouter();
   const toast = useToast();
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
+  const isEdit = edit !== undefined;
+  const [title, setTitle] = useState(edit?.initial.title ?? "");
+  const [body, setBody] = useState(edit?.initial.body ?? "");
   const [submitting, setSubmitting] = useState(false);
   const { confirm, dialog } = useNativeDialog();
-  // 카테고리: 미선택(null)으로 시작 → 사용자가 칩에서 고르기 전엔 등록 불가.
-  const [categoryId, setCategoryId] = useState<number | null>(null);
+  // 카테고리: 작성은 미선택(null)으로 시작 → 사용자가 칩에서 고르기 전엔 등록 불가. 수정은 기존 값.
+  const [categoryId, setCategoryId] = useState<number | null>(
+    edit?.initial.categoryId ?? null,
+  );
+  // 수정 모드의 등록된 이미지 — 삭제만 가능(정책). 남은 id 전체가 PUT의 imageFileIdList가 된다.
+  const [existingImages, setExistingImages] = useState<PostImage[]>(
+    edit?.initial.images ?? [],
+  );
+  // 수정 모드 이미지 상세(보기 전용)에서 보고 있는 장. null = 닫힘.
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   // 키보드 위 '실제 보이는 영역'에 셸을 맞춘다(visualViewport). dvh/fixed inset-0가 안 줄어드는
   // WKWebView에서 입력 보조 바를 키보드 바로 위에 떨어뜨리는 유일하게 신뢰 가능한 기준.
   const rect = useViewportRect();
   // 태그: 본문(→사진) 아래 "# 태그" 줄. 태그가 없으면 영역 자체가 없고(정책), 하단 "태그" 버튼으로 연다.
   // tagAreaOpen = 버튼으로 열어둔 상태. 태그가 하나라도 있으면 열림 여부와 무관하게 보인다.
-  const [tags, setTags] = useState<string[]>([]);
+  const [tags, setTags] = useState<string[]>(edit?.initial.tags ?? []);
   const [tagInput, setTagInput] = useState("");
   const [tagAreaOpen, setTagAreaOpen] = useState(false);
   const tagInputRef = useRef<HTMLInputElement>(null);
@@ -141,16 +170,27 @@ export function PostWriteScreen() {
   // 허용 비율 밖 원본이 하나라도 있으면 편집 유도 안내(정책). 크롭본은 항상 허용 비율 안.
   const hasOutOfAspect = attachments.some(isAttachmentOutOfAspect);
 
-  // 등록 버튼은 입력 충족 여부로 잠그지 않는다(정책: 항상 활성, 탭 시 검사 → 토스트). 잠그는 경우는 둘뿐:
+  // 작성: 한 글자라도 적었거나 카테고리/이미지를 골랐으면 "작성 중" → 닫기 시 이탈 가드를 띄운다.
+  // 수정: 기존 값과 하나라도 다르면 "변경됨" — 완료 버튼 활성·이탈 가드의 근거. 미확정 태그 입력도 변경으로 본다.
+  const isDirty = edit
+    ? categoryId !== edit.initial.categoryId ||
+      title !== edit.initial.title ||
+      body !== edit.initial.body ||
+      tags.join("\u0000") !== edit.initial.tags.join("\u0000") ||
+      tagInput.length > 0 ||
+      existingImages.map((image) => image.id).join(",") !==
+        edit.initial.images.map((image) => image.id).join(",")
+    : categoryId !== null ||
+      title.trim().length > 0 ||
+      body.trim().length > 0 ||
+      tags.length > 0 ||
+      attachments.length > 0;
+  // 작성: 입력 충족 여부로 잠그지 않는다(정책: 항상 활성, 탭 시 검사 → 토스트). 잠그는 경우는 둘뿐 —
   // 첨부 업로드 중/실패가 남아 있을 때(사진 정책 — 재시도 또는 ✕ 삭제 후 풀림)와 전송 중.
-  const isSubmitLocked = !isUploadSettled || submitting;
-  // 한 글자라도 적었거나 카테고리/이미지를 골랐으면 "작성 중" → 닫기 시 이탈 가드를 띄운다.
-  const isDirty =
-    categoryId !== null ||
-    title.trim().length > 0 ||
-    body.trim().length > 0 ||
-    tags.length > 0 ||
-    attachments.length > 0;
+  // 수정: 변경 사항이 없으면 비활성으로 시작, 내용이 바뀌면 활성(정책).
+  const isSubmitLocked = edit
+    ? submitting || !isDirty
+    : !isUploadSettled || submitting;
 
   function handleTitleChange(value: string) {
     // 제목은 여러 줄로 보이되(자동 줄바꿈) 실제 줄바꿈 문자는 받지 않는다 — 붙여넣기의 개행은 공백으로.
@@ -265,14 +305,25 @@ export function PostWriteScreen() {
   }
 
   async function requestClose() {
+    // 변경/작성 중일 때만 확인 — 수정 모드에서 변경이 없으면 다이얼로그 없이 즉시 닫는다(정책).
     if (isDirty) {
-      const confirmed = await confirm({
-        title: "작성 취소",
-        message: "작성 중인 내용은 저장되지 않아요.",
-        cancelText: "계속 작성",
-        confirmText: "나가기",
-        destructive: true,
-      });
+      const confirmed = await confirm(
+        isEdit
+          ? {
+              title: "수정 취소",
+              message: "변경한 내용은 저장되지 않아요.",
+              cancelText: "계속 수정",
+              confirmText: "나가기",
+              destructive: true,
+            }
+          : {
+              title: "작성 취소",
+              message: "작성 중인 내용은 저장되지 않아요.",
+              cancelText: "계속 작성",
+              confirmText: "나가기",
+              destructive: true,
+            },
+      );
       // 취소("계속 작성")면 화면을 유지한다 — CLOSE_SUBVIEW를 보내지 않는다.
       if (!confirmed) return;
     }
@@ -282,13 +333,25 @@ export function PostWriteScreen() {
   // 네이티브 뒤로가기 가드: 마운트 시 BACK_GUARD로 통지 → 네이티브가 직접 닫지 않고 BACK_PRESSED를 보낸다.
   // 작성 중이면 확인 다이얼로그, 아니면 닫기 → "계속 작성" 선택 시 CLOSE_SUBVIEW를 보내지 않아 화면 유지.
   // 편집 화면이 떠 있으면 뒤로가기는 편집 취소(미반영)로 소비하고, 작성 화면 이탈 가드는 그다음이다.
+  // 수정 모드의 이미지 상세도 같은 규칙 — 뒤로가기 = 상세 닫기.
   useNativeBackHandler(() => {
     if (editingId !== null) {
       setEditingId(null);
       return;
     }
+    if (viewerIndex !== null) {
+      setViewerIndex(null);
+      return;
+    }
     void requestClose();
   });
+
+  /** 수정 모드 이미지 삭제(스트립·상세 공용). 마지막 1장을 지우면 상세를 닫는다(정책). */
+  function removeExistingImage(imageId: number) {
+    const next = existingImages.filter((image) => image.id !== imageId);
+    setExistingImages(next);
+    if (next.length === 0) setViewerIndex(null);
+  }
 
   /** 썸네일 탭: 실패한 장은 재업로드(사진 정책), 그 외엔 편집 화면. 크기를 못 읽은 장(디코드 실패)은 편집 불가. */
   function handleThumbnailTap(localId: string) {
@@ -347,6 +410,23 @@ export function PostWriteScreen() {
     setSubmitting(true);
     // 확정되지 않은 입력 중인 태그는 등록 시 자동 확정(정책). tags는 아직 전송 필드가 없어 상태만 맞춘다.
     if (tagInput) addTag(tagInput);
+    if (edit) {
+      // FIXME(api-connect): PUT /api/community/posts/{postId}에 { categoryId, title, body,
+      // imageFileIdList: existingImages.map(i => i.id) }(UpdatePostInput)를 보낸다. 목 단계라 성공 처리만.
+      console.info("[post-write] 게시글 수정(목):", {
+        postId: edit.postId,
+        categoryId,
+        title: title.trim(),
+        body: body.trim(),
+        imageFileIdList: existingImages.map((image) => image.id),
+      });
+      // 목록/상세가 복귀 시 이 글을 다시 읽게 표시한다(제목·이미지가 바뀌었을 수 있음).
+      markPostDirty(edit.postId);
+      toast.show("게시글이 수정되었어요");
+      setSubmitting(false);
+      closeScreen();
+      return;
+    }
     try {
       // 이미지는 고를 때 이미 ①②③을 마쳤고 isSubmitLocked가 전 장 done을 보장하므로 표시 순서 imageId를 그대로 보낸다.
       // ④ 게시글 생성. tags는 현재 /board 계약에 필드가 없어 전송하지 않는다(FIXME 참고).
@@ -406,14 +486,14 @@ export function PostWriteScreen() {
         </button>
 
         <h1 className="pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-button-m text-header-text">
-          글쓰기
+          {isEdit ? "글 수정" : "글쓰기"}
         </h1>
 
         <button
           type="button"
           onClick={() => void submit()}
           disabled={isSubmitLocked}
-          aria-label="등록"
+          aria-label={isEdit ? "완료" : "등록"}
           style={{ width: APP_BAR_BUTTON_SIZE, height: APP_BAR_BUTTON_SIZE }}
           className={cn(
             "ml-auto inline-flex items-center justify-center rounded-[10px] transition-colors",
@@ -463,7 +543,8 @@ export function PostWriteScreen() {
             FIXME: 앱에서 진입 시 키보드가 안 뜨면 iOS 쪽 위 설정 확인 — 웹에서는 autoFocus 이상 할 수 없다. */}
         <textarea
           ref={titleRef}
-          autoFocus
+          // 수정은 기존 내용을 읽는 것부터라 자동 포커스(키보드)를 띄우지 않는다.
+          autoFocus={!isEdit}
           value={title}
           onChange={(event) => handleTitleChange(event.target.value)}
           onKeyDown={handleTitleKeyDown}
@@ -509,6 +590,44 @@ export function PostWriteScreen() {
             상태별 표시(정책): 업로드 중 = 흐림(white-60 스크림) + 스피너, 실패 = 흐림 + ↻(탭 = 그 장만 재업로드),
             완료 = 원본. 그 외 탭은 편집(크롭) 화면 — 자동 크롭은 없고 사용자가 열 때만 잘라낸다.
             허용 비율 밖 원본이 있으면 스트립 위에 편집 유도 안내를 띄운다(잘릴 사진이 있다는 예고). */}
+        {/* 수정 모드: 등록된 이미지 스트립 — 삭제만(✕), 탭 = 보기 전용 상세. 크롭·추가 없음(정책). */}
+        {isEdit && existingImages.length > 0 ? (
+          <ul className="-mx-4 mt-2 flex gap-4 overflow-x-auto px-4 pt-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {existingImages.map((image, index) => (
+              <li key={image.id} className="relative shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setViewerIndex(index)}
+                  aria-label="이미지 상세 보기"
+                  style={{ width: THUMBNAIL_SIZE, height: THUMBNAIL_SIZE }}
+                  className="block overflow-hidden rounded-lg"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={image.imageUrl}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeExistingImage(image.id)}
+                  aria-label="이미지 삭제"
+                  style={{
+                    width: THUMBNAIL_REMOVE_SIZE,
+                    height: THUMBNAIL_REMOVE_SIZE,
+                    top: -THUMBNAIL_REMOVE_SIZE / 2,
+                    right: -THUMBNAIL_REMOVE_SIZE / 2,
+                  }}
+                  className="absolute inline-flex items-center justify-center rounded-full bg-surface-tertiary text-icon-primary"
+                >
+                  <CloseIcon size={14} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
         {attachments.length > 0 ? (
           <>
             {hasOutOfAspect ? (
@@ -650,14 +769,20 @@ export function PostWriteScreen() {
             className="hidden"
           />
           {/* 사진 첨부(최대 MAX_IMAGES장). 한도에 닿아도 비활성이 아니라 탭 시 토스트(정책, pick 안에서) —
-              고르는 즉시 장별로 CDN 업로드가 시작된다. */}
+              고르는 즉시 장별로 CDN 업로드가 시작된다. 수정 모드는 추가 불가라 비활성(정책). */}
           <button
             type="button"
             onClick={pick}
-            aria-label={`사진 첨부 (최대 ${MAX_IMAGES}장)`}
-            className="inline-flex items-center justify-center gap-3 text-text-secondary"
+            disabled={isEdit}
+            aria-label={
+              isEdit ? "사진 추가 불가" : `사진 첨부 (최대 ${MAX_IMAGES}장)`
+            }
+            className="inline-flex items-center justify-center gap-3 text-text-secondary disabled:text-text-disabled"
           >
-            <ImageIcon size={24} className="text-icon-secondary" />
+            <ImageIcon
+              size={24}
+              className={isEdit ? "text-icon-disabled" : "text-icon-secondary"}
+            />
             <span className="text-body-s">사진</span>
           </button>
           {/* 탭하면 본문 아래 "# 태그" 입력칸으로 포커스(필요하면 그 줄이 보이게 스크롤). */}
@@ -700,6 +825,16 @@ export function PostWriteScreen() {
             replaceFile(editing.localId, file, crop);
             setEditingId(null);
           }}
+        />
+      ) : null}
+
+      {/* 수정 모드 이미지 상세(보기 전용) — 썸네일 탭으로 열림. 삭제는 스트립과 같은 상태를 바꾼다. */}
+      {viewerIndex !== null && existingImages.length > 0 ? (
+        <PostEditImageViewer
+          images={existingImages}
+          initialIndex={viewerIndex}
+          onRemove={removeExistingImage}
+          onClose={() => setViewerIndex(null)}
         />
       ) : null}
 
