@@ -359,7 +359,10 @@ export function PostWriteScreen({
     if (next.length === 0) setViewerIndex(null);
   }
 
-  /** 썸네일 탭: 실패한 장은 재업로드(사진 정책), 그 외엔 편집 화면. 크기를 못 읽은 장(디코드 실패)은 편집 불가. */
+  /**
+   * 썸네일 탭: 실패한 장은 재업로드(사진 정책), 업로드 중은 무시, 완료된 장만 편집 화면(FE 결정 2026-09-15).
+   * 실패한 장을 편집하려면 먼저 재시도해 완료시켜야 한다. 크기를 못 읽은 장(디코드 실패)은 편집 불가.
+   */
   function handleThumbnailTap(localId: string) {
     const target = attachments.find((item) => item.localId === localId);
     if (!target) return;
@@ -367,6 +370,7 @@ export function PostWriteScreen({
       retry(localId);
       return;
     }
+    if (target.status !== "done") return;
     if (target.sourceWidth > 0 && target.sourceHeight > 0) {
       setEditingId(localId);
     }
@@ -603,7 +607,7 @@ export function PostWriteScreen({
             컨테이너에 잘리지 않게 하고, main의 px-4를 -mx-4/px-4로 되돌려 마지막 썸네일의 ✕도 오른쪽 패딩
             안에 들어오게 한다. 미리보기는 로컬 File의 object URL(blob:)이라 next/image가 아닌 img로 그린다.
             상태별 표시(정책): 업로드 중 = 흐림(white-60 스크림) + 스피너, 실패 = 흐림 + ↻(탭 = 그 장만 재업로드),
-            완료 = 원본. 그 외 탭은 편집(크롭) 화면 — 자동 크롭은 없고 사용자가 열 때만 잘라낸다.
+            완료 = 원본, 탭 = 편집(크롭) 화면 — 자동 크롭은 없고 사용자가 열 때만 잘라낸다. 업로드 중 탭은 무시.
             허용 비율 밖 원본이 있으면 스트립 위에 편집 유도 안내를 띄운다(잘릴 사진이 있다는 예고). */}
         {/* 수정 모드: 등록된 이미지 스트립 — 삭제만(✕), 탭 = 보기 전용 상세. 크롭·추가 없음(정책). */}
         {isEdit && existingImages.length > 0 ? (
@@ -664,7 +668,7 @@ export function PostWriteScreen({
                         isFailed
                           ? "업로드 실패한 이미지 다시 올리기"
                           : isUploading
-                            ? "이미지 업로드 중 — 탭하면 편집"
+                            ? "이미지 업로드 중"
                             : "첨부 이미지 편집"
                       }
                       aria-busy={isUploading}
