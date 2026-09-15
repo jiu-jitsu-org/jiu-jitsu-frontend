@@ -85,6 +85,8 @@ export type CreatePostInput = {
   body: string;
   /** 등록(TEMP)된 이미지의 서버 int imageId 목록. 표시 순서 = 저장 순서. */
   imageFileIdList: number[];
+  /** 태그 이름 목록(Swagger: tags ["BJJ","운동"]). 서버가 공백 제거·소문자·중복 제거를 한 번 더 한다. */
+  tags: string[];
 };
 
 /**
@@ -100,8 +102,12 @@ export type PostEditInitial = {
 };
 
 /**
- * 게시글 수정 요청 — PUT /board/{id} body. 생성과 같은 필드이며 imageFileIdList는
- * "남길 이미지 전체" 목록(삭제 = 목록에서 빼기). 수정 화면은 추가·크롭이 없어 기존 id만 보낸다.
+ * 게시글 수정 요청 — PUT /board/{id} body. imageFileIdList는 "남길 이미지 전체" 목록
+ * (삭제 = 목록에서 빼기, 서버가 기존 목록을 비우고 이 목록으로 다시 만든다). 수정 화면은 추가·크롭이
+ * 없어 상세 imageList[].id(= ImageFile id)를 그대로 보낸다.
+ *
+ * FIXME(API): 업스트림 BoardUpdateRequest에 tags가 없어 수정으로는 태그를 바꿀 수 없다.
+ * 생성(POST /board)과 같은 tags: string[]이 추가되면 함께 전송한다 — 필드는 미리 실어 보낸다(서버는 무시).
  */
 export type UpdatePostInput = CreatePostInput;
 

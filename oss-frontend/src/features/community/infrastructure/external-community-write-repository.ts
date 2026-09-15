@@ -11,6 +11,7 @@ import type {
 import type {
   CreatePostInput,
   CreatedPost,
+  UpdatePostInput,
 } from "@/features/community/domain/post";
 import type {
   CommunityWriteRepository,
@@ -29,6 +30,8 @@ import type { HttpClient } from "@/shared/lib/http";
  * 댓글 생성은 Swagger 확정 계약(POST /community/comments, body { contentId, parentId, body }).
  * 대댓글은 parentId에 부모 댓글 id를 넣어 같은 엔드포인트로 보낸다.
  * 게시글 삭제는 Swagger 확정 계약(DELETE /board/{id}) — 200 OK, 응답 본문은 사용하지 않는다.
+ * 게시글 수정은 Swagger 확정 계약(PUT /board/{id}, body { categoryId, title, body, imageFileIdList }) —
+ * BoardResponse를 돌려주지만 화면은 닫히므로 사용하지 않는다.
  * 좋아요는 Swagger 확정 계약(PUT /board/like/{id}) — 서버가 토글하고 isLiked·likeCount를 돌려준다.
  * 저장(북마크)은 Swagger 확정 계약(PUT /board/save/{id}) — 서버가 토글하고 isSaved·saveCount를 돌려준다.
  * 게시글 알림 수신은 Swagger 확정 계약(PUT /notice/setting/board/{boardId}) — 서버가 토글하고
@@ -50,9 +53,7 @@ type Envelope<T> = {
   data: T;
 };
 
-export class ExternalCommunityWriteRepository
-  implements CommunityWriteRepository
-{
+export class ExternalCommunityWriteRepository implements CommunityWriteRepository {
   constructor(private readonly httpClient: HttpClient) {}
 
   async createComment(
@@ -208,6 +209,14 @@ export class ExternalCommunityWriteRepository
     });
 
     return response.data;
+  }
+
+  async updatePost(postId: number, input: UpdatePostInput): Promise<void> {
+    // PUT /board/{id} — 본인 게시글 수정. imageFileIdList는 남길 이미지 전체(서버가 목록을 통째로 교체).
+    await this.httpClient.put<Envelope<unknown>>({
+      path: `${BOARD_ENDPOINT_PATH}/${postId}`,
+      body: input,
+    });
   }
 
   async toggleBlock(userId: number): Promise<boolean> {

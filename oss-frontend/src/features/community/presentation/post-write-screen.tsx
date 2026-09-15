@@ -38,7 +38,11 @@ import {
   markPostCreated,
   markPostDirty,
 } from "@/features/community/presentation/dirty-posts";
-import { createPost, WriteRequestError } from "./community-write-client";
+import {
+  createPost,
+  updatePost,
+  WriteRequestError,
+} from "./community-write-client";
 import { PostEditImageViewer } from "./post-edit-image-viewer";
 import { PostImageCropEditor } from "./post-image-crop-editor";
 import { useAutoResizeTextarea } from "./use-auto-resize-textarea";
@@ -91,8 +95,9 @@ const CATEGORIES: { id: number; name: string }[] = [
  * 스크롤된다(첨부 썸네일은 본문과 태그 사이). 사진·태그 툴바만 바닥(=키보드 위)에 고정.
  *
  * compose 패턴:
- * - 우측 체크는 항상 활성(정책). 탭 시 카테고리 → 제목 → 본문 순으로 검사해 첫 미충족 항목만 토스트로
- *   알린다(비활성 방식 아님). 예외로 첨부 업로드 중/실패·전송 중에는 잠근다(사진 정책).
+ * - 우측 체크는 필수 입력(카테고리·제목·본문)이 하나라도 비어 있으면 비활성, 한 글자라도 적히면 활성(정책).
+ *   최소 글자 수는 탭 시 제목 → 본문 순으로 검사해 첫 미충족 항목만 토스트로 알린다.
+ *   첨부 업로드 중/실패·전송 중에도 잠근다(사진 정책).
  * - 입력 중 뒤로가면 이탈 가드로 실수 유실을 막는다. 알럿 표면은 useNativeDialog가
  *   "네이티브 우선, 없으면 웹"으로 처리한다 — 무엇을 물어볼지·확인 후 무엇을 할지는 여기가 쥔다.
  *
@@ -101,15 +106,13 @@ const CATEGORIES: { id: number; name: string }[] = [
  *
  * 작성 흐름은 BFF에 연결돼 있다: 사진을 고르는 즉시 장별로 ①②③(서명→ImageKit→등록)을 태워
  * imageFileIdList를 확보해 두고, ④ POST /api/community/board로 생성. categoryId는 헤더와 제목
- * 사이의 카테고리 칩에서 사용자가 고른 값을 전송하며, 미선택이면 등록 탭 시 토스트로 막는다. 남은 공백:
- * - tags: /board 계약에 태그 필드가 없어 입력은 받되 전송하지 않음(백엔드 확정 시 연결).
+ * 사이의 카테고리 칩에서 사용자가 고른 값을 전송한다. tags는 확정 태그 이름 배열로 함께 보낸다.
  *
  * 수정 모드(edit): 같은 폼을 기존 값으로 채워 연다. 작성과 다른 점만 분기한다 —
  * - 완료(✓)는 변경 사항이 없으면 비활성으로 시작하고, 뒤로가기도 변경 없으면 다이얼로그 없이 닫는다.
  * - 이미지는 등록된 것(PostImage)을 삭제만 할 수 있다(추가·크롭 없음, 사진 툴바 비활성). 썸네일 탭은
  *   편집기가 아니라 보기 전용 상세(PostEditImageViewer)를 연다.
- * - FIXME(api-connect): 저장은 PUT /api/community/posts/{id}(업스트림 PUT /board/{id})로 연결 예정.
- *   지금은 목 단계라 성공 토스트 + 닫기만 한다.
+ * - 저장은 PUT /api/community/posts/{id}(업스트림 PUT /board/{id}) — imageFileIdList는 남긴 이미지 전체.
  */
 export function PostWriteScreen({
   edit,
@@ -185,12 +188,15 @@ export function PostWriteScreen({
       body.trim().length > 0 ||
       tags.length > 0 ||
       attachments.length > 0;
-  // 작성: 입력 충족 여부로 잠그지 않는다(정책: 항상 활성, 탭 시 검사 → 토스트). 잠그는 경우는 둘뿐 —
-  // 첨부 업로드 중/실패가 남아 있을 때(사진 정책 — 재시도 또는 ✕ 삭제 후 풀림)와 전송 중.
-  // 수정: 변경 사항이 없으면 비활성으로 시작, 내용이 바뀌면 활성(정책).
+  // 필수 입력(카테고리·제목·본문)이 하나라도 비어 있으면 등록/완료 비활성(정책). 한 글자라도 적히면 활성이고,
+  // 최소 글자 수(2/10)는 비활성이 아니라 탭 시 토스트로 안내한다 — "비어 있음"과 "짧음"을 구분하는 이유.
+  const hasRequiredInput =
+    categoryId !== null && title.trim().length > 0 && body.trim().length > 0;
+  // 그 외 잠금: 첨부 업로드 중/실패가 남아 있을 때(사진 정책 — 재시도 또는 ✕ 삭제 후 풀림)와 전송 중.
+  // 수정은 변경 사항이 없어도 비활성으로 시작해 내용이 바뀌면 활성(정책).
   const isSubmitLocked = edit
-    ? submitting || !isDirty
-    : !isUploadSettled || submitting;
+    ? submitting || !isDirty || !hasRequiredInput
+    : !isUploadSettled || submitting || !hasRequiredInput;
 
   function handleTitleChange(value: string) {
     // 제목은 여러 줄로 보이되(자동 줄바꿈) 실제 줄바꿈 문자는 받지 않는다 — 붙여넣기의 개행은 공백으로.
@@ -368,7 +374,8 @@ export function PostWriteScreen({
 
   /**
    * 등록 탭 시 검사(정책): 카테고리 → 제목 → 본문 순, 첫 번째 미충족 항목의 안내만 돌려준다.
-   * 최대(45/800)는 maxLength가 입력 단계에서 막으므로 여기서 다시 보지 않는다.
+   * 카테고리·빈 입력은 버튼 비활성(hasRequiredInput)이 먼저 막으므로 실질적으로는 최소 글자 수만 걸린다 —
+   * 카테고리 검사는 방어용으로 남긴다. 최대(45/800)는 maxLength가 입력 단계에서 막으므로 보지 않는다.
    */
   function findValidationMessage(): string | null {
     if (categoryId === null) return "카테고리를 선택해주세요.";
@@ -408,33 +415,37 @@ export function PostWriteScreen({
     }
     if (categoryId === null) return;
     setSubmitting(true);
-    // 확정되지 않은 입력 중인 태그는 등록 시 자동 확정(정책). tags는 아직 전송 필드가 없어 상태만 맞춘다.
+    // 확정되지 않은 입력 중인 태그는 등록 시 자동 확정(정책). setTags는 비동기라 전송 목록은 여기서 직접 합친다.
+    const pendingTag = tagInput ? normalizeTag(tagInput) : "";
+    const finalTags =
+      pendingTag && !tags.includes(pendingTag) && tags.length < MAX_TAGS
+        ? [...tags, pendingTag]
+        : tags;
     if (tagInput) addTag(tagInput);
-    if (edit) {
-      // FIXME(api-connect): PUT /api/community/posts/{postId}에 { categoryId, title, body,
-      // imageFileIdList: existingImages.map(i => i.id) }(UpdatePostInput)를 보낸다. 목 단계라 성공 처리만.
-      console.info("[post-write] 게시글 수정(목):", {
-        postId: edit.postId,
-        categoryId,
-        title: title.trim(),
-        body: body.trim(),
-        imageFileIdList: existingImages.map((image) => image.id),
-      });
-      // 목록/상세가 복귀 시 이 글을 다시 읽게 표시한다(제목·이미지가 바뀌었을 수 있음).
-      markPostDirty(edit.postId);
-      toast.show("게시글이 수정되었어요");
-      setSubmitting(false);
-      closeScreen();
-      return;
-    }
     try {
+      if (edit) {
+        // 수정: 남긴 이미지 id 전체를 보낸다(서버가 목록을 통째로 교체). tags는 업스트림 수정 계약에 아직 없음.
+        await updatePost(edit.postId, {
+          categoryId,
+          title: title.trim(),
+          body: body.trim(),
+          imageFileIdList: existingImages.map((image) => image.id),
+          tags: finalTags,
+        });
+        // 목록/상세가 복귀 시 이 글을 다시 읽게 표시한다(제목·이미지가 바뀌었을 수 있음).
+        markPostDirty(edit.postId);
+        toast.show("게시글이 수정되었어요");
+        closeScreen();
+        return;
+      }
       // 이미지는 고를 때 이미 ①②③을 마쳤고 isSubmitLocked가 전 장 done을 보장하므로 표시 순서 imageId를 그대로 보낸다.
-      // ④ 게시글 생성. tags는 현재 /board 계약에 필드가 없어 전송하지 않는다(FIXME 참고).
+      // ④ 게시글 생성.
       const created = await createPost({
         categoryId,
         title: title.trim(),
         body: body.trim(),
         imageFileIdList,
+        tags: finalTags,
       });
       // 여기 도달 = 생성 성공(2xx). created.id로 실제 추가 여부를 확인할 수 있다.
       console.info("[post-write] 게시글 생성 성공:", created);
@@ -446,13 +457,17 @@ export function PostWriteScreen({
       closeScreen();
     } catch (error) {
       // 실패 경로 — 절대 closeScreen()을 호출하지 않는다(화면 유지 = pop 안 됨).
-      console.error("[post-write] 게시글 작성 실패:", error);
-      // 인증 만료(401)면 네이티브 로그인 유도, 그 외(생성 실패)는 재시도 안내.
+      console.error("[post-write] 게시글 저장 실패:", error);
+      // 인증 만료(401)면 네이티브 로그인 유도, 그 외(생성/수정 실패)는 재시도 안내.
       if (error instanceof WriteRequestError && error.status === 401) {
         postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
         return;
       }
-      toast.show("등록에 실패했어요. 잠시 후 다시 시도해주세요");
+      toast.show(
+        isEdit
+          ? "수정에 실패했어요. 잠시 후 다시 시도해주세요"
+          : "등록에 실패했어요. 잠시 후 다시 시도해주세요",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -497,8 +512,8 @@ export function PostWriteScreen({
           style={{ width: APP_BAR_BUTTON_SIZE, height: APP_BAR_BUTTON_SIZE }}
           className={cn(
             "ml-auto inline-flex items-center justify-center rounded-[10px] transition-colors",
-            // 기본은 브랜드 채움(button/filled) — 입력 미충족이어도 활성으로 보이고 탭 시 토스트.
-            // 첨부 업로드 중/실패·전송 중에만 비활성 채움 + 비활성 아이콘.
+            // 필수 입력이 모두 채워지면 브랜드 채움(button/filled) — 글자 수 미달은 탭 시 토스트.
+            // 필수 입력 비어 있음·첨부 업로드 중/실패·전송 중이면 비활성 채움 + 비활성 아이콘.
             isSubmitLocked
               ? "bg-button-filled-disabled-bg text-button-filled-disabled-text"
               : "bg-button-filled-default-bg text-button-filled-default-text active:bg-button-filled-pressed-bg",

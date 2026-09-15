@@ -1,5 +1,6 @@
 import { CreateCommentUseCase } from "@/features/community/application/create-comment";
 import { CreatePostUseCase } from "@/features/community/application/create-post";
+import { UpdatePostUseCase } from "@/features/community/application/update-post";
 import { CreateReportUseCase } from "@/features/community/application/create-report";
 import { DeleteCommentUseCase } from "@/features/community/application/delete-comment";
 import { DeletePostUseCase } from "@/features/community/application/delete-post";
@@ -38,7 +39,9 @@ import {
  */
 
 /** 토큰 유무에 따라 읽기용 클라이언트를 고른다. */
-function createReadRepository(accessToken: string | null): ExternalPostRepository {
+function createReadRepository(
+  accessToken: string | null,
+): ExternalPostRepository {
   const httpClient = accessToken
     ? createAuthedServerHttpClient(accessToken)
     : createServerHttpClient();
@@ -137,9 +140,7 @@ export function createToggleNoticeUseCase(
 export function createGetNoticeEnabledUseCase(
   accessToken: string,
 ): GetNoticeEnabledUseCase {
-  return new GetNoticeEnabledUseCase(
-    createWriteRepository(accessToken),
-  );
+  return new GetNoticeEnabledUseCase(createWriteRepository(accessToken));
 }
 
 export function createGetImageUploadAuthUseCase(
@@ -160,9 +161,13 @@ export function createCreatePostUseCase(
   return new CreatePostUseCase(createWriteRepository(accessToken));
 }
 
-export function createBlockUserUseCase(
+export function createUpdatePostUseCase(
   accessToken: string,
-): BlockUserUseCase {
+): UpdatePostUseCase {
+  return new UpdatePostUseCase(createWriteRepository(accessToken));
+}
+
+export function createBlockUserUseCase(accessToken: string): BlockUserUseCase {
   return new BlockUserUseCase(createWriteRepository(accessToken));
 }
 

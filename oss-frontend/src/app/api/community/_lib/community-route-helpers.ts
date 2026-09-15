@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 
-import {
-  SessionRequiredError,
-  requireSessionToken,
-} from "@/shared/lib/auth";
+import { SessionRequiredError, requireSessionToken } from "@/shared/lib/auth";
 import { HttpError } from "@/shared/lib/http";
 import type { ApiErrorResponse } from "@/shared/types/api";
 
@@ -15,7 +12,11 @@ import type { ApiErrorResponse } from "@/shared/types/api";
  * 비즈니스 로직이 아니라 HTTP 응답 형태(presentation) 책임이므로 app/api 아래에 둔다.
  */
 
-export function jsonError(message: string, statusCode: number, details?: unknown) {
+export function jsonError(
+  message: string,
+  statusCode: number,
+  details?: unknown,
+) {
   return NextResponse.json<ApiErrorResponse>(
     { success: false, message, statusCode, details },
     { status: statusCode },
@@ -129,4 +130,57 @@ export function parseUserId(
   }
 
   return { userId };
+}
+
+/** 게시글 생성/수정 body 공통 필드(둘 다 업스트림 계약이 같다). */
+export type PostBodyFields = {
+  categoryId: number;
+  title: string;
+  body: string;
+  imageFileIdList: number[];
+  tags: string[];
+};
+
+/**
+ * 게시글 생성/수정 요청 body를 파싱·정리한다. 파싱 실패는 빈 값으로 흘려보내 호출부의 검증(400)에 맡긴다.
+ * - imageFileIdList: 정수 id만 통과(잘못된 항목 제거), 없으면 빈 배열
+ * - tags: 문자열만 통과 + 공백 제거 + 빈 값 제거(정규화 자체는 화면과 서버가 한다)
+ */
+export async function parsePostBody(request: Request): Promise<PostBodyFields> {
+  const fields: PostBodyFields = {
+    categoryId: NaN,
+    title: "",
+    body: "",
+    imageFileIdList: [],
+    tags: [],
+  };
+  try {
+    const json = await request.json();
+    fields.categoryId = Number(json?.categoryId);
+    fields.title = String(json?.title ?? "").trim();
+    fields.body = String(json?.body ?? "").trim();
+    fields.imageFileIdList = Array.isArray(json?.imageFileIdList)
+      ? json.imageFileIdList.map(Number).filter(Number.isInteger)
+      : [];
+    fields.tags = Array.isArray(json?.tags)
+      ? json.tags
+          .filter((tag: unknown): tag is string => typeof tag === "string")
+          .map((tag: string) => tag.trim())
+          .filter((tag: string) => tag.length > 0)
+      : [];
+  } catch {
+    // 파싱 실패는 호출부 검증에서 400으로 처리된다.
+  }
+  return fields;
+}
+
+/** 생성/수정 공통 검증 — 실패하면 400 응답, 통과하면 null. */
+export function validatePostBody(fields: PostBodyFields) {
+  if (!Number.isInteger(fields.categoryId) || fields.categoryId <= 0) {
+    return jsonError("유효한 카테고리를 선택해 주세요.", 400);
+  }
+  if (!fields.title || !fields.body) {
+    return jsonError("제목과 내용을 모두 입력해 주세요.", 400);
+  }
+  return null;
 }
