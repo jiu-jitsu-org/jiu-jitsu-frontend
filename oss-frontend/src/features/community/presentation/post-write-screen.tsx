@@ -745,6 +745,11 @@ export function PostWriteScreen({
                 value={tagInput}
                 onChange={(event) => handleTagChange(event.target.value)}
                 onKeyDown={handleTagKeyDown}
+                // 입력 중 다른 곳을 탭하면(blur) 한 글자라도 있으면 그대로 확정 — 스페이스/엔터 없이
+                // 본문으로 넘어가도 태그가 사라지지 않게. 빈 입력이면 아무 일 없음(영역 유지).
+                onBlur={() => {
+                  if (tagInput) addTag(tagInput);
+                }}
                 aria-label="태그 입력"
                 className="min-w-[80px] flex-1 text-body-s text-primary-text-subtle outline-none"
               />
