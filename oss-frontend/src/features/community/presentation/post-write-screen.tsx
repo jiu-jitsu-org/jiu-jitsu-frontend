@@ -20,6 +20,7 @@ import {
   CheckIcon,
   CloseIcon,
   ImageIcon,
+  RetryIcon,
   TagIcon,
 } from "@/shared/ui/icons";
 
@@ -47,6 +48,8 @@ const APP_BAR_BUTTON_SIZE = 36;
 const THUMBNAIL_SIZE = 60;
 /** 썸네일 우상단 삭제(✕) 원 지름(px). 썸네일 모서리에 반쯤 걸쳐 얹는다. */
 const THUMBNAIL_REMOVE_SIZE = 22;
+/** 썸네일 위 상태 표시(스피너·↻) 한 변(px). 60 썸네일 안에서 여백을 남기는 크기. */
+const THUMBNAIL_STATUS_SIZE = 24;
 /**
  * 게시글 카테고리 목록. 업스트림 카테고리 조회 응답(data) 기준 — 추후 API 조회로 대체 가능하나,
  * 고정 분류라 현재는 상수로 둔다. id는 POST /board의 필수 categoryId로 그대로 전송된다.
@@ -74,9 +77,9 @@ const CATEGORIES: { id: number; name: string }[] = [
  * 전 영역이 인터랙티브하고 등록 버튼이 입력 상태에 의존하므로(앱바↔본문 상태 공유),
  * 상세처럼 서버 레이아웃 + 클라이언트 leaf로 쪼개지 않고 하나의 클라이언트 화면으로 둔다.
  *
- * 작성 흐름은 BFF에 연결돼 있다: ①②③(서명→ImageKit→등록)으로 imageFileIdList 확보 후
- * ④ POST /api/community/board로 생성. categoryId는 헤더와 제목 사이의 카테고리 칩에서
- * 사용자가 고른 값을 전송하며, 미선택이면 등록을 비활성화한다(canSubmit). 남은 공백:
+ * 작성 흐름은 BFF에 연결돼 있다: 사진을 고르는 즉시 장별로 ①②③(서명→ImageKit→등록)을 태워
+ * imageFileIdList를 확보해 두고, ④ POST /api/community/board로 생성. categoryId는 헤더와 제목
+ * 사이의 카테고리 칩에서 사용자가 고른 값을 전송하며, 미선택이면 등록을 비활성화한다(canSubmit). 남은 공백:
  * - tags: /board 계약에 태그 필드가 없어 입력은 받되 전송하지 않음(백엔드 확정 시 연결).
  */
 export function PostWriteScreen() {
@@ -99,26 +102,30 @@ export function PostWriteScreen() {
   const titleRef = useAutoResizeTextarea(title);
   const bodyRef = useAutoResizeTextarea(body);
 
-  // 이미지 첨부(지연 업로드: 고를 땐 로컬 미리보기만, 등록 시점에만 CDN 업로드).
+  // 이미지 첨부(선택 즉시 장별 업로드 — 썸네일마다 업로드 중/실패/완료 상태를 따로 가진다).
   // 선택은 표준 <input type=file> — 웹뷰가 네이티브 피커를 띄우고 웹에 File을 돌려준다.
   const {
     attachments,
     canAddMore,
     remaining,
+    isUploadSettled,
+    imageFileIdList,
     fileInputRef,
     onFileChange,
     pick,
+    retry,
     remove,
     discardAll,
-    uploadAll,
   } = useImageAttachments();
 
-  // 등록 가능: 카테고리 선택 + 제목 2자↑ + 본문 10자↑(앞뒤 공백 제외) + 전송 중 아님.
+  // 등록 가능: 카테고리 선택 + 제목 2자↑ + 본문 10자↑(앞뒤 공백 제외) + 첨부 전부 업로드 완료 + 전송 중 아님.
+  // 업로드 중이거나 실패한 장이 하나라도 있으면 닫힌다(정책) — 재시도 또는 ✕ 삭제 후 다시 열린다.
   // 최대(45/800)는 maxLength가 입력 단계에서 막으므로 여기서 다시 보지 않는다.
   const canSubmit =
     categoryId !== null &&
     title.trim().length >= TITLE_MIN_LENGTH &&
     body.trim().length >= BODY_MIN_LENGTH &&
+    isUploadSettled &&
     !submitting;
   // 한 글자라도 적었거나 카테고리/이미지를 골랐으면 "작성 중" → 닫기 시 이탈 가드를 띄운다.
   const isDirty =
@@ -194,7 +201,7 @@ export function PostWriteScreen() {
   }
 
   function closeScreen() {
-    // 화면을 떠나므로 로컬 첨부(미리보기 object URL)를 정리한다. 업로드 전이라 원격 자원은 없음.
+    // 화면을 떠나므로 로컬 첨부(미리보기 object URL)를 정리한다(원격 TEMP 이미지 정리는 훅 FIXME 참고).
     discardAll();
     // 네이티브 서브뷰(풀 웹뷰)면 CLOSE_SUBVIEW로 네이티브가 pop → 리스트 웹뷰로 복귀.
     if (isNativeBridgeAvailable()) {
@@ -232,9 +239,7 @@ export function PostWriteScreen() {
     if (!canSubmit || categoryId === null) return;
     setSubmitting(true);
     try {
-      // 지연 업로드: 작성 직전에만 ①②③(서명→ImageKit→등록) 실행 → 표시 순서대로 imageId 확보.
-      const imageFileIdList = await uploadAll();
-      console.info("[post-write] 이미지 등록 완료 imageFileIdList:", imageFileIdList);
+      // 이미지는 고를 때 이미 ①②③을 마쳤고 canSubmit이 전 장 done을 보장하므로 표시 순서 imageId를 그대로 보낸다.
       // ④ 게시글 생성. tags는 현재 /board 계약에 필드가 없어 전송하지 않는다(FIXME 참고).
       const created = await createPost({
         categoryId,
@@ -253,7 +258,7 @@ export function PostWriteScreen() {
     } catch (error) {
       // 실패 경로 — 절대 closeScreen()을 호출하지 않는다(화면 유지 = pop 안 됨).
       console.error("[post-write] 게시글 작성 실패:", error);
-      // 인증 만료(401)면 네이티브 로그인 유도, 그 외(업로드/생성 실패)는 재시도 안내.
+      // 인증 만료(401)면 네이티브 로그인 유도, 그 외(생성 실패)는 재시도 안내.
       if (error instanceof WriteRequestError && error.status === 401) {
         postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
         return;
@@ -371,38 +376,74 @@ export function PostWriteScreen() {
         />
         <CharCounter length={body.length} max={BODY_MAX_LENGTH} />
 
-        {/* 첨부 이미지 미리보기 — 본문 → 사진 → 태그 순서 고정(정책). 가로 스크롤, 썸네일 60 + 우상단 ✕(즉시
-            삭제, 확인 없음). ✕가 썸네일 밖으로 나가므로 위쪽 여백(pt-3)을 둬 스크롤 컨테이너에 잘리지 않게
-            하고, main의 px-4를 -mx-4/px-4로 되돌려 마지막 썸네일의 ✕도 오른쪽 패딩 안에 들어오게 한다.
-            등록 전엔 CDN 업로드 안 됨(지연 업로드). 미리보기는 로컬 File의 object URL(blob:)이라
-            next/image가 아닌 img로 그린다. */}
+        {/* 첨부 이미지 미리보기 — 본문 → 사진 → 태그 순서 고정(정책). 가로 나열, 썸네일 60 + 우상단 ✕(즉시
+            삭제, 확인 없음 — 업로드 중에도 가능). ✕가 썸네일 밖으로 나가므로 위쪽 여백(pt-3)을 둬 스크롤
+            컨테이너에 잘리지 않게 하고, main의 px-4를 -mx-4/px-4로 되돌려 마지막 썸네일의 ✕도 오른쪽 패딩
+            안에 들어오게 한다. 미리보기는 로컬 File의 object URL(blob:)이라 next/image가 아닌 img로 그린다.
+            상태별 표시(정책): 업로드 중 = 흐림(white-60 스크림) + 스피너, 실패 = 흐림 + ↻(탭 = 그 장만 재업로드),
+            완료 = 원본. 썸네일 자체를 버튼으로 두되 실패일 때만 탭이 의미를 가진다. */}
         {attachments.length > 0 ? (
           <ul className="-mx-4 mt-2 flex gap-4 overflow-x-auto px-4 pt-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {attachments.map((image) => (
-              <li key={image.localId} className="relative shrink-0">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={image.preview}
-                  alt="첨부 이미지 미리보기"
-                  style={{ width: THUMBNAIL_SIZE, height: THUMBNAIL_SIZE }}
-                  className="rounded-lg object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={() => remove(image.localId)}
-                  aria-label="첨부 이미지 삭제"
-                  style={{
-                    width: THUMBNAIL_REMOVE_SIZE,
-                    height: THUMBNAIL_REMOVE_SIZE,
-                    top: -THUMBNAIL_REMOVE_SIZE / 2,
-                    right: -THUMBNAIL_REMOVE_SIZE / 2,
-                  }}
-                  className="absolute inline-flex items-center justify-center rounded-full bg-surface-tertiary text-icon-primary"
-                >
-                  <CloseIcon size={14} />
-                </button>
-              </li>
-            ))}
+            {attachments.map((image) => {
+              const isFailed = image.status === "failed";
+              const isUploading = image.status === "uploading";
+              return (
+                <li key={image.localId} className="relative shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => retry(image.localId)}
+                    disabled={!isFailed}
+                    aria-label={
+                      isFailed
+                        ? "업로드 실패한 이미지 다시 올리기"
+                        : isUploading
+                          ? "이미지 업로드 중"
+                          : "첨부 이미지"
+                    }
+                    aria-busy={isUploading}
+                    style={{ width: THUMBNAIL_SIZE, height: THUMBNAIL_SIZE }}
+                    className="relative block overflow-hidden rounded-lg"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={image.preview}
+                      alt=""
+                      style={{ width: THUMBNAIL_SIZE, height: THUMBNAIL_SIZE }}
+                      className="object-cover"
+                    />
+                    {image.status !== "done" ? (
+                      <span className="absolute inset-0 flex items-center justify-center bg-[var(--opacity-white-60)] text-icon-on-overlay">
+                        {isFailed ? (
+                          <RetryIcon size={THUMBNAIL_STATUS_SIZE} />
+                        ) : (
+                          <span
+                            style={{
+                              width: THUMBNAIL_STATUS_SIZE,
+                              height: THUMBNAIL_STATUS_SIZE,
+                            }}
+                            className="animate-spin rounded-full border-2 border-current border-t-transparent"
+                          />
+                        )}
+                      </span>
+                    ) : null}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => remove(image.localId)}
+                    aria-label="첨부 이미지 삭제"
+                    style={{
+                      width: THUMBNAIL_REMOVE_SIZE,
+                      height: THUMBNAIL_REMOVE_SIZE,
+                      top: -THUMBNAIL_REMOVE_SIZE / 2,
+                      right: -THUMBNAIL_REMOVE_SIZE / 2,
+                    }}
+                    className="absolute inline-flex items-center justify-center rounded-full bg-surface-tertiary text-icon-primary"
+                  >
+                    <CloseIcon size={14} />
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         ) : null}
 
@@ -474,7 +515,7 @@ export function PostWriteScreen() {
             onChange={onFileChange}
             className="hidden"
           />
-          {/* 사진 첨부(최대 MAX_IMAGES장). 한도에 닿으면 비활성 — 등록 전까진 로컬 보관, 등록 시점에만 CDN 업로드. */}
+          {/* 사진 첨부(최대 MAX_IMAGES장). 한도에 닿으면 비활성 — 고르는 즉시 장별로 CDN 업로드가 시작된다. */}
           <button
             type="button"
             onClick={pick}
@@ -497,7 +538,7 @@ export function PostWriteScreen() {
         </div>
       </div>
 
-      {/* 등록 진행 오버레이 — 업로드·생성 중(submitting) 전 영역을 덮어 입력/버튼 재탭을 막고
+      {/* 등록 진행 오버레이 — 게시글 생성 중(submitting) 전 영역을 덮어 입력/버튼 재탭을 막고
           (overlay가 포인터 이벤트를 가로챔) 중앙 스피너로 진행을 알린다. 앱바(z-30)까지 덮도록 z-50.
           스피너 색은 Color/Blue/600(--blue-600). */}
       {submitting ? (
