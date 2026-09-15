@@ -1,7 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { type KeyboardEvent, useRef, useState } from "react";
+import {
+  type ClipboardEvent,
+  type KeyboardEvent,
+  useRef,
+  useState,
+} from "react";
 import { flushSync } from "react-dom";
 
 import { cn } from "@/shared/lib/cn";
@@ -76,7 +81,8 @@ const CATEGORIES: { id: number; name: string }[] = [
  * 스크롤된다(첨부 썸네일은 본문과 태그 사이). 사진·태그 툴바만 바닥(=키보드 위)에 고정.
  *
  * compose 패턴:
- * - 우측 체크는 카테고리·제목·본문이 모두 채워지기 전엔 비활성(댓글 입력바의 canSubmit과 동일 철학).
+ * - 우측 체크는 항상 활성(정책). 탭 시 카테고리 → 제목 → 본문 순으로 검사해 첫 미충족 항목만 토스트로
+ *   알린다(비활성 방식 아님). 예외로 첨부 업로드 중/실패·전송 중에는 잠근다(사진 정책).
  * - 입력 중 뒤로가면 이탈 가드로 실수 유실을 막는다. 알럿 표면은 useNativeDialog가
  *   "네이티브 우선, 없으면 웹"으로 처리한다 — 무엇을 물어볼지·확인 후 무엇을 할지는 여기가 쥔다.
  *
@@ -85,7 +91,7 @@ const CATEGORIES: { id: number; name: string }[] = [
  *
  * 작성 흐름은 BFF에 연결돼 있다: 사진을 고르는 즉시 장별로 ①②③(서명→ImageKit→등록)을 태워
  * imageFileIdList를 확보해 두고, ④ POST /api/community/board로 생성. categoryId는 헤더와 제목
- * 사이의 카테고리 칩에서 사용자가 고른 값을 전송하며, 미선택이면 등록을 비활성화한다(canSubmit). 남은 공백:
+ * 사이의 카테고리 칩에서 사용자가 고른 값을 전송하며, 미선택이면 등록 탭 시 토스트로 막는다. 남은 공백:
  * - tags: /board 계약에 태그 필드가 없어 입력은 받되 전송하지 않음(백엔드 확정 시 연결).
  */
 export function PostWriteScreen() {
@@ -127,15 +133,9 @@ export function PostWriteScreen() {
     discardAll,
   } = useImageAttachments();
 
-  // 등록 가능: 카테고리 선택 + 제목 2자↑ + 본문 10자↑(앞뒤 공백 제외) + 첨부 전부 업로드 완료 + 전송 중 아님.
-  // 업로드 중이거나 실패한 장이 하나라도 있으면 닫힌다(정책) — 재시도 또는 ✕ 삭제 후 다시 열린다.
-  // 최대(45/800)는 maxLength가 입력 단계에서 막으므로 여기서 다시 보지 않는다.
-  const canSubmit =
-    categoryId !== null &&
-    title.trim().length >= TITLE_MIN_LENGTH &&
-    body.trim().length >= BODY_MIN_LENGTH &&
-    isUploadSettled &&
-    !submitting;
+  // 등록 버튼은 입력 충족 여부로 잠그지 않는다(정책: 항상 활성, 탭 시 검사 → 토스트). 잠그는 경우는 둘뿐:
+  // 첨부 업로드 중/실패가 남아 있을 때(사진 정책 — 재시도 또는 ✕ 삭제 후 풀림)와 전송 중.
+  const isSubmitLocked = !isUploadSettled || submitting;
   // 한 글자라도 적었거나 카테고리/이미지를 골랐으면 "작성 중" → 닫기 시 이탈 가드를 띄운다.
   const isDirty =
     categoryId !== null ||
@@ -275,13 +275,52 @@ export function PostWriteScreen() {
   // 작성 중이면 확인 다이얼로그, 아니면 닫기 → "계속 작성" 선택 시 CLOSE_SUBVIEW를 보내지 않아 화면 유지.
   useNativeBackHandler(() => void requestClose());
 
+  /**
+   * 등록 탭 시 검사(정책): 카테고리 → 제목 → 본문 순, 첫 번째 미충족 항목의 안내만 돌려준다.
+   * 최대(45/800)는 maxLength가 입력 단계에서 막으므로 여기서 다시 보지 않는다.
+   */
+  function findValidationMessage(): string | null {
+    if (categoryId === null) return "카테고리를 선택해주세요.";
+    if (title.trim().length < TITLE_MIN_LENGTH) {
+      return `제목을 ${TITLE_MIN_LENGTH}자 이상 입력해주세요.`;
+    }
+    if (body.trim().length < BODY_MIN_LENGTH) {
+      return `내용을 ${BODY_MIN_LENGTH}자 이상 입력해주세요.`;
+    }
+    return null;
+  }
+
+  /**
+   * 붙여넣기 초과 안내(정책): maxLength가 최대치까지만 반영하므로 잘리는지 여기서 미리 계산해 토스트만 띄운다.
+   * 직접 타이핑은 한도에서 막히고 카운터가 red로 바뀔 뿐 토스트 없음 — onChange가 아닌 onPaste에만 거는 이유.
+   */
+  function notifyIfPasteOverflows(
+    event: ClipboardEvent<HTMLTextAreaElement>,
+    max: number,
+    message: string,
+  ) {
+    const field = event.currentTarget;
+    const pasted = event.clipboardData.getData("text");
+    const selected = field.selectionEnd - field.selectionStart;
+    if (field.value.length - selected + pasted.length > max) {
+      toast.show(message);
+    }
+  }
+
   async function submit() {
-    if (!canSubmit || categoryId === null) return;
+    if (isSubmitLocked) return;
+    const validationMessage = findValidationMessage();
+    if (validationMessage !== null) {
+      // 토스트는 나중 것이 이전 것을 덮는다(ToastProvider.show) — 연타해도 마지막 안내만 보인다.
+      toast.show(validationMessage);
+      return;
+    }
+    if (categoryId === null) return;
     setSubmitting(true);
     // 확정되지 않은 입력 중인 태그는 등록 시 자동 확정(정책). tags는 아직 전송 필드가 없어 상태만 맞춘다.
     if (tagInput) addTag(tagInput);
     try {
-      // 이미지는 고를 때 이미 ①②③을 마쳤고 canSubmit이 전 장 done을 보장하므로 표시 순서 imageId를 그대로 보낸다.
+      // 이미지는 고를 때 이미 ①②③을 마쳤고 isSubmitLocked가 전 장 done을 보장하므로 표시 순서 imageId를 그대로 보낸다.
       // ④ 게시글 생성. tags는 현재 /board 계약에 필드가 없어 전송하지 않는다(FIXME 참고).
       const created = await createPost({
         categoryId,
@@ -343,22 +382,23 @@ export function PostWriteScreen() {
         <button
           type="button"
           onClick={() => void submit()}
-          disabled={!canSubmit}
+          disabled={isSubmitLocked}
           aria-label="등록"
           style={{ width: APP_BAR_BUTTON_SIZE, height: APP_BAR_BUTTON_SIZE }}
           className={cn(
             "ml-auto inline-flex items-center justify-center rounded-[10px] transition-colors",
-            // 입력 완료: 브랜드 채움(button/filled). 미완: 비활성 채움 + 비활성 아이콘.
-            canSubmit
-              ? "bg-button-filled-default-bg text-button-filled-default-text active:bg-button-filled-pressed-bg"
-              : "bg-button-filled-disabled-bg text-button-filled-disabled-text",
+            // 기본은 브랜드 채움(button/filled) — 입력 미충족이어도 활성으로 보이고 탭 시 토스트.
+            // 첨부 업로드 중/실패·전송 중에만 비활성 채움 + 비활성 아이콘.
+            isSubmitLocked
+              ? "bg-button-filled-disabled-bg text-button-filled-disabled-text"
+              : "bg-button-filled-default-bg text-button-filled-default-text active:bg-button-filled-pressed-bg",
           )}
         >
           <CheckIcon size={24} />
         </button>
       </AppBarShell>
 
-      {/* 카테고리 선택: 헤더 바로 아래 가로 스크롤 칩(필수값 — 미선택이면 등록 비활성, canSubmit).
+      {/* 카테고리 선택: 헤더 바로 아래 가로 스크롤 칩(필수값 — 미선택이면 등록 탭 시 토스트).
           칩은 tag-chip 토큰: 비선택 = 투명 배경 + 기본 외곽선, 선택 = surface-field 배경 + 진한 외곽선.
           좌우 16(px-4)·칩 간격 8(gap-2), 넘치면 가로 스크롤(스크롤바 숨김). 스크롤 영역 밖(shrink-0)에 둬
           본문을 아래로 길게 내려도 항상 헤더 아래 고정. */}
@@ -397,6 +437,13 @@ export function PostWriteScreen() {
           value={title}
           onChange={(event) => handleTitleChange(event.target.value)}
           onKeyDown={handleTitleKeyDown}
+          onPaste={(event) =>
+            notifyIfPasteOverflows(
+              event,
+              TITLE_MAX_LENGTH,
+              `제목은 ${TITLE_MAX_LENGTH}자까지 입력할 수 있어요.`,
+            )
+          }
           maxLength={TITLE_MAX_LENGTH}
           rows={1}
           placeholder="제목을 입력해주세요"
@@ -410,6 +457,13 @@ export function PostWriteScreen() {
           ref={bodyRef}
           value={body}
           onChange={(event) => setBody(event.target.value)}
+          onPaste={(event) =>
+            notifyIfPasteOverflows(
+              event,
+              BODY_MAX_LENGTH,
+              `내용은 ${BODY_MAX_LENGTH}자까지 입력할 수 있어요.`,
+            )
+          }
           maxLength={BODY_MAX_LENGTH}
           rows={1}
           placeholder="내용을 입력해주세요"
