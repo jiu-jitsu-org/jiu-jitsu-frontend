@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { type KeyboardEvent, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 
 import { cn } from "@/shared/lib/cn";
 import { useViewportRect } from "@/features/community/presentation/use-viewport-rect";
@@ -38,10 +39,15 @@ const BODY_MAX_LENGTH = 800;
 /** 제목 글자 수 범위(2~45). */
 const TITLE_MIN_LENGTH = 2;
 const TITLE_MAX_LENGTH = 45;
-/** 태그 최대 개수. */
-const MAX_TAGS = 10;
-/** 태그 1개 최대 글자 수. */
-const MAX_TAG_LENGTH = 20;
+/** 태그 최대 개수(정책). */
+const MAX_TAGS = 3;
+/** 태그 1개 최대 글자 수(정책). */
+const MAX_TAG_LENGTH = 12;
+/**
+ * 태그에 허용되지 않는 문자(정책: 한글·영문·숫자만). 입력 단계에서 제거한다.
+ * 완성형(가-힣) 외에 자모(ㄱ-ㅎ·ㅏ-ㅣ)도 허용해야 IME 조합 중인 글자가 지워지지 않는다.
+ */
+const TAG_DISALLOWED_PATTERN = /[^0-9a-zA-Z가-힣ㄱ-ㅎㅏ-ㅣ]/g;
 /** 앱바 좌우 아이콘 버튼(뒤로가기·등록) 한 변(px). 이미지 뷰어 닫기(44)보다 작은 앱바용 크기. */
 const APP_BAR_BUTTON_SIZE = 36;
 /** 첨부 미리보기 썸네일 한 변(px). */
@@ -94,10 +100,13 @@ export function PostWriteScreen() {
   // 키보드 위 '실제 보이는 영역'에 셸을 맞춘다(visualViewport). dvh/fixed inset-0가 안 줄어드는
   // WKWebView에서 입력 보조 바를 키보드 바로 위에 떨어뜨리는 유일하게 신뢰 가능한 기준.
   const rect = useViewportRect();
-  // 태그: 본문 아래 "# 태그" 줄에 항상 노출. 하단 "태그" 버튼은 이 입력칸으로 포커스만 옮긴다.
+  // 태그: 본문(→사진) 아래 "# 태그" 줄. 태그가 없으면 영역 자체가 없고(정책), 하단 "태그" 버튼으로 연다.
+  // tagAreaOpen = 버튼으로 열어둔 상태. 태그가 하나라도 있으면 열림 여부와 무관하게 보인다.
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
+  const [tagAreaOpen, setTagAreaOpen] = useState(false);
   const tagInputRef = useRef<HTMLInputElement>(null);
+  const isTagAreaVisible = tagAreaOpen || tags.length > 0;
   // 제목·본문은 내용만큼 자라는 textarea — 화면(main) 하나가 스크롤되는 디자인.
   const titleRef = useAutoResizeTextarea(title);
   const bodyRef = useAutoResizeTextarea(body);
@@ -149,54 +158,85 @@ export function PostWriteScreen() {
   }
 
   function focusTagInput() {
-    // 하단 "태그" 버튼: 입력줄이 본문 아래에 있어 길게 쓴 뒤엔 화면 밖일 수 있다 → 보이게 스크롤 후 포커스.
+    // 하단 "태그" 버튼: 영역이 닫혀 있으면 먼저 열고(#가 자동으로 보이는 상태) 입력칸으로 포커스.
+    // 입력칸은 열린 뒤에야 마운트되므로 flushSync로 즉시 그린 다음 같은 탭 제스처 안에서 focus한다
+    // (WKWebView는 사용자 제스처 밖의 focus로는 키보드를 띄우지 않는다).
+    // 본문을 길게 쓴 뒤엔 화면 밖일 수 있어 보이게 스크롤한 뒤 포커스.
+    flushSync(() => setTagAreaOpen(true));
     tagInputRef.current?.scrollIntoView({ block: "nearest" });
     tagInputRef.current?.focus();
   }
 
-  function addTag(raw: string) {
-    // 앞쪽 # 제거 + 공백 정리. 빈 값/중복은 무시, 한도 초과는 토스트로 알린다.
-    const name = raw.trim().replace(/^#+/, "").trim();
-    if (!name) return;
-    if (tags.length >= MAX_TAGS) {
-      toast.show(`태그는 최대 ${MAX_TAGS}개까지 추가할 수 있어요`);
-      return;
-    }
-    if (name.length > MAX_TAG_LENGTH) {
-      toast.show(`태그는 ${MAX_TAG_LENGTH}자 이내로 입력해주세요`);
-      return;
+  /** 저장 정규화(정책): 허용 문자만 남기고 앞뒤 공백 제거 + 영문 소문자 통일. 빈 문자열이면 확정 대상 아님. */
+  function normalizeTag(raw: string): string {
+    return raw.replace(TAG_DISALLOWED_PATTERN, "").trim().toLowerCase();
+  }
+
+  /**
+   * 태그 1개 확정. 정규화 후 빈 값·중복은 조용히 무시, 개수/글자 수 초과는 토스트.
+   * 확정에 실패해도 입력은 지우지 않아(개수 초과) 사용자가 앞 태그를 지우고 다시 확정할 수 있다.
+   */
+  function addTag(raw: string): boolean {
+    const name = normalizeTag(raw);
+    if (!name) {
+      setTagInput("");
+      return false;
     }
     if (tags.includes(name)) {
       setTagInput("");
-      return;
+      return false;
+    }
+    if (tags.length >= MAX_TAGS) {
+      toast.show(`태그는 최대 ${MAX_TAGS}개까지 추가할 수 있어요`);
+      return false;
+    }
+    if (name.length > MAX_TAG_LENGTH) {
+      toast.show(`태그는 ${MAX_TAG_LENGTH}자까지 입력할 수 있어요`);
+      return false;
     }
     setTags((prev) => [...prev, name]);
     setTagInput("");
+    return true;
   }
 
   function handleTagChange(value: string) {
-    // 스페이스가 구분자 — 공백을 만나면 앞 토큰들을 칩으로 확정하고 마지막(미완성)만 입력에 남긴다.
+    // 스페이스가 구분자 — 공백을 만나면 앞 토큰들을 확정하고 마지막(미완성)만 입력에 남긴다.
     // keydown 대신 값 변화로 처리해 한글 조합(IME)·붙여넣기까지 안정적으로 분리한다.
     if (/\s/.test(value)) {
       const tokens = value.split(/\s+/);
       const remainder = tokens.pop() ?? "";
       tokens.forEach((token) => addTag(token));
-      setTagInput(remainder);
+      setTagInput(sanitizeTagInput(remainder));
       return;
     }
-    setTagInput(value);
+    setTagInput(sanitizeTagInput(value));
+  }
+
+  /** 입력 단계 제한: 허용 문자 외(사용자가 직접 친 # 포함)는 지우고, 글자 수 초과는 잘라내며 토스트. */
+  function sanitizeTagInput(value: string): string {
+    const allowed = value.replace(TAG_DISALLOWED_PATTERN, "");
+    if (allowed.length > MAX_TAG_LENGTH) {
+      toast.show(`태그는 ${MAX_TAG_LENGTH}자까지 입력할 수 있어요`);
+      return allowed.slice(0, MAX_TAG_LENGTH);
+    }
+    return allowed;
   }
 
   function handleTagKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    // 엔터로도 칩 확정(한글 조합 확정 Enter는 제외). 빈 입력에서 Backspace는 마지막 칩 삭제.
+    // 엔터로도 확정(한글 조합 확정 Enter는 제외).
     if (event.key === "Enter" && !event.nativeEvent.isComposing) {
       event.preventDefault();
       addTag(tagInput);
       return;
     }
-    if (event.key === "Backspace" && tagInput === "" && tags.length > 0) {
+    // 빈 입력에서 Backspace: 직전 태그 삭제 → 태그가 하나도 없으면 영역 자체를 닫는다(정책: 모두 지우면 영역 제거).
+    if (event.key === "Backspace" && tagInput === "") {
       event.preventDefault();
-      setTags((prev) => prev.slice(0, -1));
+      if (tags.length > 0) {
+        setTags((prev) => prev.slice(0, -1));
+        return;
+      }
+      setTagAreaOpen(false);
     }
   }
 
@@ -238,6 +278,8 @@ export function PostWriteScreen() {
   async function submit() {
     if (!canSubmit || categoryId === null) return;
     setSubmitting(true);
+    // 확정되지 않은 입력 중인 태그는 등록 시 자동 확정(정책). tags는 아직 전송 필드가 없어 상태만 맞춘다.
+    if (tagInput) addTag(tagInput);
     try {
       // 이미지는 고를 때 이미 ①②③을 마쳤고 canSubmit이 전 장 done을 보장하므로 표시 순서 imageId를 그대로 보낸다.
       // ④ 게시글 생성. tags는 현재 /board 계약에 필드가 없어 전송하지 않는다(FIXME 참고).
@@ -447,42 +489,39 @@ export function PostWriteScreen() {
           </ul>
         ) : null}
 
-        {/* 태그 입력줄: 본문 아래 항상 노출(상세가 본문 뒤에 "# 태그"를 두므로 위치 모델 일치).
-            확정된 태그는 "# 이름"(브랜드 텍스트 컬러), 입력 중 텍스트도 같은 색 → 곧 태그가 될 것을 예고.
-            비어 있으면 "#" 플레이스홀더만 남겨 형식을 보여준다. 스페이스/엔터로 칩 확정, 칩 탭 = 삭제. */}
-        <div
-          className="mt-4 flex flex-wrap items-center gap-2"
-          // 줄 아무 데나 탭해도 입력칸으로 포커스(입력칸이 짧아 맞추기 어려움).
-          onClick={() => tagInputRef.current?.focus()}
-        >
-          {tags.map((tag) => (
-            <button
-              key={tag}
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                setTags((prev) => prev.filter((t) => t !== tag));
-              }}
-              aria-label={`태그 ${tag} 삭제`}
-              className="text-body-s text-primary-text-subtle"
-            >
-              # {tag}
-            </button>
-          ))}
-          {tags.length < MAX_TAGS ? (
-            <input
-              ref={tagInputRef}
-              value={tagInput}
-              onChange={(event) => handleTagChange(event.target.value)}
-              onKeyDown={handleTagKeyDown}
-              onBlur={() => addTag(tagInput)}
-              maxLength={MAX_TAG_LENGTH}
-              placeholder={tags.length === 0 ? "#" : ""}
-              aria-label="태그 입력"
-              className="min-w-[80px] flex-1 text-body-s text-primary-text-subtle outline-none placeholder:text-text-secondary"
-            />
-          ) : null}
-        </div>
+        {/* 태그 입력줄: 본문 → 사진 → 태그 순서(정책). 태그가 없으면 영역이 없고, 하단 "태그" 버튼으로 열면
+            "#"이 자동으로 앞에 붙은 입력칸이 나타난다(사용자는 태그명만 친다). 스페이스/엔터로 확정 → 다음 "#"이
+            자동 생성되며, 확정 태그는 "# 이름" 평문(브랜드 텍스트 컬러). 탭해도 아무 일 없음 — 태그 검색 화면이
+            1차 범위 밖이라 표시 전용(정책 미결). "#"은 포커스 중엔 입력 텍스트와 같은 색, 아니면 secondary. */}
+        {isTagAreaVisible ? (
+          <div
+            className="group mt-4 flex flex-wrap items-center gap-2"
+            // 줄 아무 데나 탭해도 입력칸으로 포커스(입력칸이 짧아 맞추기 어려움).
+            onClick={() => tagInputRef.current?.focus()}
+          >
+            {tags.map((tag) => (
+              <span key={tag} className="text-body-s text-primary-text-subtle">
+                # {tag}
+              </span>
+            ))}
+            <span className="flex flex-1 items-center gap-1 text-body-s">
+              <span
+                aria-hidden
+                className="text-text-secondary group-focus-within:text-primary-text-subtle"
+              >
+                #
+              </span>
+              <input
+                ref={tagInputRef}
+                value={tagInput}
+                onChange={(event) => handleTagChange(event.target.value)}
+                onKeyDown={handleTagKeyDown}
+                aria-label="태그 입력"
+                className="min-w-[80px] flex-1 text-body-s text-primary-text-subtle outline-none"
+              />
+            </span>
+          </div>
+        ) : null}
 
         {/* 안내문: Label M, tertiary. "커뮤니티 제한 사항"은 밑줄(디자인) — 연결 문서 확정 시 링크로 교체.
             FIXME: 커뮤니티 이용 제한 정책 페이지가 /policies에 아직 없다 — 페이지 생기면 <a href>로 연결. */}
