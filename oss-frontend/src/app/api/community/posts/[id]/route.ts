@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 
 import {
+  parsePostBody,
   parsePostId,
   requireSessionOr401,
   toErrorResponse,
+  validatePostBody,
 } from "@/app/api/community/_lib/community-route-helpers";
 import {
   createDeletePostUseCase,
   createGetPostDetailUseCase,
+  createUpdatePostUseCase,
 } from "@/features/community/application/community-use-case-factory";
 import { readSessionToken } from "@/shared/lib/auth";
 import type { ApiSuccessResponse } from "@/shared/types/api";
@@ -70,5 +73,42 @@ export async function DELETE(
     );
   } catch (error) {
     return toErrorResponse(error, "delete", "게시글 삭제에 실패했습니다.");
+  }
+}
+
+/**
+ * PUT /api/community/posts/{id} — 게시글 수정(인증 필요).
+ *
+ * body: { categoryId, title, body, imageFileIdList, tags } — 생성과 같은 형태. 업스트림 PUT /board/{id}로
+ * 위임하며 imageFileIdList는 "남길 이미지 전체"(서버가 목록을 통째로 교체). 본인 게시글 권한은 업스트림이
+ * 최종 검사한다. tags는 업스트림 수정 계약에 아직 없어 무시되지만, 추가되는 즉시 동작하도록 함께 보낸다.
+ */
+export async function PUT(
+  request: Request,
+  ctx: RouteContext<"/api/community/posts/[id]">,
+) {
+  const { id } = await ctx.params;
+  const parsed = parsePostId(id);
+  if ("response" in parsed) return parsed.response;
+
+  const session = await requireSessionOr401();
+  if ("response" in session) return session.response;
+
+  const fields = await parsePostBody(request);
+  const invalid = validatePostBody(fields);
+  if (invalid) return invalid;
+
+  try {
+    await createUpdatePostUseCase(session.accessToken).execute(
+      parsed.postId,
+      fields,
+    );
+
+    return NextResponse.json<ApiSuccessResponse<null>>(
+      { success: true, data: null },
+      { status: 200 },
+    );
+  } catch (error) {
+    return toErrorResponse(error, "update", "게시글 수정에 실패했습니다.");
   }
 }

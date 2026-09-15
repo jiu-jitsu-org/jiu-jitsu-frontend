@@ -4,10 +4,7 @@ import { useState } from "react";
 
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
-import {
-  MenuBox,
-  MenuItem,
-} from "@/features/community/presentation/menu-box";
+import { MenuBox, MenuItem } from "@/features/community/presentation/menu-box";
 import {
   OutboundMessageType,
   closeNativeSubview,
@@ -22,12 +19,9 @@ import {
   toggleHidePost,
 } from "@/features/community/presentation/hide-post";
 import { useNativeDialog } from "@/features/community/presentation/use-native-dialog";
+import { useOpenPostEdit } from "@/features/community/presentation/use-open-post-edit";
 import { useReportFlow } from "@/features/community/presentation/use-report-flow";
-import {
-  BellIcon,
-  BellOffIcon,
-  MoreVerticalIcon,
-} from "@/shared/ui/icons";
+import { BellIcon, BellOffIcon, MoreVerticalIcon } from "@/shared/ui/icons";
 
 /**
  * 상세 화면 상단 앱바 (클라이언트 leaf).
@@ -56,6 +50,7 @@ export function PostDetailAppBar({
   const demo = useIsDemoMode();
   const { confirm, dialog } = useNativeDialog();
   const { report, dialog: reportDialog } = useReportFlow();
+  const openPostEdit = useOpenPostEdit();
   const [menuOpen, setMenuOpen] = useState(false);
   // 알림 받기 on/off. 초기값은 게시글의 noticeEnabled, 탭하면 서버에 저장한다(#46).
   const [alarmOn, setAlarmOn] = useState(initialNoticeEnabled);
@@ -101,9 +96,9 @@ export function PostDetailAppBar({
 
       // 서버가 현재 설정을 뒤집어 결과(enabled)를 돌려주는 토글이라, 다른 화면·기기에서 이미
       // 바뀌어 있었다면 결과가 next와 다를 수 있다 → 응답 값을 진실로 삼는다.
-      const body = (await response.json().catch(() => null)) as
-        | { data?: { enabled?: boolean } }
-        | null;
+      const body = (await response.json().catch(() => null)) as {
+        data?: { enabled?: boolean };
+      } | null;
       const enabled =
         typeof body?.data?.enabled === "boolean" ? body.data.enabled : next;
 
@@ -249,43 +244,53 @@ export function PostDetailAppBar({
             <MoreVerticalIcon size={24} />
           </button>
 
-        {menuOpen ? (
-          <MenuBox placement="bottom-right" onClose={() => setMenuOpen(false)}>
-            {/* 자신 게시글: 삭제/수정 · 타인 게시글: 신고/숨기기 */}
-            {isOwner ? (
-              <>
-                <MenuItem
-                  onClick={() => {
-                    setMenuOpen(false);
-                    void handleDelete();
-                  }}
-                >
-                  삭제하기
-                </MenuItem>
-                <MenuItem onClick={() => setMenuOpen(false)}>수정하기</MenuItem>
-              </>
-            ) : (
-              <>
-                <MenuItem
-                  onClick={() => {
-                    setMenuOpen(false);
-                    void handleReport();
-                  }}
-                >
-                  신고하기
-                </MenuItem>
-                <MenuItem
-                  onClick={() => {
-                    setMenuOpen(false);
-                    void handleHide();
-                  }}
-                >
-                  숨기기
-                </MenuItem>
-              </>
-            )}
-          </MenuBox>
-        ) : null}
+          {menuOpen ? (
+            <MenuBox
+              placement="bottom-right"
+              onClose={() => setMenuOpen(false)}
+            >
+              {/* 자신 게시글: 삭제/수정 · 타인 게시글: 신고/숨기기 */}
+              {isOwner ? (
+                <>
+                  <MenuItem
+                    onClick={() => {
+                      setMenuOpen(false);
+                      void handleDelete();
+                    }}
+                  >
+                    삭제하기
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      setMenuOpen(false);
+                      openPostEdit(postId);
+                    }}
+                  >
+                    수정하기
+                  </MenuItem>
+                </>
+              ) : (
+                <>
+                  <MenuItem
+                    onClick={() => {
+                      setMenuOpen(false);
+                      void handleReport();
+                    }}
+                  >
+                    신고하기
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      setMenuOpen(false);
+                      void handleHide();
+                    }}
+                  >
+                    숨기기
+                  </MenuItem>
+                </>
+              )}
+            </MenuBox>
+          ) : null}
         </div>
       </div>
 

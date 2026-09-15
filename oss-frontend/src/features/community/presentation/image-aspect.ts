@@ -18,9 +18,19 @@ const SIDE_INSET = "32px";
 export const IMAGE_WIDTH = `calc(100vw - ${SIDE_INSET})`;
 
 /** 허용 비율 하한 4:5 — 이보다 세로로 길면 상하를 잘라낸다. (폭 ÷ 높이 기준) */
-const MIN_ASPECT_RATIO = 4 / 5;
+export const MIN_ASPECT_RATIO = 4 / 5;
 /** 허용 비율 상한 1.91:1 — 이보다 가로로 길면 좌우를 잘라낸다. */
-const MAX_ASPECT_RATIO = 1.91;
+export const MAX_ASPECT_RATIO = 1.91;
+
+/**
+ * 원본이 허용 비율 안인지. 작성 화면이 "이대로 올리면 잘린다"를 미리 알려 편집을 유도하는 데 쓴다.
+ * 크기를 아직 모르면(0) 판단을 미뤄 true — 잘못된 경고보다 늦은 경고가 낫다.
+ */
+export function isWithinAllowedAspect(width: number, height: number): boolean {
+  if (width <= 0 || height <= 0) return true;
+  const ratio = width / height;
+  return ratio >= MIN_ASPECT_RATIO && ratio <= MAX_ASPECT_RATIO;
+}
 
 /**
  * 1장 · 목록 카드 — 폭 W 고정, 높이는 원본 비율 자동.

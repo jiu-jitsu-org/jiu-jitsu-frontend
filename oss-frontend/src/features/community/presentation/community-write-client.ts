@@ -3,6 +3,7 @@ import type { ImageUploadAuth } from "@/features/community/domain/image";
 import type {
   CreatePostInput,
   CreatedPost,
+  UpdatePostInput,
 } from "@/features/community/domain/post";
 import { compressImage } from "@/features/community/presentation/compress-image";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
@@ -16,7 +17,8 @@ import { bffFetch } from "@/shared/lib/http/bff-fetch";
  *   ② POST {ImageKit}/api/v1/files/upload (서명으로 직접 업로드) → { fileId, url }
  *   ③ POST /api/community/image        → { id }(우리 서버 int imageId, TEMP)
  *   ④ POST /api/community/board        → { id }(생성된 게시글)
- * 등록(③)은 고를 때가 아니라 작성(④) 직전에만 일어나므로 CDN/서버 미아가 생기지 않는다.
+ *   ④' PUT /api/community/posts/{id}    → 수정(응답 본문 없음)
+ * ①②③은 사진을 고르는 즉시 장별로 일어나고(썸네일 상태), ④는 등록 탭 시점에 확보된 id를 보낸다.
  */
 
 /**
@@ -59,7 +61,9 @@ async function unwrap<T>(response: Response, context: string): Promise<T> {
 
 /** ① ImageKit 업로드용 서명 발급. */
 async function fetchImageUploadAuth(): Promise<ImageUploadAuth> {
-  const response = await bffFetch("/api/community/image/auth", { method: "GET" });
+  const response = await bffFetch("/api/community/image/auth", {
+    method: "GET",
+  });
   return unwrap<ImageUploadAuth>(response, "image-auth");
 }
 
@@ -124,13 +128,24 @@ export async function uploadImageAndRegister(file: File): Promise<number> {
 }
 
 /** ④ 게시글 생성. 401이면 status를 실어 throw(호출부가 네이티브 로그인 유도). */
-export async function createPost(
-  input: CreatePostInput,
-): Promise<CreatedPost> {
+export async function createPost(input: CreatePostInput): Promise<CreatedPost> {
   const response = await bffFetch("/api/community/board", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
   });
   return unwrap<CreatedPost>(response, "create-post");
+}
+
+/** ④' 게시글 수정(PUT). imageFileIdList는 남길 이미지 전체. 실패 시 status를 실어 throw. */
+export async function updatePost(
+  postId: number,
+  input: UpdatePostInput,
+): Promise<void> {
+  const response = await bffFetch(`/api/community/posts/${postId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  await unwrap<null>(response, "update-post");
 }
