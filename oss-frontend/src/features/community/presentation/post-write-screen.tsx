@@ -30,13 +30,15 @@ import {
   TagIcon,
 } from "@/shared/ui/icons";
 
-import {
-  createPost,
-  WriteRequestError,
-} from "./community-write-client";
+import { createPost, WriteRequestError } from "./community-write-client";
 import { markPostCreated } from "@/features/community/presentation/dirty-posts";
+import { PostImageCropEditor } from "./post-image-crop-editor";
 import { useAutoResizeTextarea } from "./use-auto-resize-textarea";
-import { MAX_IMAGES, useImageAttachments } from "./use-image-attachments";
+import {
+  isAttachmentOutOfAspect,
+  MAX_IMAGES,
+  useImageAttachments,
+} from "./use-image-attachments";
 
 /** 본문 글자 수 범위(10~800). 최대는 카운터/입력 제한, 최소는 등록 조건의 단일 출처. */
 const BODY_MIN_LENGTH = 10;
@@ -55,8 +57,8 @@ const MAX_TAG_LENGTH = 12;
 const TAG_DISALLOWED_PATTERN = /[^0-9a-zA-Z가-힣ㄱ-ㅎㅏ-ㅣ]/g;
 /** 앱바 좌우 아이콘 버튼(뒤로가기·등록) 한 변(px). 이미지 뷰어 닫기(44)보다 작은 앱바용 크기. */
 const APP_BAR_BUTTON_SIZE = 36;
-/** 첨부 미리보기 썸네일 한 변(px). */
-const THUMBNAIL_SIZE = 60;
+/** 첨부 미리보기 썸네일 한 변(px, 정책 64×64). */
+const THUMBNAIL_SIZE = 64;
 /** 썸네일 우상단 삭제(✕) 원 지름(px). 썸네일 모서리에 반쯤 걸쳐 얹는다. */
 const THUMBNAIL_REMOVE_SIZE = 22;
 /** 썸네일 위 상태 표시(스피너·↻) 한 변(px). 60 썸네일 안에서 여백을 남기는 크기. */
@@ -121,7 +123,6 @@ export function PostWriteScreen() {
   // 선택은 표준 <input type=file> — 웹뷰가 네이티브 피커를 띄우고 웹에 File을 돌려준다.
   const {
     attachments,
-    canAddMore,
     remaining,
     isUploadSettled,
     imageFileIdList,
@@ -129,9 +130,16 @@ export function PostWriteScreen() {
     onFileChange,
     pick,
     retry,
+    replaceFile,
     remove,
     discardAll,
   } = useImageAttachments();
+  // 편집(크롭) 중인 첨부의 localId. 썸네일 탭으로만 열린다(자동 진입 없음 — 정책).
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const editing =
+    attachments.find((item) => item.localId === editingId) ?? null;
+  // 허용 비율 밖 원본이 하나라도 있으면 편집 유도 안내(정책). 크롭본은 항상 허용 비율 안.
+  const hasOutOfAspect = attachments.some(isAttachmentOutOfAspect);
 
   // 등록 버튼은 입력 충족 여부로 잠그지 않는다(정책: 항상 활성, 탭 시 검사 → 토스트). 잠그는 경우는 둘뿐:
   // 첨부 업로드 중/실패가 남아 있을 때(사진 정책 — 재시도 또는 ✕ 삭제 후 풀림)와 전송 중.
@@ -273,7 +281,27 @@ export function PostWriteScreen() {
 
   // 네이티브 뒤로가기 가드: 마운트 시 BACK_GUARD로 통지 → 네이티브가 직접 닫지 않고 BACK_PRESSED를 보낸다.
   // 작성 중이면 확인 다이얼로그, 아니면 닫기 → "계속 작성" 선택 시 CLOSE_SUBVIEW를 보내지 않아 화면 유지.
-  useNativeBackHandler(() => void requestClose());
+  // 편집 화면이 떠 있으면 뒤로가기는 편집 취소(미반영)로 소비하고, 작성 화면 이탈 가드는 그다음이다.
+  useNativeBackHandler(() => {
+    if (editingId !== null) {
+      setEditingId(null);
+      return;
+    }
+    void requestClose();
+  });
+
+  /** 썸네일 탭: 실패한 장은 재업로드(사진 정책), 그 외엔 편집 화면. 크기를 못 읽은 장(디코드 실패)은 편집 불가. */
+  function handleThumbnailTap(localId: string) {
+    const target = attachments.find((item) => item.localId === localId);
+    if (!target) return;
+    if (target.status === "failed") {
+      retry(localId);
+      return;
+    }
+    if (target.sourceWidth > 0 && target.sourceHeight > 0) {
+      setEditingId(localId);
+    }
+  }
 
   /**
    * 등록 탭 시 검사(정책): 카테고리 → 제목 → 본문 순, 첫 번째 미충족 항목의 안내만 돌려준다.
@@ -358,7 +386,9 @@ export function PostWriteScreen() {
     <div
       className="fixed left-0 right-0 flex flex-col overflow-hidden bg-[var(--bw-true-white)]"
       style={
-        rect ? { top: rect.top, height: rect.height } : { top: 0, height: "100dvh" }
+        rect
+          ? { top: rect.top, height: rect.height }
+          : { top: 0, height: "100dvh" }
       }
     >
       {/* 앱바: 높이 44(h-11), 좌우 8(px-2). 좌 뒤로가기(tint) · 가운데 "글쓰기" · 우 등록(filled 체크).
@@ -472,75 +502,86 @@ export function PostWriteScreen() {
         />
         <CharCounter length={body.length} max={BODY_MAX_LENGTH} />
 
-        {/* 첨부 이미지 미리보기 — 본문 → 사진 → 태그 순서 고정(정책). 가로 나열, 썸네일 60 + 우상단 ✕(즉시
+        {/* 첨부 이미지 미리보기 — 본문 → 사진 → 태그 순서 고정(정책). 가로 나열, 썸네일 64 + 우상단 ✕(즉시
             삭제, 확인 없음 — 업로드 중에도 가능). ✕가 썸네일 밖으로 나가므로 위쪽 여백(pt-3)을 둬 스크롤
             컨테이너에 잘리지 않게 하고, main의 px-4를 -mx-4/px-4로 되돌려 마지막 썸네일의 ✕도 오른쪽 패딩
             안에 들어오게 한다. 미리보기는 로컬 File의 object URL(blob:)이라 next/image가 아닌 img로 그린다.
             상태별 표시(정책): 업로드 중 = 흐림(white-60 스크림) + 스피너, 실패 = 흐림 + ↻(탭 = 그 장만 재업로드),
-            완료 = 원본. 썸네일 자체를 버튼으로 두되 실패일 때만 탭이 의미를 가진다. */}
+            완료 = 원본. 그 외 탭은 편집(크롭) 화면 — 자동 크롭은 없고 사용자가 열 때만 잘라낸다.
+            허용 비율 밖 원본이 있으면 스트립 위에 편집 유도 안내를 띄운다(잘릴 사진이 있다는 예고). */}
         {attachments.length > 0 ? (
-          <ul className="-mx-4 mt-2 flex gap-4 overflow-x-auto px-4 pt-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {attachments.map((image) => {
-              const isFailed = image.status === "failed";
-              const isUploading = image.status === "uploading";
-              return (
-                <li key={image.localId} className="relative shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => retry(image.localId)}
-                    disabled={!isFailed}
-                    aria-label={
-                      isFailed
-                        ? "업로드 실패한 이미지 다시 올리기"
-                        : isUploading
-                          ? "이미지 업로드 중"
-                          : "첨부 이미지"
-                    }
-                    aria-busy={isUploading}
-                    style={{ width: THUMBNAIL_SIZE, height: THUMBNAIL_SIZE }}
-                    className="relative block overflow-hidden rounded-lg"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={image.preview}
-                      alt=""
+          <>
+            {hasOutOfAspect ? (
+              <p className="mt-4 text-label-m text-text-tertiary">
+                비율이 긴 사진은 일부만 보여요. 사진을 탭해 보일 영역을
+                정해보세요.
+              </p>
+            ) : null}
+            <ul className="-mx-4 mt-2 flex gap-4 overflow-x-auto px-4 pt-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {attachments.map((image) => {
+                const isFailed = image.status === "failed";
+                const isUploading = image.status === "uploading";
+                return (
+                  <li key={image.localId} className="relative shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleThumbnailTap(image.localId)}
+                      aria-label={
+                        isFailed
+                          ? "업로드 실패한 이미지 다시 올리기"
+                          : isUploading
+                            ? "이미지 업로드 중 — 탭하면 편집"
+                            : "첨부 이미지 편집"
+                      }
+                      aria-busy={isUploading}
                       style={{ width: THUMBNAIL_SIZE, height: THUMBNAIL_SIZE }}
-                      className="object-cover"
-                    />
-                    {image.status !== "done" ? (
-                      <span className="absolute inset-0 flex items-center justify-center bg-[var(--opacity-white-60)] text-icon-on-overlay">
-                        {isFailed ? (
-                          <RetryIcon size={THUMBNAIL_STATUS_SIZE} />
-                        ) : (
-                          <span
-                            style={{
-                              width: THUMBNAIL_STATUS_SIZE,
-                              height: THUMBNAIL_STATUS_SIZE,
-                            }}
-                            className="animate-spin rounded-full border-2 border-current border-t-transparent"
-                          />
-                        )}
-                      </span>
-                    ) : null}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => remove(image.localId)}
-                    aria-label="첨부 이미지 삭제"
-                    style={{
-                      width: THUMBNAIL_REMOVE_SIZE,
-                      height: THUMBNAIL_REMOVE_SIZE,
-                      top: -THUMBNAIL_REMOVE_SIZE / 2,
-                      right: -THUMBNAIL_REMOVE_SIZE / 2,
-                    }}
-                    className="absolute inline-flex items-center justify-center rounded-full bg-surface-tertiary text-icon-primary"
-                  >
-                    <CloseIcon size={14} />
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+                      className="relative block overflow-hidden rounded-lg"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={image.preview}
+                        alt=""
+                        style={{
+                          width: THUMBNAIL_SIZE,
+                          height: THUMBNAIL_SIZE,
+                        }}
+                        className="object-cover"
+                      />
+                      {image.status !== "done" ? (
+                        <span className="absolute inset-0 flex items-center justify-center bg-[var(--opacity-white-60)] text-icon-on-overlay">
+                          {isFailed ? (
+                            <RetryIcon size={THUMBNAIL_STATUS_SIZE} />
+                          ) : (
+                            <span
+                              style={{
+                                width: THUMBNAIL_STATUS_SIZE,
+                                height: THUMBNAIL_STATUS_SIZE,
+                              }}
+                              className="animate-spin rounded-full border-2 border-current border-t-transparent"
+                            />
+                          )}
+                        </span>
+                      ) : null}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => remove(image.localId)}
+                      aria-label="첨부 이미지 삭제"
+                      style={{
+                        width: THUMBNAIL_REMOVE_SIZE,
+                        height: THUMBNAIL_REMOVE_SIZE,
+                        top: -THUMBNAIL_REMOVE_SIZE / 2,
+                        right: -THUMBNAIL_REMOVE_SIZE / 2,
+                      }}
+                      className="absolute inline-flex items-center justify-center rounded-full bg-surface-tertiary text-icon-primary"
+                    >
+                      <CloseIcon size={14} />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </>
         ) : null}
 
         {/* 태그 입력줄: 본문 → 사진 → 태그 순서(정책). 태그가 없으면 영역이 없고, 하단 "태그" 버튼으로 열면
@@ -580,8 +621,8 @@ export function PostWriteScreen() {
         {/* 안내문: Label M, tertiary. "커뮤니티 제한 사항"은 밑줄(디자인) — 연결 문서 확정 시 링크로 교체.
             FIXME: 커뮤니티 이용 제한 정책 페이지가 /policies에 아직 없다 — 페이지 생기면 <a href>로 연결. */}
         <p className="mt-4 text-label-m text-text-tertiary">
-          <span className="underline">커뮤니티 제한 사항</span> 위반 시 삭제될 수
-          있습니다.
+          <span className="underline">커뮤니티 제한 사항</span> 위반 시 삭제될
+          수 있습니다.
         </p>
       </main>
 
@@ -608,13 +649,13 @@ export function PostWriteScreen() {
             onChange={onFileChange}
             className="hidden"
           />
-          {/* 사진 첨부(최대 MAX_IMAGES장). 한도에 닿으면 비활성 — 고르는 즉시 장별로 CDN 업로드가 시작된다. */}
+          {/* 사진 첨부(최대 MAX_IMAGES장). 한도에 닿아도 비활성이 아니라 탭 시 토스트(정책, pick 안에서) —
+              고르는 즉시 장별로 CDN 업로드가 시작된다. */}
           <button
             type="button"
             onClick={pick}
-            disabled={!canAddMore}
             aria-label={`사진 첨부 (최대 ${MAX_IMAGES}장)`}
-            className="inline-flex items-center justify-center gap-3 text-text-secondary disabled:text-text-disabled"
+            className="inline-flex items-center justify-center gap-3 text-text-secondary"
           >
             <ImageIcon size={24} className="text-icon-secondary" />
             <span className="text-body-s">사진</span>
@@ -643,6 +684,23 @@ export function PostWriteScreen() {
         >
           <span className="h-8 w-8 animate-spin rounded-full border-[3px] border-[var(--blue-600)] border-t-transparent" />
         </div>
+      ) : null}
+
+      {/* 이미지 편집(크롭) — 썸네일 탭으로 열림. 완료 시 크롭본으로 교체 + 재업로드, 취소는 미반영.
+          key로 장이 바뀌면 새로 마운트해 이전 장의 배치가 남지 않게 한다. */}
+      {editing ? (
+        <PostImageCropEditor
+          key={editing.localId}
+          source={editing.source}
+          sourceWidth={editing.sourceWidth}
+          sourceHeight={editing.sourceHeight}
+          initialCrop={editing.crop}
+          onCancel={() => setEditingId(null)}
+          onDone={(file, crop) => {
+            replaceFile(editing.localId, file, crop);
+            setEditingId(null);
+          }}
+        />
       ) : null}
 
       {/* 작성 이탈 가드(웹 단독 폴백 전용 — 앱에서는 네이티브가 그린다) */}

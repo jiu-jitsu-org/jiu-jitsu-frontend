@@ -6,6 +6,9 @@ import type { ChangeEvent, RefObject } from "react";
 import { uploadImageAndRegister } from "@/features/community/presentation/community-write-client";
 import { useToast } from "@/shared/ui";
 
+import { isWithinAllowedAspect } from "./image-aspect";
+import { readImageSize, type CropState } from "./image-crop";
+
 /** 게시글 1건 최대 첨부 장수(클라이언트 제한, 단일 출처). 한번에 여러 장 골라도 이 수까지만 담는다. */
 export const MAX_IMAGES = 3;
 
@@ -30,14 +33,32 @@ export type AttachmentStatus = "uploading" | "failed" | "done";
  */
 export type Attachment = {
   localId: string;
-  /** 원본 File. 재시도 시 같은 파일을 다시 올린다. */
+  /** 피커에서 고른 원본 File. 편집(크롭)은 항상 이 원본에서 다시 잘라내므로 이어 편집이 된다. */
+  source: File;
+  /** 원본 픽셀 크기(EXIF 보정 후). 디코드 전/실패면 0 — 편집 불가·비율 판단 보류. */
+  sourceWidth: number;
+  sourceHeight: number;
+  /** 실제 업로드되는 File — 편집 전엔 원본과 동일, 완료 후엔 크롭본. 재시도도 이 파일을 올린다. */
   file: File;
-  /** 미리보기용 object URL(blob:). remove/이탈 시 revoke 해 메모리 해제. */
+  /** 미리보기용 object URL(blob:) — `file` 기준. remove/교체/이탈 시 revoke 해 메모리 해제. */
   preview: string;
   status: AttachmentStatus;
   /** ③ 서버 등록까지 끝났을 때의 int imageId. done일 때만 존재. */
   imageId?: number;
+  /** 마지막 편집 결과. 없으면 원본 그대로(자동 크롭 없음). */
+  crop?: CropState;
+  /**
+   * 업로드 세대. 편집으로 파일이 바뀌면 +1 — 이전 파일의 업로드 결과가 늦게 도착해도
+   * 세대가 다르면 버려서 크롭 전 이미지의 imageId가 붙는 사고를 막는다.
+   */
+  uploadSeq: number;
 };
+
+/** 허용 비율(4:5~1.91:1) 밖이라 이대로 올리면 상세/목록에서 잘리는 장 — 편집을 유도한다. 크롭본은 항상 안. */
+export function isAttachmentOutOfAspect(item: Attachment): boolean {
+  if (item.crop) return false;
+  return !isWithinAllowedAspect(item.sourceWidth, item.sourceHeight);
+}
 
 /**
  * 게시글 작성 이미지 첨부 훅 (선택 즉시 개별 업로드 / 웹 단독).
@@ -53,8 +74,11 @@ export type Attachment = {
  * 화면은 `fileInputRef`를 숨겨진 input에 연결하고 `onFileChange`를 그 onChange에 건다.
  * "사진" 버튼은 `pick()`으로 그 input을 연다(탭 = 사용자 제스처라 웹뷰가 피커를 띄움).
  *
- * FIXME(미아 정리): 업로드 완료 후 ✕로 지우거나 작성을 취소하면 CDN/서버(TEMP) 이미지가 남는다.
- * 게시글에 연결되지 않은 TEMP 이미지의 서버 측 정리 정책이 확정되면 삭제 API 호출을 붙인다.
+ * 편집(크롭)은 `replaceFile`로 파일만 갈아 끼우고 다시 올린다. 원본은 `source`에 남겨 다음 편집이
+ * 크롭본이 아니라 원본에서 다시 잘라내게 한다(등록 전까지는 몇 번이든 되돌릴 수 있음).
+ *
+ * FIXME(미아 정리): 업로드 완료 후 ✕로 지우거나 편집으로 교체하거나 작성을 취소하면 CDN/서버(TEMP)
+ * 이미지가 남는다. 게시글에 연결되지 않은 TEMP 이미지의 서버 측 정리 정책이 확정되면 삭제 API 호출을 붙인다.
  */
 export function useImageAttachments() {
   const toast = useToast();
@@ -87,30 +111,45 @@ export function useImageAttachments() {
    * 한 장 상태 갱신. 결과가 돌아왔을 때 이미 ✕로 지워진 장이면 prev에 없어 map이 건너뛴다 —
    * 업로드 중 삭제를 허용하면서도 늦게 도착한 결과가 목록을 되살리지 않게 하는 장치.
    */
-  const patch = useCallback(
-    (localId: string, next: Partial<Attachment>) => {
-      setAttachments((prev) =>
-        prev.map((item) =>
-          item.localId === localId ? { ...item, ...next } : item,
-        ),
-      );
-    },
-    [],
-  );
+  const patch = useCallback((localId: string, next: Partial<Attachment>) => {
+    setAttachments((prev) =>
+      prev.map((item) =>
+        item.localId === localId ? { ...item, ...next } : item,
+      ),
+    );
+  }, []);
 
-  /** 한 장 업로드 실행. isRetry면 실패 시 정책 토스트까지 띄운다(첫 실패는 ↻ 표시로 충분). */
+  /**
+   * 한 장 업로드 실행. isRetry면 실패 시 정책 토스트까지 띄운다(첫 실패는 ↻ 표시로 충분).
+   * 결과는 시작 시점의 uploadSeq와 같은 세대일 때만 반영 — 도중에 편집으로 파일이 바뀌었으면 버린다.
+   */
   const startUpload = useCallback(
-    async (localId: string, file: File, isRetry: boolean) => {
+    async (localId: string, file: File, seq: number, isRetry: boolean) => {
+      const isCurrent = () =>
+        attachmentsRef.current.some(
+          (item) => item.localId === localId && item.uploadSeq === seq,
+        );
       try {
         const imageId = await uploadImageAndRegister(file);
+        if (!isCurrent()) return;
         patch(localId, { status: "done", imageId });
       } catch (error) {
         console.error("[post-write] 이미지 업로드 실패:", file.name, error);
+        if (!isCurrent()) return;
         patch(localId, { status: "failed", imageId: undefined });
         if (isRetry) toast.show(RETRY_FAILED_MESSAGE);
       }
     },
     [patch, toast],
+  );
+
+  /** 원본 크기를 읽어 채운다 — 비율 밖 경고·편집 가능 여부의 근거. 늦게 와도 patch가 흡수한다. */
+  const measureSource = useCallback(
+    async (localId: string, source: File) => {
+      const size = await readImageSize(source);
+      patch(localId, { sourceWidth: size.width, sourceHeight: size.height });
+    },
+    [patch],
   );
 
   /** 고른 파일들을 한도 내에서 첨부에 추가하고 즉시 장별 업로드를 시작한다. */
@@ -131,15 +170,22 @@ export function useImageAttachments() {
 
       const next: Attachment[] = files.slice(0, room).map((file) => ({
         localId: crypto.randomUUID(),
+        source: file,
+        sourceWidth: 0,
+        sourceHeight: 0,
         file,
         preview: URL.createObjectURL(file),
         status: "uploading",
+        uploadSeq: 0,
       }));
       setAttachments((prev) => [...prev, ...next]);
-      // 장별로 독립 실행 — 한 장 실패가 다른 장을 막지 않는다.
-      next.forEach((item) => void startUpload(item.localId, item.file, false));
+      // 장별로 독립 실행 — 한 장 실패가 다른 장을 막지 않는다. 크기 읽기는 업로드와 병행.
+      next.forEach((item) => {
+        void measureSource(item.localId, item.source);
+        void startUpload(item.localId, item.file, item.uploadSeq, false);
+      });
     },
-    [attachments.length, startUpload, toast],
+    [attachments.length, measureSource, startUpload, toast],
   );
 
   /** 숨겨진 file input의 onChange. 같은 파일 재선택도 발화되도록 value를 비운다. */
@@ -151,7 +197,7 @@ export function useImageAttachments() {
     [addFiles],
   );
 
-  /** "사진" 버튼: 한도면 토스트로 막고, 아니면 네이티브/웹 피커를 연다. */
+  /** "사진" 버튼: 이미 3장이면 피커를 열지 않고 토스트(정책 — 버튼은 비활성이 아님), 아니면 피커를 연다. */
   const pick = useCallback(() => {
     if (attachments.length >= MAX_IMAGES) {
       toast.show(MAX_IMAGES_MESSAGE);
@@ -168,7 +214,32 @@ export function useImageAttachments() {
       );
       if (!target || target.status !== "failed") return;
       patch(localId, { status: "uploading" });
-      void startUpload(localId, target.file, true);
+      void startUpload(localId, target.file, target.uploadSeq, true);
+    },
+    [patch, startUpload],
+  );
+
+  /**
+   * 편집 완료: 업로드 파일을 크롭본으로 교체하고 새 세대로 다시 올린다. 이전 미리보기 URL은 회수.
+   * 업로드 중이던 이전 세대의 결과는 세대가 달라 자동으로 버려진다.
+   */
+  const replaceFile = useCallback(
+    (localId: string, file: File, crop: CropState) => {
+      const target = attachmentsRef.current.find(
+        (item) => item.localId === localId,
+      );
+      if (!target) return;
+      URL.revokeObjectURL(target.preview);
+      const seq = target.uploadSeq + 1;
+      patch(localId, {
+        file,
+        preview: URL.createObjectURL(file),
+        crop,
+        status: "uploading",
+        imageId: undefined,
+        uploadSeq: seq,
+      });
+      void startUpload(localId, file, seq, false);
     },
     [patch, startUpload],
   );
@@ -200,6 +271,7 @@ export function useImageAttachments() {
     onFileChange,
     pick,
     retry,
+    replaceFile,
     remove,
     discardAll,
   };
