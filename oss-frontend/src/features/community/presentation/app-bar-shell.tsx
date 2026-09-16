@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import { cn } from "@/shared/lib/cn";
 
@@ -14,16 +14,22 @@ import { cn } from "@/shared/lib/cn";
  * content-box로 두면 h-11은 inset 패딩 "아래에 깔리는 44px 바"의 높이가 되어 전체 = inset + 44.
  *
  * 새 화면 헤더는 이 셸을 쓰면 safe-area 처리를 개별로 빠뜨릴 수 없다.
+ *
+ * 화면별로 디자인이 다르면(글쓰기: 52 · 좌우 16 · safe-area 0) className으로 덮어쓴다 — cn이
+ * tailwind-merge라 같은 그룹의 뒤 클래스가 이긴다. h-11은 style.height로도 덮을 수 있다.
  */
 export function AppBarShell({
   children,
   className,
+  style,
 }: {
   children: ReactNode;
   className?: string;
+  style?: CSSProperties;
 }) {
   return (
     <header
+      style={style}
       className={cn(
         "sticky top-0 z-30 box-content flex h-11 items-center bg-[var(--bw-true-white)] px-2 pt-[env(safe-area-inset-top)]",
         className,
