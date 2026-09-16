@@ -69,7 +69,7 @@ const MAX_TAG_LENGTH = 12;
 const TAG_DISALLOWED_PATTERN = /[^0-9a-zA-Z가-힣ㄱ-ㅎㅏ-ㅣ]/g;
 /** 앱바 좌우 아이콘 버튼(뒤로가기·등록) 한 변(px). 이미지 뷰어 닫기(44)보다 작은 앱바용 크기. */
 const APP_BAR_BUTTON_SIZE = 36;
-/** 글쓰기 앱바 높이(px). 공통 셸(44)과 달리 디자인이 52 — 아래 상단 마진들이 이 안에 들어간다. */
+/** 글쓰기 앱바 높이(px, safe-area 제외). 공통 셸(44)과 달리 디자인이 52 — 아래 상단 마진들이 이 안에 들어간다. */
 const APP_BAR_HEIGHT = 52;
 /** 앱바 버튼 상단 마진(px) — 12 + 36 = 48, 바 높이 52 안. */
 const APP_BAR_BUTTON_TOP = 12;
@@ -526,14 +526,16 @@ export function PostWriteScreen({
           : { top: 0, height: "100dvh" }
       }
     >
-      {/* 앱바(디자인 2026-09-16): 높이 52, 좌우 16, safe-area top 마진 0 — 공통 셸(44 · 좌우 8 · safe-area
-          패딩)을 className으로 덮어쓴다(cn이 tailwind-merge라 뒤 클래스가 이긴다). 셸의 items-center 대신
-          위 정렬로 두고 각 요소가 자기 상단 마진을 가진다: 버튼 12(+36 = 48), 타이틀 13(+35 = 48).
+      {/* 앱바(디자인 2026-09-16): 높이 52, 좌우 16 — 공통 셸(44 · 좌우 8)을 className/style로 덮어쓴다
+          (cn이 tailwind-merge라 뒤 클래스가 이긴다). 셸의 safe-area top 패딩은 유지 — 웹뷰가 edge-to-edge라
+          이 패딩이 없으면 앱바가 상태바와 겹친다. "safe-area 마진 0"은 상태바와 앱바 사이에 추가 여백이
+          없다는 뜻이고, 바 자체(52)는 상태바 바로 아래에 붙는다. 셸의 items-center 대신 위 정렬로 두고
+          각 요소가 자기 상단 마진을 가진다: 버튼 12(+36 = 48), 타이틀 13(+35 = 48).
           좌 뒤로가기(tint) · 가운데 "글쓰기"(Title 3 · header/text) · 우 등록(filled 체크). 두 아이콘 버튼 모두
           36 정사각 + radius 10 — 이미지 뷰어 닫기 버튼과 같은 tint 어휘.
           뒤로가기는 웹 버튼과 네이티브 BACK_PRESSED 둘 다 requestClose로 모아 이탈 가드를 한 곳에서 처리한다. */}
       <AppBarShell
-        className="items-start px-4 pt-0"
+        className="items-start px-4"
         style={{ height: APP_BAR_HEIGHT }}
       >
         <button

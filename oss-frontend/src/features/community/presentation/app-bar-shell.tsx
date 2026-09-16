@@ -15,8 +15,8 @@ import { cn } from "@/shared/lib/cn";
  *
  * 새 화면 헤더는 이 셸을 쓰면 safe-area 처리를 개별로 빠뜨릴 수 없다.
  *
- * 화면별로 디자인이 다르면(글쓰기: 52 · 좌우 16 · safe-area 0) className으로 덮어쓴다 — cn이
- * tailwind-merge라 같은 그룹의 뒤 클래스가 이긴다. h-11은 style.height로도 덮을 수 있다.
+ * 화면별로 디자인이 다르면(글쓰기: 52 · 좌우 16) className/style로 덮어쓴다 — cn이 tailwind-merge라
+ * 같은 그룹의 뒤 클래스가 이긴다. safe-area 패딩은 덮어쓰지 말 것 — 없으면 상태바와 겹친다.
  */
 export function AppBarShell({
   children,
