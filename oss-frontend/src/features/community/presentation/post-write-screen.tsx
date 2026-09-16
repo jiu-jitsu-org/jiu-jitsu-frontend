@@ -141,12 +141,13 @@ export function PostWriteScreen({
   // WKWebView에서 입력 보조 바를 키보드 바로 위에 떨어뜨리는 유일하게 신뢰 가능한 기준.
   const rect = useViewportRect();
   // 태그: 본문(→사진) 아래 "# 태그" 줄. 태그가 없으면 영역 자체가 없고(정책), 하단 "태그" 버튼으로 연다.
-  // tagAreaOpen = 버튼으로 열어둔 상태. 태그가 하나라도 있으면 열림 여부와 무관하게 보인다.
+  // tagInputOpen = "#" 입력칸이 떠 있는 상태. 입력칸을 벗어나면(blur) 닫히고, 다시 열려면 툴바 "태그"를
+  // 탭하거나 확정 태그를 탭(수정)한다. 확정 태그가 있으면 입력칸이 닫혀도 영역은 남는다.
   const [tags, setTags] = useState<string[]>(edit?.initial.tags ?? []);
   const [tagInput, setTagInput] = useState("");
-  const [tagAreaOpen, setTagAreaOpen] = useState(false);
+  const [tagInputOpen, setTagInputOpen] = useState(false);
   const tagInputRef = useRef<HTMLInputElement>(null);
-  const isTagAreaVisible = tagAreaOpen || tags.length > 0;
+  const isTagAreaVisible = tagInputOpen || tags.length > 0;
   // 제목·본문은 내용만큼 자라는 textarea — 화면(main) 하나가 스크롤되는 디자인.
   const titleRef = useAutoResizeTextarea(title);
   const bodyRef = useAutoResizeTextarea(body);
@@ -211,14 +212,42 @@ export function PostWriteScreen({
     }
   }
 
-  function focusTagInput() {
-    // 하단 "태그" 버튼: 영역이 닫혀 있으면 먼저 열고(#가 자동으로 보이는 상태) 입력칸으로 포커스.
-    // 입력칸은 열린 뒤에야 마운트되므로 flushSync로 즉시 그린 다음 같은 탭 제스처 안에서 focus한다
-    // (WKWebView는 사용자 제스처 밖의 focus로는 키보드를 띄우지 않는다).
-    // 본문을 길게 쓴 뒤엔 화면 밖일 수 있어 보이게 스크롤한 뒤 포커스.
-    flushSync(() => setTagAreaOpen(true));
+  /**
+   * "#" 입력칸을 열고(닫혀 있었으면) 포커스. 입력칸은 열린 뒤에야 마운트되므로 flushSync로 즉시 그린 다음
+   * 같은 탭 제스처 안에서 focus한다(WKWebView는 사용자 제스처 밖의 focus로는 키보드를 띄우지 않는다).
+   * 본문을 길게 쓴 뒤엔 화면 밖일 수 있어 보이게 스크롤한 뒤 포커스.
+   */
+  function openTagInput(initialValue: string) {
+    flushSync(() => {
+      setTagInputOpen(true);
+      setTagInput(initialValue);
+    });
     tagInputRef.current?.scrollIntoView({ block: "nearest" });
     tagInputRef.current?.focus();
+  }
+
+  /** 하단 "태그" 버튼: 빈 입력칸을 연다. */
+  function focusTagInput() {
+    openTagInput("");
+  }
+
+  /**
+   * 확정 태그 탭 = 수정(정책). 목록에서 빼고 그 이름을 입력칸에 넣어 이어 친다.
+   * 입력칸이 이미 열려 있었다면 탭 순간의 blur가 그 입력을 먼저 확정하고 닫은 뒤 여기로 온다.
+   */
+  function editTag(tag: string) {
+    setTags((prev) => prev.filter((item) => item !== tag));
+    openTagInput(tag);
+  }
+
+  /**
+   * 입력칸 이탈(blur, 정책): 한 글자라도 있으면 그대로 확정, 0글자면 취소 — 어느 쪽이든 "#" 입력칸은 닫힌다.
+   * 다시 입력하려면 툴바 "태그" 또는 확정 태그 탭. 확정 태그가 없으면 영역 자체가 사라진다.
+   */
+  function handleTagBlur() {
+    if (tagInput) addTag(tagInput);
+    setTagInput("");
+    setTagInputOpen(false);
   }
 
   /** 저장 정규화(정책): 허용 문자만 남기고 앞뒤 공백 제거 + 영문 소문자 통일. 빈 문자열이면 확정 대상 아님. */
@@ -283,14 +312,14 @@ export function PostWriteScreen({
       addTag(tagInput);
       return;
     }
-    // 빈 입력에서 Backspace: 직전 태그 삭제 → 태그가 하나도 없으면 영역 자체를 닫는다(정책: 모두 지우면 영역 제거).
+    // 빈 입력에서 Backspace: 직전 태그 삭제 → 태그가 하나도 없으면 입력칸을 닫는다(영역 제거).
     if (event.key === "Backspace" && tagInput === "") {
       event.preventDefault();
       if (tags.length > 0) {
         setTags((prev) => prev.slice(0, -1));
         return;
       }
-      setTagAreaOpen(false);
+      setTagInputOpen(false);
     }
   }
 
@@ -724,40 +753,41 @@ export function PostWriteScreen({
 
         {/* 태그 입력줄: 본문 → 사진 → 태그 순서(정책). 태그가 없으면 영역이 없고, 하단 "태그" 버튼으로 열면
             "#"이 자동으로 앞에 붙은 입력칸이 나타난다(사용자는 태그명만 친다). 스페이스/엔터로 확정 → 다음 "#"이
-            자동 생성되며, 확정 태그는 "# 이름" 평문(브랜드 텍스트 컬러). 탭해도 아무 일 없음 — 태그 검색 화면이
-            1차 범위 밖이라 표시 전용(정책 미결). "#"은 포커스 중엔 입력 텍스트와 같은 색, 아니면 secondary. */}
+            자동 생성되며, 확정 태그는 "# 이름"(브랜드 텍스트 컬러) — 탭하면 그 태그를 입력칸으로 되돌려 수정한다.
+            입력칸을 벗어나면(blur) 입력 중이던 글자는 확정, 0글자면 취소되고 "#" 입력칸은 사라진다.
+            "#"은 포커스 중엔 입력 텍스트와 같은 색, 아니면 secondary. */}
         {isTagAreaVisible ? (
-          <div
-            className="group mt-4 flex flex-wrap items-center gap-2"
-            // 줄 아무 데나 탭해도 입력칸으로 포커스(입력칸이 짧아 맞추기 어려움).
-            onClick={() => tagInputRef.current?.focus()}
-          >
+          <div className="group mt-4 flex flex-wrap items-center gap-2">
             {tags.map((tag) => (
-              <span key={tag} className="text-body-s text-primary-text-subtle">
-                # {tag}
-              </span>
-            ))}
-            <span className="flex flex-1 items-center gap-1 text-body-s">
-              <span
-                aria-hidden
-                className="text-text-secondary group-focus-within:text-primary-text-subtle"
+              <button
+                key={tag}
+                type="button"
+                onClick={() => editTag(tag)}
+                aria-label={`태그 ${tag} 수정`}
+                className="text-body-s text-primary-text-subtle"
               >
-                #
+                # {tag}
+              </button>
+            ))}
+            {tagInputOpen ? (
+              <span className="flex flex-1 items-center gap-1 text-body-s">
+                <span
+                  aria-hidden
+                  className="text-text-secondary group-focus-within:text-primary-text-subtle"
+                >
+                  #
+                </span>
+                <input
+                  ref={tagInputRef}
+                  value={tagInput}
+                  onChange={(event) => handleTagChange(event.target.value)}
+                  onKeyDown={handleTagKeyDown}
+                  onBlur={handleTagBlur}
+                  aria-label="태그 입력"
+                  className="min-w-[80px] flex-1 text-body-s text-primary-text-subtle outline-none"
+                />
               </span>
-              <input
-                ref={tagInputRef}
-                value={tagInput}
-                onChange={(event) => handleTagChange(event.target.value)}
-                onKeyDown={handleTagKeyDown}
-                // 입력 중 다른 곳을 탭하면(blur) 한 글자라도 있으면 그대로 확정 — 스페이스/엔터 없이
-                // 본문으로 넘어가도 태그가 사라지지 않게. 빈 입력이면 아무 일 없음(영역 유지).
-                onBlur={() => {
-                  if (tagInput) addTag(tagInput);
-                }}
-                aria-label="태그 입력"
-                className="min-w-[80px] flex-1 text-body-s text-primary-text-subtle outline-none"
-              />
-            </span>
+            ) : null}
           </div>
         ) : null}
 
