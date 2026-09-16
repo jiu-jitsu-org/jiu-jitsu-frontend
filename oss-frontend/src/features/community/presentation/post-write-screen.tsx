@@ -76,6 +76,14 @@ const APP_BAR_BUTTON_TOP = 12;
 /** 앱바 타이틀 박스 상단 마진·높이(px) — 13 + 35 = 48. 텍스트는 박스 안 세로 가운데. */
 const APP_BAR_TITLE_TOP = 13;
 const APP_BAR_TITLE_HEIGHT = 35;
+/** 하단 툴바 높이(px, safe-area 제외). 디자인 2026-09-16: 48. */
+const TOOLBAR_HEIGHT = 48;
+/**
+ * FIXME(토큰): 툴바 아이콘·텍스트 색은 디자인 지정 post-editor/toolbar/text인데 토큰 파일(design-tokens)에 아직
+ * 없다. 값이 같은 text-secondary(#70737C)로 두고, Figma 재추출로 토큰이 생기면 `text-post-editor-toolbar-text`
+ * 하나로 바꾼다. 아이콘은 currentColor를 상속하므로 버튼 색만 바꾸면 된다.
+ */
+const TOOLBAR_TEXT_CLASS = "text-text-secondary";
 /** 첨부 미리보기 썸네일 한 변(px, 정책 64×64). */
 const THUMBNAIL_SIZE = 64;
 /** 썸네일 우상단 삭제(✕) 원 지름(px). 썸네일 모서리에 반쯤 걸쳐 얹는다. */
@@ -829,8 +837,9 @@ export function PostWriteScreen({
         </p>
       </main>
 
-      {/* 하단 툴바: 사진·태그 입력 보조 액션 전용. 셸의 마지막 자식이라 항상 바닥(=키보드 위)에 붙는다.
-          디자인은 구분선 없이 두 액션을 좌·우 절반에 각각 가운데 정렬한다.
+      {/* 하단 툴바(높이 48): 사진·태그 입력 보조 액션 전용. 셸의 마지막 자식이라 항상 바닥(=키보드 위)에 붙는다.
+          디자인은 구분선 없이 두 액션을 좌·우 절반에 각각 가운데 정렬하고, 아이콘·텍스트를 한 색(툴바 text)으로 —
+          아이콘은 currentColor를 상속받으므로 버튼에만 색을 준다. 텍스트 Body S(14).
           평소엔 safe-area bottom(홈 인디케이터)까지 칠하지만, 키보드가 떠 있는 동안엔 그 영역이 키보드에
           가려 의미가 없으므로 패딩을 0으로 줘 바를 키보드에 딱 붙인다(overlay 모드의 잔여 여백 제거). */}
       <div
@@ -839,7 +848,7 @@ export function PostWriteScreen({
           rect?.keyboardOpen ? "pb-0" : "pb-[env(safe-area-inset-bottom)]",
         )}
       >
-        <div className="grid h-[52px] grid-cols-2">
+        <div className="grid grid-cols-2" style={{ height: TOOLBAR_HEIGHT }}>
           {/* 숨겨진 표준 file input — 웹뷰가 탭 시 네이티브 사진/카메라 피커를 열고 File을 돌려준다.
               사진 버튼이 이 input을 click()으로 연다(버튼 탭 = 사용자 제스처).
               남은 슬롯이 1장이면 단일 선택으로 전환 → 마지막 한 장에서 초과 선택→잘림을 줄인다.
@@ -861,21 +870,24 @@ export function PostWriteScreen({
             aria-label={
               isEdit ? "사진 추가 불가" : `사진 첨부 (최대 ${MAX_IMAGES}장)`
             }
-            className="inline-flex items-center justify-center gap-3 text-text-secondary disabled:text-text-disabled"
+            className={cn(
+              "inline-flex items-center justify-center gap-3 disabled:text-text-disabled",
+              TOOLBAR_TEXT_CLASS,
+            )}
           >
-            <ImageIcon
-              size={24}
-              className={isEdit ? "text-icon-disabled" : "text-icon-secondary"}
-            />
+            <ImageIcon size={24} />
             <span className="text-body-s">사진</span>
           </button>
           {/* 탭하면 본문 아래 "# 태그" 입력칸으로 포커스(필요하면 그 줄이 보이게 스크롤). */}
           <button
             type="button"
             onClick={focusTagInput}
-            className="inline-flex items-center justify-center gap-3 text-text-secondary"
+            className={cn(
+              "inline-flex items-center justify-center gap-3",
+              TOOLBAR_TEXT_CLASS,
+            )}
           >
-            <TagIcon size={24} className="text-icon-secondary" />
+            <TagIcon size={24} />
             <span className="text-body-s">태그</span>
           </button>
         </div>
