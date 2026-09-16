@@ -135,8 +135,10 @@ export function PostWriteScreen({
   const [existingImages, setExistingImages] = useState<PostImage[]>(
     edit?.initial.images ?? [],
   );
-  // 수정 모드 이미지 상세(보기 전용)에서 보고 있는 장. null = 닫힘.
-  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  // 수정 모드 이미지 상세(보기 전용)에 띄운 장의 id. null = 닫힘. 상세는 탭한 한 장만 보여준다.
+  const [viewerImageId, setViewerImageId] = useState<number | null>(null);
+  const viewerImage =
+    existingImages.find((image) => image.id === viewerImageId) ?? null;
   // 키보드 위 '실제 보이는 영역'에 셸을 맞춘다(visualViewport). dvh/fixed inset-0가 안 줄어드는
   // WKWebView에서 입력 보조 바를 키보드 바로 위에 떨어뜨리는 유일하게 신뢰 가능한 기준.
   const rect = useViewportRect();
@@ -374,18 +376,16 @@ export function PostWriteScreen({
       setEditingId(null);
       return;
     }
-    if (viewerIndex !== null) {
-      setViewerIndex(null);
+    if (viewerImageId !== null) {
+      setViewerImageId(null);
       return;
     }
     void requestClose();
   });
 
-  /** 수정 모드 이미지 삭제(스트립·상세 공용). 마지막 1장을 지우면 상세를 닫는다(정책). */
+  /** 수정 모드 이미지 삭제(스트립 ✕). 상세는 스트립이 딤 뒤에 있어 여기서만 지운다. */
   function removeExistingImage(imageId: number) {
-    const next = existingImages.filter((image) => image.id !== imageId);
-    setExistingImages(next);
-    if (next.length === 0) setViewerIndex(null);
+    setExistingImages((prev) => prev.filter((image) => image.id !== imageId));
   }
 
   /**
@@ -641,11 +641,11 @@ export function PostWriteScreen({
         {/* 수정 모드: 등록된 이미지 스트립 — 삭제만(✕), 탭 = 보기 전용 상세. 크롭·추가 없음(정책). */}
         {isEdit && existingImages.length > 0 ? (
           <ul className="-mx-4 mt-2 flex gap-4 overflow-x-auto px-4 pt-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {existingImages.map((image, index) => (
+            {existingImages.map((image) => (
               <li key={image.id} className="relative shrink-0">
                 <button
                   type="button"
-                  onClick={() => setViewerIndex(index)}
+                  onClick={() => setViewerImageId(image.id)}
                   aria-label="이미지 상세 보기"
                   style={{ width: THUMBNAIL_SIZE, height: THUMBNAIL_SIZE }}
                   className="block overflow-hidden rounded-lg"
@@ -882,13 +882,11 @@ export function PostWriteScreen({
         />
       ) : null}
 
-      {/* 수정 모드 이미지 상세(보기 전용) — 썸네일 탭으로 열림. 삭제는 스트립과 같은 상태를 바꾼다. */}
-      {viewerIndex !== null && existingImages.length > 0 ? (
+      {/* 수정 모드 이미지 상세(보기 전용) — 썸네일 탭으로 열려 그 한 장만 보여준다. */}
+      {viewerImage ? (
         <PostEditImageViewer
-          images={existingImages}
-          initialIndex={viewerIndex}
-          onRemove={removeExistingImage}
-          onClose={() => setViewerIndex(null)}
+          image={viewerImage}
+          onClose={() => setViewerImageId(null)}
         />
       ) : null}
 
