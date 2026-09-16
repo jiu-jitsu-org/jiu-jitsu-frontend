@@ -9,6 +9,7 @@ import { GetImageUploadAuthUseCase } from "@/features/community/application/get-
 import { GetRepliesUseCase } from "@/features/community/application/get-replies";
 import { RegisterImageUseCase } from "@/features/community/application/register-image";
 import { GetPostDetailUseCase } from "@/features/community/application/get-post-detail";
+import { GetPostCategoriesUseCase } from "@/features/community/application/get-post-categories";
 import { GetPostListUseCase } from "@/features/community/application/get-post-list";
 import { ToggleBookmarkUseCase } from "@/features/community/application/toggle-bookmark";
 import { ToggleHideUseCase } from "@/features/community/application/toggle-hide";
@@ -47,6 +48,12 @@ function createReadRepository(
     : createServerHttpClient();
 
   return new ExternalPostRepository(httpClient);
+}
+
+export function createGetPostCategoriesUseCase(
+  accessToken: string | null,
+): GetPostCategoriesUseCase {
+  return new GetPostCategoriesUseCase(createReadRepository(accessToken));
 }
 
 export function createGetPostListUseCase(

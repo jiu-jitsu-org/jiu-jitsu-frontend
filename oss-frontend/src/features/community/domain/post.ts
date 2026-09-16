@@ -78,6 +78,12 @@ export type PostDetail = {
   noticeEnabled: boolean;
 };
 
+/** 게시글 카테고리 — GET /board/category 응답 항목(categoryId로 그대로 전송). */
+export type PostCategory = {
+  id: number;
+  name: string;
+};
+
 /** 게시글 생성 요청 — POST /board body. */
 export type CreatePostInput = {
   categoryId: number;

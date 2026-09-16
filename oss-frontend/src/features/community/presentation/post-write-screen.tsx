@@ -31,6 +31,7 @@ import {
 } from "@/shared/ui/icons";
 
 import type {
+  PostCategory,
   PostEditInitial,
   PostImage,
 } from "@/features/community/domain/post";
@@ -79,7 +80,7 @@ const APP_BAR_TITLE_HEIGHT = 35;
 /** 하단 툴바 높이(px, safe-area 제외). 디자인 2026-09-16: 48. */
 const TOOLBAR_HEIGHT = 48;
 /**
- * FIXME(토큰): 툴바 아이콘·텍스트 색은 디자인 지정 post-editor/toolbar/text인데 토큰 파일(design-tokens)에 아직
+ * FIXME(토큰, #145): 툴바 아이콘·텍스트 색은 디자인 지정 post-editor/toolbar/text인데 토큰 파일(design-tokens)에 아직
  * 없다. 값이 같은 text-secondary(#70737C)로 두고, Figma 재추출로 토큰이 생기면 `text-post-editor-toolbar-text`
  * 하나로 바꾼다. 아이콘은 currentColor를 상속하므로 버튼 색만 바꾸면 된다.
  */
@@ -91,16 +92,12 @@ const THUMBNAIL_REMOVE_SIZE = 22;
 /** 썸네일 위 상태 표시(스피너·↻) 한 변(px). 60 썸네일 안에서 여백을 남기는 크기. */
 const THUMBNAIL_STATUS_SIZE = 24;
 /**
- * 게시글 카테고리 목록. 업스트림 카테고리 조회 응답(data) 기준 — 추후 API 조회로 대체 가능하나,
- * 고정 분류라 현재는 상수로 둔다. id는 POST /board의 필수 categoryId로 그대로 전송된다.
+ * FIXME(토큰, #145): 카테고리 칩 테두리 색은 디자인 지정 chip/default/border(#CECFD1) · 선택 테두리
+ * (#292A2E)인데 토큰 파일에 chip 테두리 토큰이 없다(tag-chip-*는 bg/text만). 값을 그대로 넣고,
+ * Figma 재추출로 토큰이 생기면 `border-tag-chip-default-border` 계열로 교체한다.
  */
-const CATEGORIES: { id: number; name: string }[] = [
-  { id: 1, name: "매트 위 수다" },
-  { id: 2, name: "훈련 & 기술" },
-  { id: 3, name: "도장" },
-  { id: 4, name: "장비" },
-  { id: 5, name: "대회" },
-];
+const CHIP_BORDER_DEFAULT_CLASS = "border-[#cecfd1]";
+const CHIP_BORDER_SELECTED_CLASS = "border-[#292a2e]";
 
 /**
  * 게시글 작성 화면 (클라이언트 화면 컴포넌트).
@@ -130,11 +127,14 @@ const CATEGORIES: { id: number; name: string }[] = [
  * - 저장은 PUT /api/community/posts/{id}(업스트림 PUT /board/{id}) — imageFileIdList는 남긴 이미지 전체.
  */
 export function PostWriteScreen({
+  categories,
   edit,
 }: {
+  /** 카테고리 칩 목록(GET /board/category) — 라우트(Server Component)가 읽어 넘긴다. */
+  categories: PostCategory[];
   /** 있으면 수정 모드 — 이 글의 기존 값으로 폼을 채운다. */
   edit?: { postId: number; initial: PostEditInitial };
-} = {}) {
+}) {
   const router = useRouter();
   const toast = useToast();
   const isEdit = edit !== undefined;
@@ -594,12 +594,13 @@ export function PostWriteScreen({
         </button>
       </AppBarShell>
 
-      {/* 카테고리 선택: 헤더 바로 아래 가로 스크롤 칩(필수값 — 미선택이면 등록 탭 시 토스트).
-          칩은 tag-chip 토큰: 비선택 = 투명 배경 + 기본 외곽선, 선택 = surface-field 배경 + 진한 외곽선.
-          좌우 16(px-4)·칩 간격 8(gap-2), 넘치면 가로 스크롤(스크롤바 숨김). 스크롤 영역 밖(shrink-0)에 둬
-          본문을 아래로 길게 내려도 항상 헤더 아래 고정. */}
+      {/* 카테고리 선택: 헤더 바로 아래 가로 스크롤 칩(필수값 — 미선택이면 등록 비활성). 목록은 서버(GET
+          /board/category)에서 라우트가 읽어 넘긴다. 디자인(2026-09-16): 라벨 Button S · chip/default/text,
+          비선택 = 투명 배경 + 1px #CECFD1, 선택 = chip/selected/bg(#EDEFF0) + 1px #292A2E, 텍스트는 둘 다
+          chip/default/text. 좌우 16(px-4)·좌우 패딩 12(px-3)·칩 간격 8(gap-2), 넘치면 가로 스크롤(스크롤바
+          숨김). 스크롤 영역 밖(shrink-0)에 둬 본문을 아래로 길게 내려도 항상 헤더 아래 고정. */}
       <div className="flex shrink-0 gap-2 overflow-x-auto px-4 pt-5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {CATEGORIES.map((category) => {
+        {categories.map((category) => {
           const selected = category.id === categoryId;
           return (
             <button
@@ -608,10 +609,10 @@ export function PostWriteScreen({
               onClick={() => setCategoryId(category.id)}
               aria-pressed={selected}
               className={cn(
-                "inline-flex h-8 shrink-0 items-center rounded-full border px-3 text-button-s transition-colors",
+                "inline-flex h-8 shrink-0 items-center rounded-full border px-3 text-button-s text-tag-chip-default-text transition-colors",
                 selected
-                  ? "border-text-primary bg-tag-chip-selected-bg text-tag-chip-selected-text"
-                  : "border-border-default bg-tag-chip-default-bg text-tag-chip-default-text",
+                  ? cn("bg-tag-chip-selected-bg", CHIP_BORDER_SELECTED_CLASS)
+                  : cn("bg-tag-chip-default-bg", CHIP_BORDER_DEFAULT_CLASS),
               )}
             >
               {category.name}

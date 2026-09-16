@@ -11,6 +11,7 @@ import type {
 import type {
   CommentSort,
   CreatePostInput,
+  PostCategory,
   UpdatePostInput,
   CreatedPost,
   PostDetail,
@@ -29,6 +30,8 @@ import type { CreateReportInput } from "@/features/community/domain/report";
  * 이 메서드들은 토큰을 인자로 받지 않는다(viewer 상태는 토큰 유무에 따라 채워짐).
  */
 export interface PostRepository {
+  /** 게시글 카테고리 목록(GET /board/category). 작성/수정 화면의 칩 목록. 비로그인도 조회 가능. */
+  getCategories(): Promise<PostCategory[]>;
   /** 게시글 목록 조회(GET /board). 카테고리·검색어·페이지 조건은 query로 전달. */
   getPostList(query: BoardListQuery): Promise<PostList>;
   getPostDetail(postId: number): Promise<PostDetail>;

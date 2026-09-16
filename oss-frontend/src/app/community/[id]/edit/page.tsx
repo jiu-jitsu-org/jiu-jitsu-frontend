@@ -2,6 +2,7 @@ import { notFound, redirect, unstable_rethrow } from "next/navigation";
 
 import { SessionExpiredRecovery } from "@/features/auth/presentation/session-expired-recovery";
 import { createGetPostDetailUseCase } from "@/features/community/application/community-use-case-factory";
+import { getPostCategoriesOrFallback } from "@/features/community/application/get-post-write-page-data";
 import type { PostEditInitial } from "@/features/community/domain/post";
 import { PostWriteScreen } from "@/features/community/presentation/post-write-screen";
 import { readSessionToken } from "@/shared/lib/auth";
@@ -57,7 +58,8 @@ export default async function CommunityPostEditPage({
     notFound();
   }
 
-  return <PostWriteScreen edit={{ postId, initial }} />;
+  const categories = await getPostCategoriesOrFallback();
+  return <PostWriteScreen categories={categories} edit={{ postId, initial }} />;
 }
 
 /** 수정 화면 복구(세션 갱신) 중 표시. */
