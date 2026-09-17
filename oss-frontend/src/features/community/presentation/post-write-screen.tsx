@@ -114,6 +114,15 @@ const COUNTER_LIMIT_CLASS = "text-error";
  * primitive 변수를 직접 참조한다. semantic이 생기면 교체.
  */
 const NOTICE_TEXT_CLASS = "text-[var(--cool-gray-200)]";
+/**
+ * FIXME(토큰, #145): 태그 입력줄 색은 디자인 지정 textfield_tag/* 토큰(Filled/tag-text #0090FF ·
+ * Focused/hash-text #292A2E · Default/placeholder-text #9C9EA6)인데 토큰 파일에 textfield_tag 그룹이 없다.
+ * 값이 같은 semantic 토큰으로 두고, 등록되면 이 상수들만 바꾼다.
+ */
+const TAG_TEXT_CLASS = "text-primary-text-subtle";
+const TAG_HASH_FOCUSED_CLASS = "group-focus-within:text-text-primary";
+const TAG_HASH_IDLE_CLASS = "text-text-tertiary";
+const TAG_INPUT_TEXT_CLASS = "text-text-primary";
 
 /**
  * 게시글 작성 화면 (클라이언트 화면 컴포넌트).
@@ -821,16 +830,17 @@ export function PostWriteScreen({
             "#"이 자동으로 앞에 붙은 입력칸이 나타난다(사용자는 태그명만 친다). 스페이스/엔터로 확정 → 다음 "#"이
             자동 생성되며, 확정 태그는 "# 이름"(브랜드 텍스트 컬러) — 탭하면 그 태그를 입력칸으로 되돌려 수정한다.
             입력칸을 벗어나면(blur) 입력 중이던 글자는 확정, 0글자면 취소되고 "#" 입력칸은 사라진다.
-            "#"은 포커스 중엔 입력 텍스트와 같은 색, 아니면 secondary. */}
+            "#"은 포커스 중 hash-text(#292A2E), 아니면 placeholder-text(#9C9EA6); 입력 텍스트는 hash-text, 커서는
+            다른 입력칸과 같은 브랜드색. 상단 여백 24(디자인 2026-09-17), 아래 안내문과도 24. 태그·입력 간격 8. */}
         {isTagAreaVisible ? (
-          <div className="group mt-4 flex flex-wrap items-center gap-2">
+          <div className="group mt-6 flex flex-wrap items-center gap-2">
             {tags.map((tag) => (
               <button
                 key={tag}
                 type="button"
                 onClick={() => editTag(tag)}
                 aria-label={`태그 ${tag} 수정`}
-                className="text-body-s text-primary-text-subtle"
+                className={cn("text-body-s", TAG_TEXT_CLASS)}
               >
                 # {tag}
               </button>
@@ -839,7 +849,7 @@ export function PostWriteScreen({
               <span className="flex flex-1 items-center gap-1 text-body-s">
                 <span
                   aria-hidden
-                  className="text-text-secondary group-focus-within:text-primary-text-subtle"
+                  className={cn(TAG_HASH_IDLE_CLASS, TAG_HASH_FOCUSED_CLASS)}
                 >
                   #
                 </span>
@@ -850,7 +860,11 @@ export function PostWriteScreen({
                   onKeyDown={handleTagKeyDown}
                   onBlur={handleTagBlur}
                   aria-label="태그 입력"
-                  className="min-w-[80px] flex-1 text-body-s text-primary-text-subtle outline-none"
+                  className={cn(
+                    "min-w-[80px] flex-1 text-body-s outline-none",
+                    TAG_INPUT_TEXT_CLASS,
+                    TEXTFIELD_CARET_CLASS,
+                  )}
                 />
               </span>
             ) : null}
