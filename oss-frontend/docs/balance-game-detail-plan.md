@@ -112,7 +112,7 @@ BE가 신규 `actionType`을 추가하며 "모르는 값을 받아도 죽지 않
 근거 세 가지:
 
 1. **`actionType`을 참조하는 코드가 0건**이다
-2. **인바운드 메시지(네이티브 → 웹)에 딥링크 경로가 없다.** `InboundMessageType`은 `AUTH_LOGIN_SUCCESS` · `AUTH_LOGIN_CANCELLED` · `AUTH_SESSION_EXPIRED` · `AUTH_LOGOUT` · `BACK_PRESSED` · `CONFIRM_DIALOG_RESULT` · `SELECT_SHEET_RESULT` 뿐이고, 어느 것도 `actionType`이나 이동 대상을 싣지 않는다
+2. **인바운드 메시지(네이티브 → 웹)에 딥링크 경로가 없다.** `InboundMessageType`은 `AUTH_LOGIN_SUCCESS` · `AUTH_LOGIN_CANCELLED` · `AUTH_SESSION_EXPIRED` · `AUTH_LOGOUT` · `CONFIRM_DIALOG_RESULT` · `SELECT_SHEET_RESULT` 뿐이고, 어느 것도 `actionType`이나 이동 대상을 싣지 않는다
 3. **`OPEN_SUBVIEW`는 아웃바운드다.** 웹이 URL을 주고 네이티브가 여는 방향이라, 네이티브가 푸시로 받은 `actionType`을 웹에 넘기는 경로가 아니다
 
 즉 푸시·알림함의 `actionType`을 해석해 화면을 고르는 것은 **iOS 앱의 일**이다. 웹은 네이티브가 열어준 URL을 렌더할 뿐이고, `/community/balance/{contentId}` 라우트는 이미 있다 — iOS가 `BALANCE_DETAIL`을 그 URL로 매핑하면 Phase 1~7의 결과물이 그대로 뜬다.

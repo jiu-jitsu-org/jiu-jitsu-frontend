@@ -16,7 +16,6 @@ import {
   isNativeBridgeAvailable,
   OutboundMessageType,
   postToNative,
-  useNativeBackHandler,
 } from "@/shared/lib/native-bridge";
 import { useToast } from "@/shared/ui";
 import { AppBarShell } from "@/features/community/presentation/app-bar-shell";
@@ -336,11 +335,16 @@ export function PostWriteScreen({
     closeScreen();
   }
 
-  // 네이티브 뒤로가기 가드: 마운트 시 BACK_GUARD로 통지 → 네이티브가 직접 닫지 않고 BACK_PRESSED를 보낸다.
-  // 작성 중이면 확인 다이얼로그, 아니면 닫기 → "계속 작성" 선택 시 CLOSE_SUBVIEW를 보내지 않아 화면 유지.
-  // 편집 화면이 떠 있으면 뒤로가기는 편집 취소(미반영)로 소비하고, 작성 화면 이탈 가드는 그다음이다.
-  // 수정 모드의 이미지 상세도 같은 규칙 — 뒤로가기 = 상세 닫기.
-  useNativeBackHandler(() => {
+  /**
+   * 앱바 뒤로가기 — "한 단계 위로"를 한 곳에서 정한다(#144).
+   *
+   * 편집(크롭) 화면이 떠 있으면 편집 취소(미반영)로 소비하고, 수정 모드의 이미지 상세가 떠 있으면
+   * 상세 닫기, 그다음이 작성 화면 이탈 가드(requestClose)다. 두 오버레이는 z-50으로 앱바(z-30)를
+   * 덮어 평소엔 자체 닫기 버튼이 먼저 받지만, 키보드·보조기기로 앱바 버튼이 활성화되는 경로까지
+   * 같은 규칙으로 묶어 둔다.
+   * 이탈 가드에서 "계속 작성"을 고르면 CLOSE_SUBVIEW를 보내지 않아 화면이 유지된다.
+   */
+  function handleBack() {
     if (editingId !== null) {
       setEditingId(null);
       return;
@@ -350,7 +354,7 @@ export function PostWriteScreen({
       return;
     }
     void requestClose();
-  });
+  }
 
   /** 수정 모드 이미지 삭제(스트립·상세 공용). 마지막 1장을 지우면 상세를 닫는다(정책). */
   function removeExistingImage(imageId: number) {
@@ -492,11 +496,11 @@ export function PostWriteScreen({
     >
       {/* 앱바: 높이 44(h-11), 좌우 8(px-2). 좌 뒤로가기(tint) · 가운데 "글쓰기" · 우 등록(filled 체크).
           두 아이콘 버튼 모두 36 정사각 + radius 10 — 이미지 뷰어 닫기 버튼과 같은 tint 어휘.
-          뒤로가기는 웹 버튼과 네이티브 BACK_PRESSED 둘 다 requestClose로 모아 이탈 가드를 한 곳에서 처리한다. */}
+          뒤로가기는 웹이 소유한다 — 이탈 가드(requestClose)가 웹 안에서 끝나므로 네이티브 왕복이 없다. */}
       <AppBarShell>
         <button
           type="button"
-          onClick={() => void requestClose()}
+          onClick={handleBack}
           aria-label="뒤로 가기"
           style={{ width: APP_BAR_BUTTON_SIZE, height: APP_BAR_BUTTON_SIZE }}
           className="inline-flex items-center justify-center rounded-[10px] bg-button-tint-default-bg text-button-tint-default-text active:bg-button-tint-pressed-bg"

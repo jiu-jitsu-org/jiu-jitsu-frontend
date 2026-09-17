@@ -10,7 +10,6 @@ import {
 } from "@/features/community/presentation/image-fallback";
 import { useImageViewerGestures } from "@/features/community/presentation/use-image-viewer-gestures";
 import { cn } from "@/shared/lib/cn";
-import { useNativeBackHandler } from "@/shared/lib/native-bridge";
 import { CloseIcon } from "@/shared/ui/icons";
 
 /**
@@ -28,7 +27,8 @@ import { CloseIcon } from "@/shared/ui/icons";
  *
  * 열림/닫힘: 마운트 = 열림, 상태는 호출부가 소유한다(controlled). 닫힘 애니메이션은 이 안에서 처리한다 —
  * 닫기 요청이 오면 페이드 아웃을 먼저 돌리고 끝난 뒤 onClose를 부르므로, 호출부는 마운트만 끊으면 된다.
- * 네이티브 뒤로가기는 뷰어가 열린 동안만 BACK_GUARD를 걸어 뷰어를 닫는다 — 상세 자체가 닫히면 안 된다.
+ * 닫기는 뷰어가 스스로 맡는다(닫기 버튼 · Esc · 아래로 스와이프) — 상세 앱바의 뒤로가기는 이 오버레이
+ * 아래에 있어 뷰어가 열린 동안 상세가 닫힐 일이 없다.
  *
  * 제스처(핀치 줌·더블탭·팬·아래로 스와이프 닫기)는 useImageViewerGestures가 맡는다.
  */
@@ -101,9 +101,7 @@ export function PostImageViewer({
     container.style.opacity = "1";
   }, []);
 
-  useNativeBackHandler(requestClose);
-
-  // 웹 단독(브라우저) 실행에서는 Esc로도 닫히게 한다 — 네이티브 back의 대응물.
+  // 웹 단독(브라우저) 실행에서는 Esc로도 닫히게 한다.
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") requestClose();

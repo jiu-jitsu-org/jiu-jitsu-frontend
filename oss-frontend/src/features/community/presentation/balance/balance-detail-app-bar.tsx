@@ -3,11 +3,12 @@
 import { useState } from "react";
 
 import { AppBarShell } from "@/features/community/presentation/app-bar-shell";
+import { closeDetail } from "@/features/community/presentation/close-detail";
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
 import { useToast } from "@/shared/ui";
-import { BellIcon, BellOffIcon } from "@/shared/ui/icons";
+import { BackArrowIcon, BellIcon, BellOffIcon } from "@/shared/ui/icons";
 
 /**
  * 밸런스 게임 상세 앱바 (클라이언트 leaf).
@@ -16,8 +17,8 @@ import { BellIcon, BellOffIcon } from "@/shared/ui/icons";
  * 신고·숨기기 대상이 아니다. 남는 것은 알림 종 하나뿐이라 메뉴·확인 알럿·신고 플로우를 통째로
  * 들고 오지 않고 따로 둔다.
  *
- * 뒤로가기를 두지 않는 것도 게시글 상세와 같다 — 앱에서는 네이티브 내비게이션이, 웹 단독에서는
- * 브라우저 히스토리가 담당한다.
+ * 좌측 뒤로가기는 게시글 상세와 같은 규격·같은 닫기 경로(closeDetail)다 — 앱은 CLOSE_SUBVIEW,
+ * 웹 단독은 브라우저 히스토리. 웹이 그리는 이유는 PostDetailAppBar 참고(#144).
  */
 function alarmToast(enabled: boolean): string {
   return enabled ? "알림을 받아요" : "알림을 받지 않아요";
@@ -90,6 +91,16 @@ export function BalanceDetailAppBar({
 
   return (
     <AppBarShell>
+      {/* 좌측 뒤로가기 — 게시글 상세 앱바와 같은 규격(40x40, 아이콘 24, 배경 없음). */}
+      <button
+        type="button"
+        onClick={closeDetail}
+        aria-label="뒤로 가기"
+        className="inline-flex size-10 items-center justify-center text-icon-primary"
+      >
+        <BackArrowIcon size={24} />
+      </button>
+
       {/* 우측 정렬 — 게시글 상세 앱바와 같은 규격(40x40, 아이콘 24). ⋮가 없어 종 하나만 놓인다. */}
       <div className="ml-auto flex items-center">
         <button
