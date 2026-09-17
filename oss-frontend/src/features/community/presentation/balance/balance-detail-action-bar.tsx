@@ -3,9 +3,9 @@
 import { COMMENT_INPUT_ELEMENT_ID } from "@/features/community/presentation/comment-input-bar";
 import { ReactionBarButton } from "@/features/community/presentation/reaction-bar-button";
 import { shareCurrentPage } from "@/features/community/presentation/share-current-page";
+import { useOpenInAppGuard } from "@/features/community/presentation/use-open-in-app-guard";
 import { usePostActions } from "@/features/community/presentation/use-post-actions";
 import { cn } from "@/shared/lib/cn";
-import { useIsExternalBrowser } from "@/shared/lib/native-bridge";
 import { CommentIcon, HeartIcon, ShareIcon } from "@/shared/ui/icons";
 
 /**
@@ -20,7 +20,7 @@ import { CommentIcon, HeartIcon, ShareIcon } from "@/shared/ui/icons";
  * 가이드가 들어오면 두 바가 함께 따라간다.
  *
  * **남은 세 버튼은 게시글 상세와 완전히 같다** — 카운트 규칙, Active/Pressed 색, 아이콘 fill,
- * 외부 브라우저 표시 전용 처리까지 동일하다.
+ * 외부 브라우저 처리(로그인 액션은 앱 안내 · 공유는 숨김)까지 동일하다.
  *
  * 좋아요는 게시글과 **같은 엔드포인트**를 쓴다 — 업스트림 `PUT /board/like/{id}`의 `{id}`가
  * 원래부터 board id가 아니라 contentId라, 밸런스 게임의 contentId를 그대로 넣으면 된다(BE 확인).
@@ -55,8 +55,8 @@ export function BalanceDetailActionBar({
     likes: initialLikes,
   });
 
-  // 외부 브라우저(비로그인)에서는 로그인 기반 액션을 표시 전용으로 내린다(#72).
-  const externalBrowser = useIsExternalBrowser();
+  // 외부 브라우저(비로그인)에서는 로그인 기반 액션을 탭하면 앱 안내를 띄운다(PostActionBar와 같은 이유).
+  const { externalBrowser, guard } = useOpenInAppGuard();
 
   function focusCommentInput() {
     document.getElementById(COMMENT_INPUT_ELEMENT_ID)?.focus();
@@ -72,8 +72,10 @@ export function BalanceDetailActionBar({
         count={comments}
         active={commented}
         activeIconColorClass="text-reaction-bar-detail-active-comment-icon"
-        readOnly={externalBrowser}
-        onClick={focusCommentInput}
+        onClick={guard(
+          focusCommentInput,
+          "댓글은 OSS 앱에서 로그인 후 남길 수 있어요.",
+        )}
       />
       <ReactionBarButton
         icon={<HeartIcon size={16} filled={liked} />}
@@ -83,16 +85,20 @@ export function BalanceDetailActionBar({
         active={liked}
         pressable
         activeIconColorClass="text-reaction-bar-detail-active-like-icon"
-        readOnly={externalBrowser}
-        onClick={toggleLike}
+        onClick={guard(
+          toggleLike,
+          "좋아요는 OSS 앱에서 로그인 후 누를 수 있어요.",
+        )}
       />
-      {/* 로그인이 필요 없는 유일한 액션이라 외부 브라우저에서도 그대로 활성이다(#72). */}
-      <ReactionBarButton
-        icon={<ShareIcon size={16} />}
-        label="공유하기"
-        hideLabel
-        onClick={() => void shareCurrentPage()}
-      />
+      {/* 공유받은 페이지를 다시 공유하는 것은 부자연스러워 외부 브라우저에서는 감춘다(PostActionBar와 동일). */}
+      {externalBrowser ? null : (
+        <ReactionBarButton
+          icon={<ShareIcon size={16} />}
+          label="공유하기"
+          hideLabel
+          onClick={() => void shareCurrentPage()}
+        />
+      )}
     </div>
   );
 }

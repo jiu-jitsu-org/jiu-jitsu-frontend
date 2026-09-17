@@ -23,15 +23,17 @@ import {
   type InboundMessage,
 } from "@/shared/lib/native-bridge";
 import type { ApiSuccessResponse } from "@/shared/types/api";
+import { useOpenInAppPrompt } from "@/shared/ui";
 
 /**
  * 인증/세션 전역 Provider.
  *
  * 책임:
  * - 네이티브 브릿지 인바운드 리스너를 등록한다(auth/세션 메시지 담당). 수신구(window.WebBridge)는
- *   브릿지가 단일 설치·fan-out하므로, 서브웹뷰의 BACK_PRESSED 등 다른 리스너와 공존한다.
+ *   브릿지가 단일 설치·fan-out하므로, 알럿·시트 결과 회신 등 다른 리스너와 공존한다.
  * - 로그인 상태를 BFF(/api/auth/session)와 동기화해 화면 전역에 공유한다.
  * - 비로그인 시 행위를 가로채 로그인을 유도하고(requireAuth), 성공 후 원래 행위를 복귀한다.
+ *   네이티브가 없는 외부 브라우저(공유 링크)에서는 "앱에서 계속하기" 안내로 대신한다.
  * - (개발용) 송수신 브릿지 이벤트 로그를 노출해 테스트 하니스가 표시할 수 있게 한다.
  */
 
@@ -110,6 +112,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isNativeBridgeAvailable,
     () => false,
   );
+
+  // 외부 브라우저 로그인 유도 폴백 — 네이티브 프롬프트 메시지를 받을 상대가 없을 때 띄운다.
+  const openInApp = useOpenInAppPrompt();
 
   // 대기 중 행위와 이벤트 id는 렌더와 무관하므로 ref로 보관(전역 변수 대신 컴포넌트 스코프).
   const pendingActionRef = useRef<(() => void) | null>(null);
@@ -220,6 +225,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const requestLogin = useCallback(
     (direct: boolean, reason?: string) => {
+      // 외부 브라우저에는 로그인 UI를 그릴 네이티브가 없다 — 메시지를 보내봐야 아무 일도 안 생기고
+      // 사용자는 "눌렀는데 반응이 없다"로 읽는다. 앱에서 로그인해 이어가라는 안내로 대체한다.
+      if (!nativeAvailable) {
+        openInApp.prompt();
+        return;
+      }
+
       const type = direct
         ? OutboundMessageType.AUTH_LOGIN_MODAL
         : OutboundMessageType.AUTH_LOGIN_PROMPT;
@@ -227,7 +239,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logEvent("out", type, payload);
       postToNative({ type, payload });
     },
-    [logEvent],
+    [logEvent, nativeAvailable, openInApp],
   );
 
   const requireAuth = useCallback(

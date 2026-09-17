@@ -25,7 +25,6 @@ export {
   showNativeShareSheet,
 } from "./native-bridge";
 export type { BridgePlatform } from "./native-bridge";
-export { useNativeBackHandler } from "./native-back";
 export { useIsExternalBrowser } from "./use-external-browser";
 export {
   requestNativeConfirm,

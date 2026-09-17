@@ -7,17 +7,12 @@ import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import {
   COMMENT_REACTION_BUTTON,
   COMMENT_REACTION_ICON,
-  COMMENT_REACTION_READONLY,
   COMMENT_REACTION_TEXT,
   COMMENT_REACTION_TEXT_ACTIVE,
-  COMMENT_REACTION_TEXT_READONLY,
 } from "@/features/community/presentation/comment-reaction-styles";
+import { useOpenInAppGuard } from "@/features/community/presentation/use-open-in-app-guard";
 import { cn } from "@/shared/lib/cn";
-import {
-  OutboundMessageType,
-  postToNative,
-  useIsExternalBrowser,
-} from "@/shared/lib/native-bridge";
+import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
 import { HeartIcon } from "@/shared/ui/icons";
 
 /**
@@ -39,8 +34,8 @@ export function CommentLikeButton({
   initialLikeCount: number;
 }) {
   const demo = useIsDemoMode();
-  // 외부 브라우저(비로그인)에서는 표시 전용으로 내린다 — 토글이 반드시 401로 끝난다(#72).
-  const externalBrowser = useIsExternalBrowser();
+  // 외부 브라우저(비로그인)에서는 탭하면 앱 안내 — 토글이 반드시 401로 끝난다(#72).
+  const { guard } = useOpenInAppGuard();
   const [liked, setLiked] = useState(initialLiked);
   const [count, setCount] = useState(initialLikeCount);
   const [pending, setPending] = useState(false);
@@ -98,29 +93,15 @@ export function CommentLikeButton({
     }
   }
 
-  // 표시 전용: 카운트는 남기고 탭 대상만 없앤다(게시글 액션바와 같은 규칙).
-  // 하트는 비우고(fill 없음) 색만 disabled — 비로그인은 "내가 누른 상태"가 존재할 수 없다.
-  if (externalBrowser) {
-    return (
-      <span
-        role="img"
-        aria-label={count > 0 ? `좋아요 ${count}개` : "좋아요"}
-        className={COMMENT_REACTION_READONLY}
-      >
-        <HeartIcon size={16} filled={false} />
-        <span className={COMMENT_REACTION_TEXT_READONLY}>
-          {count > 0 ? count : "좋아요"}
-        </span>
-      </span>
-    );
-  }
-
   return (
     <button
       type="button"
       aria-label="좋아요"
       aria-pressed={liked}
-      onClick={() => void toggle()}
+      onClick={guard(
+        () => void toggle(),
+        "좋아요는 OSS 앱에서 로그인 후 누를 수 있어요.",
+      )}
       // 내가 누른 상태: 채워진 하트 + active 색 / 아니면: 빈 하트 + default 색.
       // Pressed는 두 경우 모두 pressed 색이 덮는다(comment-reaction-styles).
       className={cn(

@@ -5,14 +5,10 @@ import { useState } from "react";
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { MenuBox, MenuItem } from "@/features/community/presentation/menu-box";
-import {
-  OutboundMessageType,
-  closeNativeSubview,
-  isNativeBridgeAvailable,
-  postToNative,
-} from "@/shared/lib/native-bridge";
+import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
 import { enqueuePendingToast, useToast } from "@/shared/ui";
 import { AppBarShell } from "@/features/community/presentation/app-bar-shell";
+import { closeDetail } from "@/features/community/presentation/close-detail";
 import {
   HIDE_TOAST,
   POST_HIDDEN_ACTION,
@@ -21,14 +17,23 @@ import {
 import { useNativeDialog } from "@/features/community/presentation/use-native-dialog";
 import { useOpenPostEdit } from "@/features/community/presentation/use-open-post-edit";
 import { useReportFlow } from "@/features/community/presentation/use-report-flow";
-import { BellIcon, BellOffIcon, MoreVerticalIcon } from "@/shared/ui/icons";
+import {
+  BackArrowIcon,
+  BellIcon,
+  BellOffIcon,
+  MoreVerticalIcon,
+} from "@/shared/ui/icons";
 
 /**
  * 상세 화면 상단 앱바 (클라이언트 leaf).
  *
  * 높이 44 고정, 하단 디바이더 없음, 배경 True White.
- * 우측: 알림종 + ⋮ 메뉴를 간격 0으로 붙여 우측 정렬(우 8). 뒤로가기는 네이티브 내비게이션이 담당.
+ * 좌측: 뒤로가기. 우측: 알림종 + ⋮ 메뉴를 간격 0으로 붙여 우측 정렬(우 8).
  * 제목은 현재 비워둔다(추후 노출 시 가운데 영역에 추가).
+ *
+ * 뒤로가기를 웹이 그리는 이유(#144): 네이티브가 웹 헤더 위에 버튼을 얹으면 웹은 그 자리를 비워두는
+ * 픽셀 결합이 되어 한쪽이 바뀌면 어긋나는데 컴파일러도 테스트도 못 잡는다. 헤더 소유권은 웹,
+ * 웹이 못 뜨는 상태의 탈출구는 네이티브 오버레이로 경계를 나눈다.
  *
  * ⋮ 메뉴는 게시글 소유자 여부(isOwner)에 따라 수정/삭제 vs 신고를 노출하므로 웹이 소유한다
  * (네이티브가 그리면 소유자 컨텍스트를 브릿지로 왕복해야 함).
@@ -56,9 +61,6 @@ export function PostDetailAppBar({
   const [alarmOn, setAlarmOn] = useState(initialNoticeEnabled);
   // 저장 중 재탭 방지 — 토글 엔드포인트라 연타하면 서버 상태가 화면과 어긋난 채로 뒤집힌다.
   const [alarmPending, setAlarmPending] = useState(false);
-
-  // 네이티브 뒤로가기: 상세는 이탈 가드가 없어 BACK_GUARD를 통지하지 않는다 → 네이티브가 직접 닫는다.
-  // (정상/에러 어느 화면이든 네이티브가 처리하므로 웹 측 back 코드가 필요 없다.)
 
   /**
    * 알림 받기 토글 → 서버 저장(POST /api/community/notice-setting/{contentId}).
@@ -147,20 +149,6 @@ export function PostDetailAppBar({
   }
 
   /**
-   * 상세를 닫고 이전 화면(목록)으로 돌아간다.
-   *
-   * 앱은 상세가 별도 서브뷰 웹뷰라 네이티브가 팝해야 하고, 웹 단독 진입은 브라우저 히스토리를
-   * 되돌린다 — 두 경우 모두 "직전 화면으로 복귀"라는 같은 결과가 된다.
-   */
-  function closeDetail() {
-    if (isNativeBridgeAvailable()) {
-      closeNativeSubview();
-      return;
-    }
-    window.history.back();
-  }
-
-  /**
    * 신고: 확인 알럿 → 사유 시트 → POST(useReportFlow) → 처리되면 상세를 닫는다.
    *
    * 신고자 본인 화면에서는 그 콘텐츠가 즉시 사라져야 하는데(#48), 상세는 글 하나가 화면 전부라
@@ -219,6 +207,16 @@ export function PostDetailAppBar({
 
   return (
     <AppBarShell>
+      {/* 좌측 뒤로가기 — 우측 종·⋮와 같은 규격(40x40, 아이콘 24, 배경 없음). 좌 8·세로 중앙은 셸이 담당. */}
+      <button
+        type="button"
+        onClick={closeDetail}
+        aria-label="뒤로 가기"
+        className="inline-flex size-10 items-center justify-center text-icon-primary"
+      >
+        <BackArrowIcon size={24} />
+      </button>
+
       {/* 우측 그룹: 알림종 + ⋮ 를 간격 0으로 붙여 우측 정렬 */}
       <div className="ml-auto flex items-center">
         <button
