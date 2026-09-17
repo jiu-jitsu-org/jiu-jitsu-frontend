@@ -5,6 +5,7 @@ import type {
 import type {
   CommentSort,
   PostDetail,
+  PostCategory,
 } from "@/features/community/domain/post";
 import type { PostRepository } from "@/features/community/domain/post-repository";
 import type {
@@ -238,6 +239,20 @@ function toPostDetail(dto: BoardDetailDto): PostDetail {
 export class ExternalPostRepository implements PostRepository {
   constructor(private readonly httpClient: HttpClient) {}
 
+  async getCategories(): Promise<PostCategory[]> {
+    // GET /board/category — Swagger "카테고리 목록 조회(임시)". data: [{ id, categoryName }].
+    const response = await this.httpClient.get<
+      Envelope<{ id: number; categoryName: string }[]>
+    >({
+      path: `${BOARD_ENDPOINT_PATH}/category`,
+    });
+
+    return (response.data ?? []).map((item) => ({
+      id: item.id,
+      name: item.categoryName,
+    }));
+  }
+
   async getPostList(query: BoardListQuery): Promise<PostList> {
     // Spring 객체 쿼리(boardListRequest/pageable)는 평탄한 쿼리스트링으로 펼쳐 전송한다.
     // undefined 값(categoryId/searchKeyword/sort)은 HttpClient가 알아서 생략한다.
@@ -265,10 +280,7 @@ export class ExternalPostRepository implements PostRepository {
     return toPostDetail(response.data);
   }
 
-  async getComments(
-    postId: number,
-    sort: CommentSort,
-  ): Promise<CommentList> {
+  async getComments(postId: number, sort: CommentSort): Promise<CommentList> {
     // GET /community/comments?id=&sortType= → 봉투 data는 댓글 DTO 평배열.
     const response = await this.httpClient.get<Envelope<CommentDto[]>>({
       path: COMMENT_ENDPOINT_PATH,

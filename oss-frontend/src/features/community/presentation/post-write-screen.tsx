@@ -25,11 +25,13 @@ import {
   CheckIcon,
   CloseIcon,
   ImageIcon,
+  LoadingIcon,
   RetryIcon,
   TagIcon,
 } from "@/shared/ui/icons";
 
 import type {
+  PostCategory,
   PostEditInitial,
   PostImage,
 } from "@/features/community/domain/post";
@@ -68,23 +70,69 @@ const MAX_TAG_LENGTH = 12;
 const TAG_DISALLOWED_PATTERN = /[^0-9a-zA-Z가-힣ㄱ-ㅎㅏ-ㅣ]/g;
 /** 앱바 좌우 아이콘 버튼(뒤로가기·등록) 한 변(px). 이미지 뷰어 닫기(44)보다 작은 앱바용 크기. */
 const APP_BAR_BUTTON_SIZE = 36;
+/** 글쓰기 앱바 높이(px, safe-area 제외). 공통 셸(44)과 달리 디자인이 52 — 아래 상단 마진들이 이 안에 들어간다. */
+const APP_BAR_HEIGHT = 52;
+/** 앱바 버튼 상단 마진(px) — 12 + 36 = 48, 바 높이 52 안. */
+const APP_BAR_BUTTON_TOP = 12;
+/** 앱바 타이틀 박스 상단 마진·높이(px) — 13 + 35 = 48. 텍스트는 박스 안 세로 가운데. */
+const APP_BAR_TITLE_TOP = 13;
+const APP_BAR_TITLE_HEIGHT = 35;
+/** 하단 툴바 높이(px, safe-area 제외). 디자인 2026-09-16: 48. */
+const TOOLBAR_HEIGHT = 48;
+/**
+ * FIXME(토큰, #145): 툴바 아이콘·텍스트 색은 디자인 지정 post-editor/toolbar/text인데 토큰 파일(design-tokens)에 아직
+ * 없다. 값이 같은 text-secondary(#70737C)로 두고, Figma 재추출로 토큰이 생기면 `text-post-editor-toolbar-text`
+ * 하나로 바꾼다. 아이콘은 currentColor를 상속하므로 버튼 색만 바꾸면 된다.
+ */
+const TOOLBAR_TEXT_CLASS = "text-text-secondary";
 /** 첨부 미리보기 썸네일 한 변(px, 정책 64×64). */
 const THUMBNAIL_SIZE = 64;
-/** 썸네일 우상단 삭제(✕) 원 지름(px). 썸네일 모서리에 반쯤 걸쳐 얹는다. */
-const THUMBNAIL_REMOVE_SIZE = 22;
-/** 썸네일 위 상태 표시(스피너·↻) 한 변(px). 60 썸네일 안에서 여백을 남기는 크기. */
+/** 썸네일 컨테이너 높이(px) — 상하 여백 16 + 썸네일 64. 툴바 위에 고정. */
+const THUMBNAIL_STRIP_HEIGHT = 96;
+/** 썸네일 우상단 삭제(✕) 원 지름(px)과 모서리에서 삐져나오는 양(px). 아이콘 16. */
+const THUMBNAIL_REMOVE_SIZE = 24;
+const THUMBNAIL_REMOVE_OVERHANG = 8;
+const THUMBNAIL_REMOVE_ICON_SIZE = 16;
+/** 썸네일 위 상태 아이콘(로딩·↻) 한 변(px). */
 const THUMBNAIL_STATUS_SIZE = 24;
 /**
- * 게시글 카테고리 목록. 업스트림 카테고리 조회 응답(data) 기준 — 추후 API 조회로 대체 가능하나,
- * 고정 분류라 현재는 상수로 둔다. id는 POST /board의 필수 categoryId로 그대로 전송된다.
+ * FIXME(토큰, #145): 썸네일 ✕ 배경은 디자인 지정 image/delete-button-bg(#E6E7E8)인데 토큰 파일에 image 그룹이
+ * 없어 primitive(cool-gray-50)를 직접 참조한다. image/delete-icon(#292A2E)은 icon-primary, image/dim-overlay(40%)는
+ * overlay-scrim, image/status-icon(#FAFAFA)은 icon-on-overlay로 값이 같아 그 토큰을 쓴다.
  */
-const CATEGORIES: { id: number; name: string }[] = [
-  { id: 1, name: "매트 위 수다" },
-  { id: 2, name: "훈련 & 기술" },
-  { id: 3, name: "도장" },
-  { id: 4, name: "장비" },
-  { id: 5, name: "대회" },
-];
+const THUMBNAIL_REMOVE_BG_CLASS = "bg-[var(--cool-gray-50)]";
+/**
+ * FIXME(토큰, #145): 카테고리 칩 테두리 색은 디자인 지정 chip/default/border(#CECFD1) · 선택 테두리
+ * (#292A2E)인데 토큰 파일에 chip 테두리 토큰이 없다(tag-chip-*는 bg/text만). 값을 그대로 넣고,
+ * Figma 재추출로 토큰이 생기면 `border-tag-chip-default-border` 계열로 교체한다.
+ */
+const CHIP_BORDER_DEFAULT_CLASS = "border-[#cecfd1]";
+const CHIP_BORDER_SELECTED_CLASS = "border-[#292a2e]";
+/**
+ * FIXME(토큰, #145): 제목·본문 입력칸 색은 디자인 지정 textfield_display/* 토큰(filled/text #292A2E ·
+ * default/placeholder-text #9C9EA6 · cursor #0090FF · counter-text #9C9EA6 · counter-text-limit #FF1D0D)인데
+ * 토큰 파일에 textfield_display 그룹이 없다. 값이 같은 semantic 토큰(text-primary · text-tertiary ·
+ * interactive-primary · error)으로 두고, 등록되면 이 상수들만 바꾼다.
+ */
+const TEXTFIELD_TEXT_CLASS = "text-text-primary";
+const TEXTFIELD_PLACEHOLDER_CLASS = "placeholder:text-text-tertiary";
+const TEXTFIELD_CARET_CLASS = "caret-interactive-primary";
+const COUNTER_TEXT_CLASS = "text-text-tertiary";
+const COUNTER_LIMIT_CLASS = "text-error";
+/**
+ * FIXME(토큰, #145): 안내문 색은 디자인 지정 Color/Cool gray/200(#B7B9BD) — 텍스트용 semantic 토큰이 없어
+ * primitive 변수를 직접 참조한다. semantic이 생기면 교체.
+ */
+const NOTICE_TEXT_CLASS = "text-[var(--cool-gray-200)]";
+/**
+ * FIXME(토큰, #145): 태그 입력줄 색은 디자인 지정 textfield_tag/* 토큰(Filled/tag-text #0090FF ·
+ * Focused/hash-text #292A2E · Default/placeholder-text #9C9EA6)인데 토큰 파일에 textfield_tag 그룹이 없다.
+ * 값이 같은 semantic 토큰으로 두고, 등록되면 이 상수들만 바꾼다.
+ */
+const TAG_TEXT_CLASS = "text-primary-text-subtle";
+const TAG_HASH_FOCUSED_CLASS = "group-focus-within:text-text-primary";
+const TAG_HASH_IDLE_CLASS = "text-text-tertiary";
+const TAG_INPUT_TEXT_CLASS = "text-text-primary";
 
 /**
  * 게시글 작성 화면 (클라이언트 화면 컴포넌트).
@@ -114,11 +162,14 @@ const CATEGORIES: { id: number; name: string }[] = [
  * - 저장은 PUT /api/community/posts/{id}(업스트림 PUT /board/{id}) — imageFileIdList는 남긴 이미지 전체.
  */
 export function PostWriteScreen({
+  categories,
   edit,
 }: {
+  /** 카테고리 칩 목록(GET /board/category) — 라우트(Server Component)가 읽어 넘긴다. */
+  categories: PostCategory[];
   /** 있으면 수정 모드 — 이 글의 기존 값으로 폼을 채운다. */
   edit?: { postId: number; initial: PostEditInitial };
-} = {}) {
+}) {
   const router = useRouter();
   const toast = useToast();
   const isEdit = edit !== undefined;
@@ -134,18 +185,21 @@ export function PostWriteScreen({
   const [existingImages, setExistingImages] = useState<PostImage[]>(
     edit?.initial.images ?? [],
   );
-  // 수정 모드 이미지 상세(보기 전용)에서 보고 있는 장. null = 닫힘.
-  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  // 수정 모드 이미지 상세(보기 전용)에 띄운 장의 id. null = 닫힘. 상세는 탭한 한 장만 보여준다.
+  const [viewerImageId, setViewerImageId] = useState<number | null>(null);
+  const viewerImage =
+    existingImages.find((image) => image.id === viewerImageId) ?? null;
   // 키보드 위 '실제 보이는 영역'에 셸을 맞춘다(visualViewport). dvh/fixed inset-0가 안 줄어드는
   // WKWebView에서 입력 보조 바를 키보드 바로 위에 떨어뜨리는 유일하게 신뢰 가능한 기준.
   const rect = useViewportRect();
   // 태그: 본문(→사진) 아래 "# 태그" 줄. 태그가 없으면 영역 자체가 없고(정책), 하단 "태그" 버튼으로 연다.
-  // tagAreaOpen = 버튼으로 열어둔 상태. 태그가 하나라도 있으면 열림 여부와 무관하게 보인다.
+  // tagInputOpen = "#" 입력칸이 떠 있는 상태. 입력칸을 벗어나면(blur) 닫히고, 다시 열려면 툴바 "태그"를
+  // 탭하거나 확정 태그를 탭(수정)한다. 확정 태그가 있으면 입력칸이 닫혀도 영역은 남는다.
   const [tags, setTags] = useState<string[]>(edit?.initial.tags ?? []);
   const [tagInput, setTagInput] = useState("");
-  const [tagAreaOpen, setTagAreaOpen] = useState(false);
+  const [tagInputOpen, setTagInputOpen] = useState(false);
   const tagInputRef = useRef<HTMLInputElement>(null);
-  const isTagAreaVisible = tagAreaOpen || tags.length > 0;
+  const isTagAreaVisible = tagInputOpen || tags.length > 0;
   // 제목·본문은 내용만큼 자라는 textarea — 화면(main) 하나가 스크롤되는 디자인.
   const titleRef = useAutoResizeTextarea(title);
   const bodyRef = useAutoResizeTextarea(body);
@@ -171,6 +225,10 @@ export function PostWriteScreen({
     attachments.find((item) => item.localId === editingId) ?? null;
   // 허용 비율 밖 원본이 하나라도 있으면 편집 유도 안내(정책). 크롭본은 항상 허용 비율 안.
   const hasOutOfAspect = attachments.some(isAttachmentOutOfAspect);
+  // 하단 썸네일 컨테이너를 그릴지 — 작성은 첨부, 수정은 등록 이미지.
+  const hasThumbnails = isEdit
+    ? existingImages.length > 0
+    : attachments.length > 0;
 
   // 작성: 한 글자라도 적었거나 카테고리/이미지를 골랐으면 "작성 중" → 닫기 시 이탈 가드를 띄운다.
   // 수정: 기존 값과 하나라도 다르면 "변경됨" — 완료 버튼 활성·이탈 가드의 근거. 미확정 태그 입력도 변경으로 본다.
@@ -210,14 +268,42 @@ export function PostWriteScreen({
     }
   }
 
-  function focusTagInput() {
-    // 하단 "태그" 버튼: 영역이 닫혀 있으면 먼저 열고(#가 자동으로 보이는 상태) 입력칸으로 포커스.
-    // 입력칸은 열린 뒤에야 마운트되므로 flushSync로 즉시 그린 다음 같은 탭 제스처 안에서 focus한다
-    // (WKWebView는 사용자 제스처 밖의 focus로는 키보드를 띄우지 않는다).
-    // 본문을 길게 쓴 뒤엔 화면 밖일 수 있어 보이게 스크롤한 뒤 포커스.
-    flushSync(() => setTagAreaOpen(true));
+  /**
+   * "#" 입력칸을 열고(닫혀 있었으면) 포커스. 입력칸은 열린 뒤에야 마운트되므로 flushSync로 즉시 그린 다음
+   * 같은 탭 제스처 안에서 focus한다(WKWebView는 사용자 제스처 밖의 focus로는 키보드를 띄우지 않는다).
+   * 본문을 길게 쓴 뒤엔 화면 밖일 수 있어 보이게 스크롤한 뒤 포커스.
+   */
+  function openTagInput(initialValue: string) {
+    flushSync(() => {
+      setTagInputOpen(true);
+      setTagInput(initialValue);
+    });
     tagInputRef.current?.scrollIntoView({ block: "nearest" });
     tagInputRef.current?.focus();
+  }
+
+  /** 하단 "태그" 버튼: 빈 입력칸을 연다. */
+  function focusTagInput() {
+    openTagInput("");
+  }
+
+  /**
+   * 확정 태그 탭 = 수정(정책). 목록에서 빼고 그 이름을 입력칸에 넣어 이어 친다.
+   * 입력칸이 이미 열려 있었다면 탭 순간의 blur가 그 입력을 먼저 확정하고 닫은 뒤 여기로 온다.
+   */
+  function editTag(tag: string) {
+    setTags((prev) => prev.filter((item) => item !== tag));
+    openTagInput(tag);
+  }
+
+  /**
+   * 입력칸 이탈(blur, 정책): 한 글자라도 있으면 그대로 확정, 0글자면 취소 — 어느 쪽이든 "#" 입력칸은 닫힌다.
+   * 다시 입력하려면 툴바 "태그" 또는 확정 태그 탭. 확정 태그가 없으면 영역 자체가 사라진다.
+   */
+  function handleTagBlur() {
+    if (tagInput) addTag(tagInput);
+    setTagInput("");
+    setTagInputOpen(false);
   }
 
   /** 저장 정규화(정책): 허용 문자만 남기고 앞뒤 공백 제거 + 영문 소문자 통일. 빈 문자열이면 확정 대상 아님. */
@@ -282,14 +368,14 @@ export function PostWriteScreen({
       addTag(tagInput);
       return;
     }
-    // 빈 입력에서 Backspace: 직전 태그 삭제 → 태그가 하나도 없으면 영역 자체를 닫는다(정책: 모두 지우면 영역 제거).
+    // 빈 입력에서 Backspace: 직전 태그 삭제 → 태그가 하나도 없으면 입력칸을 닫는다(영역 제거).
     if (event.key === "Backspace" && tagInput === "") {
       event.preventDefault();
       if (tags.length > 0) {
         setTags((prev) => prev.slice(0, -1));
         return;
       }
-      setTagAreaOpen(false);
+      setTagInputOpen(false);
     }
   }
 
@@ -349,18 +435,16 @@ export function PostWriteScreen({
       setEditingId(null);
       return;
     }
-    if (viewerIndex !== null) {
-      setViewerIndex(null);
+    if (viewerImageId !== null) {
+      setViewerImageId(null);
       return;
     }
     void requestClose();
   }
 
-  /** 수정 모드 이미지 삭제(스트립·상세 공용). 마지막 1장을 지우면 상세를 닫는다(정책). */
+  /** 수정 모드 이미지 삭제(스트립 ✕). 상세는 스트립이 딤 뒤에 있어 여기서만 지운다. */
   function removeExistingImage(imageId: number) {
-    const next = existingImages.filter((image) => image.id !== imageId);
-    setExistingImages(next);
-    if (next.length === 0) setViewerIndex(null);
+    setExistingImages((prev) => prev.filter((image) => image.id !== imageId));
   }
 
   /**
@@ -494,21 +578,40 @@ export function PostWriteScreen({
           : { top: 0, height: "100dvh" }
       }
     >
-      {/* 앱바: 높이 44(h-11), 좌우 8(px-2). 좌 뒤로가기(tint) · 가운데 "글쓰기" · 우 등록(filled 체크).
-          두 아이콘 버튼 모두 36 정사각 + radius 10 — 이미지 뷰어 닫기 버튼과 같은 tint 어휘.
+      {/* 앱바(디자인 2026-09-16): 높이 52, 좌우 16 — 공통 셸(44 · 좌우 8)을 className/style로 덮어쓴다
+          (cn이 tailwind-merge라 뒤 클래스가 이긴다). 셸의 safe-area top 패딩은 유지 — 웹뷰가 edge-to-edge라
+          이 패딩이 없으면 앱바가 상태바와 겹친다. "safe-area 마진 0"은 상태바와 앱바 사이에 추가 여백이
+          없다는 뜻이고, 바 자체(52)는 상태바 바로 아래에 붙는다. 셸의 items-center 대신 위 정렬로 두고
+          각 요소가 자기 상단 마진을 가진다: 버튼 12(+36 = 48), 타이틀 13(+35 = 48).
+          좌 뒤로가기(tint) · 가운데 "글쓰기"(Title 3 · header/text) · 우 등록(filled 체크). 두 아이콘 버튼 모두
+          36 정사각 + radius 10 — 이미지 뷰어 닫기 버튼과 같은 tint 어휘.
           뒤로가기는 웹이 소유한다 — 이탈 가드(requestClose)가 웹 안에서 끝나므로 네이티브 왕복이 없다. */}
-      <AppBarShell>
+      <AppBarShell
+        className="items-start px-4"
+        style={{ height: APP_BAR_HEIGHT }}
+      >
         <button
           type="button"
           onClick={handleBack}
           aria-label="뒤로 가기"
-          style={{ width: APP_BAR_BUTTON_SIZE, height: APP_BAR_BUTTON_SIZE }}
+          style={{
+            width: APP_BAR_BUTTON_SIZE,
+            height: APP_BAR_BUTTON_SIZE,
+            marginTop: APP_BAR_BUTTON_TOP,
+          }}
           className="inline-flex items-center justify-center rounded-[10px] bg-button-tint-default-bg text-button-tint-default-text active:bg-button-tint-pressed-bg"
         >
           <BackArrowIcon size={24} />
         </button>
 
-        <h1 className="pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-button-m text-header-text">
+        {/* absolute의 top은 셸 패딩(safe-area) 안쪽이 아니라 셸 상단 기준이라 인셋을 더해야 상태바 아래로 온다. */}
+        <h1
+          style={{
+            top: `calc(env(safe-area-inset-top) + ${APP_BAR_TITLE_TOP}px)`,
+            height: APP_BAR_TITLE_HEIGHT,
+          }}
+          className="pointer-events-none absolute left-1/2 flex -translate-x-1/2 items-center whitespace-nowrap text-title-3 text-header-text"
+        >
           {isEdit ? "글 수정" : "글쓰기"}
         </h1>
 
@@ -517,7 +620,11 @@ export function PostWriteScreen({
           onClick={() => void submit()}
           disabled={isSubmitLocked}
           aria-label={isEdit ? "완료" : "등록"}
-          style={{ width: APP_BAR_BUTTON_SIZE, height: APP_BAR_BUTTON_SIZE }}
+          style={{
+            width: APP_BAR_BUTTON_SIZE,
+            height: APP_BAR_BUTTON_SIZE,
+            marginTop: APP_BAR_BUTTON_TOP,
+          }}
           className={cn(
             "ml-auto inline-flex items-center justify-center rounded-[10px] transition-colors",
             // 필수 입력이 모두 채워지면 브랜드 채움(button/filled) — 글자 수 미달은 탭 시 토스트.
@@ -531,12 +638,13 @@ export function PostWriteScreen({
         </button>
       </AppBarShell>
 
-      {/* 카테고리 선택: 헤더 바로 아래 가로 스크롤 칩(필수값 — 미선택이면 등록 탭 시 토스트).
-          칩은 tag-chip 토큰: 비선택 = 투명 배경 + 기본 외곽선, 선택 = surface-field 배경 + 진한 외곽선.
-          좌우 16(px-4)·칩 간격 8(gap-2), 넘치면 가로 스크롤(스크롤바 숨김). 스크롤 영역 밖(shrink-0)에 둬
-          본문을 아래로 길게 내려도 항상 헤더 아래 고정. */}
+      {/* 카테고리 선택: 헤더 바로 아래 가로 스크롤 칩(필수값 — 미선택이면 등록 비활성). 목록은 서버(GET
+          /board/category)에서 라우트가 읽어 넘긴다. 디자인(2026-09-16): 라벨 Button S · chip/default/text,
+          비선택 = 투명 배경 + 1px #CECFD1, 선택 = chip/selected/bg(#EDEFF0) + 1px #292A2E, 텍스트는 둘 다
+          chip/default/text. 좌우 16(px-4)·좌우 패딩 12(px-3)·칩 간격 8(gap-2), 넘치면 가로 스크롤(스크롤바
+          숨김). 스크롤 영역 밖(shrink-0)에 둬 본문을 아래로 길게 내려도 항상 헤더 아래 고정. */}
       <div className="flex shrink-0 gap-2 overflow-x-auto px-4 pt-5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {CATEGORIES.map((category) => {
+        {categories.map((category) => {
           const selected = category.id === categoryId;
           return (
             <button
@@ -545,10 +653,10 @@ export function PostWriteScreen({
               onClick={() => setCategoryId(category.id)}
               aria-pressed={selected}
               className={cn(
-                "inline-flex h-8 shrink-0 items-center rounded-full border px-3 text-button-s transition-colors",
+                "inline-flex h-8 shrink-0 items-center rounded-full border px-3 text-button-s text-tag-chip-default-text transition-colors",
                 selected
-                  ? "border-text-primary bg-tag-chip-selected-bg text-tag-chip-selected-text"
-                  : "border-border-default bg-tag-chip-default-bg text-tag-chip-default-text",
+                  ? cn("bg-tag-chip-selected-bg", CHIP_BORDER_SELECTED_CLASS)
+                  : cn("bg-tag-chip-default-bg", CHIP_BORDER_DEFAULT_CLASS),
               )}
             >
               {category.name}
@@ -560,7 +668,8 @@ export function PostWriteScreen({
       {/* 본문 영역: 제목 → 본문 → 태그 → 안내문이 한 덩어리로 스크롤된다(main 내부 스크롤).
           제목·본문 textarea는 자동으로 자라므로 스크롤은 이 main에서만 일어난다. */}
       <main className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 pb-6">
-        {/* 제목: Title 1(22/32 semibold), 여러 줄 허용(45자). 카테고리↔제목 간격 24(mt-6).
+        {/* 제목: Display 1(30 · 행간 Auto → 40 고정 · 600), 여러 줄 허용(45자). 카테고리↔제목 간격 24(mt-6).
+            색 textfield_display/filled/text, 플레이스홀더 default/placeholder-text, 커서 cursor(브랜드).
             첫 진입 시 제목에 자동 포커스 → 바로 타이핑 시작(정책). 키보드가 함께 올라오려면 WKWebView가
             사용자 제스처 없는 focus를 허용해야 한다(keyboardDisplayRequiresUserAction = false).
             FIXME: 앱에서 진입 시 키보드가 안 뜨면 iOS 쪽 위 설정 확인 — 웹에서는 autoFocus 이상 할 수 없다. */}
@@ -582,11 +691,16 @@ export function PostWriteScreen({
           rows={1}
           placeholder="제목을 입력해주세요"
           aria-label="제목"
-          className="mt-6 w-full resize-none overflow-hidden text-title-1 text-text-primary outline-none placeholder:text-text-tertiary"
+          className={cn(
+            "mt-6 w-full resize-none overflow-hidden text-display-1 outline-none",
+            TEXTFIELD_TEXT_CLASS,
+            TEXTFIELD_PLACEHOLDER_CLASS,
+            TEXTFIELD_CARET_CLASS,
+          )}
         />
         <CharCounter length={title.length} max={TITLE_MAX_LENGTH} />
 
-        {/* 본문: Title 3(18/28 semibold), 800자. 카운터 아래 8. */}
+        {/* 본문: Title 1(22 · 행간 Auto → 32 고정 · 600), 800자. 제목 카운터 아래 24(mt-6). 색·커서는 제목과 동일. */}
         <textarea
           ref={bodyRef}
           value={body}
@@ -602,179 +716,79 @@ export function PostWriteScreen({
           rows={1}
           placeholder="내용을 입력해주세요"
           aria-label="내용"
-          className="mt-2 w-full resize-none overflow-hidden text-title-3 text-text-primary outline-none placeholder:text-text-tertiary"
+          className={cn(
+            "mt-6 w-full resize-none overflow-hidden text-title-1 outline-none",
+            TEXTFIELD_TEXT_CLASS,
+            TEXTFIELD_PLACEHOLDER_CLASS,
+            TEXTFIELD_CARET_CLASS,
+          )}
         />
         <CharCounter length={body.length} max={BODY_MAX_LENGTH} />
 
-        {/* 첨부 이미지 미리보기 — 본문 → 사진 → 태그 순서 고정(정책). 가로 나열, 썸네일 64 + 우상단 ✕(즉시
-            삭제, 확인 없음 — 업로드 중에도 가능). ✕가 썸네일 밖으로 나가므로 위쪽 여백(pt-3)을 둬 스크롤
-            컨테이너에 잘리지 않게 하고, main의 px-4를 -mx-4/px-4로 되돌려 마지막 썸네일의 ✕도 오른쪽 패딩
-            안에 들어오게 한다. 미리보기는 로컬 File의 object URL(blob:)이라 next/image가 아닌 img로 그린다.
-            상태별 표시(정책): 업로드 중 = 흐림(white-60 스크림) + 스피너, 실패 = 흐림 + ↻(탭 = 그 장만 재업로드),
-            완료 = 원본, 탭 = 편집(크롭) 화면 — 자동 크롭은 없고 사용자가 열 때만 잘라낸다. 업로드 중 탭은 무시.
-            허용 비율 밖 원본이 있으면 스트립 위에 편집 유도 안내를 띄운다(잘릴 사진이 있다는 예고). */}
-        {/* 수정 모드: 등록된 이미지 스트립 — 삭제만(✕), 탭 = 보기 전용 상세. 크롭·추가 없음(정책). */}
-        {isEdit && existingImages.length > 0 ? (
-          <ul className="-mx-4 mt-2 flex gap-4 overflow-x-auto px-4 pt-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {existingImages.map((image, index) => (
-              <li key={image.id} className="relative shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setViewerIndex(index)}
-                  aria-label="이미지 상세 보기"
-                  style={{ width: THUMBNAIL_SIZE, height: THUMBNAIL_SIZE }}
-                  className="block overflow-hidden rounded-lg"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={image.imageUrl}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => removeExistingImage(image.id)}
-                  aria-label="이미지 삭제"
-                  style={{
-                    width: THUMBNAIL_REMOVE_SIZE,
-                    height: THUMBNAIL_REMOVE_SIZE,
-                    top: -THUMBNAIL_REMOVE_SIZE / 2,
-                    right: -THUMBNAIL_REMOVE_SIZE / 2,
-                  }}
-                  className="absolute inline-flex items-center justify-center rounded-full bg-surface-tertiary text-icon-primary"
-                >
-                  <CloseIcon size={14} />
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-
-        {attachments.length > 0 ? (
-          <>
-            {hasOutOfAspect ? (
-              <p className="mt-4 text-label-m text-text-tertiary">
-                비율이 긴 사진은 일부만 보여요. 사진을 탭해 보일 영역을
-                정해보세요.
-              </p>
-            ) : null}
-            <ul className="-mx-4 mt-2 flex gap-4 overflow-x-auto px-4 pt-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {attachments.map((image) => {
-                const isFailed = image.status === "failed";
-                const isUploading = image.status === "uploading";
-                return (
-                  <li key={image.localId} className="relative shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => handleThumbnailTap(image.localId)}
-                      aria-label={
-                        isFailed
-                          ? "업로드 실패한 이미지 다시 올리기"
-                          : isUploading
-                            ? "이미지 업로드 중"
-                            : "첨부 이미지 편집"
-                      }
-                      aria-busy={isUploading}
-                      style={{ width: THUMBNAIL_SIZE, height: THUMBNAIL_SIZE }}
-                      className="relative block overflow-hidden rounded-lg"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={image.preview}
-                        alt=""
-                        style={{
-                          width: THUMBNAIL_SIZE,
-                          height: THUMBNAIL_SIZE,
-                        }}
-                        className="object-cover"
-                      />
-                      {image.status !== "done" ? (
-                        <span className="absolute inset-0 flex items-center justify-center bg-[var(--opacity-white-60)] text-icon-on-overlay">
-                          {isFailed ? (
-                            <RetryIcon size={THUMBNAIL_STATUS_SIZE} />
-                          ) : (
-                            <span
-                              style={{
-                                width: THUMBNAIL_STATUS_SIZE,
-                                height: THUMBNAIL_STATUS_SIZE,
-                              }}
-                              className="animate-spin rounded-full border-2 border-current border-t-transparent"
-                            />
-                          )}
-                        </span>
-                      ) : null}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => remove(image.localId)}
-                      aria-label="첨부 이미지 삭제"
-                      style={{
-                        width: THUMBNAIL_REMOVE_SIZE,
-                        height: THUMBNAIL_REMOVE_SIZE,
-                        top: -THUMBNAIL_REMOVE_SIZE / 2,
-                        right: -THUMBNAIL_REMOVE_SIZE / 2,
-                      }}
-                      className="absolute inline-flex items-center justify-center rounded-full bg-surface-tertiary text-icon-primary"
-                    >
-                      <CloseIcon size={14} />
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </>
-        ) : null}
-
-        {/* 태그 입력줄: 본문 → 사진 → 태그 순서(정책). 태그가 없으면 영역이 없고, 하단 "태그" 버튼으로 열면
+        {/* 태그 입력줄: 본문 아래(사진 스트립은 하단 툴바 위 고정으로 옮김 — 디자인 2026-09-17). 태그가 없으면 영역이 없고, 하단 "태그" 버튼으로 열면
             "#"이 자동으로 앞에 붙은 입력칸이 나타난다(사용자는 태그명만 친다). 스페이스/엔터로 확정 → 다음 "#"이
-            자동 생성되며, 확정 태그는 "# 이름" 평문(브랜드 텍스트 컬러). 탭해도 아무 일 없음 — 태그 검색 화면이
-            1차 범위 밖이라 표시 전용(정책 미결). "#"은 포커스 중엔 입력 텍스트와 같은 색, 아니면 secondary. */}
+            자동 생성되며, 확정 태그는 "# 이름"(브랜드 텍스트 컬러) — 탭하면 그 태그를 입력칸으로 되돌려 수정한다.
+            입력칸을 벗어나면(blur) 입력 중이던 글자는 확정, 0글자면 취소되고 "#" 입력칸은 사라진다.
+            "#"은 포커스 중 hash-text(#292A2E), 아니면 placeholder-text(#9C9EA6); 입력 텍스트는 hash-text, 커서는
+            다른 입력칸과 같은 브랜드색. 상단 여백 24(디자인 2026-09-17), 아래 안내문과도 24. 태그·입력 간격 8. */}
         {isTagAreaVisible ? (
-          <div
-            className="group mt-4 flex flex-wrap items-center gap-2"
-            // 줄 아무 데나 탭해도 입력칸으로 포커스(입력칸이 짧아 맞추기 어려움).
-            onClick={() => tagInputRef.current?.focus()}
-          >
+          <div className="group mt-6 flex flex-wrap items-center gap-2">
             {tags.map((tag) => (
-              <span key={tag} className="text-body-s text-primary-text-subtle">
-                # {tag}
-              </span>
-            ))}
-            <span className="flex flex-1 items-center gap-1 text-body-s">
-              <span
-                aria-hidden
-                className="text-text-secondary group-focus-within:text-primary-text-subtle"
+              <button
+                key={tag}
+                type="button"
+                onClick={() => editTag(tag)}
+                aria-label={`태그 ${tag} 수정`}
+                className={cn("text-body-s", TAG_TEXT_CLASS)}
               >
-                #
+                # {tag}
+              </button>
+            ))}
+            {tagInputOpen ? (
+              <span className="flex flex-1 items-center gap-1 text-body-s">
+                <span
+                  aria-hidden
+                  className={cn(TAG_HASH_IDLE_CLASS, TAG_HASH_FOCUSED_CLASS)}
+                >
+                  #
+                </span>
+                <input
+                  ref={tagInputRef}
+                  value={tagInput}
+                  onChange={(event) => handleTagChange(event.target.value)}
+                  onKeyDown={handleTagKeyDown}
+                  onBlur={handleTagBlur}
+                  aria-label="태그 입력"
+                  className={cn(
+                    "min-w-[80px] flex-1 text-body-s outline-none",
+                    TAG_INPUT_TEXT_CLASS,
+                    TEXTFIELD_CARET_CLASS,
+                  )}
+                />
               </span>
-              <input
-                ref={tagInputRef}
-                value={tagInput}
-                onChange={(event) => handleTagChange(event.target.value)}
-                onKeyDown={handleTagKeyDown}
-                // 입력 중 다른 곳을 탭하면(blur) 한 글자라도 있으면 그대로 확정 — 스페이스/엔터 없이
-                // 본문으로 넘어가도 태그가 사라지지 않게. 빈 입력이면 아무 일 없음(영역 유지).
-                onBlur={() => {
-                  if (tagInput) addTag(tagInput);
-                }}
-                aria-label="태그 입력"
-                className="min-w-[80px] flex-1 text-body-s text-primary-text-subtle outline-none"
-              />
-            </span>
+            ) : null}
           </div>
         ) : null}
 
-        {/* 안내문: Label M, tertiary. "커뮤니티 제한 사항"은 밑줄(디자인) — 연결 문서 확정 시 링크로 교체.
+        {/* 안내문: 디자인 Label S(12 · Auto) · Cool gray/200, 상단 여백 24. 코드 타이포 스케일의 Label S는 10이라
+            (globals.css) 12 렌더가 같은 Label M(12/16/500)을 쓴다. "커뮤니티 제한 사항"은 밑줄(디자인) —
+            연결 문서 확정 시 링크로 교체.
             FIXME: 커뮤니티 이용 제한 정책 페이지가 /policies에 아직 없다 — 페이지 생기면 <a href>로 연결. */}
-        <p className="mt-4 text-label-m text-text-tertiary">
+        <p className={cn("mt-6 text-label-m", NOTICE_TEXT_CLASS)}>
           <span className="underline">커뮤니티 제한 사항</span> 위반 시 삭제될
           수 있습니다.
         </p>
       </main>
 
-      {/* 하단 툴바: 사진·태그 입력 보조 액션 전용. 셸의 마지막 자식이라 항상 바닥(=키보드 위)에 붙는다.
-          디자인은 구분선 없이 두 액션을 좌·우 절반에 각각 가운데 정렬한다.
+      {/* 하단 고정 스택: [편집 유도 안내] → [썸네일 컨테이너 96] → [툴바 48]. 셸의 마지막 자식이라 항상 바닥에 붙는다.
+          키보드가 뜨면 툴바만 키보드 위로 올라오고 썸네일 컨테이너(안내 포함)는 보이지 않는다(디자인 2026-09-17) —
+          셸이 visualViewport에 맞춰 줄어들므로 컨테이너를 그리지 않는 것으로 구현한다.
+          썸네일: 64 · radius 16 · 간격 12 · 컨테이너 상하좌우 여백 16 · 가로 스크롤. ✕는 24 원, 모서리에서 8 삐져나옴
+          (여백 16 안이라 잘리지 않음). 상태 표시(정책): 업로드 중 = dim 40% + 로딩 아이콘 회전, 실패 = dim + ↻(탭 = 재업로드),
+          완료 = 원본, 탭 = 크롭 편집기. 수정 모드는 등록 이미지 삭제만, 탭 = 보기 전용 상세.
+          하단 툴바(높이 48): 사진·태그 입력 보조 액션 전용.
+          디자인은 구분선 없이 두 액션을 좌·우 절반에 각각 가운데 정렬하고, 아이콘·텍스트를 한 색(툴바 text)으로 —
+          아이콘은 currentColor를 상속받으므로 버튼에만 색을 준다. 텍스트 Body S(14).
           평소엔 safe-area bottom(홈 인디케이터)까지 칠하지만, 키보드가 떠 있는 동안엔 그 영역이 키보드에
           가려 의미가 없으므로 패딩을 0으로 줘 바를 키보드에 딱 붙인다(overlay 모드의 잔여 여백 제거). */}
       <div
@@ -783,7 +797,100 @@ export function PostWriteScreen({
           rect?.keyboardOpen ? "pb-0" : "pb-[env(safe-area-inset-bottom)]",
         )}
       >
-        <div className="grid h-[52px] grid-cols-2">
+        {hasThumbnails && !rect?.keyboardOpen ? (
+          <>
+            {!isEdit && hasOutOfAspect ? (
+              <p className={cn("px-4 pt-2 text-label-m", NOTICE_TEXT_CLASS)}>
+                비율이 긴 사진은 일부만 보여요. 사진을 탭해 보일 영역을
+                정해보세요.
+              </p>
+            ) : null}
+            <ul
+              style={{ height: THUMBNAIL_STRIP_HEIGHT }}
+              className="flex items-center gap-3 overflow-x-auto px-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
+              {isEdit
+                ? existingImages.map((image) => (
+                    <li key={image.id} className="relative shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setViewerImageId(image.id)}
+                        aria-label="이미지 상세 보기"
+                        style={{
+                          width: THUMBNAIL_SIZE,
+                          height: THUMBNAIL_SIZE,
+                        }}
+                        className="block overflow-hidden rounded-2xl"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={image.imageUrl}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      </button>
+                      <ThumbnailRemoveButton
+                        label="이미지 삭제"
+                        onClick={() => removeExistingImage(image.id)}
+                      />
+                    </li>
+                  ))
+                : attachments.map((image) => {
+                    const isFailed = image.status === "failed";
+                    const isUploading = image.status === "uploading";
+                    return (
+                      <li key={image.localId} className="relative shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleThumbnailTap(image.localId)}
+                          aria-label={
+                            isFailed
+                              ? "업로드 실패한 이미지 다시 올리기"
+                              : isUploading
+                                ? "이미지 업로드 중"
+                                : "첨부 이미지 편집"
+                          }
+                          aria-busy={isUploading}
+                          style={{
+                            width: THUMBNAIL_SIZE,
+                            height: THUMBNAIL_SIZE,
+                          }}
+                          className="relative block overflow-hidden rounded-2xl"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={image.preview}
+                            alt=""
+                            style={{
+                              width: THUMBNAIL_SIZE,
+                              height: THUMBNAIL_SIZE,
+                            }}
+                            className="object-cover"
+                          />
+                          {image.status !== "done" ? (
+                            <span className="absolute inset-0 flex items-center justify-center bg-overlay-scrim text-icon-on-overlay">
+                              {isFailed ? (
+                                <RetryIcon size={THUMBNAIL_STATUS_SIZE} />
+                              ) : (
+                                <LoadingIcon
+                                  size={THUMBNAIL_STATUS_SIZE}
+                                  className="animate-spin"
+                                />
+                              )}
+                            </span>
+                          ) : null}
+                        </button>
+                        <ThumbnailRemoveButton
+                          label="첨부 이미지 삭제"
+                          onClick={() => remove(image.localId)}
+                        />
+                      </li>
+                    );
+                  })}
+            </ul>
+          </>
+        ) : null}
+        <div className="grid grid-cols-2" style={{ height: TOOLBAR_HEIGHT }}>
           {/* 숨겨진 표준 file input — 웹뷰가 탭 시 네이티브 사진/카메라 피커를 열고 File을 돌려준다.
               사진 버튼이 이 input을 click()으로 연다(버튼 탭 = 사용자 제스처).
               남은 슬롯이 1장이면 단일 선택으로 전환 → 마지막 한 장에서 초과 선택→잘림을 줄인다.
@@ -805,21 +912,24 @@ export function PostWriteScreen({
             aria-label={
               isEdit ? "사진 추가 불가" : `사진 첨부 (최대 ${MAX_IMAGES}장)`
             }
-            className="inline-flex items-center justify-center gap-3 text-text-secondary disabled:text-text-disabled"
+            className={cn(
+              "inline-flex items-center justify-center gap-3 disabled:text-text-disabled",
+              TOOLBAR_TEXT_CLASS,
+            )}
           >
-            <ImageIcon
-              size={24}
-              className={isEdit ? "text-icon-disabled" : "text-icon-secondary"}
-            />
+            <ImageIcon size={24} />
             <span className="text-body-s">사진</span>
           </button>
           {/* 탭하면 본문 아래 "# 태그" 입력칸으로 포커스(필요하면 그 줄이 보이게 스크롤). */}
           <button
             type="button"
             onClick={focusTagInput}
-            className="inline-flex items-center justify-center gap-3 text-text-secondary"
+            className={cn(
+              "inline-flex items-center justify-center gap-3",
+              TOOLBAR_TEXT_CLASS,
+            )}
           >
-            <TagIcon size={24} className="text-icon-secondary" />
+            <TagIcon size={24} />
             <span className="text-body-s">태그</span>
           </button>
         </div>
@@ -856,13 +966,11 @@ export function PostWriteScreen({
         />
       ) : null}
 
-      {/* 수정 모드 이미지 상세(보기 전용) — 썸네일 탭으로 열림. 삭제는 스트립과 같은 상태를 바꾼다. */}
-      {viewerIndex !== null && existingImages.length > 0 ? (
+      {/* 수정 모드 이미지 상세(보기 전용) — 썸네일 탭으로 열려 그 한 장만 보여준다. */}
+      {viewerImage ? (
         <PostEditImageViewer
-          images={existingImages}
-          initialIndex={viewerIndex}
-          onRemove={removeExistingImage}
-          onClose={() => setViewerIndex(null)}
+          image={viewerImage}
+          onClose={() => setViewerImageId(null)}
         />
       ) : null}
 
@@ -873,16 +981,49 @@ export function PostWriteScreen({
 }
 
 /**
- * 글자 수 카운터(n/max) — 자신이 세는 입력칸 바로 아래 우측, 항상 노출(정책).
- *
- * 한도에 닿으면 error 색으로 바꿔 "더 못 치는 이유"를 즉시 알린다(maxLength가 조용히 입력을 막는 걸 보완).
+ * 썸네일 우상단 삭제(✕) 버튼 — 24 원, 모서리에서 8 삐져나옴, 아이콘 16. 작성(첨부)·수정(등록 이미지) 공용.
+ * 확인 없이 즉시 삭제(정책).
+ */
+function ThumbnailRemoveButton({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      style={{
+        width: THUMBNAIL_REMOVE_SIZE,
+        height: THUMBNAIL_REMOVE_SIZE,
+        top: -THUMBNAIL_REMOVE_OVERHANG,
+        right: -THUMBNAIL_REMOVE_OVERHANG,
+      }}
+      className={cn(
+        "absolute inline-flex items-center justify-center rounded-full text-icon-primary",
+        THUMBNAIL_REMOVE_BG_CLASS,
+      )}
+    >
+      <CloseIcon size={THUMBNAIL_REMOVE_ICON_SIZE} />
+    </button>
+  );
+}
+
+/**
+ * 글자 수 카운터(n/max) — 자신이 세는 입력칸 바로 아래 우측, 상단 여백 2, 항상 노출(정책).
+ * 디자인 Label S(12 · Auto) · textfield_display/counter-text — 코드 스케일의 Label S는 10이라 12 렌더가 같은
+ * Label M을 쓴다. 한도에 닿으면 counter-text-limit(error)로 바꿔 "더 못 치는 이유"를 즉시 알린다
+ * (maxLength가 조용히 입력을 막는 걸 보완).
  */
 function CharCounter({ length, max }: { length: number; max: number }) {
   return (
     <span
       className={cn(
-        "mt-1.5 text-right text-label-m tabular-nums",
-        length >= max ? "text-error" : "text-text-tertiary",
+        "mt-0.5 text-right text-label-m tabular-nums",
+        length >= max ? COUNTER_LIMIT_CLASS : COUNTER_TEXT_CLASS,
       )}
     >
       {length}/{max}

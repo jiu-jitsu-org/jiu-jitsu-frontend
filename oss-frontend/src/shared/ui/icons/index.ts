@@ -23,3 +23,9 @@ export { TimerIcon } from "./timer-icon";
 export { CheckIcon } from "./check-icon";
 export { TagIcon } from "./tag-icon";
 export { RetryIcon } from "./retry-icon";
+export { LoadingIcon } from "./loading-icon";
+export {
+  CropRatio43Icon,
+  CropRatio11Icon,
+  CropRatio45Icon,
+} from "./crop-ratio-icons";

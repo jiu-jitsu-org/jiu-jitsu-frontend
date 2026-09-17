@@ -3,7 +3,12 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { cn } from "@/shared/lib/cn";
-import { CloseIcon } from "@/shared/ui/icons";
+import {
+  CloseIcon,
+  CropRatio11Icon,
+  CropRatio43Icon,
+  CropRatio45Icon,
+} from "@/shared/ui/icons";
 
 import {
   CROP_PRESETS,
@@ -16,13 +21,36 @@ import {
   type CropState,
 } from "./image-crop";
 
-/** 스테이지 좌우·상하 여백 — 프레임 폭 = 화면 폭 − 32(정책, 상세 이미지 폭과 동일). */
-const STAGE_INSET = 16;
+/** 스테이지 좌우·상하 여백 — 프레임 폭 = 화면 폭 − 56(디자인 2026-09-17, 좌우 28). */
+const STAGE_INSET = 28;
+/** 하단 버튼 줄의 바닥 여백(px). safe-area와 무관하게 화면 맨 아래에서 24. */
+const BOTTOM_INSET = 24;
+/**
+ * FIXME(토큰, #145): 딤은 디자인 지정 image-crop/dim-overlay(#000000 92%)인데 토큰 파일에 없고 기존
+ * overlay-scrim-heavy(80%)와 농도가 달라 값을 그대로 넣는다(이미지 뷰어 #138과 같은 사정). 가이드 테두리
+ * image-crop/guide-border(#FAFAFA)는 bw-white와 같아 primitive를 직접 참조한다.
+ */
+const DIM_CLASS = "bg-[#000000eb]";
+const GUIDE_BORDER_CLASS = "border-[var(--bw-white)]";
+/**
+ * FIXME(토큰, #145): 프리셋 라벨 색은 디자인 지정 Color/Cool gray/100(#CECFD1) — 텍스트용 semantic이 없어
+ * primitive를 직접 참조한다. 아이콘·선택 배경은 button/inverted-subtle 토큰이 있어 그대로 쓴다.
+ */
+const PRESET_LABEL_CLASS = "text-[var(--cool-gray-100)]";
 /** 좌하단 취소(✕) 버튼 한 변(px) — 글쓰기 앱바 버튼과 같은 tint 어휘·크기. */
 const CANCEL_BUTTON_SIZE = 36;
-/** 프리셋 아이콘(비율 모양 사각형) 긴 변(px). 선택 배경 40 안에서 여백을 남기는 크기. */
-const PRESET_ICON_LONG_SIDE = 20;
-const PRESET_ICON_BOX = 40;
+/** 프리셋 아이콘 한 변(px, 디자인 svg 20 viewBox)과 선택 시 칠하는 배경 박스 한 변(px). */
+const PRESET_ICON_SIZE = 20;
+const PRESET_ICON_BOX = 36;
+/** 프리셋 줄 높이(px) 고정: 아이콘 영역 36 + 간격 2 + 텍스트 영역 14 = 52. 라벨 행간을 14로 맞춰 합이 정확히 52. */
+const PRESET_ROW_HEIGHT = 52;
+const PRESET_LABEL_LINE_HEIGHT = 14;
+/** 프리셋 id → 디자인 아이콘. */
+const PRESET_ICONS = {
+  "4:3": CropRatio43Icon,
+  "1:1": CropRatio11Icon,
+  "4:5": CropRatio45Icon,
+} as const;
 /**
  * <img> 요소의 CSS 긴 변 상한(px). 원본 px 크기 그대로 두면 4000px급 사진이 그만큼의 레이어를 잡아
  * iOS 웹뷰 메모리를 압박하므로 요소는 이 크기 이하로 두고, 배율 계산은 원본 px 기준을 유지한다.
@@ -321,7 +349,7 @@ export function PostImageCropEditor({
       role="dialog"
       aria-modal="true"
       aria-label="이미지 편집"
-      className="fixed inset-0 z-50 flex flex-col bg-overlay-scrim-heavy"
+      className={cn("fixed inset-0 z-50 flex flex-col", DIM_CLASS)}
     >
       {/* 스테이지: 남는 높이 전부. 그림은 원본 px 크기로 두고 transform만 바꾼다(제스처 훅이 직접 씀).
           프레임은 중앙 고정 + 바깥을 scrim으로 덮어 "잘려 나갈 부분"을 흐리게 보여준다. */}
@@ -349,22 +377,24 @@ export function PostImageCropEditor({
               height: frame.height,
               boxShadow: "0 0 0 100vmax var(--overlay-scrim)",
             }}
-            className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 border border-[var(--bw-white)]"
+            className={cn(
+              "pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 border",
+              GUIDE_BORDER_CLASS,
+            )}
           />
         ) : null}
       </div>
 
-      {/* 프리셋: 비율 모양의 작은 사각형 + 라벨. 선택된 것만 overlay-surface 배경. */}
-      <div className="flex shrink-0 justify-center gap-8 py-3">
+      {/* 프리셋(디자인 2026-09-17): 디자인 svg 아이콘(20) + 라벨(Label S 12 → 코드 스케일은 Label M) · 버튼 간격 12 ·
+          아이콘↔텍스트 2 · 상하 패딩 없음. 아이콘 색은 button/inverted-subtle default(60%) / pressed(100%) 텍스트 토큰,
+          선택 시 36×36 radius 8 pressed-bg(흰 20%)로 아이콘 뒤를 칠한다. 라벨 색은 선택 여부와 무관하게 Cool gray/100. */}
+      <div
+        style={{ height: PRESET_ROW_HEIGHT }}
+        className="flex shrink-0 justify-center gap-3"
+      >
         {CROP_PRESETS.map((item) => {
           const selected = item.id === preset;
-          const wide = item.ratio >= 1;
-          const iconWidth = wide
-            ? PRESET_ICON_LONG_SIDE
-            : PRESET_ICON_LONG_SIDE * item.ratio;
-          const iconHeight = wide
-            ? PRESET_ICON_LONG_SIDE / item.ratio
-            : PRESET_ICON_LONG_SIDE;
+          const Icon = PRESET_ICONS[item.id];
           return (
             <button
               key={item.id}
@@ -372,28 +402,41 @@ export function PostImageCropEditor({
               onClick={() => setPreset(item.id)}
               aria-pressed={selected}
               aria-label={`비율 ${item.label}`}
-              className="flex flex-col items-center gap-1 text-label-m text-text-on-overlay"
+              className={cn(
+                "flex flex-col items-center gap-0.5 text-label-m",
+                PRESET_LABEL_CLASS,
+              )}
             >
               <span
                 style={{ width: PRESET_ICON_BOX, height: PRESET_ICON_BOX }}
                 className={cn(
                   "inline-flex items-center justify-center rounded-lg",
-                  selected && "bg-overlay-surface",
+                  selected
+                    ? "bg-button-inverted-subtle-pressed-bg text-button-inverted-subtle-pressed-text"
+                    : "text-button-inverted-subtle-default-text",
                 )}
               >
-                <span
-                  style={{ width: iconWidth, height: iconHeight }}
-                  className="rounded-[3px] border-[1.5px] border-[var(--bw-white)]"
-                />
+                <Icon size={PRESET_ICON_SIZE} />
               </span>
-              {item.label}
+              <span
+                style={{
+                  height: PRESET_LABEL_LINE_HEIGHT,
+                  lineHeight: `${PRESET_LABEL_LINE_HEIGHT}px`,
+                }}
+              >
+                {item.label}
+              </span>
             </button>
           );
         })}
       </div>
 
-      {/* 하단: 좌 취소(✕ tint) · 우 완료(filled). 홈 인디케이터 위까지 여백. */}
-      <div className="flex shrink-0 items-center justify-between px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-2">
+      {/* 하단: 좌 취소(✕ tint) · 우 완료(filled). 프리셋 줄과 사이 여백 0, 바닥 여백은 safe-area를 무시하고
+          화면 맨 아래에서 24(디자인). */}
+      <div
+        style={{ paddingBottom: BOTTOM_INSET }}
+        className="flex shrink-0 items-center justify-between px-4"
+      >
         <button
           type="button"
           onClick={onCancel}
