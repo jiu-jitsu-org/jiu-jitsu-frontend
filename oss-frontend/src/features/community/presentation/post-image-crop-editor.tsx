@@ -42,6 +42,9 @@ const CANCEL_BUTTON_SIZE = 36;
 /** 프리셋 아이콘 한 변(px, 디자인 svg 20 viewBox)과 선택 시 칠하는 배경 박스 한 변(px). */
 const PRESET_ICON_SIZE = 20;
 const PRESET_ICON_BOX = 36;
+/** 프리셋 줄 높이(px) 고정: 아이콘 영역 36 + 간격 2 + 텍스트 영역 14 = 52. 라벨 행간을 14로 맞춰 합이 정확히 52. */
+const PRESET_ROW_HEIGHT = 52;
+const PRESET_LABEL_LINE_HEIGHT = 14;
 /** 프리셋 id → 디자인 아이콘. */
 const PRESET_ICONS = {
   "4:3": CropRatio43Icon,
@@ -385,7 +388,10 @@ export function PostImageCropEditor({
       {/* 프리셋(디자인 2026-09-17): 디자인 svg 아이콘(20) + 라벨(Label S 12 → 코드 스케일은 Label M) · 버튼 간격 12 ·
           아이콘↔텍스트 2 · 상하 패딩 없음. 아이콘 색은 button/inverted-subtle default(60%) / pressed(100%) 텍스트 토큰,
           선택 시 36×36 radius 8 pressed-bg(흰 20%)로 아이콘 뒤를 칠한다. 라벨 색은 선택 여부와 무관하게 Cool gray/100. */}
-      <div className="flex shrink-0 justify-center gap-3">
+      <div
+        style={{ height: PRESET_ROW_HEIGHT }}
+        className="flex shrink-0 justify-center gap-3"
+      >
         {CROP_PRESETS.map((item) => {
           const selected = item.id === preset;
           const Icon = PRESET_ICONS[item.id];
@@ -412,16 +418,24 @@ export function PostImageCropEditor({
               >
                 <Icon size={PRESET_ICON_SIZE} />
               </span>
-              {item.label}
+              <span
+                style={{
+                  height: PRESET_LABEL_LINE_HEIGHT,
+                  lineHeight: `${PRESET_LABEL_LINE_HEIGHT}px`,
+                }}
+              >
+                {item.label}
+              </span>
             </button>
           );
         })}
       </div>
 
-      {/* 하단: 좌 취소(✕ tint) · 우 완료(filled). 바닥 여백은 safe-area를 무시하고 화면 맨 아래에서 24(디자인). */}
+      {/* 하단: 좌 취소(✕ tint) · 우 완료(filled). 프리셋 줄과 사이 여백 0, 바닥 여백은 safe-area를 무시하고
+          화면 맨 아래에서 24(디자인). */}
       <div
         style={{ paddingBottom: BOTTOM_INSET }}
-        className="flex shrink-0 items-center justify-between px-4 pt-2"
+        className="flex shrink-0 items-center justify-between px-4"
       >
         <button
           type="button"
