@@ -1,4 +1,3 @@
-import type { PostTag } from "@/features/community/domain/post";
 import { cn } from "@/shared/lib/cn";
 
 /**
@@ -12,7 +11,7 @@ export function PostTags({
   tags,
   className,
 }: {
-  tags: PostTag[];
+  tags: string[];
   className?: string;
 }) {
   if (tags.length === 0) return null;
@@ -20,11 +19,8 @@ export function PostTags({
   return (
     <ul className={cn("flex flex-wrap gap-2", className)}>
       {tags.map((tag) => (
-        <li
-          key={tag.id}
-          className="text-label-m text-feed-card-tag-text"
-        >
-          # {tag.name}
+        <li key={tag} className="text-label-m text-feed-card-tag-text">
+          # {tag}
         </li>
       ))}
     </ul>

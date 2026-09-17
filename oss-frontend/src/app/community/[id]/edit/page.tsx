@@ -44,7 +44,7 @@ export default async function CommunityPostEditPage({
       title: post.title,
       body: post.body,
       images: post.images,
-      tags: post.tags.map((tag) => tag.name),
+      tags: post.tags,
     };
   } catch (error) {
     // redirect()는 Next 내부 예외로 동작하므로 삼키지 않고 다시 던진다.
