@@ -26,6 +26,7 @@ import {
   CheckIcon,
   CloseIcon,
   ImageIcon,
+  LoadingIcon,
   RetryIcon,
   TagIcon,
 } from "@/shared/ui/icons";
@@ -87,10 +88,20 @@ const TOOLBAR_HEIGHT = 48;
 const TOOLBAR_TEXT_CLASS = "text-text-secondary";
 /** 첨부 미리보기 썸네일 한 변(px, 정책 64×64). */
 const THUMBNAIL_SIZE = 64;
-/** 썸네일 우상단 삭제(✕) 원 지름(px). 썸네일 모서리에 반쯤 걸쳐 얹는다. */
-const THUMBNAIL_REMOVE_SIZE = 22;
-/** 썸네일 위 상태 표시(스피너·↻) 한 변(px). 60 썸네일 안에서 여백을 남기는 크기. */
+/** 썸네일 컨테이너 높이(px) — 상하 여백 16 + 썸네일 64. 툴바 위에 고정. */
+const THUMBNAIL_STRIP_HEIGHT = 96;
+/** 썸네일 우상단 삭제(✕) 원 지름(px)과 모서리에서 삐져나오는 양(px). 아이콘 16. */
+const THUMBNAIL_REMOVE_SIZE = 24;
+const THUMBNAIL_REMOVE_OVERHANG = 8;
+const THUMBNAIL_REMOVE_ICON_SIZE = 16;
+/** 썸네일 위 상태 아이콘(로딩·↻) 한 변(px). */
 const THUMBNAIL_STATUS_SIZE = 24;
+/**
+ * FIXME(토큰, #145): 썸네일 ✕ 배경은 디자인 지정 image/delete-button-bg(#E6E7E8)인데 토큰 파일에 image 그룹이
+ * 없어 primitive(cool-gray-50)를 직접 참조한다. image/delete-icon(#292A2E)은 icon-primary, image/dim-overlay(40%)는
+ * overlay-scrim, image/status-icon(#FAFAFA)은 icon-on-overlay로 값이 같아 그 토큰을 쓴다.
+ */
+const THUMBNAIL_REMOVE_BG_CLASS = "bg-[var(--cool-gray-50)]";
 /**
  * FIXME(토큰, #145): 카테고리 칩 테두리 색은 디자인 지정 chip/default/border(#CECFD1) · 선택 테두리
  * (#292A2E)인데 토큰 파일에 chip 테두리 토큰이 없다(tag-chip-*는 bg/text만). 값을 그대로 넣고,
@@ -215,6 +226,10 @@ export function PostWriteScreen({
     attachments.find((item) => item.localId === editingId) ?? null;
   // 허용 비율 밖 원본이 하나라도 있으면 편집 유도 안내(정책). 크롭본은 항상 허용 비율 안.
   const hasOutOfAspect = attachments.some(isAttachmentOutOfAspect);
+  // 하단 썸네일 컨테이너를 그릴지 — 작성은 첨부, 수정은 등록 이미지.
+  const hasThumbnails = isEdit
+    ? existingImages.length > 0
+    : attachments.length > 0;
 
   // 작성: 한 글자라도 적었거나 카테고리/이미지를 골랐으면 "작성 중" → 닫기 시 이탈 가드를 띄운다.
   // 수정: 기존 값과 하나라도 다르면 "변경됨" — 완료 버튼 활성·이탈 가드의 근거. 미확정 태그 입력도 변경으로 본다.
@@ -706,127 +721,7 @@ export function PostWriteScreen({
         />
         <CharCounter length={body.length} max={BODY_MAX_LENGTH} />
 
-        {/* 첨부 이미지 미리보기 — 본문 → 사진 → 태그 순서 고정(정책). 가로 나열, 썸네일 64 + 우상단 ✕(즉시
-            삭제, 확인 없음 — 업로드 중에도 가능). ✕가 썸네일 밖으로 나가므로 위쪽 여백(pt-3)을 둬 스크롤
-            컨테이너에 잘리지 않게 하고, main의 px-4를 -mx-4/px-4로 되돌려 마지막 썸네일의 ✕도 오른쪽 패딩
-            안에 들어오게 한다. 미리보기는 로컬 File의 object URL(blob:)이라 next/image가 아닌 img로 그린다.
-            상태별 표시(정책): 업로드 중 = 흐림(white-60 스크림) + 스피너, 실패 = 흐림 + ↻(탭 = 그 장만 재업로드),
-            완료 = 원본, 탭 = 편집(크롭) 화면 — 자동 크롭은 없고 사용자가 열 때만 잘라낸다. 업로드 중 탭은 무시.
-            허용 비율 밖 원본이 있으면 스트립 위에 편집 유도 안내를 띄운다(잘릴 사진이 있다는 예고). */}
-        {/* 수정 모드: 등록된 이미지 스트립 — 삭제만(✕), 탭 = 보기 전용 상세. 크롭·추가 없음(정책). */}
-        {isEdit && existingImages.length > 0 ? (
-          <ul className="-mx-4 mt-2 flex gap-4 overflow-x-auto px-4 pt-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {existingImages.map((image) => (
-              <li key={image.id} className="relative shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setViewerImageId(image.id)}
-                  aria-label="이미지 상세 보기"
-                  style={{ width: THUMBNAIL_SIZE, height: THUMBNAIL_SIZE }}
-                  className="block overflow-hidden rounded-lg"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={image.imageUrl}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => removeExistingImage(image.id)}
-                  aria-label="이미지 삭제"
-                  style={{
-                    width: THUMBNAIL_REMOVE_SIZE,
-                    height: THUMBNAIL_REMOVE_SIZE,
-                    top: -THUMBNAIL_REMOVE_SIZE / 2,
-                    right: -THUMBNAIL_REMOVE_SIZE / 2,
-                  }}
-                  className="absolute inline-flex items-center justify-center rounded-full bg-surface-tertiary text-icon-primary"
-                >
-                  <CloseIcon size={14} />
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-
-        {attachments.length > 0 ? (
-          <>
-            {hasOutOfAspect ? (
-              <p className="mt-4 text-label-m text-text-tertiary">
-                비율이 긴 사진은 일부만 보여요. 사진을 탭해 보일 영역을
-                정해보세요.
-              </p>
-            ) : null}
-            <ul className="-mx-4 mt-2 flex gap-4 overflow-x-auto px-4 pt-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {attachments.map((image) => {
-                const isFailed = image.status === "failed";
-                const isUploading = image.status === "uploading";
-                return (
-                  <li key={image.localId} className="relative shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => handleThumbnailTap(image.localId)}
-                      aria-label={
-                        isFailed
-                          ? "업로드 실패한 이미지 다시 올리기"
-                          : isUploading
-                            ? "이미지 업로드 중"
-                            : "첨부 이미지 편집"
-                      }
-                      aria-busy={isUploading}
-                      style={{ width: THUMBNAIL_SIZE, height: THUMBNAIL_SIZE }}
-                      className="relative block overflow-hidden rounded-lg"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={image.preview}
-                        alt=""
-                        style={{
-                          width: THUMBNAIL_SIZE,
-                          height: THUMBNAIL_SIZE,
-                        }}
-                        className="object-cover"
-                      />
-                      {image.status !== "done" ? (
-                        <span className="absolute inset-0 flex items-center justify-center bg-[var(--opacity-white-60)] text-icon-on-overlay">
-                          {isFailed ? (
-                            <RetryIcon size={THUMBNAIL_STATUS_SIZE} />
-                          ) : (
-                            <span
-                              style={{
-                                width: THUMBNAIL_STATUS_SIZE,
-                                height: THUMBNAIL_STATUS_SIZE,
-                              }}
-                              className="animate-spin rounded-full border-2 border-current border-t-transparent"
-                            />
-                          )}
-                        </span>
-                      ) : null}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => remove(image.localId)}
-                      aria-label="첨부 이미지 삭제"
-                      style={{
-                        width: THUMBNAIL_REMOVE_SIZE,
-                        height: THUMBNAIL_REMOVE_SIZE,
-                        top: -THUMBNAIL_REMOVE_SIZE / 2,
-                        right: -THUMBNAIL_REMOVE_SIZE / 2,
-                      }}
-                      className="absolute inline-flex items-center justify-center rounded-full bg-surface-tertiary text-icon-primary"
-                    >
-                      <CloseIcon size={14} />
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </>
-        ) : null}
-
-        {/* 태그 입력줄: 본문 → 사진 → 태그 순서(정책). 태그가 없으면 영역이 없고, 하단 "태그" 버튼으로 열면
+        {/* 태그 입력줄: 본문 아래(사진 스트립은 하단 툴바 위 고정으로 옮김 — 디자인 2026-09-17). 태그가 없으면 영역이 없고, 하단 "태그" 버튼으로 열면
             "#"이 자동으로 앞에 붙은 입력칸이 나타난다(사용자는 태그명만 친다). 스페이스/엔터로 확정 → 다음 "#"이
             자동 생성되며, 확정 태그는 "# 이름"(브랜드 텍스트 컬러) — 탭하면 그 태그를 입력칸으로 되돌려 수정한다.
             입력칸을 벗어나면(blur) 입력 중이던 글자는 확정, 0글자면 취소되고 "#" 입력칸은 사라진다.
@@ -881,7 +776,13 @@ export function PostWriteScreen({
         </p>
       </main>
 
-      {/* 하단 툴바(높이 48): 사진·태그 입력 보조 액션 전용. 셸의 마지막 자식이라 항상 바닥(=키보드 위)에 붙는다.
+      {/* 하단 고정 스택: [편집 유도 안내] → [썸네일 컨테이너 96] → [툴바 48]. 셸의 마지막 자식이라 항상 바닥에 붙는다.
+          키보드가 뜨면 툴바만 키보드 위로 올라오고 썸네일 컨테이너(안내 포함)는 보이지 않는다(디자인 2026-09-17) —
+          셸이 visualViewport에 맞춰 줄어들므로 컨테이너를 그리지 않는 것으로 구현한다.
+          썸네일: 64 · radius 16 · 간격 12 · 컨테이너 상하좌우 여백 16 · 가로 스크롤. ✕는 24 원, 모서리에서 8 삐져나옴
+          (여백 16 안이라 잘리지 않음). 상태 표시(정책): 업로드 중 = dim 40% + 로딩 아이콘 회전, 실패 = dim + ↻(탭 = 재업로드),
+          완료 = 원본, 탭 = 크롭 편집기. 수정 모드는 등록 이미지 삭제만, 탭 = 보기 전용 상세.
+          하단 툴바(높이 48): 사진·태그 입력 보조 액션 전용.
           디자인은 구분선 없이 두 액션을 좌·우 절반에 각각 가운데 정렬하고, 아이콘·텍스트를 한 색(툴바 text)으로 —
           아이콘은 currentColor를 상속받으므로 버튼에만 색을 준다. 텍스트 Body S(14).
           평소엔 safe-area bottom(홈 인디케이터)까지 칠하지만, 키보드가 떠 있는 동안엔 그 영역이 키보드에
@@ -892,6 +793,99 @@ export function PostWriteScreen({
           rect?.keyboardOpen ? "pb-0" : "pb-[env(safe-area-inset-bottom)]",
         )}
       >
+        {hasThumbnails && !rect?.keyboardOpen ? (
+          <>
+            {!isEdit && hasOutOfAspect ? (
+              <p className={cn("px-4 pt-2 text-label-m", NOTICE_TEXT_CLASS)}>
+                비율이 긴 사진은 일부만 보여요. 사진을 탭해 보일 영역을
+                정해보세요.
+              </p>
+            ) : null}
+            <ul
+              style={{ height: THUMBNAIL_STRIP_HEIGHT }}
+              className="flex items-center gap-3 overflow-x-auto px-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
+              {isEdit
+                ? existingImages.map((image) => (
+                    <li key={image.id} className="relative shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setViewerImageId(image.id)}
+                        aria-label="이미지 상세 보기"
+                        style={{
+                          width: THUMBNAIL_SIZE,
+                          height: THUMBNAIL_SIZE,
+                        }}
+                        className="block overflow-hidden rounded-2xl"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={image.imageUrl}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      </button>
+                      <ThumbnailRemoveButton
+                        label="이미지 삭제"
+                        onClick={() => removeExistingImage(image.id)}
+                      />
+                    </li>
+                  ))
+                : attachments.map((image) => {
+                    const isFailed = image.status === "failed";
+                    const isUploading = image.status === "uploading";
+                    return (
+                      <li key={image.localId} className="relative shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleThumbnailTap(image.localId)}
+                          aria-label={
+                            isFailed
+                              ? "업로드 실패한 이미지 다시 올리기"
+                              : isUploading
+                                ? "이미지 업로드 중"
+                                : "첨부 이미지 편집"
+                          }
+                          aria-busy={isUploading}
+                          style={{
+                            width: THUMBNAIL_SIZE,
+                            height: THUMBNAIL_SIZE,
+                          }}
+                          className="relative block overflow-hidden rounded-2xl"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={image.preview}
+                            alt=""
+                            style={{
+                              width: THUMBNAIL_SIZE,
+                              height: THUMBNAIL_SIZE,
+                            }}
+                            className="object-cover"
+                          />
+                          {image.status !== "done" ? (
+                            <span className="absolute inset-0 flex items-center justify-center bg-overlay-scrim text-icon-on-overlay">
+                              {isFailed ? (
+                                <RetryIcon size={THUMBNAIL_STATUS_SIZE} />
+                              ) : (
+                                <LoadingIcon
+                                  size={THUMBNAIL_STATUS_SIZE}
+                                  className="animate-spin"
+                                />
+                              )}
+                            </span>
+                          ) : null}
+                        </button>
+                        <ThumbnailRemoveButton
+                          label="첨부 이미지 삭제"
+                          onClick={() => remove(image.localId)}
+                        />
+                      </li>
+                    );
+                  })}
+            </ul>
+          </>
+        ) : null}
         <div className="grid grid-cols-2" style={{ height: TOOLBAR_HEIGHT }}>
           {/* 숨겨진 표준 file input — 웹뷰가 탭 시 네이티브 사진/카메라 피커를 열고 File을 돌려준다.
               사진 버튼이 이 input을 click()으로 연다(버튼 탭 = 사용자 제스처).
@@ -979,6 +973,38 @@ export function PostWriteScreen({
       {/* 작성 이탈 가드(웹 단독 폴백 전용 — 앱에서는 네이티브가 그린다) */}
       {dialog}
     </div>
+  );
+}
+
+/**
+ * 썸네일 우상단 삭제(✕) 버튼 — 24 원, 모서리에서 8 삐져나옴, 아이콘 16. 작성(첨부)·수정(등록 이미지) 공용.
+ * 확인 없이 즉시 삭제(정책).
+ */
+function ThumbnailRemoveButton({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      style={{
+        width: THUMBNAIL_REMOVE_SIZE,
+        height: THUMBNAIL_REMOVE_SIZE,
+        top: -THUMBNAIL_REMOVE_OVERHANG,
+        right: -THUMBNAIL_REMOVE_OVERHANG,
+      }}
+      className={cn(
+        "absolute inline-flex items-center justify-center rounded-full text-icon-primary",
+        THUMBNAIL_REMOVE_BG_CLASS,
+      )}
+    >
+      <CloseIcon size={THUMBNAIL_REMOVE_ICON_SIZE} />
+    </button>
   );
 }
 

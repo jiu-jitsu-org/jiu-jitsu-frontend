@@ -23,3 +23,4 @@ export { TimerIcon } from "./timer-icon";
 export { CheckIcon } from "./check-icon";
 export { TagIcon } from "./tag-icon";
 export { RetryIcon } from "./retry-icon";
+export { LoadingIcon } from "./loading-icon";
