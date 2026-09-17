@@ -104,11 +104,10 @@ type BoardDetailDto = {
   /** 서버가 계산한 상대 시각(예: "8일 전"). 상세 메타행 날짜의 정본. */
   timeAgo?: string;
   /**
-   * 태그 목록. 실제 응답 키는 목록과 동일한 `tags`다.
-   * `tagList`는 초기 계약 문서 기준의 옛 키 — 아직 그렇게 내려오는 환경이 있을 수 있어 폴백으로 남긴다.
+   * 태그 이름 목록. 초기 계약 문서는 `tagList: {id,name}[]`였지만 실제 응답은 `tags: string[]`다 —
+   * 객체로 가정하면 `tag.name`이 undefined가 되어 '#'만 보이는 회귀가 있었다(#151).
    */
-  tags?: { id: number; name: string }[];
-  tagList?: { id: number; name: string }[];
+  tags?: string[];
 };
 
 /**
@@ -134,8 +133,8 @@ type BoardSummaryDto = {
   saveCount?: number;
   /** 조회수. 목록 카드 노출 스펙은 미확정(이전 표시 시도는 롤백됨). */
   viewCount?: number;
-  /** 태그 목록. 상세의 tagList와 키 이름이 다르다(목록은 tags). 항목 형태는 상세와 동일 가정. */
-  tags?: { id: number; name: string }[];
+  /** 태그 이름 목록. 상세와 같은 `string[]` 형태. */
+  tags?: string[];
   /** 서버가 계산한 상대 시각(예: "10일 전"). 카드 날짜 라벨의 정본 — 없으면 createdAt으로 폴백. */
   timeAgo?: string;
   isCommented: boolean;
@@ -215,7 +214,7 @@ function toPostDetail(dto: BoardDetailDto): PostDetail {
     title: dto.title,
     body: dto.body,
     images: dto.imageList ?? [],
-    tags: dto.tags ?? dto.tagList ?? [],
+    tags: dto.tags ?? [],
     counts: {
       comments: dto.commentCount,
       likes: dto.likeCount,

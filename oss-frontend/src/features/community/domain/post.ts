@@ -12,11 +12,6 @@ export type PostAuthor = {
   avatarUrl?: string | null;
 };
 
-export type PostTag = {
-  id: number;
-  name: string;
-};
-
 export type PostImage = {
   id: number;
   imageUrl: string;
@@ -58,7 +53,8 @@ export type PostDetail = {
   body: string;
   /** imageList */
   images: PostImage[];
-  tags: PostTag[];
+  /** 태그 이름 목록. 서버가 id 없이 문자열만 내려준다(GET /board/{id} tags: ["BJJ"]). */
+  tags: string[];
   counts: PostCounts;
   /** 조회수. 단건 조회 응답에 필드가 있으면 매핑(optional). */
   views?: number;

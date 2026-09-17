@@ -15,11 +15,7 @@ export const MOCK_POST_BASE: PostDetail = {
   title: "제목 제목 제목 제목 제목 제목 제목 제목 제목 제목 제목 제목",
   body: "본문 본문 본문 본문 본문 본문 본문 본문 본문 본문 본문 본문\n본문 본문 본문 본문 본문 본문 본문 본문 본문 본문 본문 본문",
   images: [],
-  tags: [
-    { id: 1, name: "드릴" },
-    { id: 2, name: "서브미션" },
-    { id: 3, name: "드릴2" },
-  ],
+  tags: ["드릴", "서브미션", "드릴2"],
   counts: { comments: 0, likes: 0, saves: 1 },
   views: 0,
   // 활성(좋아요/북마크/댓글) 상태 디자인 확인용으로 true.
