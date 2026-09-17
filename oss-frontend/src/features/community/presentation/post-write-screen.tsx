@@ -98,6 +98,22 @@ const THUMBNAIL_STATUS_SIZE = 24;
  */
 const CHIP_BORDER_DEFAULT_CLASS = "border-[#cecfd1]";
 const CHIP_BORDER_SELECTED_CLASS = "border-[#292a2e]";
+/**
+ * FIXME(토큰, #145): 제목·본문 입력칸 색은 디자인 지정 textfield_display/* 토큰(filled/text #292A2E ·
+ * default/placeholder-text #9C9EA6 · cursor #0090FF · counter-text #9C9EA6 · counter-text-limit #FF1D0D)인데
+ * 토큰 파일에 textfield_display 그룹이 없다. 값이 같은 semantic 토큰(text-primary · text-tertiary ·
+ * interactive-primary · error)으로 두고, 등록되면 이 상수들만 바꾼다.
+ */
+const TEXTFIELD_TEXT_CLASS = "text-text-primary";
+const TEXTFIELD_PLACEHOLDER_CLASS = "placeholder:text-text-tertiary";
+const TEXTFIELD_CARET_CLASS = "caret-interactive-primary";
+const COUNTER_TEXT_CLASS = "text-text-tertiary";
+const COUNTER_LIMIT_CLASS = "text-error";
+/**
+ * FIXME(토큰, #145): 안내문 색은 디자인 지정 Color/Cool gray/200(#B7B9BD) — 텍스트용 semantic 토큰이 없어
+ * primitive 변수를 직접 참조한다. semantic이 생기면 교체.
+ */
+const NOTICE_TEXT_CLASS = "text-[var(--cool-gray-200)]";
 
 /**
  * 게시글 작성 화면 (클라이언트 화면 컴포넌트).
@@ -624,7 +640,8 @@ export function PostWriteScreen({
       {/* 본문 영역: 제목 → 본문 → 태그 → 안내문이 한 덩어리로 스크롤된다(main 내부 스크롤).
           제목·본문 textarea는 자동으로 자라므로 스크롤은 이 main에서만 일어난다. */}
       <main className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 pb-6">
-        {/* 제목: Title 1(22/32 semibold), 여러 줄 허용(45자). 카테고리↔제목 간격 24(mt-6).
+        {/* 제목: Display 1(30 · 행간 Auto → 40 고정 · 600), 여러 줄 허용(45자). 카테고리↔제목 간격 24(mt-6).
+            색 textfield_display/filled/text, 플레이스홀더 default/placeholder-text, 커서 cursor(브랜드).
             첫 진입 시 제목에 자동 포커스 → 바로 타이핑 시작(정책). 키보드가 함께 올라오려면 WKWebView가
             사용자 제스처 없는 focus를 허용해야 한다(keyboardDisplayRequiresUserAction = false).
             FIXME: 앱에서 진입 시 키보드가 안 뜨면 iOS 쪽 위 설정 확인 — 웹에서는 autoFocus 이상 할 수 없다. */}
@@ -646,11 +663,16 @@ export function PostWriteScreen({
           rows={1}
           placeholder="제목을 입력해주세요"
           aria-label="제목"
-          className="mt-6 w-full resize-none overflow-hidden text-title-1 text-text-primary outline-none placeholder:text-text-tertiary"
+          className={cn(
+            "mt-6 w-full resize-none overflow-hidden text-display-1 outline-none",
+            TEXTFIELD_TEXT_CLASS,
+            TEXTFIELD_PLACEHOLDER_CLASS,
+            TEXTFIELD_CARET_CLASS,
+          )}
         />
         <CharCounter length={title.length} max={TITLE_MAX_LENGTH} />
 
-        {/* 본문: Title 3(18/28 semibold), 800자. 카운터 아래 8. */}
+        {/* 본문: Title 1(22 · 행간 Auto → 32 고정 · 600), 800자. 제목 카운터 아래 24(mt-6). 색·커서는 제목과 동일. */}
         <textarea
           ref={bodyRef}
           value={body}
@@ -666,7 +688,12 @@ export function PostWriteScreen({
           rows={1}
           placeholder="내용을 입력해주세요"
           aria-label="내용"
-          className="mt-2 w-full resize-none overflow-hidden text-title-3 text-text-primary outline-none placeholder:text-text-tertiary"
+          className={cn(
+            "mt-6 w-full resize-none overflow-hidden text-title-1 outline-none",
+            TEXTFIELD_TEXT_CLASS,
+            TEXTFIELD_PLACEHOLDER_CLASS,
+            TEXTFIELD_CARET_CLASS,
+          )}
         />
         <CharCounter length={body.length} max={BODY_MAX_LENGTH} />
 
@@ -830,9 +857,11 @@ export function PostWriteScreen({
           </div>
         ) : null}
 
-        {/* 안내문: Label M, tertiary. "커뮤니티 제한 사항"은 밑줄(디자인) — 연결 문서 확정 시 링크로 교체.
+        {/* 안내문: 디자인 Label S(12 · Auto) · Cool gray/200, 상단 여백 24. 코드 타이포 스케일의 Label S는 10이라
+            (globals.css) 12 렌더가 같은 Label M(12/16/500)을 쓴다. "커뮤니티 제한 사항"은 밑줄(디자인) —
+            연결 문서 확정 시 링크로 교체.
             FIXME: 커뮤니티 이용 제한 정책 페이지가 /policies에 아직 없다 — 페이지 생기면 <a href>로 연결. */}
-        <p className="mt-4 text-label-m text-text-tertiary">
+        <p className={cn("mt-6 text-label-m", NOTICE_TEXT_CLASS)}>
           <span className="underline">커뮤니티 제한 사항</span> 위반 시 삭제될
           수 있습니다.
         </p>
@@ -940,16 +969,17 @@ export function PostWriteScreen({
 }
 
 /**
- * 글자 수 카운터(n/max) — 자신이 세는 입력칸 바로 아래 우측, 항상 노출(정책).
- *
- * 한도에 닿으면 error 색으로 바꿔 "더 못 치는 이유"를 즉시 알린다(maxLength가 조용히 입력을 막는 걸 보완).
+ * 글자 수 카운터(n/max) — 자신이 세는 입력칸 바로 아래 우측, 상단 여백 2, 항상 노출(정책).
+ * 디자인 Label S(12 · Auto) · textfield_display/counter-text — 코드 스케일의 Label S는 10이라 12 렌더가 같은
+ * Label M을 쓴다. 한도에 닿으면 counter-text-limit(error)로 바꿔 "더 못 치는 이유"를 즉시 알린다
+ * (maxLength가 조용히 입력을 막는 걸 보완).
  */
 function CharCounter({ length, max }: { length: number; max: number }) {
   return (
     <span
       className={cn(
-        "mt-1.5 text-right text-label-m tabular-nums",
-        length >= max ? "text-error" : "text-text-tertiary",
+        "mt-0.5 text-right text-label-m tabular-nums",
+        length >= max ? COUNTER_LIMIT_CLASS : COUNTER_TEXT_CLASS,
       )}
     >
       {length}/{max}
