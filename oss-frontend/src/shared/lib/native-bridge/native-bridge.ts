@@ -112,7 +112,7 @@ export function showNativeShareSheet(
 
 /**
  * 인바운드 수신구는 `window.WebBridge` 단 하나뿐(네이티브가 이 경로로만 호출)인데,
- * 듣고 싶은 주체는 여럿이다(auth 세션 + 서브웹뷰의 BACK_PRESSED 등).
+ * 듣고 싶은 주체는 여럿이다(auth 세션 + 알럿·시트 결과 회신 등).
  * 그래서 수신구는 모듈이 한 번만 설치하고, 들어온 메시지를 등록된 모든 리스너에 fan-out 한다.
  */
 const inboundListeners = new Set<(message: InboundMessage) => void>();

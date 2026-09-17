@@ -26,9 +26,6 @@ export const OutboundMessageType = {
   // 네비게이션: 풀 웹뷰 서브뷰 푸시/팝 (게시글 상세 등). 범용이라 대상은 payload.url로 전달.
   OPEN_SUBVIEW: "OPEN_SUBVIEW",
   CLOSE_SUBVIEW: "CLOSE_SUBVIEW",
-  // 뒤로가기 가드 토글. 기본은 네이티브가 back을 직접 처리(닫기)하지만, 이 화면이 가드(작성 중 확인 등)를
-  // 가졌다고 enabled:true로 통지하면 네이티브는 직접 닫지 않고 BACK_PRESSED를 보낸다. 해제 시 enabled:false.
-  BACK_GUARD: "BACK_GUARD",
   // 확인 알럿·선택 바텀시트 표시 요청. 웹뷰는 자기 프레임 밖(GNB·하단 탭바)을 그릴 수 없어
   // 풀스크린 딤이 필요한 표면은 네이티브가 소유한다. 문구·항목은 웹이 payload로 넘겨
   // 문안 변경이 앱 배포에 묶이지 않게 한다(네이티브는 셸만 소유).
@@ -50,9 +47,6 @@ export const InboundMessageType = {
   AUTH_LOGIN_CANCELLED: "AUTH_LOGIN_CANCELLED",
   AUTH_SESSION_EXPIRED: "AUTH_SESSION_EXPIRED",
   AUTH_LOGOUT: "AUTH_LOGOUT",
-  // 네이티브 뒤로가기. 가드를 등록한(BACK_GUARD enabled:true) 화면에만 보낸다. 웹이 이탈 가드를
-  // 처리한 뒤 닫을 때만 스스로 CLOSE_SUBVIEW를 호출한다(가드 없는 화면은 네이티브가 직접 닫음).
-  BACK_PRESSED: "BACK_PRESSED",
   // SHOW_CONFIRM_DIALOG / SHOW_SELECT_SHEET의 결과. requestId로 어느 요청의 답인지 식별한다.
   CONFIRM_DIALOG_RESULT: "CONFIRM_DIALOG_RESULT",
   SELECT_SHEET_RESULT: "SELECT_SHEET_RESULT",
@@ -63,11 +57,6 @@ export type InboundMessageType =
 /** 로그인 유도(PROMPT/MODAL 공통) payload. 사유(분석/문구용, 선택). */
 export type AuthLoginPayload = {
   reason?: string;
-};
-
-/** `BACK_GUARD` payload — 현재 화면의 뒤로가기 가드 활성 여부. */
-export type BackGuardPayload = {
-  enabled: boolean;
 };
 
 /**
@@ -197,7 +186,6 @@ export type InboundMessage =
   | { type: typeof InboundMessageType.AUTH_LOGIN_CANCELLED }
   | { type: typeof InboundMessageType.AUTH_SESSION_EXPIRED }
   | { type: typeof InboundMessageType.AUTH_LOGOUT }
-  | { type: typeof InboundMessageType.BACK_PRESSED }
   | {
       type: typeof InboundMessageType.CONFIRM_DIALOG_RESULT;
       payload: ConfirmDialogResultPayload;
