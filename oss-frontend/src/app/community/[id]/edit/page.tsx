@@ -5,6 +5,7 @@ import { createGetPostDetailUseCase } from "@/features/community/application/com
 import { getPostCategoriesOrFallback } from "@/features/community/application/get-post-write-page-data";
 import type { PostEditInitial } from "@/features/community/domain/post";
 import { PostWriteScreen } from "@/features/community/presentation/post-write-screen";
+import { POST_EDIT_FROM_DETAIL } from "@/features/community/presentation/post-edit-return";
 import { readSessionToken } from "@/shared/lib/auth";
 import { ApiErrorCode, toApiError } from "@/shared/lib/http";
 
@@ -15,13 +16,17 @@ import { ApiErrorCode, toApiError } from "@/shared/lib/http";
  * 초기값은 상세(GET /board/{id})를 Server Component에서 직접 읽어 편집 가능한 필드만 추린다.
  * 본인 글이 아니면(viewer.isOwner=false) 폼을 보여줄 이유가 없어 상세로 돌려보낸다 — 업스트림도
  * PUT에서 권한을 다시 검사하므로 이 분기는 UX용이다.
+ *
+ * `?from=detail`은 상세 ⋮에서 연 수정 — 성공 후 원래 상세로 돌아간다(#157, useOpenPostEdit).
  */
 export default async function CommunityPostEditPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string | string[] }>;
 }) {
-  const { id } = await params;
+  const [{ id }, { from }] = await Promise.all([params, searchParams]);
   const postId = Number(id);
   if (!Number.isInteger(postId) || postId <= 0) {
     notFound();
@@ -59,7 +64,16 @@ export default async function CommunityPostEditPage({
   }
 
   const categories = await getPostCategoriesOrFallback();
-  return <PostWriteScreen categories={categories} edit={{ postId, initial }} />;
+  return (
+    <PostWriteScreen
+      categories={categories}
+      edit={{
+        postId,
+        initial,
+        returnToDetail: from === POST_EDIT_FROM_DETAIL,
+      }}
+    />
+  );
 }
 
 /** 수정 화면 복구(세션 갱신) 중 표시. */

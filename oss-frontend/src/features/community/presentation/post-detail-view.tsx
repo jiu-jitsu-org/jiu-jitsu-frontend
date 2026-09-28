@@ -10,6 +10,7 @@ import { PostDetailBody } from "@/features/community/presentation/post-detail-bo
 import { PostDetailFooter } from "@/features/community/presentation/post-detail-footer";
 import { PostDetailHeader } from "@/features/community/presentation/post-detail-header";
 import { PostDetailImages } from "@/features/community/presentation/post-detail-images";
+import { PostDetailReturnListener } from "@/features/community/presentation/post-detail-return-listener";
 import { PostTags } from "@/features/community/presentation/post-tags";
 import { KeyboardAwareShell } from "@/features/community/presentation/keyboard-aware-shell";
 
@@ -33,6 +34,7 @@ export function PostDetailView({
 }) {
   return (
     <CommentReplyProvider>
+      <PostDetailReturnListener postId={post.id} />
       {/* 고정 높이 셸: 헤더(앱바)는 상단 고정, 본문+댓글만 스크롤, 댓글 입력 바는 키보드 위에 붙는다. */}
       <KeyboardAwareShell
         header={
