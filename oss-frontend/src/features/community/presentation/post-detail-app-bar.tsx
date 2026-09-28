@@ -15,6 +15,7 @@ import {
   toggleHidePost,
 } from "@/features/community/presentation/hide-post";
 import { useNativeDialog } from "@/features/community/presentation/use-native-dialog";
+import { POST_EDIT_FROM_DETAIL } from "@/features/community/presentation/post-edit-return";
 import { useOpenPostEdit } from "@/features/community/presentation/use-open-post-edit";
 import { useReportFlow } from "@/features/community/presentation/use-report-flow";
 import {
@@ -55,7 +56,8 @@ export function PostDetailAppBar({
   const demo = useIsDemoMode();
   const { confirm, dialog } = useNativeDialog();
   const { report, dialog: reportDialog } = useReportFlow();
-  const openPostEdit = useOpenPostEdit();
+  // 상세에서 연 수정은 성공 후 이 상세로 돌아온다(#157) — 새 상세를 쌓지 않는다.
+  const openPostEdit = useOpenPostEdit(POST_EDIT_FROM_DETAIL);
   const [menuOpen, setMenuOpen] = useState(false);
   // 알림 받기 on/off. 초기값은 게시글의 noticeEnabled, 탭하면 서버에 저장한다(#46).
   const [alarmOn, setAlarmOn] = useState(initialNoticeEnabled);

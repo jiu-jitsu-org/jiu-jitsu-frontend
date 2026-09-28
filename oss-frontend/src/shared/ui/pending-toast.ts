@@ -32,9 +32,10 @@ const TTL_MS = 10_000;
  * WHY 콜백이 아니라 데이터인가: 이 토스트는 웹뷰를 건너간다. 함수는 직렬화할 수 없으므로
  * "무엇을 할지"를 식별자와 인자로 남기고, 해석은 토스트를 띄우는 화면이 한다.
  * type 문자열의 의미는 여기서 정하지 않는다 — shared는 도메인을 몰라야 한다.
+ * label이 없으면 버튼 없이 신호만 전한다(받는 화면이 onConsume에서 해석).
  */
 export type PendingToastAction = {
-  label: string;
+  label?: string;
   type: string;
   postId?: number;
 };
@@ -99,7 +100,7 @@ function dequeuePendingToast(): PendingToast | null {
  *   (예: "숨겼다"는 신호를 받고 카드를 걷어내기 — 안내와 화면이 어긋나면 안 된다).
  * - onAction: 버튼을 눌렀을 때.
  *
- * onAction을 넘기지 않으면 버튼을 그리지 않는다 — 누를 수 없는 버튼을 보여주는 것보다 낫다.
+ * onAction을 넘기지 않거나 action에 label이 없으면 버튼을 그리지 않는다 — 누를 수 없는 버튼을 보여주는 것보다 낫다.
  * 두 콜백 모두 안정적인 참조여야 한다(인라인 함수를 넘기면 리스너가 매 렌더 재등록된다).
  */
 export function usePendingToast(
@@ -116,7 +117,7 @@ export function usePendingToast(
       const action = entry.action;
       if (action) onConsume?.(action);
 
-      if (action && onAction) {
+      if (action?.label && onAction) {
         toast.show(entry.message, {
           label: action.label,
           onAction: () => onAction(action),

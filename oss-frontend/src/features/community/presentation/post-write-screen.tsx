@@ -17,7 +17,7 @@ import {
   OutboundMessageType,
   postToNative,
 } from "@/shared/lib/native-bridge";
-import { useToast } from "@/shared/ui";
+import { enqueuePendingToast, useToast } from "@/shared/ui";
 import { AppBarShell } from "@/features/community/presentation/app-bar-shell";
 import { useNativeDialog } from "@/features/community/presentation/use-native-dialog";
 import {
@@ -39,6 +39,7 @@ import {
   markPostCreated,
   markPostDirty,
 } from "@/features/community/presentation/dirty-posts";
+import { POST_EDITED_ACTION } from "@/features/community/presentation/post-edit-return";
 import {
   createPost,
   updatePost,
@@ -95,6 +96,14 @@ const TOOLBAR_ICON_DISABLED_CLASS = "text-icon-tertiary";
 const TOOLBAR_TEXT_DISABLED_CLASS = "text-text-tertiary";
 /** 수정 모드 사진 버튼 탭 안내(#154). FIXME: 기획 문구 확정 전 임시 문구 — 확정되면 교체. */
 const EDIT_PHOTO_UNAVAILABLE_MESSAGE = "수정 시 사진은 추가할 수 없어요";
+/** 등록·수정 결과 토스트(기획 2026-09-28, #157). */
+const SUBMIT_TOAST = {
+  editDone: "게시글을 수정했습니다",
+  editFailed: "수정하지 못했습니다. 잠시 후 다시 시도해주세요",
+  // FIXME(#157): 등록 성공/실패 문구는 UI 확정 대기 — 전달되면 교체. 그때까지 기존 문구 유지.
+  createDone: "게시글이 등록되었어요",
+  createFailed: "등록에 실패했어요. 잠시 후 다시 시도해주세요",
+} as const;
 /** 첨부 미리보기 썸네일 한 변(px, 정책 64×64). */
 const THUMBNAIL_SIZE = 64;
 /** 썸네일 컨테이너 높이(px) — 상하 여백 16 + 썸네일 64. 툴바 위에 고정. */
@@ -177,8 +186,11 @@ export function PostWriteScreen({
 }: {
   /** 카테고리 칩 목록(GET /board/category) — 라우트(Server Component)가 읽어 넘긴다. */
   categories: PostCategory[];
-  /** 있으면 수정 모드 — 이 글의 기존 값으로 폼을 채운다. */
-  edit?: { postId: number; initial: PostEditInitial };
+  /**
+   * 있으면 수정 모드 — 이 글의 기존 값으로 폼을 채운다.
+   * returnToDetail: 상세 ⋮에서 연 수정 — 성공 시 새 상세를 쌓지 않고 원래 상세로 돌아간다(#157).
+   */
+  edit?: { postId: number; initial: PostEditInitial; returnToDetail: boolean };
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -405,6 +417,31 @@ export function PostWriteScreen({
     router.push("/community");
   }
 
+  /**
+   * 등록·수정 성공 → 방금 그 글의 상세로(#157). 작성/수정 화면은 백스택에서 빠진다.
+   *
+   * 같은 웹뷰에서 replace하는 이유: 앱에서도 이 서브뷰가 그대로 상세가 되므로 상세 뒤로가기(closeDetail →
+   * CLOSE_SUBVIEW)가 진입 화면으로 돌아가고, 브릿지 계약(서브뷰 교체)을 늘리지 않는다. 웹 단독도 히스토리
+   * 한 칸을 교체해 같은 결과가 된다. 웹뷰가 살아 있으니 토스트도 그대로 보인다.
+   */
+  function goToDetail(postId: number, toastMessage: string) {
+    discardAll();
+    toast.show(toastMessage);
+    router.replace(`/community/${postId}`);
+  }
+
+  /**
+   * 상세 ⋮에서 연 수정의 성공 — 새 상세를 쌓으면 뒤로가기가 2번이 되므로 원래 상세로 돌아간다(#157).
+   * 앱에선 이 웹뷰가 닫히며 토스트도 사라지므로, 문구와 갱신 신호를 남겨 상세가 소비·재조회하게 한다.
+   */
+  function returnToDetail(postId: number) {
+    enqueuePendingToast(SUBMIT_TOAST.editDone, {
+      type: POST_EDITED_ACTION,
+      postId,
+    });
+    closeScreen();
+  }
+
   async function requestClose() {
     // 변경/작성 중일 때만 확인 — 수정 모드에서 변경이 없으면 다이얼로그 없이 즉시 닫는다(정책).
     if (isDirty) {
@@ -536,8 +573,12 @@ export function PostWriteScreen({
         });
         // 목록/상세가 복귀 시 이 글을 다시 읽게 표시한다(제목·이미지가 바뀌었을 수 있음).
         markPostDirty(edit.postId);
-        toast.show("게시글이 수정되었어요");
-        closeScreen();
+        // 성공 경로는 잠금을 풀지 않는다 — 이동이 끝나기 전 연타로 중복 전송되는 것을 막는다(#157).
+        if (edit.returnToDetail) {
+          returnToDetail(edit.postId);
+        } else {
+          goToDetail(edit.postId, SUBMIT_TOAST.editDone);
+        }
         return;
       }
       // 이미지는 고를 때 이미 ①②③을 마쳤고 isSubmitLocked가 전 장 done을 보장하므로 표시 순서 imageId를 그대로 보낸다.
@@ -554,24 +595,18 @@ export function PostWriteScreen({
       // 목록이 복귀 시 첫 페이지를 다시 읽어 이 글을 앞에 붙이고 최상단으로 올린다(#38).
       // 성공했을 때만 남긴다 — 취소로 닫으면 목록은 아무것도 하지 않는다.
       markPostCreated(created.id);
-      toast.show("게시글이 등록되었어요");
-      // 성공일 때만 닫는다(closeScreen이 로컬 미리보기까지 정리).
-      closeScreen();
+      // 성공일 때만 떠난다(goToDetail이 로컬 미리보기까지 정리). 잠금은 유지 — 위 수정 성공과 같은 이유.
+      goToDetail(created.id, SUBMIT_TOAST.createDone);
     } catch (error) {
-      // 실패 경로 — 절대 closeScreen()을 호출하지 않는다(화면 유지 = pop 안 됨).
+      // 실패 경로 — 절대 화면을 떠나지 않는다(입력 유지). 잠금은 여기서만 풀어 재시도할 수 있게 한다.
+      setSubmitting(false);
       console.error("[post-write] 게시글 저장 실패:", error);
       // 인증 만료(401)면 네이티브 로그인 유도, 그 외(생성/수정 실패)는 재시도 안내.
       if (error instanceof WriteRequestError && error.status === 401) {
         postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
         return;
       }
-      toast.show(
-        isEdit
-          ? "수정에 실패했어요. 잠시 후 다시 시도해주세요"
-          : "등록에 실패했어요. 잠시 후 다시 시도해주세요",
-      );
-    } finally {
-      setSubmitting(false);
+      toast.show(isEdit ? SUBMIT_TOAST.editFailed : SUBMIT_TOAST.createFailed);
     }
   }
 
