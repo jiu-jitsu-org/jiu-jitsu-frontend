@@ -85,6 +85,16 @@ const TOOLBAR_HEIGHT = 48;
  * 하나로 바꾼다. 아이콘은 currentColor를 상속하므로 버튼 색만 바꾸면 된다.
  */
 const TOOLBAR_TEXT_CLASS = "text-text-secondary";
+/**
+ * FIXME(토큰, #145): 수정 모드 사진 버튼 비활성 색은 디자인 지정 post-editor/toolbar/icon-disabled ·
+ * post-editor/toolbar/text-disabled(#9C9EA6 = cool-gray-300)인데 토큰 파일에 아직 없다. semantic disabled는
+ * cool-gray-400이라 값이 달라, 값이 같은 tertiary로 둔다. 토큰이 생기면 교체한다.
+ * 아이콘·텍스트 토큰이 따로라 버튼 currentColor 하나로 묶지 않고 각각 지정한다.
+ */
+const TOOLBAR_ICON_DISABLED_CLASS = "text-icon-tertiary";
+const TOOLBAR_TEXT_DISABLED_CLASS = "text-text-tertiary";
+/** 수정 모드 사진 버튼 탭 안내(#154). FIXME: 기획 문구 확정 전 임시 문구 — 확정되면 교체. */
+const EDIT_PHOTO_UNAVAILABLE_MESSAGE = "수정 시 사진은 추가할 수 없어요";
 /** 첨부 미리보기 썸네일 한 변(px, 정책 64×64). */
 const THUMBNAIL_SIZE = 64;
 /** 썸네일 컨테이너 높이(px) — 상하 여백 16 + 썸네일 64. 툴바 위에 고정. */
@@ -904,21 +914,35 @@ export function PostWriteScreen({
             className="hidden"
           />
           {/* 사진 첨부(최대 MAX_IMAGES장). 한도에 닿아도 비활성이 아니라 탭 시 토스트(정책, pick 안에서) —
-              고르는 즉시 장별로 CDN 업로드가 시작된다. 수정 모드는 추가 불가라 비활성(정책). */}
+              고르는 즉시 장별로 CDN 업로드가 시작된다.
+              수정 모드는 추가 불가 — 비활성처럼 보이되 탭하면 이유를 토스트로 알린다(#154). 네이티브 disabled는
+              onClick 자체가 안 불려 안내를 못 띄우므로 aria-disabled로 상태만 전달한다. */}
           <button
             type="button"
-            onClick={pick}
-            disabled={isEdit}
+            onClick={
+              isEdit ? () => toast.show(EDIT_PHOTO_UNAVAILABLE_MESSAGE) : pick
+            }
+            aria-disabled={isEdit}
             aria-label={
               isEdit ? "사진 추가 불가" : `사진 첨부 (최대 ${MAX_IMAGES}장)`
             }
             className={cn(
-              "inline-flex items-center justify-center gap-3 disabled:text-text-disabled",
+              "inline-flex items-center justify-center gap-3",
               TOOLBAR_TEXT_CLASS,
             )}
           >
-            <ImageIcon size={24} />
-            <span className="text-body-s">사진</span>
+            <ImageIcon
+              size={24}
+              className={isEdit ? TOOLBAR_ICON_DISABLED_CLASS : undefined}
+            />
+            <span
+              className={cn(
+                "text-body-s",
+                isEdit && TOOLBAR_TEXT_DISABLED_CLASS,
+              )}
+            >
+              사진
+            </span>
           </button>
           {/* 탭하면 본문 아래 "# 태그" 입력칸으로 포커스(필요하면 그 줄이 보이게 스크롤). */}
           <button
