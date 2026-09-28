@@ -115,7 +115,7 @@ type BoardDetailDto = {
  *
  * 상세(BoardDetailDto)와 달리 알림설정(noticeEnabled)이 없고, 목록 전용 필드(timeAgo)가 있다.
  * 아래 필드는 응답에는 오지만 아직 도메인/화면에서 쓰지 않는다 — 계약을 먼저 고정해 둔다:
- *   viewCount(조회수) · tags(태그) · categoryName · updatedAt.
+ *   viewCount(조회수) · categoryName · updatedAt.
  */
 type BoardSummaryDto = {
   id: number;

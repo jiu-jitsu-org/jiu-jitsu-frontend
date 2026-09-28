@@ -202,14 +202,14 @@ export function PostWriteScreen({
   // 키보드 위 '실제 보이는 영역'에 셸을 맞춘다(visualViewport). dvh/fixed inset-0가 안 줄어드는
   // WKWebView에서 입력 보조 바를 키보드 바로 위에 떨어뜨리는 유일하게 신뢰 가능한 기준.
   const rect = useViewportRect();
-  // 태그: 본문(→사진) 아래 "# 태그" 줄. 태그가 없으면 영역 자체가 없고(정책), 하단 "태그" 버튼으로 연다.
-  // tagInputOpen = "#" 입력칸이 떠 있는 상태. 입력칸을 벗어나면(blur) 닫히고, 다시 열려면 툴바 "태그"를
-  // 탭하거나 확정 태그를 탭(수정)한다. 확정 태그가 있으면 입력칸이 닫혀도 영역은 남는다.
+  // 태그: 본문 아래 "# 태그" 줄. 작성·수정 화면은 태그가 없어도 회색 "#"을 늘 보여 태그 입력 진입점으로 쓴다
+  // (정책 2026-09-28, #153 — 피드·상세는 태그가 없으면 영역 미노출).
+  // tagInputOpen = "#" 입력칸이 떠 있는 상태. 입력칸을 벗어나면(blur) 닫혀 회색 "#"로 돌아가고, 다시 열려면
+  // 그 "#"·툴바 "태그"를 탭하거나 확정 태그를 탭(수정)한다.
   const [tags, setTags] = useState<string[]>(edit?.initial.tags ?? []);
   const [tagInput, setTagInput] = useState("");
   const [tagInputOpen, setTagInputOpen] = useState(false);
   const tagInputRef = useRef<HTMLInputElement>(null);
-  const isTagAreaVisible = tagInputOpen || tags.length > 0;
   // 제목·본문은 내용만큼 자라는 textarea — 화면(main) 하나가 스크롤되는 디자인.
   const titleRef = useAutoResizeTextarea(title);
   const bodyRef = useAutoResizeTextarea(body);
@@ -292,7 +292,7 @@ export function PostWriteScreen({
     tagInputRef.current?.focus();
   }
 
-  /** 하단 "태그" 버튼: 빈 입력칸을 연다. */
+  /** 하단 "태그" 버튼 · 닫힌 상태의 회색 "#": 빈 입력칸을 연다. */
   function focusTagInput() {
     openTagInput("");
   }
@@ -308,7 +308,7 @@ export function PostWriteScreen({
 
   /**
    * 입력칸 이탈(blur, 정책): 한 글자라도 있으면 그대로 확정, 0글자면 취소 — 어느 쪽이든 "#" 입력칸은 닫힌다.
-   * 다시 입력하려면 툴바 "태그" 또는 확정 태그 탭. 확정 태그가 없으면 영역 자체가 사라진다.
+   * 닫히면 회색 "#" 진입점으로 돌아간다 — 다시 입력하려면 그 "#"·툴바 "태그" 또는 확정 태그 탭.
    */
   function handleTagBlur() {
     if (tagInput) addTag(tagInput);
@@ -735,50 +735,60 @@ export function PostWriteScreen({
         />
         <CharCounter length={body.length} max={BODY_MAX_LENGTH} />
 
-        {/* 태그 입력줄: 본문 아래(사진 스트립은 하단 툴바 위 고정으로 옮김 — 디자인 2026-09-17). 태그가 없으면 영역이 없고, 하단 "태그" 버튼으로 열면
+        {/* 태그 입력줄: 본문 아래(사진 스트립은 하단 툴바 위 고정으로 옮김 — 디자인 2026-09-17). 태그가 없어도 줄은 항상
+            있고(정책 2026-09-28, #153), 입력칸이 닫혀 있으면 회색 "#" 버튼이 진입점이다. 그 "#"이나 하단 "태그" 버튼으로 열면
             "#"이 자동으로 앞에 붙은 입력칸이 나타난다(사용자는 태그명만 친다). 스페이스/엔터로 확정 → 다음 "#"이
             자동 생성되며, 확정 태그는 "# 이름"(브랜드 텍스트 컬러) — 탭하면 그 태그를 입력칸으로 되돌려 수정한다.
-            입력칸을 벗어나면(blur) 입력 중이던 글자는 확정, 0글자면 취소되고 "#" 입력칸은 사라진다.
+            입력칸을 벗어나면(blur) 입력 중이던 글자는 확정, 0글자면 취소되고 회색 "#" 버튼으로 돌아간다.
+            FIXME(#162): 최대 개수 도달 후 "#" 노출 여부는 기획 확인 중 — 지금은 툴바 "태그"와 같이 노출하고 확정 시 토스트.
             "#"은 포커스 중 hash-text(#292A2E), 아니면 placeholder-text(#9C9EA6); 입력 텍스트는 hash-text, 커서는
             다른 입력칸과 같은 브랜드색. 상단 여백 24(디자인 2026-09-17), 아래 안내문과도 24. 태그·입력 간격 8. */}
-        {isTagAreaVisible ? (
-          <div className="group mt-6 flex flex-wrap items-center gap-2">
-            {tags.map((tag) => (
-              <button
-                key={tag}
-                type="button"
-                onClick={() => editTag(tag)}
-                aria-label={`태그 ${tag} 수정`}
-                className={cn("text-body-s", TAG_TEXT_CLASS)}
+        <div className="group mt-6 flex flex-wrap items-center gap-2">
+          {tags.map((tag) => (
+            <button
+              key={tag}
+              type="button"
+              onClick={() => editTag(tag)}
+              aria-label={`태그 ${tag} 수정`}
+              className={cn("text-body-s", TAG_TEXT_CLASS)}
+            >
+              # {tag}
+            </button>
+          ))}
+          {tagInputOpen ? (
+            <span className="flex flex-1 items-center gap-1 text-body-s">
+              <span
+                aria-hidden
+                className={cn(TAG_HASH_IDLE_CLASS, TAG_HASH_FOCUSED_CLASS)}
               >
-                # {tag}
-              </button>
-            ))}
-            {tagInputOpen ? (
-              <span className="flex flex-1 items-center gap-1 text-body-s">
-                <span
-                  aria-hidden
-                  className={cn(TAG_HASH_IDLE_CLASS, TAG_HASH_FOCUSED_CLASS)}
-                >
-                  #
-                </span>
-                <input
-                  ref={tagInputRef}
-                  value={tagInput}
-                  onChange={(event) => handleTagChange(event.target.value)}
-                  onKeyDown={handleTagKeyDown}
-                  onBlur={handleTagBlur}
-                  aria-label="태그 입력"
-                  className={cn(
-                    "min-w-[80px] flex-1 text-body-s outline-none",
-                    TAG_INPUT_TEXT_CLASS,
-                    TEXTFIELD_CARET_CLASS,
-                  )}
-                />
+                #
               </span>
-            ) : null}
-          </div>
-        ) : null}
+              <input
+                ref={tagInputRef}
+                value={tagInput}
+                onChange={(event) => handleTagChange(event.target.value)}
+                onKeyDown={handleTagKeyDown}
+                onBlur={handleTagBlur}
+                aria-label="태그 입력"
+                className={cn(
+                  "min-w-[80px] flex-1 text-body-s outline-none",
+                  TAG_INPUT_TEXT_CLASS,
+                  TEXTFIELD_CARET_CLASS,
+                )}
+              />
+            </span>
+          ) : (
+            // 닫힌 상태의 진입점. 입력칸의 "#"과 같은 자리·색이라 열고 닫을 때 줄이 흔들리지 않는다.
+            <button
+              type="button"
+              onClick={focusTagInput}
+              aria-label="태그 추가"
+              className={cn("text-body-s", TAG_HASH_IDLE_CLASS)}
+            >
+              #
+            </button>
+          )}
+        </div>
 
         {/* 안내문: 디자인 Label S(12 · Auto) · Cool gray/200, 상단 여백 24. 코드 타이포 스케일의 Label S는 10이라
             (globals.css) 12 렌더가 같은 Label M(12/16/500)을 쓴다. "커뮤니티 제한 사항"은 밑줄(디자인) —
