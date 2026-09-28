@@ -100,9 +100,8 @@ const EDIT_PHOTO_UNAVAILABLE_MESSAGE = "수정 시 사진은 추가할 수 없�
 const SUBMIT_TOAST = {
   editDone: "게시글을 수정했습니다",
   editFailed: "수정하지 못했습니다. 잠시 후 다시 시도해주세요",
-  // FIXME(#157): 등록 성공/실패 문구는 UI 확정 대기 — 전달되면 교체. 그때까지 기존 문구 유지.
-  createDone: "게시글이 등록되었어요",
-  createFailed: "등록에 실패했어요. 잠시 후 다시 시도해주세요",
+  createDone: "게시글을 등록했습니다",
+  createFailed: "등록하지 못했습니다. 잠시 후 다시 시도해주세요",
 } as const;
 /** 첨부 미리보기 썸네일 한 변(px, 정책 64×64). */
 const THUMBNAIL_SIZE = 64;
