@@ -57,7 +57,7 @@ const PRESET_ICONS = {
  */
 const IMAGE_ELEMENT_MAX_EDGE = 2048;
 /**
- * FIXME(#160): 원본 짧은 변이 MIN_CROP_SHORT_SIDE 미만인 사진의 확대 상한(최소 배율 대비 배수). 기획 한도 미확정 —
+ * FIXME(#164): 원본 짧은 변이 MIN_CROP_SHORT_SIDE 미만인 사진의 확대 상한(최소 배율 대비 배수). 기획 한도 미확정 —
  * 확정 전까지 이미지 뷰어 최대 배율(use-image-viewer-gestures MAX_SCALE = 4)과 맞춰 같은 사진이 편집기와 뷰어에서
  * 같은 정도로 확대되게 한다.
  */
