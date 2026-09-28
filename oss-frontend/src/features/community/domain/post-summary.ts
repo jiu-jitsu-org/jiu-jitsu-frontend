@@ -10,7 +10,7 @@ import type {
  *
  * 업스트림: GET /board (카테고리별·페이징 목록 조회) 응답 계약.
  * 상세(PostDetail)와 작성자/이미지/카운트/viewer 의미는 공유하되, 목록 항목은
- * 조회수·태그·알림설정 등 단건 전용 필드를 갖지 않는다(가벼운 카드 표시용).
+ * 조회수·알림설정 등 단건 전용 필드를 갖지 않는다(가벼운 카드 표시용).
  */
 export type PostSummary = {
   id: number;
@@ -21,6 +21,8 @@ export type PostSummary = {
   body: string;
   /** imageList. 목록 카드에서는 대표 1장만 노출. */
   images: PostImage[];
+  /** 태그 이름 목록(상세와 같은 string[]). 카드는 없으면 태그 영역 미노출(정책 #153). */
+  tags: string[];
   /** likeCount/commentCount/saveCount. */
   counts: PostCounts;
   viewer: PostViewerState;

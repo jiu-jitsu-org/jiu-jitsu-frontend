@@ -172,6 +172,7 @@ function toPostSummary(dto: BoardSummaryDto): PostSummary {
     title: dto.title,
     body: dto.body,
     images: dto.imageList ?? [],
+    tags: dto.tags ?? [],
     counts: {
       comments: dto.commentCount,
       likes: dto.likeCount,

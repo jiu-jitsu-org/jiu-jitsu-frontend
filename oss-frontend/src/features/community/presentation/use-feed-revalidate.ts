@@ -134,7 +134,7 @@ async function revalidatePost(
     if (!response.ok) return;
 
     // 상세 응답(PostDetail)은 목록 항목(PostSummary)의 상위 집합이다 — 카드가 쓰는 필드는 모두
-    // 들어 있고 tags · views · noticeEnabled만 더 있다. 목록에 상세 전용 필드를 섞지 않도록 추린다.
+    // 들어 있고 views · noticeEnabled만 더 있다. 목록에 상세 전용 필드를 섞지 않도록 추린다.
     const body = (await response.json().catch(() => null)) as
       | { data?: PostDetail }
       | null;
@@ -154,6 +154,7 @@ function toSummary(detail: PostDetail): PostSummary {
     title: detail.title,
     body: detail.body,
     images: detail.images,
+    tags: detail.tags,
     counts: detail.counts,
     viewer: detail.viewer,
     createdAt: detail.createdAt,
