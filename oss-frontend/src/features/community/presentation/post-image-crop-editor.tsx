@@ -13,7 +13,6 @@ import {
 import {
   CROP_PRESETS,
   cropImageFile,
-  MIN_CROP_SHORT_SIDE,
   nearestPreset,
   presetRatio,
   type CropPresetId,
@@ -57,11 +56,12 @@ const PRESET_ICONS = {
  */
 const IMAGE_ELEMENT_MAX_EDGE = 2048;
 /**
- * FIXME(#164): 원본 짧은 변이 MIN_CROP_SHORT_SIDE 미만인 사진의 확대 상한(최소 배율 대비 배수). 기획 한도 미확정 —
- * 확정 전까지 이미지 뷰어 최대 배율(use-image-viewer-gestures MAX_SCALE = 4)과 맞춰 같은 사진이 편집기와 뷰어에서
- * 같은 정도로 확대되게 한다.
+ * 최대 확대 — 프레임을 꽉 채운 최소 배율 대비 배수(기획 2026-09-29, #164). 이미지 뷰어 최대 배율
+ * (use-image-viewer-gestures MAX_SCALE)과 같은 값이라 같은 사진이 편집기와 뷰어에서 같은 정도로 확대된다.
+ * 원본 크기와 무관한 단일 기준 — 예전 "잘라낸 짧은 변 300px 이상" 규칙(#160)은 300px 경계 전후로
+ * 확대 폭이 크게 뒤집혀(#165) 이것으로 대체됐다.
  */
-const SMALL_SOURCE_MAX_ZOOM = 4;
+const MAX_ZOOM = 4;
 
 type Point = { x: number; y: number };
 /** 스테이지 중심을 원점으로 한 그림 배치 — 배율과 중심 이동(px). */
@@ -80,9 +80,8 @@ type Size = { width: number; height: number };
  * 따라가게 하려는 뷰어와 같은 방식.
  * 프레임은 항상 스테이지 중심에 고정이고 그림이 그 아래에서 움직인다.
  *
- * 줌 한계: 아래는 프레임을 꽉 채우는 배율(빈 곳이 보이면 안 됨), 위는 잘라낸 결과의 짧은 변이
- * 300px(MIN_CROP_SHORT_SIDE) 아래로 내려가지 않는 배율. 원본 짧은 변이 300px 미만이면 이 최소 크기를
- * 적용하지 않는다(기획 2026-09-28, #160) — 이미 작은 원본은 "크게 잘라내 뭉개는" 문제가 없어 확대·팬을 허용한다.
+ * 줌 한계: 아래는 프레임을 꽉 채우는 배율(빈 곳이 보이면 안 됨), 위는 그 배율의
+ * MAX_ZOOM배(#164). 원본 크기와 무관하게 같은 배수라, 큰 원본일수록 잘라낼 수 있는 최소 영역도 커진다.
  *
  * 제스처는 Pointer Events로 받는다(한 손가락 팬, 두 손가락 핀치 — 핀치 중점 아래 그림이 손가락에 붙어
  * 따라온다). 스테이지에 touch-action: none을 줘 브라우저 스크롤·줌이 끼어들지 않게 한다.
@@ -150,22 +149,14 @@ export function PostImageCropEditor({
   }, [stageSize, preset]);
 
   /**
-   * 배율 한계 — 아래: 프레임을 덮는 배율. 위: 잘라낸 짧은 변이 MIN_CROP_SHORT_SIDE 이상인 배율.
-   * 원본 짧은 변이 MIN_CROP_SHORT_SIDE 미만이면 최소 크기를 적용하지 않고 최소 배율 × SMALL_SOURCE_MAX_ZOOM.
+   * 배율 한계 — 아래: 프레임을 덮는 배율. 위: 최소 배율 × MAX_ZOOM.
    */
   function scaleBounds(frameSize: Size): { min: number; max: number } {
     const min = Math.max(
       frameSize.width / sourceWidth,
       frameSize.height / sourceHeight,
     );
-    if (Math.min(sourceWidth, sourceHeight) < MIN_CROP_SHORT_SIDE) {
-      return { min, max: min * SMALL_SOURCE_MAX_ZOOM };
-    }
-    const max = Math.max(
-      min,
-      Math.min(frameSize.width, frameSize.height) / MIN_CROP_SHORT_SIDE,
-    );
-    return { min, max };
+    return { min, max: min * MAX_ZOOM };
   }
 
   /** 배율·이동을 한계 안으로 — 프레임 밖으로 그림 가장자리가 들어오지 않게. */

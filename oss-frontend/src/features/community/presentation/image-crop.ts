@@ -15,13 +15,6 @@ export const CROP_PRESETS = [
 
 export type CropPresetId = (typeof CROP_PRESETS)[number]["id"];
 
-/**
- * 최소 크롭 크기 — 짧은 변 300px(정책). 큰 원본을 너무 작게 잘라내면 상세/목록에서 뭉개지므로
- * 편집기가 이 값 아래로는 확대(줌인)를 막는다. 원본 짧은 변이 이보다 작으면 적용하지 않는다(#160) —
- * 원본이 이미 작아 막을 이유가 없고, 막으면 확대·팬이 전혀 안 된다.
- */
-export const MIN_CROP_SHORT_SIDE = 300;
-
 /** 잘라낼 영역(원본 픽셀 좌표, EXIF 방향 보정 후 기준). */
 export type CropRect = { x: number; y: number; width: number; height: number };
 
