@@ -837,6 +837,8 @@ export function PostWriteScreen({
       {/* 하단 고정 스택: [편집 유도 안내] → [썸네일 컨테이너 96] → [툴바 48]. 셸의 마지막 자식이라 항상 바닥에 붙는다.
           키보드가 뜨면 툴바만 키보드 위로 올라오고 썸네일 컨테이너(안내 포함)는 보이지 않는다(디자인 2026-09-17) —
           셸이 visualViewport에 맞춰 줄어들므로 컨테이너를 그리지 않는 것으로 구현한다.
+          편집 유도 안내: 상단 4 · 줄 높이 14 · 아래 0 → 노출 시 썸네일 컨테이너 위로 18 추가(디자인 2026-09-28).
+          Label M(12)의 크기·굵기는 그대로 두고 행간만 14로 덮는다 — 14 행간은 여기뿐이라 타이포 토큰은 두지 않는다.
           썸네일: 64 · radius 16 · 간격 12 · 컨테이너 상하좌우 여백 16 · 가로 스크롤. ✕는 24 원, 모서리에서 8 삐져나옴
           (여백 16 안이라 잘리지 않음). 상태 표시(정책): 업로드 중 = dim 40% + 로딩 아이콘 회전, 실패 = dim + ↻(탭 = 재업로드),
           완료 = 원본, 탭 = 크롭 편집기. 수정 모드는 등록 이미지 삭제만, 탭 = 보기 전용 상세.
@@ -854,7 +856,7 @@ export function PostWriteScreen({
         {hasThumbnails && !rect?.keyboardOpen ? (
           <>
             {!isEdit && hasOutOfAspect ? (
-              <p className={cn("px-4 pt-2 text-label-m", NOTICE_TEXT_CLASS)}>
+              <p className={cn("px-4 pt-1 text-label-m leading-3.5", NOTICE_TEXT_CLASS)}>
                 비율이 긴 사진은 일부만 보여요. 사진을 탭해 보일 영역을
                 정해보세요.
               </p>
