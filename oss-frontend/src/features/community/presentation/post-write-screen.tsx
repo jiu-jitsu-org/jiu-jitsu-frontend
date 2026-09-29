@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import {
   type ClipboardEvent,
   type KeyboardEvent,
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -220,7 +221,14 @@ export function PostWriteScreen({
   const [tags, setTags] = useState<string[]>(edit?.initial.tags ?? []);
   const [tagInput, setTagInput] = useState("");
   const [tagInputOpen, setTagInputOpen] = useState(false);
+  // 확정 태그를 탭해 수정 중이면 그 태그가 있던 자리(index). 입력칸을 그 자리에 띄우고 확정도 그 자리에 넣어
+  // 순서를 지킨다 — 안 고치고 닫아도 태그가 맨 뒤로 밀리지 않게. null이면 입력칸은 줄 끝(새 태그 추가).
+  const [editingTagIndex, setEditingTagIndex] = useState<number | null>(null);
   const tagInputRef = useRef<HTMLInputElement>(null);
+  // 3개(최대)를 채우면 회색 "#" 진입점을 숨기고 툴바 "태그"는 토스트만 띄운다(기획 2026-09-29, #162).
+  // 삭제·수정으로 3개 미만이 되면 다시 열 수 있다.
+  const isTagFull = tags.length >= MAX_TAGS;
+  const tagLimitMessage = `태그는 최대 ${MAX_TAGS}개까지 추가할 수 있어요`;
   // 제목·본문은 내용만큼 자라는 textarea — 화면(main) 하나가 스크롤되는 디자인.
   const titleRef = useAutoResizeTextarea(title);
   const bodyRef = useAutoResizeTextarea(body);
@@ -303,17 +311,30 @@ export function PostWriteScreen({
     tagInputRef.current?.focus();
   }
 
-  /** 하단 "태그" 버튼 · 닫힌 상태의 회색 "#": 빈 입력칸을 연다. */
+  /** 하단 "태그" 버튼 · 닫힌 상태의 회색 "#": 빈 입력칸을 연다. 최대 개수면 열지 않고 안내(사진 버튼과 같은 규칙). */
   function focusTagInput() {
+    if (isTagFull) {
+      toast.show(tagLimitMessage);
+      return;
+    }
     openTagInput("");
   }
 
+  // 3개째가 확정되면 다음 "#" 입력칸을 남기지 않고 닫는다(키보드도 내림). 확정 핸들러 안에서 바로 blur하면
+  // 이전 렌더의 onBlur(확정 전 입력값)가 불려 같은 태그가 한 번 더 확정되므로, 확정이 그려진 뒤 여기서 blur한다
+  // — 그때의 handleTagBlur는 빈 입력이라 닫기만 한다.
+  useEffect(() => {
+    if (tagInputOpen && isTagFull) tagInputRef.current?.blur();
+  }, [tagInputOpen, isTagFull]);
+
   /**
-   * 확정 태그 탭 = 수정(정책). 목록에서 빼고 그 이름을 입력칸에 넣어 이어 친다.
-   * 입력칸이 이미 열려 있었다면 탭 순간의 blur가 그 입력을 먼저 확정하고 닫은 뒤 여기로 온다.
+   * 확정 태그 탭 = 수정(정책). 목록에서 빼고 그 자리에 이름이 든 입력칸을 띄워 이어 친다(제자리 수정).
+   * 입력칸이 이미 열려 있었다면 탭 순간의 blur가 그 입력을 먼저 확정하고 닫은 뒤 여기로 온다(blur는 이산 이벤트라
+   * click 전에 렌더가 끝나 여기의 tags는 그 확정이 반영된 목록이다).
    */
   function editTag(tag: string) {
-    setTags((prev) => prev.filter((item) => item !== tag));
+    setTags(tags.filter((item) => item !== tag));
+    setEditingTagIndex(tags.indexOf(tag));
     openTagInput(tag);
   }
 
@@ -322,9 +343,10 @@ export function PostWriteScreen({
    * 닫히면 회색 "#" 진입점으로 돌아간다 — 다시 입력하려면 그 "#"·툴바 "태그" 또는 확정 태그 탭.
    */
   function handleTagBlur() {
-    if (tagInput) addTag(tagInput);
+    if (tagInput) addTags([tagInput]);
     setTagInput("");
     setTagInputOpen(false);
+    setEditingTagIndex(null);
   }
 
   /** 저장 정규화(정책): 허용 문자만 남기고 앞뒤 공백 제거 + 영문 소문자 통일. 빈 문자열이면 확정 대상 아님. */
@@ -333,30 +355,34 @@ export function PostWriteScreen({
   }
 
   /**
-   * 태그 1개 확정. 정규화 후 빈 값·중복은 조용히 무시, 개수/글자 수 초과는 토스트.
-   * 확정에 실패해도 입력은 지우지 않아(개수 초과) 사용자가 앞 태그를 지우고 다시 확정할 수 있다.
+   * 태그 확정(붙여넣기처럼 여러 개가 한 번에 올 수 있다). 정규화 후 빈 값·중복은 조용히 무시, 개수/글자 수 초과는
+   * 토스트. 앞 토큰 확정이 뒤 토큰의 개수·중복 판정에 반영되도록 로컬 목록에 차례로 쌓는다(state는 렌더 전까지
+   * 그대로라 토큰마다 tags를 보면 3개를 넘겨 들어간다). 확정 뒤 목록을 돌려준다 — 등록 시 전송 목록으로 쓴다.
+   * 수정 중이면 원래 자리에 넣고, 다음 "#" 입력칸은 방금 넣은 태그 바로 뒤에 이어진다.
    */
-  function addTag(raw: string): boolean {
-    const name = normalizeTag(raw);
-    if (!name) {
-      setTagInput("");
-      return false;
+  function addTags(raws: string[]): string[] {
+    let next = tags;
+    let insertAt = editingTagIndex ?? tags.length;
+    let message: string | null = null;
+    for (const raw of raws) {
+      const name = normalizeTag(raw);
+      if (!name || next.includes(name)) continue;
+      if (next.length >= MAX_TAGS) {
+        message = tagLimitMessage;
+        continue;
+      }
+      if (name.length > MAX_TAG_LENGTH) {
+        message = `태그는 ${MAX_TAG_LENGTH}자까지 입력할 수 있어요`;
+        continue;
+      }
+      next = [...next.slice(0, insertAt), name, ...next.slice(insertAt)];
+      insertAt += 1;
     }
-    if (tags.includes(name)) {
-      setTagInput("");
-      return false;
-    }
-    if (tags.length >= MAX_TAGS) {
-      toast.show(`태그는 최대 ${MAX_TAGS}개까지 추가할 수 있어요`);
-      return false;
-    }
-    if (name.length > MAX_TAG_LENGTH) {
-      toast.show(`태그는 ${MAX_TAG_LENGTH}자까지 입력할 수 있어요`);
-      return false;
-    }
-    setTags((prev) => [...prev, name]);
+    if (message) toast.show(message);
+    if (next !== tags) setTags(next);
+    if (editingTagIndex !== null) setEditingTagIndex(insertAt);
     setTagInput("");
-    return true;
+    return next;
   }
 
   function handleTagChange(value: string) {
@@ -365,7 +391,7 @@ export function PostWriteScreen({
     if (/\s/.test(value)) {
       const tokens = value.split(/\s+/);
       const remainder = tokens.pop() ?? "";
-      tokens.forEach((token) => addTag(token));
+      addTags(tokens);
       setTagInput(sanitizeTagInput(remainder));
       return;
     }
@@ -386,19 +412,73 @@ export function PostWriteScreen({
     // 엔터로도 확정(한글 조합 확정 Enter는 제외).
     if (event.key === "Enter" && !event.nativeEvent.isComposing) {
       event.preventDefault();
-      addTag(tagInput);
+      addTags([tagInput]);
       return;
     }
-    // 빈 입력에서 Backspace: 직전 태그 삭제 → 태그가 하나도 없으면 입력칸을 닫는다(영역 제거).
+    // 빈 입력에서 Backspace: 입력칸 바로 앞 태그 삭제(수정 중이면 그 자리 앞) → 앞에 태그가 없으면 입력칸을 닫는다.
     if (event.key === "Backspace" && tagInput === "") {
       event.preventDefault();
-      if (tags.length > 0) {
-        setTags((prev) => prev.slice(0, -1));
+      if (tagInputIndex > 0) {
+        setTags((prev) =>
+          prev.filter((_, index) => index !== tagInputIndex - 1),
+        );
+        if (editingTagIndex !== null) setEditingTagIndex(tagInputIndex - 1);
         return;
       }
       setTagInputOpen(false);
+      setEditingTagIndex(null);
     }
   }
+
+  // "#" 입력칸. 자리는 DOM 위치가 아니라 flex order로 잡는다(태그 = 2·index, 입력칸 = 그 앞 홀수) — 자리를 옮길
+  // 때마다 다시 마운트되면 포커스가 풀려 키보드가 내려가기 때문. 줄 끝(새 태그)이면 남은 폭을 채워 탭 영역을 넓히고,
+  // 태그 사이(제자리 수정)면 글자만큼만 차지해 뒤 태그가 다음 줄로 밀리지 않게 한다 — 같은 칸에 겹친 보이지 않는
+  // 글자가 폭을 잡는다(input은 내용 폭 자동 조절이 없음).
+  const tagInputIndex = editingTagIndex ?? tags.length;
+  const isEditingInPlace = tagInputIndex < tags.length;
+  const tagInputField = (
+    <span
+      className={cn(
+        "flex items-center gap-1 text-body-s",
+        !isEditingInPlace && "flex-1",
+      )}
+      style={{ order: tagInputIndex * 2 - 1 }}
+    >
+      <span
+        aria-hidden
+        className={cn(TAG_HASH_IDLE_CLASS, TAG_HASH_FOCUSED_CLASS)}
+      >
+        #
+      </span>
+      <span
+        className={cn("grid", isEditingInPlace ? "min-w-[1ch]" : "flex-1")}
+      >
+        {isEditingInPlace && (
+          <span
+            aria-hidden
+            className="invisible col-start-1 row-start-1 whitespace-pre"
+          >
+            {tagInput}
+          </span>
+        )}
+        <input
+          ref={tagInputRef}
+          size={1}
+          value={tagInput}
+          onChange={(event) => handleTagChange(event.target.value)}
+          onKeyDown={handleTagKeyDown}
+          onBlur={handleTagBlur}
+          aria-label="태그 입력"
+          className={cn(
+            "col-start-1 row-start-1 w-full text-body-s outline-none",
+            isEditingInPlace ? "min-w-0" : "min-w-[80px]",
+            TAG_INPUT_TEXT_CLASS,
+            TEXTFIELD_CARET_CLASS,
+          )}
+        />
+      </span>
+    </span>
+  );
 
   function closeScreen() {
     // 화면을 떠나므로 로컬 첨부(미리보기 object URL)를 정리한다(원격 TEMP 이미지 정리는 훅 FIXME 참고).
@@ -553,13 +633,8 @@ export function PostWriteScreen({
     }
     if (categoryId === null) return;
     setSubmitting(true);
-    // 확정되지 않은 입력 중인 태그는 등록 시 자동 확정(정책). setTags는 비동기라 전송 목록은 여기서 직접 합친다.
-    const pendingTag = tagInput ? normalizeTag(tagInput) : "";
-    const finalTags =
-      pendingTag && !tags.includes(pendingTag) && tags.length < MAX_TAGS
-        ? [...tags, pendingTag]
-        : tags;
-    if (tagInput) addTag(tagInput);
+    // 확정되지 않은 입력 중인 태그는 등록 시 자동 확정(정책). setTags는 비동기라 전송 목록은 확정 결과를 그대로 쓴다.
+    const finalTags = tagInput ? addTags([tagInput]) : tags;
     try {
       if (edit) {
         // 수정: 남긴 이미지 id 전체를 보낸다(서버가 목록을 통째로 교체). tags는 업스트림 수정 계약에 아직 없음.
@@ -772,56 +847,38 @@ export function PostWriteScreen({
         {/* 태그 입력줄: 본문 아래(사진 스트립은 하단 툴바 위 고정으로 옮김 — 디자인 2026-09-17). 태그가 없어도 줄은 항상
             있고(정책 2026-09-28, #153), 입력칸이 닫혀 있으면 회색 "#" 버튼이 진입점이다. 그 "#"이나 하단 "태그" 버튼으로 열면
             "#"이 자동으로 앞에 붙은 입력칸이 나타난다(사용자는 태그명만 친다). 스페이스/엔터로 확정 → 다음 "#"이
-            자동 생성되며, 확정 태그는 "# 이름"(브랜드 텍스트 컬러) — 탭하면 그 태그를 입력칸으로 되돌려 수정한다.
+            자동 생성되며, 확정 태그는 "# 이름"(브랜드 텍스트 컬러) — 탭하면 그 자리에서 입력칸으로 바뀌어 수정한다.
             입력칸을 벗어나면(blur) 입력 중이던 글자는 확정, 0글자면 취소되고 회색 "#" 버튼으로 돌아간다.
-            FIXME(#162): 최대 개수 도달 후 "#" 노출 여부는 기획 확인 중 — 지금은 툴바 "태그"와 같이 노출하고 확정 시 토스트.
+            3개(최대)를 채우면 입력칸이 닫히고 회색 "#"도 숨는다(#162).
             "#"은 포커스 중 hash-text(#292A2E), 아니면 placeholder-text(#9C9EA6); 입력 텍스트는 hash-text, 커서는
             다른 입력칸과 같은 브랜드색. 상단 여백 24(디자인 2026-09-17), 아래 안내문과도 24. 태그·입력 간격 8. */}
         <div className="group mt-6 flex flex-wrap items-center gap-2">
-          {tags.map((tag) => (
+          {tags.map((tag, index) => (
             <button
               key={tag}
               type="button"
               onClick={() => editTag(tag)}
               aria-label={`태그 ${tag} 수정`}
               className={cn("text-body-s", TAG_TEXT_CLASS)}
+              style={{ order: index * 2 }}
             >
               # {tag}
             </button>
           ))}
-          {tagInputOpen ? (
-            <span className="flex flex-1 items-center gap-1 text-body-s">
-              <span
-                aria-hidden
-                className={cn(TAG_HASH_IDLE_CLASS, TAG_HASH_FOCUSED_CLASS)}
-              >
-                #
-              </span>
-              <input
-                ref={tagInputRef}
-                value={tagInput}
-                onChange={(event) => handleTagChange(event.target.value)}
-                onKeyDown={handleTagKeyDown}
-                onBlur={handleTagBlur}
-                aria-label="태그 입력"
-                className={cn(
-                  "min-w-[80px] flex-1 text-body-s outline-none",
-                  TAG_INPUT_TEXT_CLASS,
-                  TEXTFIELD_CARET_CLASS,
-                )}
-              />
-            </span>
-          ) : (
-            // 닫힌 상태의 진입점. 입력칸의 "#"과 같은 자리·색이라 열고 닫을 때 줄이 흔들리지 않는다.
-            <button
-              type="button"
-              onClick={focusTagInput}
-              aria-label="태그 추가"
-              className={cn("text-body-s", TAG_HASH_IDLE_CLASS)}
-            >
-              #
-            </button>
-          )}
+          {tagInputOpen
+            ? tagInputField
+            : !isTagFull && (
+                // 닫힌 상태의 진입점. 입력칸의 "#"과 같은 자리·색이라 열고 닫을 때 줄이 흔들리지 않는다.
+                <button
+                  type="button"
+                  onClick={focusTagInput}
+                  aria-label="태그 추가"
+                  className={cn("text-body-s", TAG_HASH_IDLE_CLASS)}
+                  style={{ order: tags.length * 2 }}
+                >
+                  #
+                </button>
+              )}
         </div>
 
         {/* 안내문: 디자인 Label S(12 · Auto) · Cool gray/200, 상단 여백 24. 코드 타이포 스케일의 Label S는 10이라
@@ -988,7 +1045,7 @@ export function PostWriteScreen({
               사진
             </span>
           </button>
-          {/* 탭하면 본문 아래 "# 태그" 입력칸으로 포커스(필요하면 그 줄이 보이게 스크롤). */}
+          {/* 탭하면 본문 아래 "# 태그" 입력칸으로 포커스(필요하면 그 줄이 보이게 스크롤). 3개면 토스트만(#162). */}
           <button
             type="button"
             onClick={focusTagInput}
