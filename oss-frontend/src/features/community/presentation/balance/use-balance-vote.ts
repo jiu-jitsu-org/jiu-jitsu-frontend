@@ -7,48 +7,46 @@ import type {
   BalanceGame,
   BalanceOptionKey,
 } from "@/features/community/domain/balance-game";
-import {
-  canToggleVote,
-  nextVoteOf,
-} from "@/features/community/presentation/balance/balance-vote-policy";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
+import { useToast } from "@/shared/ui";
 
 /**
  * 밸런스 게임 투표 — 요청을 보낼지 말지 판단하는 유일한 지점.
  *
- * 무엇을 허용할지(취소·변경)는 balance-vote-policy가 알고, 이 훅은 상황(세션·마감·요청 중)을
- * 얹어 최종 판단만 한다. 서버는 취소/변경을 모두 허용하므로 여기서 막지 않으면 그대로 나간다.
+ * 정책(2026-09-29 확정): 마감 전에는 취소·변경이 자유다(확인 모달·횟수 제한 없음).
+ * 상태는 미참여/참여 둘뿐이고, 집계는 마감 시점의 최종 상태로 한다. 업스트림도 같은 규약이라
+ * (같은 선택지 = 취소, 다른 선택지 = 변경, 득표는 COUNT) 이 훅은 선택지 조합을 막지 않고
+ * 상황(세션·마감·요청 중)만 본다.
+ *
+ * 리스트 카드와 상세 패널이 같은 훅을 쓰므로, 마감 안내도 여기서 띄워 두 화면을 한 번에 맞춘다.
  */
 
 /**
- * 탭을 막은 이유. 호출부가 안내를 띄울지 말지 고르는 데 쓴다.
+ * 투표 후의 선택 상태. 같은 선택지를 다시 누르면 취소(null)다.
  *
- * 리스트는 어느 쪽도 안내하지 않고(카드 위에서 조용히 아무 일 없음), 상세는 `closed`만
- * 토스트로 알린다 — 마감은 사용자가 모르고 누른 것이지만, 재투표 제한은 정책상 "반응 없음"이
- * 곧 의도된 피드백이다.
+ * 업스트림 규약과 같은 규칙이라, 낙관적 반영값이 서버 확정값과 어긋나지 않는다.
  */
-export type BalanceVoteBlockReason = "closed" | "policy";
-
+function nextVoteOf(
+  myVote: BalanceOptionKey | null,
+  option: BalanceOptionKey,
+): BalanceOptionKey | null {
+  return myVote === option ? null : option;
+}
 
 export function useBalanceVote({
   game,
   onVoted,
-  onBlocked,
 }: {
   game: BalanceGame;
   /** 낙관적 반영과 서버 확정값 반영에 모두 쓰인다. */
   onVoted: (next: BalanceGame) => void;
-  /**
-   * 탭이 투표로 이어지지 않았을 때. 넘기지 않으면 지금까지처럼 조용히 무시한다.
-   *
-   * 세션 없음은 여기로 오지 않는다 — 그쪽은 이미 로그인 유도라는 반응이 있다.
-   */
-  onBlocked?: (reason: BalanceVoteBlockReason) => void;
 }): (option: BalanceOptionKey) => void {
   const { status, requireAuth } = useAuth();
+  const toast = useToast();
 
   // 요청이 끝나기 전 재탭을 막는다. 이건 UX 개선이 아니라 기능 요구사항이다 —
-  // 같은 선택지가 두 번 도착하면 업스트림이 두 번째를 "취소"로 처리해 투표가 풀린다.
+  // 같은 선택지가 두 번 도착하면 업스트림이 두 번째를 "취소"로 처리해 투표가 풀리고,
+  // A→B 연타는 낙관적 값과 응답 도착 순서가 엇갈려 화면이 서버와 다른 선택지에 멈출 수 있다.
   const votingRef = useRef(false);
 
   return useCallback(
@@ -60,8 +58,9 @@ export function useBalanceVote({
       // 마감 확인이 로그인보다 앞선다: 마감된 판은 로그인해도 투표할 수 없어, 먼저 물으면
       // 아무것도 할 수 없는 사용자에게 로그인을 요구하게 된다.
       // 서버도 C0007로 막지만 굳이 왕복해서 실패를 받을 이유가 없다.
+      // 안내를 띄우는 이유: 사용자는 마감된 줄 모르고 눌렀고, 반응이 없으면 앱이 멈춘 것처럼 보인다.
       if (game.closed) {
-        onBlocked?.("closed");
+        toast.show("마감된 밸런스 게임이에요");
         return;
       }
 
@@ -69,13 +68,6 @@ export function useBalanceVote({
         // no-op을 넘기는 이유: requireAuth는 로그인 성공 시 보관한 행위를 자동 실행한다.
         // 정책은 "로그인 후 다시 눌러야 함"이라 복귀시킬 행위를 비워 둔다.
         requireAuth(() => {}, { reason: "밸런스 게임 투표" });
-        return;
-      }
-
-      // 정책이 막는 조합(지금은 다른 선택지로 변경)은 눌러도 아무 일이 없다.
-      // "반응 없음"이 곧 의도된 피드백이라 호출부에도 안내를 권하지 않는다.
-      if (!canToggleVote(game.myVote, option)) {
-        onBlocked?.("policy");
         return;
       }
 
@@ -119,6 +111,6 @@ export function useBalanceVote({
       })();
     },
     // 실패 문구는 아직 정해지지 않았다 → 롤백만 하고 아무것도 띄우지 않는다(정책: 동작 안 함).
-    [game, onBlocked, onVoted, requireAuth, status],
+    [game, onVoted, requireAuth, status, toast],
   );
 }

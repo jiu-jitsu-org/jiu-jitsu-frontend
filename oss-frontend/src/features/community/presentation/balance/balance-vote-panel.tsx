@@ -12,13 +12,8 @@ import {
 } from "@/features/community/presentation/balance/balance-option-button";
 import { BalanceDetailCountdown } from "@/features/community/presentation/balance/balance-detail-countdown";
 import { readOptionResult } from "@/features/community/presentation/balance/balance-result";
-import { canToggleVote } from "@/features/community/presentation/balance/balance-vote-policy";
 import { useBalanceCloseTransition } from "@/features/community/presentation/balance/use-balance-close-transition";
-import {
-  useBalanceVote,
-  type BalanceVoteBlockReason,
-} from "@/features/community/presentation/balance/use-balance-vote";
-import { useToast } from "@/shared/ui";
+import { useBalanceVote } from "@/features/community/presentation/balance/use-balance-vote";
 
 /**
  * 상세의 투표 영역 — 타이머와 선택지, 그리고 게임 상태를 소유한다.
@@ -33,7 +28,6 @@ import { useToast } from "@/shared/ui";
  */
 export function BalanceVotePanel({ initialGame }: { initialGame: BalanceGame }) {
   const [game, setGame] = useState(initialGame);
-  const toast = useToast();
 
   // SSR이 다시 돌아 새 seed가 내려오면(세션 복구 후 router.refresh 등) 그 값으로 갈아탄다.
   // 클라이언트 인스턴스는 살아 있어 state가 알아서 바뀌지 않는다(BalanceGameSection과 같은 패턴).
@@ -43,25 +37,7 @@ export function BalanceVotePanel({ initialGame }: { initialGame: BalanceGame }) 
     setGame(initialGame);
   }
 
-  /**
-   * 막힌 탭에 대한 안내.
-   *
-   * 마감만 알린다 — 사용자는 마감된 줄 모르고 눌렀고, 아무 반응이 없으면 앱이 멈춘 것처럼 보인다.
-   * 재투표 제한(policy)은 정책상 "반응 없음"이 의도된 피드백이라 그대로 둔다.
-   */
-  const handleBlocked = useCallback(
-    (reason: BalanceVoteBlockReason) => {
-      if (reason !== "closed") return;
-      toast.show("마감된 밸런스 게임이에요");
-    },
-    [toast],
-  );
-
-  const vote = useBalanceVote({
-    game,
-    onVoted: setGame,
-    onBlocked: handleBlocked,
-  });
+  const vote = useBalanceVote({ game, onVoted: setGame });
 
   /**
    * 마감 전환 — 최종 집계로 갈아끼운다.
@@ -78,9 +54,12 @@ export function BalanceVotePanel({ initialGame }: { initialGame: BalanceGame }) 
     onClosed: handleClosed,
   });
 
-  /** 눌러서 상태가 바뀔 수 있는지 — 커서 표현에만 쓴다(리스트 카드와 같은 규칙). */
-  const isInteractive = (option: BalanceOptionKey) =>
-    !game.closed && canToggleVote(game.myVote, option);
+  /**
+   * 눌러서 상태가 바뀔 수 있는지 — 커서 표현에만 쓴다(리스트 카드와 같은 규칙).
+   *
+   * 마감 전에는 어느 선택지든 바뀐다(미참여 → 투표, 고른 것 → 취소, 다른 것 → 변경).
+   */
+  const interactive = !game.closed;
 
   /**
    * 선택지 표시 상태.
@@ -114,14 +93,14 @@ export function BalanceVotePanel({ initialGame }: { initialGame: BalanceGame }) 
         <BalanceOptionButton
           option={game.optionA}
           state={optionState("A")}
-          interactive={isInteractive("A")}
+          interactive={interactive}
           result={readOptionResult(game, "A")}
           onPress={() => vote("A")}
         />
         <BalanceOptionButton
           option={game.optionB}
           state={optionState("B")}
-          interactive={isInteractive("B")}
+          interactive={interactive}
           result={readOptionResult(game, "B")}
           onPress={() => vote("B")}
         />

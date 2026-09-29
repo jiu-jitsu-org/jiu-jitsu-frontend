@@ -108,5 +108,6 @@ export type BalanceGame = {
 /**
  * 저장(북마크)은 업스트림 미지원이라 필드가 없다 — `saveCount`·`isSaved`는 내려오지 않는다.
  * 밸런스 contentId로 저장을 호출하면 C0008(CONTENT_SAVE_NOT_SUPPORTED)이 온다.
- * 기획 확인 중이라 뒤집힐 수 있다(docs/balance-game-detail-plan.md §1).
+ * 기획도 미지원으로 확정했다(2026-09-29, #119) — 24시간 소멸성 콘텐츠라 "나중에 다시 보기"의
+ * 전제가 맞지 않고, '참여한 밸런스 게임'과 역할이 겹친다.
  */
