@@ -12,6 +12,7 @@ import {
 } from "react";
 
 import type { SessionState } from "@/features/auth/domain/session";
+import { useSessionHint } from "@/features/auth/presentation/session-hint";
 import {
   InboundMessageType,
   OutboundMessageType,
@@ -33,7 +34,9 @@ import { useOpenInAppPrompt } from "@/shared/ui";
  *   브릿지가 단일 설치·fan-out하므로, 알럿·시트 결과 회신 등 다른 리스너와 공존한다.
  * - 로그인 상태를 BFF(/api/auth/session)와 동기화해 화면 전역에 공유한다.
  * - 비로그인 시 행위를 가로채 로그인을 유도하고(requireAuth), 성공 후 원래 행위를 복귀한다.
+ *   복귀 없이 유도만 하는 경로(promptLogin)도 있다 — 좋아요·저장처럼 토글이라 자동 실행이 위험한 행위용.
  *   네이티브가 없는 외부 브라우저(공유 링크)에서는 "앱에서 계속하기" 안내로 대신한다.
+ * - 비로그인 → 로그인 전환을 loginCount로 알린다 — 화면이 viewer 상태(좋아요·소유자 등)를 다시 읽는 신호.
  * - (개발용) 송수신 브릿지 이벤트 로그를 노출해 테스트 하니스가 표시할 수 있게 한다.
  */
 
@@ -68,6 +71,16 @@ type AuthContextValue = {
    * 로그인 성공 시 보관한 행위가 자동 복귀된다.
    */
   requireAuth: (action: () => void, options?: RequireAuthOptions) => void;
+  /**
+   * 로그인 유도만 하고 로그인 성공 후 아무것도 실행하지 않는다.
+   * 좋아요·저장 API는 토글이라(있으면 삭제) 자동 실행하면 이미 눌렀던 글이 취소될 수 있다(#173).
+   */
+  promptLogin: (options?: RequireAuthOptions) => void;
+  /**
+   * 비로그인 → 로그인으로 바뀐 횟수. 값이 바뀌면 화면이 viewer 상태를 다시 읽어야 한다(useOnLogin).
+   * 토큰 갱신(로그인 상태에서 재주입)이나 최초 세션 판정은 세지 않는다 — 화면이 이미 그 상태로 그려져 있다.
+   */
+  loginCount: number;
   /** 서버 세션을 다시 읽어 상태를 갱신한다. */
   refresh: () => Promise<void>;
   /** 로그아웃: 서버 세션 제거 + 네이티브에 로그아웃 요청 통지. */
@@ -107,6 +120,9 @@ async function fetchSessionState(
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [events, setEvents] = useState<BridgeEvent[]>([]);
+  const [loginCount, setLoginCount] = useState(0);
+  // 세션 수립 콜백에서 "직전에 비로그인이었는지"를 읽기 위한 최신값(렌더와 무관한 판정용).
+  const statusRef = useRef<AuthStatus>("loading");
   const nativeAvailable = useSyncExternalStore(
     subscribeNoop,
     isNativeBridgeAvailable,
@@ -137,7 +153,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const applyState = useCallback((state: SessionState | null) => {
-    setStatus(state?.authenticated ? "authenticated" : "anonymous");
+    const next: AuthStatus = state?.authenticated ? "authenticated" : "anonymous";
+    statusRef.current = next;
+    setStatus(next);
   }, []);
 
   const refresh = useCallback(async () => {
@@ -154,7 +172,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ accessToken }),
       });
 
+      // loading에서 온 경우는 세지 않는다 — 네이티브가 WEBVIEW_READY에 기존 토큰을 재주입하는
+      // 평범한 진입이라 화면은 이미 로그인 상태로 그려져 있다.
+      const loggedIn =
+        statusRef.current === "anonymous" && state?.authenticated === true;
       applyState(state);
+      if (loggedIn) setLoginCount((count) => count + 1);
 
       // 만료 복구로 세션 재수립을 기다리던 BFF 호출을 진행/중단시킨다.
       if (state?.authenticated) {
@@ -256,6 +279,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [requestLogin, status],
   );
 
+  const promptLogin = useCallback(
+    (options?: RequireAuthOptions) => {
+      // 앞서 보관된 행위가 이번 로그인에 딸려 실행되지 않게 비운다.
+      pendingActionRef.current = null;
+      requestLogin(options?.direct ?? false, options?.reason);
+    },
+    [requestLogin],
+  );
+
   const logout = useCallback(async () => {
     logEvent("out", OutboundMessageType.AUTH_LOGOUT_REQUEST);
     postToNative({ type: OutboundMessageType.AUTH_LOGOUT_REQUEST });
@@ -276,6 +308,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     events,
     nativeAvailable,
     requireAuth,
+    promptLogin,
+    loginCount,
     refresh,
     logout,
     simulateInbound,
@@ -292,4 +326,41 @@ export function useAuth(): AuthContextValue {
   }
 
   return context;
+}
+
+/**
+ * 지금 로그인 상태로 그려야 하는지.
+ *
+ * 세션 판정 전(loading)에는 서버가 요청 쿠키로 본 힌트(SessionHint)를 쓴다 — 판정을 기다려 숨겼다가
+ * 보여주면 로그인 사용자에게 알림 종·⋮가 매번 늦게 튀어나오고, SSR 마크업과도 어긋난다.
+ * 힌트가 없는 화면에서는 비로그인으로 본다.
+ */
+export function useIsSignedIn(): boolean {
+  const { status } = useAuth();
+  const hint = useSessionHint();
+
+  if (status === "loading") return hint;
+  return status === "authenticated";
+}
+
+/**
+ * 비로그인 → 로그인 전환 시 콜백을 한 번 실행한다(마운트 시점에는 실행하지 않는다).
+ *
+ * 비로그인으로 그려진 화면은 viewer 상태(좋아요·저장·소유자)가 전부 "아님"이라, 로그인 후 다시 읽지
+ * 않으면 이미 좋아요한 글이 비활성으로, 내 글 ⋮가 신고/숨기기로 남는다(#173).
+ */
+export function useOnLogin(callback: () => void): void {
+  const { loginCount } = useAuth();
+  const callbackRef = useRef(callback);
+  const seenRef = useRef(loginCount);
+
+  useEffect(() => {
+    callbackRef.current = callback;
+  });
+
+  useEffect(() => {
+    if (seenRef.current === loginCount) return;
+    seenRef.current = loginCount;
+    callbackRef.current();
+  }, [loginCount]);
 }

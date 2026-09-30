@@ -10,7 +10,7 @@ import {
   COMMENT_REACTION_TEXT,
   COMMENT_REACTION_TEXT_ACTIVE,
 } from "@/features/community/presentation/comment-reaction-styles";
-import { useOpenInAppGuard } from "@/features/community/presentation/use-open-in-app-guard";
+import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
 import { cn } from "@/shared/lib/cn";
 import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
 import { HeartIcon } from "@/shared/ui/icons";
@@ -34,11 +34,24 @@ export function CommentLikeButton({
   initialLikeCount: number;
 }) {
   const demo = useIsDemoMode();
-  // 외부 브라우저(비로그인)에서는 탭하면 앱 안내 — 토글이 반드시 401로 끝난다(#72).
-  const { guard } = useOpenInAppGuard();
+  // 비로그인은 토글 전에 가로챈다 — 외부 브라우저는 앱 안내(#72), 앱은 로그인 알럿(#173).
+  const { guard } = useLoginGuard();
   const [liked, setLiked] = useState(initialLiked);
   const [count, setCount] = useState(initialLikeCount);
   const [pending, setPending] = useState(false);
+
+  // 서버 렌더 값이 바뀌면 다시 맞춘다 — 로그인 후 router.refresh로 viewer 상태가 새로 내려오는데(#173)
+  // 댓글 행은 재마운트되지 않아 useState가 비로그인 시점 값을 붙들고 있다. 진행 중 토글은 건드리지 않는다.
+  const [seed, setSeed] = useState({ initialLiked, initialLikeCount });
+  if (
+    !pending &&
+    (seed.initialLiked !== initialLiked ||
+      seed.initialLikeCount !== initialLikeCount)
+  ) {
+    setSeed({ initialLiked, initialLikeCount });
+    setLiked(initialLiked);
+    setCount(initialLikeCount);
+  }
 
   async function toggle() {
     if (pending) return;

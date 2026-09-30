@@ -3,7 +3,7 @@
 import { COMMENT_INPUT_ELEMENT_ID } from "@/features/community/presentation/comment-input-bar";
 import { ReactionBarButton } from "@/features/community/presentation/reaction-bar-button";
 import { shareCurrentPage } from "@/features/community/presentation/share-current-page";
-import { useOpenInAppGuard } from "@/features/community/presentation/use-open-in-app-guard";
+import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
 import { usePostActions } from "@/features/community/presentation/use-post-actions";
 import { cn } from "@/shared/lib/cn";
 import { CommentIcon, HeartIcon, ShareIcon } from "@/shared/ui/icons";
@@ -20,7 +20,7 @@ import { CommentIcon, HeartIcon, ShareIcon } from "@/shared/ui/icons";
  * 가이드가 들어오면 두 바가 함께 따라간다.
  *
  * **남은 세 버튼은 게시글 상세와 완전히 같다** — 카운트 규칙, Active/Pressed 색, 아이콘 fill,
- * 외부 브라우저 처리(로그인 액션은 앱 안내 · 공유는 숨김)까지 동일하다.
+ * 비로그인 처리(외부 브라우저는 앱 안내 · 공유 숨김, 앱은 로그인 알럿)까지 동일하다.
  *
  * 좋아요는 게시글과 **같은 엔드포인트**를 쓴다 — 업스트림 `PUT /board/like/{id}`의 `{id}`가
  * 원래부터 board id가 아니라 contentId라, 밸런스 게임의 contentId를 그대로 넣으면 된다(BE 확인).
@@ -55,8 +55,8 @@ export function BalanceDetailActionBar({
     likes: initialLikes,
   });
 
-  // 외부 브라우저(비로그인)에서는 로그인 기반 액션을 탭하면 앱 안내를 띄운다(PostActionBar와 같은 이유).
-  const { externalBrowser, guard } = useOpenInAppGuard();
+  // 로그인 기반 액션은 탭 시점에 가로챈다(PostActionBar와 같은 이유).
+  const { externalBrowser, guard } = useLoginGuard();
 
   function focusCommentInput() {
     document.getElementById(COMMENT_INPUT_ELEMENT_ID)?.focus();

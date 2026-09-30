@@ -1,3 +1,4 @@
+import { RefreshOnLogin } from "@/features/auth/presentation/refresh-on-login";
 import type { CommentList } from "@/features/community/domain/comment";
 import type { CommentSort, PostDetail } from "@/features/community/domain/post";
 import { CommentInputBar } from "@/features/community/presentation/comment-input-bar";
@@ -35,6 +36,8 @@ export function PostDetailView({
   return (
     <CommentReplyProvider>
       <PostDetailReturnListener postId={post.id} />
+      {/* 비로그인으로 보다가 로그인하면 viewer 상태를 다시 읽는다(#173). */}
+      <RefreshOnLogin />
       {/* 고정 높이 셸: 헤더(앱바)는 상단 고정, 본문+댓글만 스크롤, 댓글 입력 바는 키보드 위에 붙는다. */}
       <KeyboardAwareShell
         header={

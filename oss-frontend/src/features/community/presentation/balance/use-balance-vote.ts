@@ -45,7 +45,7 @@ export function useBalanceVote({
    */
   onBlocked?: (reason: BalanceVoteBlockReason) => void;
 }): (option: BalanceOptionKey) => void {
-  const { status, requireAuth } = useAuth();
+  const { status, promptLogin } = useAuth();
 
   // 요청이 끝나기 전 재탭을 막는다. 이건 UX 개선이 아니라 기능 요구사항이다 —
   // 같은 선택지가 두 번 도착하면 업스트림이 두 번째를 "취소"로 처리해 투표가 풀린다.
@@ -66,9 +66,8 @@ export function useBalanceVote({
       }
 
       if (status !== "authenticated") {
-        // no-op을 넘기는 이유: requireAuth는 로그인 성공 시 보관한 행위를 자동 실행한다.
-        // 정책은 "로그인 후 다시 눌러야 함"이라 복귀시킬 행위를 비워 둔다.
-        requireAuth(() => {}, { reason: "밸런스 게임 투표" });
+        // 유도만 한다 — 정책은 "로그인 후 다시 눌러야 함"이라 투표를 자동 복귀시키지 않는다.
+        promptLogin({ reason: "밸런스 게임 투표" });
         return;
       }
 
@@ -119,6 +118,6 @@ export function useBalanceVote({
       })();
     },
     // 실패 문구는 아직 정해지지 않았다 → 롤백만 하고 아무것도 띄우지 않는다(정책: 동작 안 함).
-    [game, onBlocked, onVoted, requireAuth, status],
+    [game, onBlocked, onVoted, promptLogin, status],
   );
 }

@@ -17,6 +17,7 @@ import {
 import { useNativeDialog } from "@/features/community/presentation/use-native-dialog";
 import { POST_EDIT_FROM_DETAIL } from "@/features/community/presentation/post-edit-return";
 import { useOpenPostEdit } from "@/features/community/presentation/use-open-post-edit";
+import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
 import { useReportFlow } from "@/features/community/presentation/use-report-flow";
 import {
   BackArrowIcon,
@@ -35,6 +36,9 @@ import {
  * 뒤로가기를 웹이 그리는 이유(#144): 네이티브가 웹 헤더 위에 버튼을 얹으면 웹은 그 자리를 비워두는
  * 픽셀 결합이 되어 한쪽이 바뀌면 어긋나는데 컴파일러도 테스트도 못 잡는다. 헤더 소유권은 웹,
  * 웹이 못 뜨는 상태의 탈출구는 네이티브 오버레이로 경계를 나눈다.
+ *
+ * 앱 웹뷰 비로그인은 뒤로가기만 둔다(#173) — 알림 설정·수정·삭제·신고·숨기기 모두 계정이 있어야
+ * 성립해, 누르게 한 뒤 막는 것보다 진입점이 없는 편이 낫다. 외부 브라우저는 앱바 대신 배너다(#72).
  *
  * ⋮ 메뉴는 게시글 소유자 여부(isOwner)에 따라 수정/삭제 vs 신고를 노출하므로 웹이 소유한다
  * (네이티브가 그리면 소유자 컨텍스트를 브릿지로 왕복해야 함).
@@ -63,6 +67,14 @@ export function PostDetailAppBar({
   const [alarmOn, setAlarmOn] = useState(initialNoticeEnabled);
   // 저장 중 재탭 방지 — 토글 엔드포인트라 연타하면 서버 상태가 화면과 어긋난 채로 뒤집힌다.
   const [alarmPending, setAlarmPending] = useState(false);
+  // 서버 값이 바뀌면 다시 맞춘다 — 비로그인으로 열었다가 로그인하면 router.refresh로 실제 설정이
+  // 내려오는데(#173), 앱바는 재마운트되지 않아 useState가 비로그인 시점 값을 붙들고 있다.
+  const [seededNotice, setSeededNotice] = useState(initialNoticeEnabled);
+  if (seededNotice !== initialNoticeEnabled && !alarmPending) {
+    setSeededNotice(initialNoticeEnabled);
+    setAlarmOn(initialNoticeEnabled);
+  }
+  const { guest } = useLoginGuard();
 
   /**
    * 알림 받기 토글 → 서버 저장(POST /api/community/notice-setting/{contentId}).
@@ -219,80 +231,82 @@ export function PostDetailAppBar({
         <BackArrowIcon size={24} />
       </button>
 
-      {/* 우측 그룹: 알림종 + ⋮ 를 간격 0으로 붙여 우측 정렬 */}
-      <div className="ml-auto flex items-center">
-        <button
-          type="button"
-          onClick={() => void toggleAlarm()}
-          aria-label={alarmOn ? "알림 끄기" : "알림 켜기"}
-          aria-pressed={alarmOn}
-          disabled={alarmPending}
-          className="inline-flex size-10 items-center justify-center text-icon-primary"
-        >
-          {alarmOn ? <BellIcon size={24} /> : <BellOffIcon size={24} />}
-        </button>
-
-        <div className="relative">
+      {/* 우측 그룹: 알림종 + ⋮ 를 간격 0으로 붙여 우측 정렬. 비로그인은 통째로 없다. */}
+      {guest ? null : (
+        <div className="ml-auto flex items-center">
           <button
             type="button"
-            onClick={() => setMenuOpen((value) => !value)}
-            aria-haspopup="menu"
-            aria-expanded={menuOpen}
-            aria-label="게시물 메뉴 열기"
+            onClick={() => void toggleAlarm()}
+            aria-label={alarmOn ? "알림 끄기" : "알림 켜기"}
+            aria-pressed={alarmOn}
+            disabled={alarmPending}
             className="inline-flex size-10 items-center justify-center text-icon-primary"
           >
-            <MoreVerticalIcon size={24} />
+            {alarmOn ? <BellIcon size={24} /> : <BellOffIcon size={24} />}
           </button>
 
-          {menuOpen ? (
-            <MenuBox
-              placement="bottom-right"
-              onClose={() => setMenuOpen(false)}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setMenuOpen((value) => !value)}
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              aria-label="게시물 메뉴 열기"
+              className="inline-flex size-10 items-center justify-center text-icon-primary"
             >
-              {/* 자신 게시글: 삭제/수정 · 타인 게시글: 신고/숨기기 */}
-              {isOwner ? (
-                <>
-                  <MenuItem
-                    onClick={() => {
-                      setMenuOpen(false);
-                      void handleDelete();
-                    }}
-                  >
-                    삭제하기
-                  </MenuItem>
-                  <MenuItem
-                    onClick={() => {
-                      setMenuOpen(false);
-                      openPostEdit(postId);
-                    }}
-                  >
-                    수정하기
-                  </MenuItem>
-                </>
-              ) : (
-                <>
-                  <MenuItem
-                    onClick={() => {
-                      setMenuOpen(false);
-                      void handleReport();
-                    }}
-                  >
-                    신고하기
-                  </MenuItem>
-                  <MenuItem
-                    onClick={() => {
-                      setMenuOpen(false);
-                      void handleHide();
-                    }}
-                  >
-                    숨기기
-                  </MenuItem>
-                </>
-              )}
-            </MenuBox>
-          ) : null}
+              <MoreVerticalIcon size={24} />
+            </button>
+
+            {menuOpen ? (
+              <MenuBox
+                placement="bottom-right"
+                onClose={() => setMenuOpen(false)}
+              >
+                {/* 자신 게시글: 삭제/수정 · 타인 게시글: 신고/숨기기 */}
+                {isOwner ? (
+                  <>
+                    <MenuItem
+                      onClick={() => {
+                        setMenuOpen(false);
+                        void handleDelete();
+                      }}
+                    >
+                      삭제하기
+                    </MenuItem>
+                    <MenuItem
+                      onClick={() => {
+                        setMenuOpen(false);
+                        openPostEdit(postId);
+                      }}
+                    >
+                      수정하기
+                    </MenuItem>
+                  </>
+                ) : (
+                  <>
+                    <MenuItem
+                      onClick={() => {
+                        setMenuOpen(false);
+                        void handleReport();
+                      }}
+                    >
+                      신고하기
+                    </MenuItem>
+                    <MenuItem
+                      onClick={() => {
+                        setMenuOpen(false);
+                        void handleHide();
+                      }}
+                    >
+                      숨기기
+                    </MenuItem>
+                  </>
+                )}
+              </MenuBox>
+            ) : null}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 게시글 삭제 확인 알럿(웹 단독 폴백 전용 — 앱에서는 네이티브가 그린다) */}
       {dialog}

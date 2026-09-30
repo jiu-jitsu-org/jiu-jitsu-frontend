@@ -14,11 +14,8 @@ import {
   MenuBox,
   MenuItem,
 } from "@/features/community/presentation/menu-box";
-import {
-  OutboundMessageType,
-  postToNative,
-  useIsExternalBrowser,
-} from "@/shared/lib/native-bridge";
+import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
+import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
 import { useReportFlow } from "@/features/community/presentation/use-report-flow";
 import { useToast } from "@/shared/ui";
 import { useNativeDialog } from "@/features/community/presentation/use-native-dialog";
@@ -64,9 +61,9 @@ export function CommentMenu({
   const { report, dialog: reportDialog } = useReportFlow();
   const [open, setOpen] = useState(false);
   const toast = useToast();
-  // 외부 브라우저(비로그인)에서는 메뉴 자체를 감춘다(#72).
+  // 비로그인에게는 메뉴 자체를 감춘다 — 외부 브라우저(#72)도 앱 웹뷰(#173)도 같다.
   // 삭제 · 신고 · 차단 모두 계정이 있어야 성립하는 동작이라, 비로그인에게는 열어줄 항목이 없다.
-  const externalBrowser = useIsExternalBrowser();
+  const { externalBrowser, guest } = useLoginGuard();
 
   /** 삭제: 확인 알럿 → DELETE → 성공 시 목록 갱신. */
   async function handleDelete() {
@@ -158,7 +155,7 @@ export function CommentMenu({
         { label: "신고", onSelect: () => void handleReport() },
       ];
 
-  if (externalBrowser) {
+  if (externalBrowser || guest) {
     return null;
   }
 

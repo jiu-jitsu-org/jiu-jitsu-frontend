@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useOnLogin } from "@/features/auth/presentation/auth-provider";
 import { BalanceGameCard } from "@/features/community/presentation/balance/balance-game-card";
 import { BalanceStickyBar } from "@/features/community/presentation/balance/balance-sticky-bar";
 import { useBalanceVote } from "@/features/community/presentation/balance/use-balance-vote";
@@ -18,6 +19,7 @@ import { bffFetch } from "@/shared/lib/http/bff-fetch";
  *
  * 1. 잔여 시간이 0에 닿음 → 서버가 다음 판으로 교체했을 것이다
  * 2. 화면이 다시 보임(포그라운드 복귀 · 상세에서 복귀) → 서버 시각 재동기화 겸 최신 상태 확보
+ * 3. 비로그인 → 로그인 전환 → 비로그인으로 읽은 내 투표(myVote)를 실제 값으로(#173)
  *
  * 재조회 결과가 null이면 카드를 걷는다 — 진행 중인 판이 없다는 뜻이다. 별도 재시도 루프는 두지
  * 않는다. 다음 복귀 때 어차피 다시 읽고, 실패한 조회를 계속 두드려봐야 화면에 보여줄 것이 없다.
@@ -62,6 +64,8 @@ export function BalanceGameSection({
       reloadingRef.current = false;
     }
   }, []);
+
+  useOnLogin(() => void reload());
 
   useEffect(() => {
     function handleVisibility() {

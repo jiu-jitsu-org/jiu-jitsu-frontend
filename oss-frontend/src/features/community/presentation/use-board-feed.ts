@@ -42,9 +42,7 @@ export function useBoardFeed(initial: {
     const nextPage = page + 1;
 
     try {
-      const response = await bffFetch(
-        `/api/community/board?boardListType=FEED&page=${nextPage}&size=${FEED_PAGE_SIZE}`,
-      );
+      const response = await bffFetch(feedPageUrl(nextPage));
       if (!response.ok) {
         throw new Error(`board list request failed: ${response.status}`);
       }
@@ -147,6 +145,24 @@ export function useBoardFeed(initial: {
     [restorePost],
   );
 
+  /**
+   * 지금까지 불러온 페이지를 다시 읽어 카드를 제자리에서 갈아 끼운다 — 로그인 직후 viewer 갱신용(#173).
+   *
+   * 첫 페이지로 리셋하지 않는 이유: 로그인은 카드의 좋아요를 누르다 뜬 알럿에서 시작되는데, 돌아왔을 때
+   * 목록이 맨 위로 튀면 보던 글을 잃는다. 순서 · 추가 · 제거는 건드리지 않고 같은 id만 교체한다.
+   * 실패한 페이지는 옛 값으로 남긴다(다음 복귀 재조회나 새로고침이 맞춘다).
+   */
+  const refreshLoaded = useCallback(async () => {
+    const pages = Array.from({ length: page + 1 }, (_, index) => index);
+    const lists = await Promise.all(pages.map(fetchFeedPage));
+    const fresh = new Map(
+      lists.flatMap((list) => list?.items ?? []).map((post) => [post.id, post]),
+    );
+    if (fresh.size === 0) return;
+
+    setItems((prev) => prev.map((post) => fresh.get(post.id) ?? post));
+  }, [page]);
+
   return {
     items,
     isLast,
@@ -157,7 +173,28 @@ export function useBoardFeed(initial: {
     restoreRemoved,
     replacePost,
     prependNew,
+    refreshLoaded,
   };
+}
+
+/** 피드 목록 BFF 경로(page는 0부터). */
+function feedPageUrl(page: number): string {
+  return `/api/community/board?boardListType=FEED&page=${page}&size=${FEED_PAGE_SIZE}`;
+}
+
+/** 한 페이지를 읽는다. 실패하면 null — 호출부가 옛 값을 유지한다. */
+async function fetchFeedPage(page: number): Promise<PostList | null> {
+  try {
+    const response = await bffFetch(feedPageUrl(page));
+    if (!response.ok) return null;
+
+    const body = (await response.json().catch(() => null)) as
+      | { data?: PostList }
+      | null;
+    return body?.data ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /** 이미 있는 id는 건너뛰고 새 항목만 이어 붙인다(페이지 경계 중복 방지). */
