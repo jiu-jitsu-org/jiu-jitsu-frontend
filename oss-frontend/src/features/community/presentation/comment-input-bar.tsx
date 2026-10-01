@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
 import { useCommentReply } from "@/features/community/presentation/comment-reply-context";
+import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { cn } from "@/shared/lib/cn";
 import { useViewportRect } from "@/features/community/presentation/use-viewport-rect";
@@ -25,6 +26,11 @@ export const COMMENT_INPUT_ELEMENT_ID = "community-comment-input";
  *
  * 대상은 게시글일 수도 밸런스 게임일 수도 있어 `contentId`를 받는다 — 업스트림 댓글 API가
  * 처음부터 컨텐츠 단위라 이 바가 게시글을 알 이유가 없다.
+ *
+ * 앱 웹뷰 비로그인은 입력창을 그대로 보여주되 입력을 받지 않는다(#173) — 탭하면 로그인 알럿만 뜨고
+ * 포커스·키보드·입력이 일어나지 않는다. 다 쓴 뒤 전송 시점에 막히는 것을 없애기 위함이다.
+ * textarea를 readOnly로 두지 않고 버튼으로 바꾸는 이유: readOnly여도 iOS 웹뷰는 포커스를 잡아
+ * 입력 보조 막대가 올라온다.
  */
 export function CommentInputBar({ contentId }: { contentId: number }) {
   const router = useRouter();
@@ -35,6 +41,7 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
   const { target, cancelReply } = useCommentReply();
   // 키보드가 떠 있는 동안엔 홈 인디케이터(safe-area)가 키보드에 가려 의미가 없으므로 하단 패딩 0.
   const rect = useViewportRect();
+  const { guest, guard } = useLoginGuard();
 
   // 입력에 따라 높이 자동 확장. 최대 5줄(max-h-[125px])은 CSS가 제한하고 초과분은 스크롤.
   useEffect(() => {
@@ -148,15 +155,27 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
         {/* 텍스트 영역: 좌우 16(px-4)/상하 10 → 1줄 높이 41(10+21+10).
             멀티라인 — 엔터=줄바꿈, 최대 5줄(20+21×5=125) 후 스크롤.
             radius 24. 색은 comment-input-bar 토큰(배경/입력/플레이스홀더). */}
-        <textarea
-          id={COMMENT_INPUT_ELEMENT_ID}
-          ref={textareaRef}
-          rows={1}
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-          placeholder="댓글을 입력해주세요."
-          className="max-h-[125px] flex-1 resize-none overflow-y-auto rounded-[24px] bg-comment-input-bar-bg px-4 py-[10px] text-body-s text-comment-input-bar-text outline-none placeholder:text-comment-input-bar-placeholder"
-        />
+        {guest ? (
+          // 모양은 빈 입력창과 같게(플레이스홀더 색) — 로그인하면 같은 자리에 진짜 입력창이 온다.
+          // 외부 브라우저 문구는 쓰이지 않는다(외부 브라우저는 이 바 자체가 감춰진다 — PostDetailFooter).
+          <button
+            type="button"
+            onClick={guard(() => {}, "")}
+            className="flex-1 rounded-[24px] bg-comment-input-bar-bg px-4 py-[10px] text-left text-body-s text-comment-input-bar-placeholder"
+          >
+            로그인 후 이용해주세요.
+          </button>
+        ) : (
+          <textarea
+            id={COMMENT_INPUT_ELEMENT_ID}
+            ref={textareaRef}
+            rows={1}
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+            placeholder="댓글을 입력해주세요."
+            className="max-h-[125px] flex-1 resize-none overflow-y-auto rounded-[24px] bg-comment-input-bar-bg px-4 py-[10px] text-body-s text-comment-input-bar-text outline-none placeholder:text-comment-input-bar-placeholder"
+          />
+        )}
       <button
         type="button"
         onClick={() => void submit()}

@@ -1,3 +1,4 @@
+import { RefreshOnLogin } from "@/features/auth/presentation/refresh-on-login";
 import type { BalanceGame } from "@/features/community/domain/balance-game";
 import type { CommentList } from "@/features/community/domain/comment";
 import type { CommentSort } from "@/features/community/domain/post";
@@ -39,6 +40,8 @@ export function BalanceDetailView({
 }) {
   return (
     <CommentReplyProvider>
+      {/* 비로그인으로 보다가 로그인하면 투표 · 좋아요 · 알림 상태를 다시 읽는다(#173). */}
+      <RefreshOnLogin />
       <KeyboardAwareShell
         header={
           <PostDetailHeader

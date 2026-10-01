@@ -2,9 +2,11 @@
 
 import { useCallback, useState } from "react";
 
+import { useOnLogin } from "@/features/auth/presentation/auth-provider";
 import { useOpenPostDetail } from "@/features/community/presentation/use-open-post-detail";
 import { useBoardFeed } from "@/features/community/presentation/use-board-feed";
 import { useInfiniteScroll } from "@/features/community/presentation/use-infinite-scroll";
+import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
 import { useFeedRevalidate } from "@/features/community/presentation/use-feed-revalidate";
 import { usePostActions } from "@/features/community/presentation/use-post-actions";
 import type { PostSummary } from "@/features/community/domain/post-summary";
@@ -36,6 +38,9 @@ import { type PendingToastAction, usePendingToast, useToast } from "@/shared/ui"
  * 상세 · 작성에서 돌아오면 바뀌었을 수 있는 게시글만 서버에서 다시 읽어 반영한다(useFeedRevalidate).
  * 전체 새로고침은 하지 않는다 — 누적된 페이지와 스크롤이 날아가기 때문.
  *
+ * 비로그인으로 보다가 로그인하면 불러온 카드의 viewer 상태(좋아요 · 저장 · 소유자)를 제자리에서
+ * 다시 읽는다(#173). 로그인은 네이티브 모달에서 일어나고 목록은 보던 자리에 남기 때문.
+ *
  * 카드가 빠지고 들어오는 것은 접힘/펼침으로 보여준다. 즉시 사라지면 아래 글들이 순간이동해
  * 무엇이 없어졌는지 알 수 없다.
  */
@@ -65,6 +70,7 @@ export function CommunityFeedList({
     restoreRemoved,
     replacePost,
     prependNew,
+    refreshLoaded,
   } = useBoardFeed({
     items: posts,
     page,
@@ -159,6 +165,8 @@ export function CommunityFeedList({
 
   usePendingToast(handlePendingAction, handleUndoHide);
 
+  useOnLogin(() => void refreshLoaded());
+
   // 404로 걷어내는 카드도 접었다 제거한다 — 삭제 · 신고 · 차단은 상세에서 벌어지고 목록은
   // 복귀 후 재조회로 알게 되는데, 여기서 곧장 지우면 목록 ⋮ 경로와 달리 카드가 툭 사라진다.
   useFeedRevalidate({
@@ -226,6 +234,9 @@ export function CommunityFeedList({
  * 0이면 FeedCard가 숫자를 숨기고 아이콘만 표시한다.
  *
  * 헤더 우측 ⋮는 소유자 여부(viewer.isOwner)로 항목이 갈려 카드가 소유할 수 없으므로 menu 슬롯으로 넘긴다.
+ *
+ * 비로그인(#173): 좋아요·저장은 토글 전에 로그인 알럿으로 막고(상태는 비활성 그대로), ⋮는 감춘다 —
+ * 신고 · 숨기기 · 수정 · 삭제 모두 계정이 있어야 성립해 비로그인에게 열어줄 항목이 없다.
  */
 function FeedCardItem({
   post,
@@ -244,6 +255,7 @@ function FeedCardItem({
       likes: post.counts.likes,
       saves: post.counts.saves,
     });
+  const { guest, guard } = useLoginGuard();
 
   return (
     <FeedCard
@@ -266,15 +278,23 @@ function FeedCardItem({
       bookmarked={bookmarked}
       onPress={() => openPostDetail(post.id)}
       onPressComment={() => openPostDetail(post.id)}
-      onToggleLike={toggleLike}
-      onToggleBookmark={toggleBookmark}
+      onToggleLike={guard(
+        toggleLike,
+        "좋아요는 OSS 앱에서 로그인 후 누를 수 있어요.",
+      )}
+      onToggleBookmark={guard(
+        toggleBookmark,
+        "북마크는 OSS 앱에서 로그인 후 저장할 수 있어요.",
+      )}
       menu={
-        <FeedCardMenu
-          postId={post.id}
-          isOwner={post.viewer.isOwner}
-          onDeleted={onDeleted}
-          onRestored={onRestored}
-        />
+        guest ? undefined : (
+          <FeedCardMenu
+            postId={post.id}
+            isOwner={post.viewer.isOwner}
+            onDeleted={onDeleted}
+            onRestored={onRestored}
+          />
+        )
       }
     />
   );

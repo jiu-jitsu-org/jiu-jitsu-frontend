@@ -3,7 +3,7 @@
 import { COMMENT_INPUT_ELEMENT_ID } from "@/features/community/presentation/comment-input-bar";
 import { ReactionBarButton } from "@/features/community/presentation/reaction-bar-button";
 import { shareCurrentPage } from "@/features/community/presentation/share-current-page";
-import { useOpenInAppGuard } from "@/features/community/presentation/use-open-in-app-guard";
+import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
 import { usePostActions } from "@/features/community/presentation/use-post-actions";
 import { cn } from "@/shared/lib/cn";
 import {
@@ -18,6 +18,7 @@ import {
  *
  * 댓글쓰기·공유가 추가되어 FeedCardReactions와 구성이 다르므로 별도 컴포넌트로 둔다.
  * 좋아요/북마크는 usePostActions로 낙관적 토글하고, 댓글은 서버가 준 상태를 표시만 한다.
+ * 비로그인은 토글 전에 로그인 알럿으로 막는다(useLoginGuard) — 상태는 비활성 그대로 남는다.
  * 공유는 카운트도 상태도 두지 않는다(정책) — 아이콘 탭으로 공유 시트를 여는 것이 전부다.
  * 시트를 여는 순서와 이유는 shareCurrentPage 참고(밸런스 게임 상세와 공용).
  *
@@ -65,8 +66,9 @@ export function PostActionBar({
       saves: initialSaves,
     });
 
-  // 외부 브라우저(비로그인)에서는 로그인 기반 액션을 탭하면 앱 안내를 띄운다(useOpenInAppGuard 참고).
-  const { externalBrowser, guard } = useOpenInAppGuard();
+  // 로그인 기반 액션은 탭 시점에 가로챈다 — 외부 브라우저는 앱 안내, 앱 비로그인은 로그인 알럿(useLoginGuard 참고).
+  // 공유는 로그인과 무관해 가로채지 않는다(#173).
+  const { externalBrowser, guard } = useLoginGuard();
 
   function focusCommentInput() {
     document.getElementById(COMMENT_INPUT_ELEMENT_ID)?.focus();

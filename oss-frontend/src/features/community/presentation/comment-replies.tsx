@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { useAuth } from "@/features/auth/presentation/auth-provider";
 import type { Comment } from "@/features/community/domain/comment";
 import type { CommentSort } from "@/features/community/domain/post";
 import { CommentItem } from "@/features/community/presentation/comment-item";
@@ -124,7 +125,9 @@ export function CommentReplies({
   postAuthorId?: number | null;
 }) {
   // 정렬이 바뀌거나 router.refresh로 미리보기가 갱신되면 쌓아둔 추가 로드분은 무효다.
-  const signature = `${sort}:${totalCount}:${replies.map((reply) => reply.id).join(",")}`;
+  // 로그인 전환도 무효 사유다 — 비로그인으로 받은 추가분은 좋아요 · 소유자가 전부 "아님"이다(#173).
+  const { loginCount } = useAuth();
+  const signature = `${sort}:${totalCount}:${loginCount}:${replies.map((reply) => reply.id).join(",")}`;
   const [state, setState] = useState(() => initialState(signature));
 
   // 이번 렌더에서 유효한 상태. 서버 데이터가 바뀐 렌더에서는 새 상태를 바로 쓰고,

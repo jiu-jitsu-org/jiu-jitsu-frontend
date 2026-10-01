@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { SessionHintProvider } from "@/features/auth/presentation/session-hint";
 import { getPostShareMetadata } from "@/features/community/application/get-post-share-metadata";
 import { normalizeCommentSort } from "@/features/community/domain/post";
 import { PostDetailScreen } from "@/features/community/presentation/post-detail-screen";
+import { readSessionToken } from "@/shared/lib/auth";
 import { getRequestOrigin } from "@/shared/lib/request-origin";
 import {
   buildShareMetadata,
@@ -68,7 +70,12 @@ export default async function CommunityPostPage({
     notFound();
   }
 
+  const sessionToken = await readSessionToken();
+
+  // 앱바 알림 종·⋮, 댓글 입력창이 로그인 여부로 갈린다 — 세션 판정 전에도 맞게 그리도록 힌트를 깐다(#173).
   return (
-    <PostDetailScreen postId={postId} sort={normalizeCommentSort(sort)} />
+    <SessionHintProvider authenticated={sessionToken !== null}>
+      <PostDetailScreen postId={postId} sort={normalizeCommentSort(sort)} />
+    </SessionHintProvider>
   );
 }

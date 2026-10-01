@@ -8,7 +8,7 @@ import {
 } from "@/features/community/presentation/comment-reaction-styles";
 import { useCommentReply } from "@/features/community/presentation/comment-reply-context";
 import { COMMENT_INPUT_ELEMENT_ID } from "@/features/community/presentation/comment-input-bar";
-import { useOpenInAppGuard } from "@/features/community/presentation/use-open-in-app-guard";
+import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
 import { cn } from "@/shared/lib/cn";
 import { CommentIcon } from "@/shared/ui/icons";
 
@@ -36,9 +36,9 @@ export function CommentReplyButton({
   replied: boolean;
 }) {
   const { startReply } = useCommentReply();
-  // 외부 브라우저(비로그인)에서는 하단 입력 바가 통째로 감춰져 답글 모드를 열 수 없다(#72).
-  // 버튼은 남기고 탭하면 앱 안내 — 액션바 "댓글쓰기"와 같은 진입점이어야 일관된다.
-  const { guard } = useOpenInAppGuard();
+  // 비로그인은 답글 모드를 열지 않는다 — 외부 브라우저는 입력 바가 감춰져 있어 앱 안내(#72),
+  // 앱은 로그인 알럿(#173). 버튼은 남긴다 — 액션바 "댓글쓰기"와 같은 진입점이어야 일관된다.
+  const { guard } = useLoginGuard();
 
   function start() {
     startReply({ parentId, nickname });

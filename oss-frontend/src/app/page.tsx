@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { getBalanceGamePageData } from "@/features/community/application/get-balance-game-page-data";
 import { getBoardListPageData } from "@/features/community/application/get-board-list-page-data";
 import { SessionExpiredRecovery } from "@/features/auth/presentation/session-expired-recovery";
+import { SessionHintProvider } from "@/features/auth/presentation/session-hint";
 import type { BalanceGame } from "@/features/community/domain/balance-game";
 import { DEFAULT_BOARD_LIST_QUERY } from "@/features/community/domain/post-summary";
 import { BalanceGameSection } from "@/features/community/presentation/balance/balance-game-section";
@@ -10,6 +11,7 @@ import { CommunityFeedList } from "@/features/community/presentation/community-f
 import { FeedEmptyState } from "@/features/community/presentation/feed-empty-state";
 import { FeedErrorState } from "@/features/community/presentation/feed-error-state";
 import { PostWriteFab } from "@/features/community/presentation/post-write-fab";
+import { readSessionToken } from "@/shared/lib/auth";
 
 /**
  * 메인 화면 — 커뮤니티 게시글 피드.
@@ -23,18 +25,22 @@ import { PostWriteFab } from "@/features/community/presentation/post-write-fab";
  * 개발용 진입 허브/playground는 `src/app/_backup/`에 보관돼 있다.
  */
 export default async function Home() {
-  const [result, balanceGame] = await Promise.all([
+  const [result, balanceGame, sessionToken] = await Promise.all([
     getBoardListPageData(DEFAULT_BOARD_LIST_QUERY),
     getBalanceGamePageData(),
+    readSessionToken(),
   ]);
 
   return (
-    <main className="feed-bounce-scroll min-h-screen bg-[var(--bw-white)]">
-      {renderFeed(result, balanceGame)}
+    // 카드 ⋮가 로그인 여부로 갈린다 — 세션 판정 전에도 맞게 그리도록 힌트를 깐다(#173).
+    <SessionHintProvider authenticated={sessionToken !== null}>
+      <main className="feed-bounce-scroll min-h-screen bg-[var(--bw-white)]">
+        {renderFeed(result, balanceGame)}
 
-      {/* 게시글 작성 진입 FAB — 네이티브면 OPEN_SUBVIEW로 풀스크린 서브뷰, 웹 단독이면 라우터 이동. */}
-      <PostWriteFab />
-    </main>
+        {/* 게시글 작성 진입 FAB — 네이티브면 OPEN_SUBVIEW로 풀스크린 서브뷰, 웹 단독이면 라우터 이동. */}
+        <PostWriteFab />
+      </main>
+    </SessionHintProvider>
   );
 }
 

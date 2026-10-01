@@ -5,6 +5,7 @@ import { useState } from "react";
 import { AppBarShell } from "@/features/community/presentation/app-bar-shell";
 import { closeDetail } from "@/features/community/presentation/close-detail";
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
+import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
 import { useToast } from "@/shared/ui";
@@ -19,6 +20,8 @@ import { BackArrowIcon, BellIcon, BellOffIcon } from "@/shared/ui/icons";
  *
  * 좌측 뒤로가기는 게시글 상세와 같은 규격·같은 닫기 경로(closeDetail)다 — 앱은 CLOSE_SUBVIEW,
  * 웹 단독은 브라우저 히스토리. 웹이 그리는 이유는 PostDetailAppBar 참고(#144).
+ *
+ * 앱 웹뷰 비로그인은 종도 감춰 뒤로가기만 남는다 — 게시글 상세와 같은 정책(#173).
  */
 function alarmToast(enabled: boolean): string {
   return enabled ? "알림을 받아요" : "알림을 받지 않아요";
@@ -36,6 +39,14 @@ export function BalanceDetailAppBar({
   const [alarmOn, setAlarmOn] = useState(initialNoticeEnabled);
   // 저장 중 재탭 방지 — 토글 엔드포인트라 연타하면 서버 상태가 화면과 어긋난 채로 뒤집힌다.
   const [alarmPending, setAlarmPending] = useState(false);
+  // 서버 값이 바뀌면 다시 맞춘다 — 비로그인으로 열었다가 로그인하면 router.refresh로 실제 설정이
+  // 내려오는데(#173), 앱바는 재마운트되지 않아 useState가 비로그인 시점 값을 붙들고 있다.
+  const [seededNotice, setSeededNotice] = useState(initialNoticeEnabled);
+  if (seededNotice !== initialNoticeEnabled && !alarmPending) {
+    setSeededNotice(initialNoticeEnabled);
+    setAlarmOn(initialNoticeEnabled);
+  }
+  const { guest } = useLoginGuard();
 
   /**
    * 알림 받기 토글 → 서버 저장(POST /api/community/notice-setting/{contentId}).
@@ -102,18 +113,20 @@ export function BalanceDetailAppBar({
       </button>
 
       {/* 우측 정렬 — 게시글 상세 앱바와 같은 규격(40x40, 아이콘 24). ⋮가 없어 종 하나만 놓인다. */}
-      <div className="ml-auto flex items-center">
-        <button
-          type="button"
-          onClick={() => void toggleAlarm()}
-          aria-label={alarmOn ? "알림 끄기" : "알림 켜기"}
-          aria-pressed={alarmOn}
-          disabled={alarmPending}
-          className="inline-flex size-10 items-center justify-center text-icon-primary"
-        >
-          {alarmOn ? <BellIcon size={24} /> : <BellOffIcon size={24} />}
-        </button>
-      </div>
+      {guest ? null : (
+        <div className="ml-auto flex items-center">
+          <button
+            type="button"
+            onClick={() => void toggleAlarm()}
+            aria-label={alarmOn ? "알림 끄기" : "알림 켜기"}
+            aria-pressed={alarmOn}
+            disabled={alarmPending}
+            className="inline-flex size-10 items-center justify-center text-icon-primary"
+          >
+            {alarmOn ? <BellIcon size={24} /> : <BellOffIcon size={24} />}
+          </button>
+        </div>
+      )}
     </AppBarShell>
   );
 }
