@@ -60,6 +60,8 @@ export type FeedCardProps = {
    * 없으면 카드가 createdAt을 "M월 D일"로 포맷한다(데모/구버전 응답 폴백).
    */
   dateLabel?: string;
+  /** 카테고리명(#177). 제목 아래 메타행에서 날짜 앞에 표시. 빈 값이면 생략. */
+  categoryName?: string;
   title: string;
   body: string;
   /** 0개=없음 / 1개=단일 / N개=대표 1장 + "+N" 뱃지. */
@@ -96,6 +98,7 @@ export function FeedCard({
   author,
   createdAt,
   dateLabel,
+  categoryName,
   title,
   body,
   images,
@@ -135,8 +138,6 @@ export function FeedCard({
     >
       <FeedCardHeader
         author={author}
-        createdAt={createdAt}
-        dateLabel={dateLabel}
         onPressMore={onPressMore}
         menu={menu}
       />
@@ -144,6 +145,9 @@ export function FeedCard({
       <FeedCardBody
         title={title}
         body={body}
+        categoryName={categoryName}
+        createdAt={createdAt}
+        dateLabel={dateLabel}
         onPress={onPress}
         className="mt-2"
       />
@@ -211,14 +215,10 @@ function FeedCardAvatar({ avatarUrl }: { avatarUrl?: string }) {
 
 export function FeedCardHeader({
   author,
-  createdAt,
-  dateLabel,
   onPressMore,
   menu,
 }: {
   author: FeedAuthor;
-  createdAt: string;
-  dateLabel?: string;
   onPressMore?: () => void;
   menu?: ReactNode;
 }) {
@@ -226,22 +226,15 @@ export function FeedCardHeader({
     // 헤더는 items-start: user-header 묶음을 카드 헤더 좌상단에 붙인다.
     // 더보기 버튼(28)이 헤더 높이를 결정하고, user-header(24)는 위쪽 정렬로 남는다.
     <header className="flex items-start">
-      {/* user-header: 아바타·닉네임·날짜 묶음. 좌상단 정렬, 묶음 내부는 수직 가운데. */}
+      {/* user-header: 아바타·닉네임 묶음. 좌상단 정렬, 묶음 내부는 수직 가운데.
+          날짜는 제목 아래 메타행(카테고리·날짜)으로 이동했다(#177). */}
       <div className="flex items-center">
         {/* key=URL: 아바타 URL이 바뀌면 컴포넌트를 재마운트해 폴백 상태(failed)를 초기화한다. */}
         <FeedCardAvatar key={author.avatarUrl ?? "none"} avatarUrl={author.avatarUrl} />
-        {/* 아바타→닉네임 8, 닉네임→날짜 6 (요소별 간격이 달라 gap 대신 ml로 지정) */}
-        {/* 닉네임: BodyM(Pretendard Medium 16) */}
+        {/* 아바타→닉네임 8. 닉네임: BodyM(Pretendard Medium 16) */}
         <span className="ml-2 text-body-m text-feed-card-header-username-text">
           {author.name}
         </span>
-        {/* 날짜: Label M(Pretendard Medium 12) */}
-        <time
-          dateTime={createdAt}
-          className="ml-1.5 text-label-m text-feed-card-header-date-text"
-        >
-          {dateLabel ?? formatDateLabel(createdAt)}
-        </time>
       </div>
       {/* 드롭다운을 버튼 기준으로 띄우려면 앵커가 필요해 relative 래퍼로 감싼다. */}
       {menu ? <div className="relative ml-auto">{menu}</div> : null}
@@ -262,11 +255,17 @@ export function FeedCardHeader({
 export function FeedCardBody({
   title,
   body,
+  categoryName,
+  createdAt,
+  dateLabel,
   onPress,
   className,
 }: {
   title: string;
   body: string;
+  categoryName?: string;
+  createdAt: string;
+  dateLabel?: string;
   onPress?: () => void;
   className?: string;
 }) {
@@ -286,7 +285,7 @@ export function FeedCardBody({
   const Title = onPress ? "button" : "p";
 
   return (
-    // 제목행 → 본문행 간격 4 (gap-1)
+    // 제목행 → 메타행 4 (gap-1), 메타행 → 본문행 8 (gap-1 + 본문 mt-1)
     <div className={cn("flex flex-col gap-1", className)}>
       {/* 제목: Body M(Pretendard Medium 16) */}
       <Title
@@ -298,11 +297,18 @@ export function FeedCardBody({
       >
         {title}
       </Title>
-      {/* 본문: Body S Multi-line(14/21) */}
+      {/* 메타행: 카테고리·날짜. Label M(Pretendard Medium 12), 같은 색, 항목 간격 10(gap-2.5) */}
+      <div className="flex items-center gap-2.5 text-label-m text-feed-card-header-date-text">
+        {categoryName ? <span>{categoryName}</span> : null}
+        <time dateTime={createdAt}>
+          {dateLabel ?? formatDateLabel(createdAt)}
+        </time>
+      </div>
+      {/* 본문: Body S Multi-line(14/21), 메타행 아래 8 */}
       <p
         ref={bodyRef}
         className={cn(
-          "whitespace-pre-wrap text-body-s text-feed-card-body-text",
+          "mt-1 whitespace-pre-wrap text-body-s text-feed-card-body-text",
           !expanded && "line-clamp-3",
         )}
       >

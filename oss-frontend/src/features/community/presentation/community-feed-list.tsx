@@ -265,6 +265,7 @@ function FeedCardItem({
       }}
       createdAt={post.createdAt}
       dateLabel={post.timeAgo}
+      categoryName={post.categoryName}
       title={post.title}
       body={post.body}
       images={post.images.map((image) => ({ url: image.imageUrl, alt: "" }))}

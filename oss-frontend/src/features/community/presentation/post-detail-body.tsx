@@ -1,10 +1,10 @@
 import { PostMetaRow } from "@/features/community/presentation/post-meta-row";
 
 /**
- * 상세 화면 제목 + 메타(날짜·조회·수정됨) + 본문 (서버 컴포넌트).
+ * 상세 화면 제목 + 메타(카테고리·날짜·조회·수정됨) + 본문 (서버 컴포넌트).
  *
  * - 제목: Body M(Pretendard Medium 16), 멀티라인 허용(클램프/말줄임 없음 → 줄 수 무제한).
- * - 날짜: 제목 바로 아래, Label M(12). 서버 상대 시각(timeAgo) 우선. 조회수·수정됨도 같은 줄.
+ * - 날짜: 제목 바로 아래, Label M(12). 서버 상대 시각(timeAgo) 우선. 카테고리(앞)·조회수·수정됨도 같은 줄.
  * - 본문: 원문 줄바꿈 보존, 클램프 없음.
  *
  * FeedCardBody(line-clamp + 더보기 클라이언트 훅)와 달리 상세는 전문을 펼쳐 보여주므로
@@ -13,6 +13,7 @@ import { PostMetaRow } from "@/features/community/presentation/post-meta-row";
 export function PostDetailBody({
   title,
   body,
+  categoryName,
   createdAt,
   timeAgo,
   views,
@@ -20,6 +21,7 @@ export function PostDetailBody({
 }: {
   title: string;
   body: string;
+  categoryName?: string;
   createdAt: string;
   timeAgo?: string;
   views?: number;
@@ -31,8 +33,9 @@ export function PostDetailBody({
       <h1 className="text-body-m text-feed-card-body-title-text">
         {title}
       </h1>
-      {/* 날짜·조회·수정됨: 제목 바로 아래 6 */}
+      {/* 카테고리·날짜·조회·수정됨: 제목 바로 아래 6 */}
       <PostMetaRow
+        categoryName={categoryName}
         createdAt={createdAt}
         timeAgo={timeAgo}
         views={views}
