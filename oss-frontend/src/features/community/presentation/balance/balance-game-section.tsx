@@ -101,7 +101,8 @@ function BalanceGameBody({
   const openDetail = useOpenBalanceDetail();
 
   // sticky 바는 아직 투표하지 않은 사용자에게만 보인다(비로그인 포함 — 그쪽은 계속 미투표다).
-  // 투표를 마치면 다시 부를 이유가 없으므로 관찰 자체를 끈다.
+  // 투표를 마치면 다시 부를 이유가 없으므로 관찰 자체를 끈다. 취소로 미참여에 돌아오면
+  // 관찰이 다시 걸려 카드를 지나칠 때 sticky가 또 뜬다.
   const canReveal = game.myVote === null;
   const { targetRef, passed } = useStickyReveal<HTMLDivElement>({
     enabled: canReveal,

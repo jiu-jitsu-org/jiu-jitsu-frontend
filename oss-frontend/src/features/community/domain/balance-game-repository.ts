@@ -34,7 +34,7 @@ export interface BalanceGameRepository {
    * 서버는 투표가 반영된 최신 상태를 통째로 돌려주므로 호출부는 재조회하지 않는다.
    *
    * 주의: 업스트림은 같은 선택지를 다시 보내면 **취소**, 다른 선택지면 **변경**으로 처리한다.
-   * "한 번 투표하면 재투표 불가"는 화면 정책이라 presentation에서 막는다(use-balance-vote).
+   * 같은 선택지가 두 번 나가면 투표가 풀리므로, 요청 중 재탭은 presentation이 막는다(use-balance-vote).
    */
   vote(contentId: number, option: BalanceOptionKey): Promise<BalanceGame>;
 }
