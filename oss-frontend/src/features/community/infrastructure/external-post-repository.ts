@@ -10,6 +10,8 @@ import type {
 import type { PostRepository } from "@/features/community/domain/post-repository";
 import type {
   BoardListQuery,
+  MyPostListKind,
+  MyPostListQuery,
   PostList,
   PostSummary,
 } from "@/features/community/domain/post-summary";
@@ -40,6 +42,15 @@ import type { HttpClient } from "@/shared/lib/http";
  */
 const BOARD_ENDPOINT_PATH = "/api/board";
 const COMMENT_ENDPOINT_PATH = "/api/community/comments";
+
+/**
+ * 내 커뮤니티 활동 목록 종류 → 업스트림 경로.
+ * 응답(PageBoardListResponse)은 GET /board와 같은 모양이라 같은 매퍼(toPostList)를 쓴다.
+ */
+const MY_POST_LIST_PATH: Record<MyPostListKind, string> = {
+  written: `${BOARD_ENDPOINT_PATH}/write`,
+  saved: `${BOARD_ENDPOINT_PATH}/save`,
+};
 
 /**
  * 대댓글 추가 조회 한 페이지 크기 — 서버가 정한 고정값(backend#115).
@@ -266,6 +277,16 @@ export class ExternalPostRepository implements PostRepository {
         size: query.size,
         sort: query.sort,
       },
+    });
+
+    return toPostList(response.data);
+  }
+
+  async getMyPostList(query: MyPostListQuery): Promise<PostList> {
+    // Spring Pageable만 받는다 — page/size/sort를 평탄한 쿼리스트링으로 보낸다(sort 미지정이면 생략).
+    const response = await this.httpClient.get<Envelope<BoardListDto>>({
+      path: MY_POST_LIST_PATH[query.kind],
+      query: { page: query.page, size: query.size, sort: query.sort },
     });
 
     return toPostList(response.data);

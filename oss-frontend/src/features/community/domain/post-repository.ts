@@ -18,6 +18,7 @@ import type {
 } from "@/features/community/domain/post";
 import type {
   BoardListQuery,
+  MyPostListQuery,
   PostList,
 } from "@/features/community/domain/post-summary";
 import type { CreateReportInput } from "@/features/community/domain/report";
@@ -34,6 +35,11 @@ export interface PostRepository {
   getCategories(): Promise<PostCategory[]>;
   /** 게시글 목록 조회(GET /board). 카테고리·검색어·페이지 조건은 query로 전달. */
   getPostList(query: BoardListQuery): Promise<PostList>;
+  /**
+   * 내 커뮤니티 활동 목록(GET /board/write · GET /board/save). 로그인 전용이라
+   * authed 클라이언트로 구성된 구현에서만 호출한다. 항목 모양은 getPostList와 같다.
+   */
+  getMyPostList(query: MyPostListQuery): Promise<PostList>;
   getPostDetail(postId: number): Promise<PostDetail>;
   getComments(
     postId: number,
