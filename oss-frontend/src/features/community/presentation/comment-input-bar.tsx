@@ -9,8 +9,9 @@ import { useLoginGuard } from "@/features/community/presentation/use-login-guard
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { cn } from "@/shared/lib/cn";
 import { useViewportRect } from "@/features/community/presentation/use-viewport-rect";
-import { CloseIcon, ReplyBranchIcon, SendIcon } from "@/shared/ui/icons";
+import { CloseIcon, LoadingIcon, ReplyBranchIcon, SendIcon } from "@/shared/ui/icons";
 import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
+import { useToast } from "@/shared/ui";
 
 /** 액션바의 "댓글쓰기"가 포커스 대상으로 참조하는 입력 id(단일 출처). */
 export const COMMENT_INPUT_ELEMENT_ID = "community-comment-input";
@@ -42,6 +43,7 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
   // 키보드가 떠 있는 동안엔 홈 인디케이터(safe-area)가 키보드에 가려 의미가 없으므로 하단 패딩 0.
   const rect = useViewportRect();
   const { guest, guard } = useLoginGuard();
+  const toast = useToast();
 
   // 입력에 따라 높이 자동 확장. 최대 5줄(max-h-[125px])은 CSS가 제한하고 초과분은 스크롤.
   useEffect(() => {
@@ -87,6 +89,8 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
       if (!response.ok) {
         if (response.status === 401) {
           postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
+        } else {
+          toast.show("댓글을 등록하지 못했어요");
         }
         return;
       }
@@ -182,15 +186,19 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
         disabled={!canSubmit}
         aria-label="댓글 등록"
         // 버튼 40x40(size-10) = 종이비행기 아이콘 24 + 상하좌우 여백 8(가운데 정렬). 우측 고정.
-        // 입력 1자 이상: send-icon-active, 빈 상태(플레이스홀더): send-icon-disabled.
+        // 전송 중: 스피너(active색) / 입력 1자 이상: send-icon-active / 빈 상태: send-icon-disabled.
         className={cn(
           "inline-flex size-10 shrink-0 items-center justify-center rounded-full",
-          canSubmit
+          submitting || canSubmit
             ? "text-comment-input-bar-send-icon-active"
             : "text-comment-input-bar-send-icon-disabled",
         )}
       >
-        <SendIcon size={24} />
+        {submitting ? (
+          <LoadingIcon size={24} className="animate-spin" />
+        ) : (
+          <SendIcon size={24} />
+        )}
       </button>
       </div>
     </div>
