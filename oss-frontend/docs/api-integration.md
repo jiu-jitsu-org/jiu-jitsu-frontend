@@ -73,7 +73,9 @@ if (!result.ok) {
 인증 상태로 화면을 다시 그립니다. (실패하면 `fallback` 표시)
 
 참고 구현: 피드 [`get-board-list-page-data.ts`](../src/features/community/application/get-board-list-page-data.ts) · [`page.tsx`](../src/app/page.tsx),
-상세 [`get-post-detail-page-data.ts`](../src/features/community/application/get-post-detail-page-data.ts) · [`post-detail-screen.tsx`](../src/features/community/presentation/post-detail-screen.tsx)
+상세 [`get-post-detail-page-data.ts`](../src/features/community/application/get-post-detail-page-data.ts) · [`post-detail-screen.tsx`](../src/features/community/presentation/post-detail-screen.tsx),
+내 커뮤니티 활동(`/community/me?tab=posts|saved`, 로그인 전용 — 비로그인은 조회 없이 안내) [`get-my-activity-page-data.ts`](../src/features/community/application/get-my-activity-page-data.ts) · [`my-activity-screen.tsx`](../src/features/community/presentation/my-activity/my-activity-screen.tsx)
+  · 다음 페이지 BFF `GET /api/community/board/mine?kind=written|saved` (업스트림 `GET /board/write` · `GET /board/save`)
 
 ---
 

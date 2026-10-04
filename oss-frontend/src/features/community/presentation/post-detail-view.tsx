@@ -58,7 +58,10 @@ export function PostDetailView({
         <div>
           {/* 본문 영역: 헤더와 간격 24(pt-6), 좌우 여백 16(px-4), 섹션 간격 16(gap-4: 프로필 row↔제목 row 등) */}
           <article className="flex flex-col gap-4 px-4 pt-6">
-            <PostAuthorRow author={post.author} />
+            <PostAuthorRow
+              author={post.author}
+              isOwner={post.viewer.isOwner}
+            />
             <PostDetailBody
               title={post.title}
               body={post.body}

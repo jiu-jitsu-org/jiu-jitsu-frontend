@@ -3,15 +3,18 @@
 import { useCallback, useEffect, useRef } from "react";
 
 import type { PostDetail } from "@/features/community/domain/post";
-import {
-  FEED_PAGE_SIZE,
-  type PostList,
-  type PostSummary,
+import type {
+  PostList,
+  PostSummary,
 } from "@/features/community/domain/post-summary";
 import {
   clearRevalidated,
   peekRevalidateTarget,
 } from "@/features/community/presentation/dirty-posts";
+import {
+  FEED_LIST_URL,
+  feedPageUrl,
+} from "@/features/community/presentation/use-board-feed";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 
 /**
@@ -49,10 +52,13 @@ export function useFeedRevalidate({
   replacePost,
   removePost,
   prependNew,
+  listUrl = FEED_LIST_URL,
 }: {
   replacePost: (post: PostSummary) => void;
   removePost: (postId: number) => void;
   prependNew: (posts: PostSummary[]) => void;
+  /** 작성 후 복귀 시 다시 읽을 목록(BFF 경로). 기본은 메인 피드 — useBoardFeed와 같은 값을 넘긴다. */
+  listUrl?: string;
 }) {
   // "진짜 복귀" 확정 타이머. 다시 가려지면 취소해 기록을 남긴다.
   const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -70,7 +76,7 @@ export function useFeedRevalidate({
         revalidatePost(id, { replacePost, removePost }),
       ),
       createdPostId !== null
-        ? revalidateFirstPage(createdPostId, { prependNew })
+        ? revalidateFirstPage(createdPostId, listUrl, { prependNew })
         : null,
     ]);
 
@@ -79,7 +85,7 @@ export function useFeedRevalidate({
     confirmTimer.current = setTimeout(() => {
       if (document.visibilityState === "visible") clearRevalidated(target);
     }, RETURN_CONFIRM_DELAY_MS);
-  }, [prependNew, removePost, replacePost]);
+  }, [listUrl, prependNew, removePost, replacePost]);
 
   useEffect(() => {
     function handlePageShow() {
@@ -176,12 +182,11 @@ function toSummary(detail: PostDetail): PostSummary {
  */
 async function revalidateFirstPage(
   createdPostId: number,
+  listUrl: string,
   handlers: { prependNew: (posts: PostSummary[]) => void },
 ): Promise<void> {
   try {
-    const response = await bffFetch(
-      `/api/community/board?boardListType=FEED&page=0&size=${FEED_PAGE_SIZE}`,
-    );
+    const response = await bffFetch(feedPageUrl(listUrl, 0));
     if (!response.ok) return;
 
     const body = (await response.json().catch(() => null)) as

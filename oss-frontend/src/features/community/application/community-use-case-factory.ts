@@ -11,6 +11,7 @@ import { RegisterImageUseCase } from "@/features/community/application/register-
 import { GetPostDetailUseCase } from "@/features/community/application/get-post-detail";
 import { GetPostCategoriesUseCase } from "@/features/community/application/get-post-categories";
 import { GetPostListUseCase } from "@/features/community/application/get-post-list";
+import { GetMyPostListUseCase } from "@/features/community/application/get-my-post-list";
 import { ToggleBookmarkUseCase } from "@/features/community/application/toggle-bookmark";
 import { ToggleHideUseCase } from "@/features/community/application/toggle-hide";
 import { GetNoticeEnabledUseCase } from "@/features/community/application/get-notice-enabled";
@@ -60,6 +61,13 @@ export function createGetPostListUseCase(
   accessToken: string | null,
 ): GetPostListUseCase {
   return new GetPostListUseCase(createReadRepository(accessToken));
+}
+
+/** 내 커뮤니티 활동 목록. 읽기지만 로그인 전용이라 토큰을 강제한다. */
+export function createGetMyPostListUseCase(
+  accessToken: string,
+): GetMyPostListUseCase {
+  return new GetMyPostListUseCase(createReadRepository(accessToken));
 }
 
 export function createGetPostDetailUseCase(

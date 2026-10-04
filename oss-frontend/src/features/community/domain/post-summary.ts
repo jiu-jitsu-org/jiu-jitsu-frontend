@@ -84,6 +84,30 @@ export type BoardListQuery = {
  */
 export const FEED_PAGE_SIZE = 10;
 
+/**
+ * 내 커뮤니티 활동 목록 종류.
+ * - written: 내가 쓴 글(GET /board/write)
+ * - saved: 내가 저장한 글(GET /board/save)
+ *
+ * 두 목록 모두 항목 모양이 메인 피드(GET /board)와 같아 PostList를 그대로 쓴다.
+ */
+export type MyPostListKind = "written" | "saved";
+
+/** 내 커뮤니티 활동 목록 요청 파라미터(Spring Pageable만 받는다 — 카테고리·검색 없음). */
+export type MyPostListQuery = {
+  kind: MyPostListKind;
+  /** 0-base 페이지 번호. */
+  page: number;
+  size: number;
+  /** Spring sort 표현(예: "createdAt,desc"). 미지정 시 서버 기본 정렬. */
+  sort?: string;
+};
+
+/** 화면이 받은 문자열을 목록 종류로 좁힌다. 모르는 값이면 null. */
+export function parseMyPostListKind(raw: string | null): MyPostListKind | null {
+  return raw === "written" || raw === "saved" ? raw : null;
+}
+
 /** 메인 피드 기본 쿼리 — 전체 FEED, 첫 페이지. */
 export const DEFAULT_BOARD_LIST_QUERY: BoardListQuery = {
   boardListType: "FEED",
