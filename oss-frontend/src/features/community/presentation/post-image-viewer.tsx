@@ -39,16 +39,8 @@ const FADE_MS = 200;
 const CLOSE_BUTTON_SIZE = 44;
 /** 스크롤 위치 → 현재 장 판정 시 소수점 좌표 보정. */
 const INDEX_EPSILON = 0.5;
-/**
- * FIXME(jiu-jitsu-frontend#138): 딤·인디케이터 색이 하드코딩이다.
- *
- * 디자인 지정 image-viewer/dim-overlay(#000000 92%) · image-viewer/page-indicator/text(#FAFAFA)가
- * 토큰 파일(design-tokens/*.json)에 아직 없다. 딤은 기존 overlay-scrim-heavy(80%)와 농도가 달라
- * 대체할 수 없고, 인디케이터는 값이 bw-white와 같지만 component 토큰이 생기면 그걸 거쳐야 하므로
- * 둘 다 값을 그대로 넣는다. 토큰이 등록되면 이 두 클래스만 바꾸면 된다.
- */
-const DIM_CLASS = "bg-[#000000eb]";
-const INDICATOR_TEXT_CLASS = "text-[#fafafa]";
+const DIM_CLASS = "bg-image-viewer-dim-overlay";
+const INDICATOR_TEXT_CLASS = "text-image-viewer-page-indicator-text";
 
 export function PostImageViewer({
   images,
