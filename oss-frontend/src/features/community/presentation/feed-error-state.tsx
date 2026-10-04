@@ -3,20 +3,30 @@
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 
+import { cn } from "@/shared/lib/cn";
+
 /**
  * 메인 피드 조회 실패 상태 — 안내 문구 + 재시도 버튼(화면 중앙).
  *
  * 목록 조회는 Server Component가 하므로 재시도는 router.refresh()로 해당 라우트를
  * 다시 렌더시킨다. 조회가 세션 쿠키(readSessionToken)에 의존해 동적이라 refresh가
  * 실제 재요청으로 이어진다. 재요청 동안은 pending 처리해 연타를 막는다.
+ *
+ * 앱바가 있는 화면(내 커뮤니티 활동)은 뷰포트 전체 높이를 쓰면 앱바만큼 스크롤이 생겨
+ * className으로 높이를 줄인다.
  */
-export function FeedErrorState() {
+export function FeedErrorState({ className }: { className?: string }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
   return (
     // 컨텐츠 묶음은 뷰포트 전체 기준 가로·세로 가운데 정렬.
-    <div className="flex min-h-screen flex-col items-center justify-center gap-[13px] px-4 text-center">
+    <div
+      className={cn(
+        "flex min-h-screen flex-col items-center justify-center gap-[13px] px-4 text-center",
+        className,
+      )}
+    >
       <p className="text-body-m text-feed-card-body-text">
         잠시 문제가 생겼어요
       </p>

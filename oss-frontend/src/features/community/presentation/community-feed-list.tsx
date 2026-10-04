@@ -4,8 +4,12 @@ import { useCallback, useState } from "react";
 
 import { useOnLogin } from "@/features/auth/presentation/auth-provider";
 import { useOpenPostDetail } from "@/features/community/presentation/use-open-post-detail";
-import { useBoardFeed } from "@/features/community/presentation/use-board-feed";
+import {
+  FEED_LIST_URL,
+  useBoardFeed,
+} from "@/features/community/presentation/use-board-feed";
 import { useInfiniteScroll } from "@/features/community/presentation/use-infinite-scroll";
+import { useOpenMyActivity } from "@/features/community/presentation/use-open-my-activity";
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
 import { useFeedRevalidate } from "@/features/community/presentation/use-feed-revalidate";
 import { usePostActions } from "@/features/community/presentation/use-post-actions";
@@ -43,6 +47,9 @@ import { type PendingToastAction, usePendingToast, useToast } from "@/shared/ui"
  *
  * 카드가 빠지고 들어오는 것은 접힘/펼침으로 보여준다. 즉시 사라지면 아래 글들이 순간이동해
  * 무엇이 없어졌는지 알 수 없다.
+ *
+ * 내 커뮤니티 활동(쓴 글 · 저장)도 항목 모양이 같아 이 목록을 그대로 쓴다. 기본값은 모두 메인 피드
+ * 동작이고, 다른 목록은 출처(listUrl)와 표시 옵션만 바꿔 넘긴다.
  */
 
 /**
@@ -54,10 +61,25 @@ export function CommunityFeedList({
   posts,
   page,
   isLast: initialIsLast,
+  listUrl = FEED_LIST_URL,
+  hideAuthor = false,
+  authorLink = true,
+  className,
 }: {
   posts: PostSummary[];
   page: number;
   isLast: boolean;
+  /** 다음 페이지 · 복귀 재조회에 쓸 목록 BFF 경로. 기본은 메인 피드. */
+  listUrl?: string;
+  /** 카드 작성자 행을 감춘다(모든 카드가 내 글인 목록). */
+  hideAuthor?: boolean;
+  /**
+   * 내 글 카드의 아바타·닉네임을 눌러 내 커뮤니티 활동을 열지. 그 화면 안에서는 자기 자신을
+   * 다시 쌓지 않도록 끈다.
+   */
+  authorLink?: boolean;
+  /** 목록 바깥 여백. 기본은 메인 피드 스펙(위 24 · 아래 FAB 여유 91). */
+  className?: string;
 }) {
   const toast = useToast();
   const {
@@ -71,11 +93,14 @@ export function CommunityFeedList({
     replacePost,
     prependNew,
     refreshLoaded,
-  } = useBoardFeed({
-    items: posts,
-    page,
-    isLast: initialIsLast,
-  });
+  } = useBoardFeed(
+    {
+      items: posts,
+      page,
+      isLast: initialIsLast,
+    },
+    listUrl,
+  );
 
   // 접힌 상태로 그릴 카드들. 걷어내는 중(제거 직전)과 되돌린 직후(펼치기 전)가 모두 여기 들어간다.
   const [collapsedIds, setCollapsedIds] = useState<ReadonlySet<number>>(
@@ -173,6 +198,7 @@ export function CommunityFeedList({
     replacePost,
     removePost: collapseAndRemove,
     prependNew,
+    listUrl,
   });
 
   // 에러 상태에선 자동 재요청을 멈추고, 사용자가 재시도 버튼으로만 다시 시도하게 한다.
@@ -186,7 +212,7 @@ export function CommunityFeedList({
     // 하단 91: 우하단 플로팅 FAB(작성 버튼)이 마지막 카드 UX를 가리지 않도록 여유를 둔 스펙값.
     // 카드 사이 간격 16은 각 카드가 mb-4로 갖는다 — 접힐 때 간격도 함께 사라져야 하기 때문
     // (컨테이너 gap은 높이가 0이 돼도 그대로 남아 빈 자리가 생긴다).
-    <div className="flex flex-col pt-6 pb-[91px]">
+    <div className={cn("flex flex-col pt-6 pb-[91px]", className)}>
       {items.map((post, index) => (
         // grid-rows 0fr↔1fr + overflow-hidden — 카드 높이가 이미지 유무로 제각각이라
         // 고정 높이를 쓸 수 없다. 아래 여백(16)도 함께 접어야 빈 자리가 남지 않는다.
@@ -202,6 +228,8 @@ export function CommunityFeedList({
           <div className="overflow-hidden">
             <FeedCardItem
               post={post}
+              hideAuthor={hideAuthor}
+              authorLink={authorLink}
               onDeleted={() => collapseAndRemove(post.id)}
               // 되돌리기로 복원할 수 있도록 걷어낸 위치를 함께 넘긴다.
               onRestored={() => {
@@ -237,17 +265,24 @@ export function CommunityFeedList({
  *
  * 비로그인(#173): 좋아요·저장은 토글 전에 로그인 알럿으로 막고(상태는 비활성 그대로), ⋮는 감춘다 —
  * 신고 · 숨기기 · 수정 · 삭제 모두 계정이 있어야 성립해 비로그인에게 열어줄 항목이 없다.
+ *
+ * 내 글이면 아바타·닉네임 탭으로 내 커뮤니티 활동을 연다. 남의 이름은 프로필 API가 없어 아직 누를 수 없다.
  */
 function FeedCardItem({
   post,
+  hideAuthor,
+  authorLink,
   onDeleted,
   onRestored,
 }: {
   post: PostSummary;
+  hideAuthor: boolean;
+  authorLink: boolean;
   onDeleted: () => void;
   onRestored: () => void;
 }) {
   const openPostDetail = useOpenPostDetail();
+  const openMyActivity = useOpenMyActivity();
   const { liked, bookmarked, likes, saves, toggleLike, toggleBookmark } =
     usePostActions(post.id, {
       liked: post.viewer.liked,
@@ -277,6 +312,10 @@ function FeedCardItem({
       commented={post.viewer.commented}
       liked={liked}
       bookmarked={bookmarked}
+      hideAuthor={hideAuthor}
+      onPressAuthor={
+        authorLink && post.viewer.isOwner ? openMyActivity : undefined
+      }
       onPress={() => openPostDetail(post.id)}
       onPressComment={() => openPostDetail(post.id)}
       onToggleLike={guard(

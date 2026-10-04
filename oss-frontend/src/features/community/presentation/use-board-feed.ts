@@ -19,14 +19,23 @@ import { bffFetch } from "@/shared/lib/http/bff-fetch";
  * - 동시/중복 로드는 진행 플래그(loadingRef)로 막는다.
  * - 페이지 사이에 새 글이 끼어들면 page 기준 오프셋이 겹칠 수 있어 id로 중복 제거한다(키 충돌 방지).
  * - 실패하면 status="error"로 두고 loadMore 재호출(재시도)로 같은 페이지를 다시 시도한다.
+ *
+ * listUrl은 목록 출처(BFF 경로)다. 기본은 메인 피드이고, 내 커뮤니티 활동(쓴 글 · 저장)처럼
+ * 항목 모양이 같은 다른 목록은 경로만 바꿔 같은 훅을 쓴다. 문자열이라 참조가 안정적이다.
  */
 type FeedStatus = "idle" | "loading" | "error";
 
-export function useBoardFeed(initial: {
-  items: PostSummary[];
-  page: number;
-  isLast: boolean;
-}) {
+/** 메인 피드 목록 BFF 경로(쿼리스트링 포함). page/size는 feedPageUrl이 덧붙인다. */
+export const FEED_LIST_URL = "/api/community/board?boardListType=FEED";
+
+export function useBoardFeed(
+  initial: {
+    items: PostSummary[];
+    page: number;
+    isLast: boolean;
+  },
+  listUrl: string = FEED_LIST_URL,
+) {
   const [items, setItems] = useState<PostSummary[]>(initial.items);
   const [page, setPage] = useState(initial.page);
   const [isLast, setIsLast] = useState(initial.isLast);
@@ -42,7 +51,7 @@ export function useBoardFeed(initial: {
     const nextPage = page + 1;
 
     try {
-      const response = await bffFetch(feedPageUrl(nextPage));
+      const response = await bffFetch(feedPageUrl(listUrl, nextPage));
       if (!response.ok) {
         throw new Error(`board list request failed: ${response.status}`);
       }
@@ -62,7 +71,7 @@ export function useBoardFeed(initial: {
     } finally {
       loadingRef.current = false;
     }
-  }, [isLast, page]);
+  }, [isLast, listUrl, page]);
 
   // 걷어낸 항목을 원래 위치와 함께 기억한다 — 되돌리기가 복원할 데이터를 목록만 알고 있기 때문.
   // (상세에서 숨긴 경우 상세는 이미 닫혀 있어 게시글 데이터를 들고 있지 않다.)
@@ -154,14 +163,16 @@ export function useBoardFeed(initial: {
    */
   const refreshLoaded = useCallback(async () => {
     const pages = Array.from({ length: page + 1 }, (_, index) => index);
-    const lists = await Promise.all(pages.map(fetchFeedPage));
+    const lists = await Promise.all(
+      pages.map((index) => fetchFeedPage(listUrl, index)),
+    );
     const fresh = new Map(
       lists.flatMap((list) => list?.items ?? []).map((post) => [post.id, post]),
     );
     if (fresh.size === 0) return;
 
     setItems((prev) => prev.map((post) => fresh.get(post.id) ?? post));
-  }, [page]);
+  }, [listUrl, page]);
 
   return {
     items,
@@ -177,15 +188,19 @@ export function useBoardFeed(initial: {
   };
 }
 
-/** 피드 목록 BFF 경로(page는 0부터). */
-function feedPageUrl(page: number): string {
-  return `/api/community/board?boardListType=FEED&page=${page}&size=${FEED_PAGE_SIZE}`;
+/** 목록 BFF 경로에 페이지 조건을 붙인다(page는 0부터). listUrl에 쿼리스트링이 없어도 동작한다. */
+export function feedPageUrl(listUrl: string, page: number): string {
+  const separator = listUrl.includes("?") ? "&" : "?";
+  return `${listUrl}${separator}page=${page}&size=${FEED_PAGE_SIZE}`;
 }
 
 /** 한 페이지를 읽는다. 실패하면 null — 호출부가 옛 값을 유지한다. */
-async function fetchFeedPage(page: number): Promise<PostList | null> {
+async function fetchFeedPage(
+  listUrl: string,
+  page: number,
+): Promise<PostList | null> {
   try {
-    const response = await bffFetch(feedPageUrl(page));
+    const response = await bffFetch(feedPageUrl(listUrl, page));
     if (!response.ok) return null;
 
     const body = (await response.json().catch(() => null)) as

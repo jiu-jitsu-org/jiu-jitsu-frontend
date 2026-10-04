@@ -83,6 +83,16 @@ export type FeedCardProps = {
    * → 호출부가 트리거+드롭다운을 통째로 넘긴다(FeedCardMenu). 없으면 onPressMore 버튼으로 폴백.
    */
   menu?: ReactNode;
+  /**
+   * 작성자 행(아바타·닉네임)을 감춘다. 모든 카드가 내 글인 목록(내 커뮤니티 활동 · 쓴 글)용 —
+   * 같은 이름이 카드마다 반복될 뿐이라 뺀다. ⋮는 제목행 우측으로 올라간다. 기본 false.
+   */
+  hideAuthor?: boolean;
+  /**
+   * 작성자(아바타·닉네임) 탭. 있으면 그 묶음이 버튼이 되고, 카드 전체 탭(onPress)과 분리된다.
+   * 어디로 갈지(내 커뮤니티 활동 등)는 호출부가 정한다 — 카드는 화면 이동을 모른다.
+   */
+  onPressAuthor?: () => void;
   className?: string;
 };
 
@@ -112,6 +122,8 @@ export function FeedCard({
   onToggleBookmark,
   onPressMore,
   menu,
+  hideAuthor = false,
+  onPressAuthor,
   className,
 }: FeedCardProps) {
   // 카드 전체 영역(본문·이미지·여백) 탭으로 상세에 들어간다.
@@ -136,12 +148,15 @@ export function FeedCard({
         className,
       )}
     >
-      <FeedCardHeader
-        author={author}
-        onPressMore={onPressMore}
-        menu={menu}
-      />
-      {/* 헤더행 → 제목행 간격 8 */}
+      {hideAuthor ? null : (
+        <FeedCardHeader
+          author={author}
+          onPressMore={onPressMore}
+          onPressAuthor={onPressAuthor}
+          menu={menu}
+        />
+      )}
+      {/* 헤더행 → 제목행 간격 8. 작성자 행을 감추면 제목행이 카드 맨 위이고 ⋮가 그 우측에 붙는다. */}
       <FeedCardBody
         title={title}
         body={body}
@@ -149,7 +164,12 @@ export function FeedCard({
         createdAt={createdAt}
         dateLabel={dateLabel}
         onPress={onPress}
-        className="mt-2"
+        trailing={
+          hideAuthor ? (
+            <FeedCardMoreSlot menu={menu} onPressMore={onPressMore} />
+          ) : undefined
+        }
+        className={hideAuthor ? undefined : "mt-2"}
       />
       {images && images.length > 0 ? (
         <FeedCardImages images={images} className="mt-3" />
@@ -216,39 +236,85 @@ function FeedCardAvatar({ avatarUrl }: { avatarUrl?: string }) {
 export function FeedCardHeader({
   author,
   onPressMore,
+  onPressAuthor,
   menu,
 }: {
   author: FeedAuthor;
   onPressMore?: () => void;
+  onPressAuthor?: () => void;
   menu?: ReactNode;
 }) {
+  const authorContent = (
+    <>
+      {/* key=URL: 아바타 URL이 바뀌면 컴포넌트를 재마운트해 폴백 상태(failed)를 초기화한다. */}
+      <FeedCardAvatar key={author.avatarUrl ?? "none"} avatarUrl={author.avatarUrl} />
+      {/* 아바타→닉네임 8. 닉네임: BodyM(Pretendard Medium 16) */}
+      <span className="ml-2 text-body-m text-feed-card-header-username-text">
+        {author.name}
+      </span>
+    </>
+  );
+
   return (
     // 헤더는 items-start: user-header 묶음을 카드 헤더 좌상단에 붙인다.
     // 더보기 버튼(28)이 헤더 높이를 결정하고, user-header(24)는 위쪽 정렬로 남는다.
     <header className="flex items-start">
       {/* user-header: 아바타·닉네임 묶음. 좌상단 정렬, 묶음 내부는 수직 가운데.
-          날짜는 제목 아래 메타행(카테고리·날짜)으로 이동했다(#177). */}
-      <div className="flex items-center">
-        {/* key=URL: 아바타 URL이 바뀌면 컴포넌트를 재마운트해 폴백 상태(failed)를 초기화한다. */}
-        <FeedCardAvatar key={author.avatarUrl ?? "none"} avatarUrl={author.avatarUrl} />
-        {/* 아바타→닉네임 8. 닉네임: BodyM(Pretendard Medium 16) */}
-        <span className="ml-2 text-body-m text-feed-card-header-username-text">
-          {author.name}
-        </span>
-      </div>
-      {/* 드롭다운을 버튼 기준으로 띄우려면 앵커가 필요해 relative 래퍼로 감싼다. */}
-      {menu ? <div className="relative ml-auto">{menu}</div> : null}
-      {!menu && onPressMore ? (
+          날짜는 제목 아래 메타행(카테고리·날짜)으로 이동했다(#177).
+          작성자 탭이 있으면 묶음 전체가 버튼이다 — 카드 탭(handleCardPress)은 버튼 출처를 무시하고,
+          전파도 여기서 끊어 상세가 함께 열리지 않게 한다. */}
+      {onPressAuthor ? (
         <button
           type="button"
-          onClick={onPressMore}
-          aria-label="게시물 메뉴 열기"
-          className="ml-auto inline-flex h-7 w-8 items-center justify-center text-feed-card-header-more-icon"
+          onClick={(event) => {
+            event.stopPropagation();
+            onPressAuthor();
+          }}
+          className="flex items-center text-left"
         >
-          <MoreVerticalIcon size={16} />
+          {authorContent}
         </button>
-      ) : null}
+      ) : (
+        <div className="flex items-center">{authorContent}</div>
+      )}
+      <FeedCardMoreSlot
+        menu={menu}
+        onPressMore={onPressMore}
+        className="ml-auto"
+      />
     </header>
+  );
+}
+
+/**
+ * 카드 ⋮ 자리. 헤더 우측이 기본이고, 작성자 행을 감춘 카드(hideAuthor)는 제목행 우측에 놓는다.
+ * menu 슬롯이 우선이고, 없으면 onPressMore 버튼으로 폴백한다.
+ */
+function FeedCardMoreSlot({
+  menu,
+  onPressMore,
+  className,
+}: {
+  menu?: ReactNode;
+  onPressMore?: () => void;
+  className?: string;
+}) {
+  // 드롭다운을 버튼 기준으로 띄우려면 앵커가 필요해 relative 래퍼로 감싼다.
+  if (menu) return <div className={cn("relative", className)}>{menu}</div>;
+  if (!onPressMore) return null;
+
+  return (
+    <button
+      type="button"
+      onClick={onPressMore}
+      aria-label="게시물 메뉴 열기"
+      className={cn(
+        "inline-flex h-7 w-8 items-center justify-center text-feed-card-header-more-icon",
+        className,
+      )}
+    >
+      <MoreVerticalIcon size={16} />
+    </button>
   );
 }
 
@@ -259,6 +325,7 @@ export function FeedCardBody({
   createdAt,
   dateLabel,
   onPress,
+  trailing,
   className,
 }: {
   title: string;
@@ -267,6 +334,8 @@ export function FeedCardBody({
   createdAt: string;
   dateLabel?: string;
   onPress?: () => void;
+  /** 제목행 우측 요소(작성자 행을 감춘 카드의 ⋮). 제목은 그 앞에서 말줄임된다. */
+  trailing?: ReactNode;
   className?: string;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -288,15 +357,30 @@ export function FeedCardBody({
     // 제목행 → 메타행 4 (gap-1), 메타행 → 본문행 8 (gap-1 + 본문 mt-1)
     <div className={cn("flex flex-col gap-1", className)}>
       {/* 제목: Body M(Pretendard Medium 16) */}
-      <Title
-        type={onPress ? "button" : undefined}
-        onClick={onPress}
-        className={cn(
-          "line-clamp-1 text-left text-body-m text-feed-card-body-title-text",
-        )}
-      >
-        {title}
-      </Title>
+      {trailing ? (
+        // 제목행 높이는 제목(24) 그대로 둔다 — ⋮(28)는 -my-0.5로 위아래 2씩 겹쳐 세로 가운데에 맞춘다.
+        // 제목은 min-w-0 + flex-1이라 ⋮ 앞에서 말줄임되고 그 아래로 파고들지 않는다.
+        <div className="flex items-center">
+          <Title
+            type={onPress ? "button" : undefined}
+            onClick={onPress}
+            className="line-clamp-1 min-w-0 flex-1 text-left text-body-m text-feed-card-body-title-text"
+          >
+            {title}
+          </Title>
+          <div className="-my-0.5 ml-2 shrink-0">{trailing}</div>
+        </div>
+      ) : (
+        <Title
+          type={onPress ? "button" : undefined}
+          onClick={onPress}
+          className={cn(
+            "line-clamp-1 text-left text-body-m text-feed-card-body-title-text",
+          )}
+        >
+          {title}
+        </Title>
+      )}
       {/* 메타행: 카테고리·날짜. Label M(Pretendard Medium 12), 같은 색, 항목 간격 10(gap-2.5) */}
       <div className="flex items-center gap-2.5 text-label-m text-feed-card-header-date-text">
         {categoryName ? <span>{categoryName}</span> : null}
