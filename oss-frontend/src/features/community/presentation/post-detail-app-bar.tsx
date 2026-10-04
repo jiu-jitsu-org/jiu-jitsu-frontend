@@ -122,7 +122,7 @@ export function PostDetailAppBar({
       toast.show(alarmToast(enabled));
     } catch {
       setAlarmOn(previous);
-      toast.show("알림 설정에 실패했습니다");
+      toast.show("알림을 설정하지 못했어요");
     } finally {
       setAlarmPending(false);
     }
@@ -140,7 +140,7 @@ export function PostDetailAppBar({
 
     // 예시(데모)에선 네트워크 없이 토스트만(실제 삭제/화면 닫기 없음).
     if (demo) {
-      toast.show("게시물이 삭제되었습니다");
+      toast.show("게시글을 삭제했어요");
       return;
     }
 
@@ -152,12 +152,12 @@ export function PostDetailAppBar({
       if (response.status === 401) {
         postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
       }
-      toast.show("게시물 삭제에 실패했습니다");
+      toast.show("게시글을 삭제하지 못했어요");
       return;
     }
 
     // 닫히는 화면에 띄우면 토스트도 웹뷰와 함께 사라진다 → 문구만 넘기고 목록이 띄운다.
-    enqueuePendingToast("게시물이 삭제되었습니다");
+    enqueuePendingToast("게시글을 삭제했어요");
     // 카드 제거는 복귀 시 단건 재조회(404)가 처리한다(#73).
     closeDetail();
   }

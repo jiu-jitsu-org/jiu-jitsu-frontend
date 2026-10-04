@@ -99,10 +99,10 @@ const TOOLBAR_TEXT_DISABLED_CLASS = "text-text-tertiary";
 const EDIT_PHOTO_UNAVAILABLE_MESSAGE = "수정 시 사진은 추가할 수 없어요";
 /** 등록·수정 결과 토스트(기획 2026-09-28, #157). */
 const SUBMIT_TOAST = {
-  editDone: "게시글을 수정했습니다",
-  editFailed: "수정하지 못했습니다. 잠시 후 다시 시도해주세요",
-  createDone: "게시글을 등록했습니다",
-  createFailed: "등록하지 못했습니다. 잠시 후 다시 시도해주세요",
+  editDone: "게시글을 수정했어요",
+  editFailed: "수정하지 못했어요. 잠시 후 다시 시도해주세요",
+  createDone: "게시글을 등록했어요",
+  createFailed: "등록하지 못했어요. 잠시 후 다시 시도해주세요",
 } as const;
 /** 첨부 미리보기 썸네일 한 변(px, 정책 64×64). */
 const THUMBNAIL_SIZE = 64;
@@ -596,12 +596,12 @@ export function PostWriteScreen({
    * 카테고리 검사는 방어용으로 남긴다. 최대(45/800)는 maxLength가 입력 단계에서 막으므로 보지 않는다.
    */
   function findValidationMessage(): string | null {
-    if (categoryId === null) return "카테고리를 선택해주세요.";
+    if (categoryId === null) return "카테고리를 선택해주세요";
     if (title.trim().length < TITLE_MIN_LENGTH) {
-      return `제목을 ${TITLE_MIN_LENGTH}자 이상 입력해주세요.`;
+      return `제목을 ${TITLE_MIN_LENGTH}자 이상 입력해주세요`;
     }
     if (body.trim().length < BODY_MIN_LENGTH) {
-      return `내용을 ${BODY_MIN_LENGTH}자 이상 입력해주세요.`;
+      return `내용을 ${BODY_MIN_LENGTH}자 이상 입력해주세요`;
     }
     return null;
   }
@@ -803,7 +803,7 @@ export function PostWriteScreen({
             notifyIfPasteOverflows(
               event,
               TITLE_MAX_LENGTH,
-              `제목은 ${TITLE_MAX_LENGTH}자까지 입력할 수 있어요.`,
+              `제목은 ${TITLE_MAX_LENGTH}자까지 입력할 수 있어요`,
             )
           }
           maxLength={TITLE_MAX_LENGTH}
@@ -828,7 +828,7 @@ export function PostWriteScreen({
             notifyIfPasteOverflows(
               event,
               BODY_MAX_LENGTH,
-              `내용은 ${BODY_MAX_LENGTH}자까지 입력할 수 있어요.`,
+              `내용은 ${BODY_MAX_LENGTH}자까지 입력할 수 있어요`,
             )
           }
           maxLength={BODY_MAX_LENGTH}

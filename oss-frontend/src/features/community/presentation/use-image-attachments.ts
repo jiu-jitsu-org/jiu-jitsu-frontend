@@ -15,7 +15,7 @@ export const MAX_IMAGES = 3;
 /** 첨부 한도 초과 안내(정책 문구). */
 const MAX_IMAGES_MESSAGE = `사진은 최대 ${MAX_IMAGES}장까지 첨부할 수 있어요`;
 /** 재시도 반복 실패 안내(정책 문구). 첫 실패는 썸네일의 ↻만으로 알리고, 재시도가 또 실패했을 때만 띄운다. */
-const RETRY_FAILED_MESSAGE = "업로드에 실패했어요. 잠시 후 다시 시도해주세요.";
+const RETRY_FAILED_MESSAGE = "업로드하지 못했어요. 잠시 후 다시 시도해주세요";
 
 /**
  * 썸네일 1장의 업로드 상태(정책: 각 썸네일은 개별 상태).

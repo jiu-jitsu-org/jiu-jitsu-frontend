@@ -64,7 +64,7 @@ export function FeedCardMenu({
 
     // 예시(데모)에선 네트워크 없이 토스트만(실제 삭제 없음).
     if (demo) {
-      toast.show("게시물이 삭제되었습니다");
+      toast.show("게시글을 삭제했어요");
       return;
     }
 
@@ -76,11 +76,11 @@ export function FeedCardMenu({
       if (response.status === 401) {
         postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
       }
-      toast.show("게시물 삭제에 실패했습니다");
+      toast.show("게시글을 삭제하지 못했어요");
       return;
     }
 
-    toast.show("게시물이 삭제되었습니다");
+    toast.show("게시글을 삭제했어요");
     onDeleted();
   }
 

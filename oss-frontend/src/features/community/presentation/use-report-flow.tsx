@@ -77,7 +77,7 @@ export function useReportFlow() {
 
       // 예시(데모)에선 네트워크 없이 안내만(실제 신고 없음).
       if (demo) {
-        notifyReported(`${noun}을 신고했습니다`, options?.onReported);
+        notifyReported(`${noun}을 신고했어요`, options?.onReported);
         return true;
       }
 
@@ -103,11 +103,11 @@ export function useReportFlow() {
           notifyReported(`이미 신고한 ${noun}이에요`, options?.onReported);
           return true;
         }
-        toast.show(`${noun} 신고에 실패했습니다`);
+        toast.show(`${noun}을 신고하지 못했어요`);
         return false;
       }
 
-      notifyReported(`${noun}을 신고했습니다`, options?.onReported);
+      notifyReported(`${noun}을 신고했어요`, options?.onReported);
       return true;
     },
     [confirm, demo, notifyReported, selectSheet, toast],
