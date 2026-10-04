@@ -42,8 +42,8 @@ export const POST_HIDDEN_ACTION = "post-hidden";
 
 /** 목록·상세가 공유하는 숨김 문구. 진입 지점에 따라 갈리면 안 된다. */
 export const HIDE_TOAST = {
-  done: "게시글을 숨겼습니다",
+  done: "게시글을 숨겼어요",
   undoLabel: "되돌리기",
-  failed: "게시글을 숨기지 못했습니다",
-  undoFailed: "되돌리지 못했습니다",
+  failed: "게시글을 숨기지 못했어요",
+  undoFailed: "되돌리지 못했어요",
 } as const;

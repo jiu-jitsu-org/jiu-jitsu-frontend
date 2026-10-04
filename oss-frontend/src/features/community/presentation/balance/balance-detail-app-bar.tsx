@@ -94,7 +94,7 @@ export function BalanceDetailAppBar({
       toast.show(alarmToast(enabled));
     } catch {
       setAlarmOn(previous);
-      toast.show("알림 설정에 실패했습니다");
+      toast.show("알림을 설정하지 못했어요");
     } finally {
       setAlarmPending(false);
     }

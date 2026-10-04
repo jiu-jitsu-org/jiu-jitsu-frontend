@@ -9,7 +9,7 @@ import {
 import { enqueuePendingToast } from "@/shared/ui";
 
 /** 사유를 구분하지 않는 문구 — 404는 삭제 · 신고 · 차단 · 숨김이 모두 수렴한다. */
-const GONE_MESSAGE = "삭제된 게시물이에요";
+const GONE_MESSAGE = "삭제된 게시글이에요";
 
 /**
  * 열 수 없는 게시글에 진입했을 때의 처리 (#41).
