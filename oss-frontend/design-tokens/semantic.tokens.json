@@ -274,6 +274,31 @@
           "targetVariableSetName": "Primitive"
         }
       }
+    },
+    "text-error": {
+      "$type": "color",
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          1,
+          0.11372549086809158,
+          0.05098039284348488
+        ],
+        "alpha": 1,
+        "hex": "#FF1D0D"
+      },
+      "$extensions": {
+        "com.figma.variableId": "VariableID:5625:28221",
+        "com.figma.scopes": [
+          "ALL_SCOPES"
+        ],
+        "com.figma.aliasData": {
+          "targetVariableId": "VariableID:7c38b43eb522fb1c8915a7a5646c2a8194e31558/-1:-1",
+          "targetVariableName": "Color/Red/500",
+          "targetVariableSetId": "VariableCollectionId:7f00cdd25149ef1089b75cf5032c9e3c0007fe95/-1:-1",
+          "targetVariableSetName": "Primitive"
+        }
+      }
     }
   },
   "icon": {
@@ -774,6 +799,31 @@
           "targetVariableSetName": "Primitive"
         }
       }
+    },
+    "border-strong": {
+      "$type": "color",
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.16078431904315948,
+          0.16470588743686676,
+          0.18039216101169586
+        ],
+        "alpha": 1,
+        "hex": "#292A2E"
+      },
+      "$extensions": {
+        "com.figma.variableId": "VariableID:5564:3201",
+        "com.figma.scopes": [
+          "ALL_SCOPES"
+        ],
+        "com.figma.aliasData": {
+          "targetVariableId": "VariableID:3524be0af94db5299ea06ec8775ea4cfd794b062/-1:-1",
+          "targetVariableName": "Color/Cool gray/900",
+          "targetVariableSetId": "VariableCollectionId:7f00cdd25149ef1089b75cf5032c9e3c0007fe95/-1:-1",
+          "targetVariableSetName": "Primitive"
+        }
+      }
     }
   },
   "overlay": {
@@ -961,7 +1011,7 @@
           0,
           0
         ],
-        "alpha": 0.800000011920929,
+        "alpha": 0.9200000166893005,
         "hex": "#000000"
       },
       "$extensions": {
@@ -971,7 +1021,7 @@
         ],
         "com.figma.aliasData": {
           "targetVariableId": "VariableID:f32b397d7d60fe85e3cb69ef19debbf1871656ee/-1:-1",
-          "targetVariableName": "Color/Opacity/Black/80",
+          "targetVariableName": "Color/Opacity/Black/92",
           "targetVariableSetId": "VariableCollectionId:7f00cdd25149ef1089b75cf5032c9e3c0007fe95/-1:-1",
           "targetVariableSetName": "Primitive"
         }
