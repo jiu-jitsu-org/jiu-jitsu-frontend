@@ -13,6 +13,7 @@
   --text-on-dark: var(--bw-white);
   --text-disabled: var(--cool-gray-400);
   --text-on-inactive: var(--bw-white);
+  --text-error: var(--red-500);
   --icon-primary: var(--cool-gray-900);
   --icon-secondary: var(--cool-gray-500);
   --icon-tertiary: var(--cool-gray-300);
@@ -33,6 +34,7 @@
   --border-subtle-2: var(--cool-gray-25);
   --border-focus: var(--blue-500p);
   --border-error: var(--red-500);
+  --border-strong: var(--cool-gray-900);
   --overlay-container: var(--cool-gray-50);
   --overlay-container-pressed: var(--cool-gray-200);
   --overlay-text-primary: var(--cool-gray-900);
@@ -40,7 +42,7 @@
   --overlay-container-disabled: var(--cool-gray-100);
   --overlay-text-disabled: var(--cool-gray-400);
   --overlay-scrim: var(--opacity-black-40);
-  --overlay-scrim-heavy: var(--opacity-black-80);
+  --overlay-scrim-heavy: var(--opacity-black-92);
   --overlay-surface: var(--cool-gray-700);
   --overlay-surface-pressed: var(--cool-gray-800);
   --primary: var(--blue-500p);
