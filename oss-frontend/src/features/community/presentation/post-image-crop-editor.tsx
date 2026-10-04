@@ -24,16 +24,12 @@ import {
 const STAGE_INSET = 28;
 /** 하단 버튼 줄의 바닥 여백(px). safe-area와 무관하게 화면 맨 아래에서 24. */
 const BOTTOM_INSET = 24;
+/** 크롭 편집기 딤(image-crop/dim-overlay). 가이드 테두리(image-crop/guide-border). */
+const DIM_CLASS = "bg-image-crop-dim-overlay";
+const GUIDE_BORDER_CLASS = "border-image-crop-guide-border";
 /**
- * FIXME(토큰, #145): 딤은 디자인 지정 image-crop/dim-overlay(#000000 92%)인데 토큰 파일에 없고 기존
- * overlay-scrim-heavy(80%)와 농도가 달라 값을 그대로 넣는다(이미지 뷰어 #138과 같은 사정). 가이드 테두리
- * image-crop/guide-border(#FAFAFA)는 bw-white와 같아 primitive를 직접 참조한다.
- */
-const DIM_CLASS = "bg-[#000000eb]";
-const GUIDE_BORDER_CLASS = "border-[var(--bw-white)]";
-/**
- * FIXME(토큰, #145): 프리셋 라벨 색은 디자인 지정 Color/Cool gray/100(#CECFD1) — 텍스트용 semantic이 없어
- * primitive를 직접 참조한다. 아이콘·선택 배경은 button/inverted-subtle 토큰이 있어 그대로 쓴다.
+ * FIXME(토큰, #145): 프리셋 라벨 색은 디자인 지정 Color/Cool gray/100(#CECFD1) — Figma 토큰에
+ * image-crop/preset-label이 아직 없어 primitive를 직접 참조한다.
  */
 const PRESET_LABEL_CLASS = "text-[var(--cool-gray-100)]";
 /** 좌하단 취소(✕) 버튼 한 변(px) — 글쓰기 앱바 버튼과 같은 tint 어휘·크기. */

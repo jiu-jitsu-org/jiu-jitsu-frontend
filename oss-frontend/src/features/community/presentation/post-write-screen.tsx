@@ -81,20 +81,14 @@ const APP_BAR_TITLE_TOP = 13;
 const APP_BAR_TITLE_HEIGHT = 35;
 /** 하단 툴바 높이(px, safe-area 제외). 디자인 2026-09-16: 48. */
 const TOOLBAR_HEIGHT = 48;
+/** 툴바 아이콘·텍스트 색(post-editor/toolbar/text). 아이콘은 currentColor를 상속하므로 버튼 색만 바꾸면 된다. */
+const TOOLBAR_TEXT_CLASS = "text-post-editor-toolbar-text";
 /**
- * FIXME(토큰, #145): 툴바 아이콘·텍스트 색은 디자인 지정 post-editor/toolbar/text인데 토큰 파일(design-tokens)에 아직
- * 없다. 값이 같은 text-secondary(#70737C)로 두고, Figma 재추출로 토큰이 생기면 `text-post-editor-toolbar-text`
- * 하나로 바꾼다. 아이콘은 currentColor를 상속하므로 버튼 색만 바꾸면 된다.
- */
-const TOOLBAR_TEXT_CLASS = "text-text-secondary";
-/**
- * FIXME(토큰, #145): 수정 모드 사진 버튼 비활성 색은 디자인 지정 post-editor/toolbar/icon-disabled ·
- * post-editor/toolbar/text-disabled(#9C9EA6 = cool-gray-300)인데 토큰 파일에 아직 없다. semantic disabled는
- * cool-gray-400이라 값이 달라, 값이 같은 tertiary로 둔다. 토큰이 생기면 교체한다.
+ * 수정 모드 사진 버튼 비활성 색(post-editor/toolbar/icon-disabled · post-editor/toolbar/text-disabled).
  * 아이콘·텍스트 토큰이 따로라 버튼 currentColor 하나로 묶지 않고 각각 지정한다.
  */
-const TOOLBAR_ICON_DISABLED_CLASS = "text-icon-tertiary";
-const TOOLBAR_TEXT_DISABLED_CLASS = "text-text-tertiary";
+const TOOLBAR_ICON_DISABLED_CLASS = "text-post-editor-toolbar-icon-disabled";
+const TOOLBAR_TEXT_DISABLED_CLASS = "text-post-editor-toolbar-text-disabled";
 /** 수정 모드 사진 버튼 탭 안내(#154). FIXME: 기획 문구 확정 전 임시 문구 — 확정되면 교체. */
 const EDIT_PHOTO_UNAVAILABLE_MESSAGE = "수정 시 사진은 추가할 수 없어요";
 /** 등록·수정 결과 토스트(기획 2026-09-28, #157). */
@@ -114,43 +108,23 @@ const THUMBNAIL_REMOVE_OVERHANG = 8;
 const THUMBNAIL_REMOVE_ICON_SIZE = 16;
 /** 썸네일 위 상태 아이콘(로딩·↻) 한 변(px). */
 const THUMBNAIL_STATUS_SIZE = 24;
-/**
- * FIXME(토큰, #145): 썸네일 ✕ 배경은 디자인 지정 image/delete-button-bg(#E6E7E8)인데 토큰 파일에 image 그룹이
- * 없어 primitive(cool-gray-50)를 직접 참조한다. image/delete-icon(#292A2E)은 icon-primary, image/dim-overlay(40%)는
- * overlay-scrim, image/status-icon(#FAFAFA)은 icon-on-overlay로 값이 같아 그 토큰을 쓴다.
- */
-const THUMBNAIL_REMOVE_BG_CLASS = "bg-[var(--cool-gray-50)]";
-/**
- * FIXME(토큰, #145): 카테고리 칩 테두리 색은 디자인 지정 chip/default/border(#CECFD1) · 선택 테두리
- * (#292A2E)인데 토큰 파일에 chip 테두리 토큰이 없다(tag-chip-*는 bg/text만). 값을 그대로 넣고,
- * Figma 재추출로 토큰이 생기면 `border-tag-chip-default-border` 계열로 교체한다.
- */
-const CHIP_BORDER_DEFAULT_CLASS = "border-[#cecfd1]";
-const CHIP_BORDER_SELECTED_CLASS = "border-[#292a2e]";
-/**
- * FIXME(토큰, #145): 제목·본문 입력칸 색은 디자인 지정 textfield_display/* 토큰(filled/text #292A2E ·
- * default/placeholder-text #9C9EA6 · cursor #0090FF · counter-text #9C9EA6 · counter-text-limit #FF1D0D)인데
- * 토큰 파일에 textfield_display 그룹이 없다. 값이 같은 semantic 토큰(text-primary · text-tertiary ·
- * interactive-primary · error)으로 두고, 등록되면 이 상수들만 바꾼다.
- */
-const TEXTFIELD_TEXT_CLASS = "text-text-primary";
-const TEXTFIELD_PLACEHOLDER_CLASS = "placeholder:text-text-tertiary";
-const TEXTFIELD_CARET_CLASS = "caret-interactive-primary";
-const COUNTER_TEXT_CLASS = "text-text-tertiary";
-const COUNTER_LIMIT_CLASS = "text-error";
-/**
- * FIXME(토큰, #145): 안내문 색은 디자인 지정 Color/Cool gray/200(#B7B9BD) — 텍스트용 semantic 토큰이 없어
- * primitive 변수를 직접 참조한다. semantic이 생기면 교체.
- */
-const NOTICE_TEXT_CLASS = "text-[var(--cool-gray-200)]";
-/**
- * FIXME(토큰, #145): 태그 입력줄 색은 디자인 지정 textfield_tag/* 토큰(Filled/tag-text #0090FF ·
- * Focused/hash-text #292A2E · Default/placeholder-text #9C9EA6)인데 토큰 파일에 textfield_tag 그룹이 없다.
- * 값이 같은 semantic 토큰으로 두고, 등록되면 이 상수들만 바꾼다.
- */
-const TAG_TEXT_CLASS = "text-primary-text-subtle";
-const TAG_HASH_FOCUSED_CLASS = "group-focus-within:text-text-primary";
-const TAG_HASH_IDLE_CLASS = "text-text-tertiary";
+/** 썸네일 ✕ 배경(image/delete-button-bg). */
+const THUMBNAIL_REMOVE_BG_CLASS = "bg-image-delete-button-bg";
+/** 카테고리 칩 테두리 색(chip/default/border · chip/selected/border). */
+const CHIP_BORDER_DEFAULT_CLASS = "border-chip-default-border";
+const CHIP_BORDER_SELECTED_CLASS = "border-chip-selected-border";
+/** 제목·본문 입력칸 색(textfield_display/filled/text · default/placeholder-text · cursor · counter-text · counter-text-limit). */
+const TEXTFIELD_TEXT_CLASS = "text-textfield-display-filled-text";
+const TEXTFIELD_PLACEHOLDER_CLASS = "placeholder:text-textfield-display-default-placeholder-text";
+const TEXTFIELD_CARET_CLASS = "caret-textfield-display-cursor";
+const COUNTER_TEXT_CLASS = "text-textfield-display-counter-text";
+const COUNTER_LIMIT_CLASS = "text-textfield-display-counter-text-limit";
+/** 안내문 색(post-editor/guide-text). */
+const NOTICE_TEXT_CLASS = "text-post-editor-guide-text";
+/** 태그 입력줄 색(textfield_tag/filled/tag-text · focused/hash-text · default/placeholder-text). */
+const TAG_TEXT_CLASS = "text-textfield-tag-filled-tag-text";
+const TAG_HASH_FOCUSED_CLASS = "group-focus-within:text-textfield-tag-focused-hash-text";
+const TAG_HASH_IDLE_CLASS = "text-textfield-tag-default-placeholder-text";
 const TAG_INPUT_TEXT_CLASS = "text-text-primary";
 
 /**
@@ -981,7 +955,7 @@ export function PostWriteScreen({
                             className="object-cover"
                           />
                           {image.status !== "done" ? (
-                            <span className="absolute inset-0 flex items-center justify-center bg-overlay-scrim text-icon-on-overlay">
+                            <span className="absolute inset-0 flex items-center justify-center bg-image-dim-overlay text-image-status-icon">
                               {isFailed ? (
                                 <RetryIcon size={THUMBNAIL_STATUS_SIZE} />
                               ) : (
@@ -1130,7 +1104,7 @@ function ThumbnailRemoveButton({
         right: -THUMBNAIL_REMOVE_OVERHANG,
       }}
       className={cn(
-        "absolute inline-flex items-center justify-center rounded-full text-icon-primary",
+        "absolute inline-flex items-center justify-center rounded-full text-image-delete-icon",
         THUMBNAIL_REMOVE_BG_CLASS,
       )}
     >
