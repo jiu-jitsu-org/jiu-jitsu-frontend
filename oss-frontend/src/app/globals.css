@@ -6,6 +6,9 @@
 @import "./styles/tokens/component.css";
 @import "./styles/tokens/theme.css";
 
+/* 모션 토큰 (손으로 관리 — 스프링 이징·키프레임) */
+@import "./styles/motion.css";
+
 @theme inline {
   --font-sans:
     "Pretendard", "Noto Sans KR", -apple-system, BlinkMacSystemFont,
