@@ -1,10 +1,13 @@
 "use client";
 
+import { useState } from "react";
+
 import type {
   BalanceGameOption,
   BalanceOptionKey,
 } from "@/features/community/domain/balance-game";
 import type { BalanceOptionResult } from "@/features/community/presentation/balance/balance-result";
+import { useCountUp } from "@/features/community/presentation/balance/use-count-up";
 import { cn } from "@/shared/lib/cn";
 
 /**
@@ -74,6 +77,24 @@ const CHARACTER_SRC: Record<
 };
 
 /**
+ * 상태가 바뀐 직후 캐릭터가 하는 동작(B안 "보잉", motion.css).
+ *
+ * - selected = 웅크렸다 쭉 늘며 솟았다가 납작하게 착지
+ * - unselected = 시무룩하게 좌우로 흔들림
+ * - default(취소로 돌아옴)는 따로 동작이 없다 — 크기 스프링만으로 돌아간다
+ *
+ * 클래스가 붙는 순간 재생되므로 상태가 바뀌면 자동으로 다시 돈다(A → B: A가 sulk, B가 boing).
+ */
+const CHARACTER_MOTION: Record<BalanceOptionState, string | null> = {
+  default: null,
+  selected: "motion-safe:animate-balance-boing",
+  unselected: "motion-safe:animate-balance-sulk",
+};
+
+/** 투표율 숫자를 굴리는 시간 — fill 스프링(1s)이 거의 멈출 즈음 숫자도 멈춘다. */
+const PERCENT_COUNT_MS = 900;
+
+/**
  * 선택지별 클래스. key로 뽑아 쓴다(Tailwind가 동적 클래스명을 읽지 못한다).
  *
  * A가 빨강, B가 파랑이다. default는 투표 전과 밀려난 상태가 함께 쓴다 — 그 둘은 행 배경도
@@ -135,6 +156,27 @@ export function BalanceOptionButton({
   const selected = state === "selected";
 
   /**
+   * 마운트 이후 상태가 한 번이라도 바뀌었는지 — 일회성 모션(캐릭터·숫자·fill 등장)의 스위치.
+   *
+   * 마운트 때부터 이미 투표한 상태면 아무것도 재생하지 않는다. 피드에 돌아올 때마다, 상세를
+   * 열 때마다 캐릭터가 튀면 사용자가 한 일 없이 화면이 움직이는 셈이다. 모션은 "눌렀다"에 대한
+   * 대답이어야 한다. (크기·막대 너비의 transition은 값이 바뀔 때만 돌아 이 스위치가 필요 없다.)
+   *
+   * 렌더 중 보정이라 이펙트 왕복 없이 상태가 바뀐 바로 그 렌더에 클래스가 붙는다.
+   */
+  const [lastState, setLastState] = useState(state);
+  const [changed, setChanged] = useState(false);
+  if (lastState !== state) {
+    setLastState(state);
+    setChanged(true);
+  }
+
+  const shownPercent = useCountUp(result?.percent ?? 0, {
+    animate: changed,
+    durationMs: PERCENT_COUNT_MS,
+  });
+
+  /**
    * 결과를 그릴 때는 행 배경이 **트랙**이 되고 그 위에 fill이 얹힌다 — 행 자체가 진행률 바다.
    * 강조(내가 고른 쪽·미마감)와 일반 결과는 fill·트랙·글자색이 통째로 다른 한 벌이다.
    */
@@ -165,7 +207,12 @@ export function BalanceOptionButton({
         // 높이는 고정하지 않는다. 문구가 길어지면 행이 늘어나야 하고, 그 최소값(66)은
         // 캐릭터 패널이 만든다.
         // relative는 진행률 fill(절대 배치)의 기준이다. 결과를 안 그려도 무해하다.
-        "relative flex w-full items-center gap-2.5 overflow-hidden rounded-xl pr-4 text-left transition-colors",
+        "relative flex w-full items-center gap-2.5 overflow-hidden rounded-xl pr-4 text-left transition-colors duration-200",
+        // 누름 반응: 누르는 동안 세로로 납작하게 눌렸다가(0.1s), 떼면 스프링으로 출렁이며 돌아온다
+        // (0.7s). 누를 때와 뗄 때 속도가 달라야 해서 :active 쪽 transition을 따로 덮어쓴다.
+        // scale은 Tailwind v4에서 transform이 아니라 개별 scale 속성이라 transition 대상도 scale이다.
+        "motion-safe:[transition:background-color_200ms_ease,color_200ms_ease,scale_700ms_var(--ease-spring-wobbly)]",
+        "motion-safe:active:scale-x-95 motion-safe:active:scale-y-90 motion-safe:active:[transition:background-color_200ms_ease,color_200ms_ease,scale_100ms_ease-out]",
         // 결과를 그리면 배경이 트랙으로 바뀐다. 아니면 기존 규칙 —
         // 행 배경·글자색은 unselected가 default와 같고, 갈리는 것은 캐릭터뿐이다.
         resultStyles
@@ -181,11 +228,19 @@ export function BalanceOptionButton({
 
         절대 배치라 행 높이에 관여하지 않는다(높이는 캐릭터가 정한다는 규칙이 그대로 유지된다).
         내용보다 먼저 그려 뒤에 깔리게 하고, 아래 형제들은 relative로 그 위에 올린다.
+
+        처음 나타날 때(투표 직후)는 0에서 출렁이며 차오르고(fill-in), 이미 떠 있는 상태에서
+        비율이 바뀌면(A → B 변경) width transition이 같은 스프링으로 옮겨 간다.
       */}
       {resultStyles ? (
         <span
           aria-hidden
-          className={cn("absolute inset-y-0 left-0", resultStyles.fill)}
+          className={cn(
+            "absolute inset-y-0 left-0 transition-colors duration-200",
+            "motion-safe:[transition:width_1000ms_var(--ease-spring-wobbly),background-color_200ms_ease]",
+            changed && "motion-safe:animate-balance-fill-in",
+            resultStyles.fill,
+          )}
           style={{ width: `${result?.percent ?? 0}%` }}
         />
       ) : null}
@@ -194,9 +249,17 @@ export function BalanceOptionButton({
         캐릭터 자리. 좌측에 여백 없이 붙고 상태에 따라 크기가 바뀌며, 그 높이가 곧 행 높이다.
         어떤 상태에서도 뒤에 배경을 깔지 않는다 — 자산에 알파가 있어 행 배경이 그대로 비친다.
       */}
+      {/*
+        크기 변화도 스프링이다 — 고른 쪽은 커지며 한 번 넘쳤다 돌아오고, 밀려난 쪽은 작아지며
+        출렁인다. 높이가 곧 행 높이라 행도 함께 출렁인다(의도된 쫀득함).
+      */}
       <span
         aria-hidden
-        className={cn("relative shrink-0", CHARACTER_SIZE[state])}
+        className={cn(
+          "relative shrink-0",
+          "motion-safe:transition-[width,height] motion-safe:duration-750 motion-safe:ease-spring-wobbly",
+          CHARACTER_SIZE[state],
+        )}
       >
         {/*
           next/image가 아닌 plain img인 이유: 표시 크기가 CHARACTER_SIZE로 이미 고정이라
@@ -206,12 +269,18 @@ export function BalanceOptionButton({
 
           아트워크 종횡비가 58:66으로 CHARACTER_SIZE 세 값과 모두 같아 contain이면 패널과 정확히
           겹친다. 장식이라 부모 span의 aria-hidden에 묻히도록 alt는 빈 문자열이다.
+
+          스쿼시·흔들림의 기준점은 아래 가운데다 — 캐릭터 아래쪽이 행 밑에 잘려 있어, 바닥에
+          발을 붙인 채 늘고 줄어야 행에서 "솟아오르는" 것처럼 보인다.
         */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={CHARACTER_SRC[option.key][state]}
           alt=""
-          className="size-full object-contain"
+          className={cn(
+            "size-full origin-bottom object-contain",
+            changed && CHARACTER_MOTION[state],
+          )}
         />
       </span>
 
@@ -229,15 +298,21 @@ export function BalanceOptionButton({
       {/*
         투표율. 문구가 몇 줄이든 세로 가운데에 머물도록 행의 flex 정렬을 그대로 따른다.
         자릿수가 바뀌어도(9% ↔ 63%) 위치가 흔들리지 않게 tabular-nums를 준다.
+
+        투표 직후에는 숫자가 굴러 올라가고, 내가 고른 쪽(강조)은 다 올라갈 즈음 한 번 부푼다.
+        강조가 붙는 순간 재생되므로 A → B로 바꾸면 새로 고른 쪽이 다시 부푼다.
       */}
       {resultStyles ? (
         <span
           className={cn(
             "relative shrink-0 text-body-s tabular-nums",
+            changed &&
+              result?.emphasized &&
+              "motion-safe:animate-balance-percent-pop",
             resultStyles.percent,
           )}
         >
-          {result?.percent ?? 0}%
+          {shownPercent}%
         </span>
       ) : null}
     </button>
