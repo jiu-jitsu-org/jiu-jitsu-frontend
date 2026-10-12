@@ -160,6 +160,18 @@ src/features/<feature>/
   Semantic은 Tailwind 클래스(`bg-primary` 등), Component는 CSS 변수
   (`var(--button-...)`)로 참조한다.
 
+### 6. `src/app/styles/motion.css`는 모션 토큰이다
+
+스프링 이징(`--ease-spring-*`)과 키프레임 애니메이션(`--animate-*`)을 Tailwind `@theme`으로
+모은다. 색 토큰과 달리 Figma 내보내기 대상이 아니라 **손으로 관리한다.**
+
+규칙:
+
+- 코드에서는 Tailwind 클래스로 쓴다: `ease-spring-wobbly`, `animate-balance-boing` 등.
+- 스프링은 감쇠 진동을 샘플링한 `linear()` 값이다. 새 강도가 필요하면 감쇠비(ζ)만 바꿔
+  같은 식으로 뽑는다(파일 상단 주석 참조).
+- 움직임은 `motion-safe:`로 감싸 "동작 줄이기" 설정을 존중한다.
+
 ## Clean Architecture 규칙
 
 의존 방향은 아래를 기준으로 유지한다.

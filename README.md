@@ -70,6 +70,7 @@ oss-frontend/src/
 │   ├── service-info/
 │   │   └── page.tsx
 │   ├── styles/
+│   │   ├── motion.css         # 모션 토큰 (스프링 이징·키프레임, 손으로 관리)
 │   │   └── tokens/            # 자동 생성 (npm run tokens)
 │   │       ├── primitive.css
 │   │       ├── semantic.css
@@ -391,6 +392,10 @@ oss-frontend/design-tokens/*.tokens.json   (Figma 내보내기 원본 = 단일 �
 - Component 색 — CSS 변수: `var(--button-filled-default-bg)` 등
 
 상세 사용법은 `oss-frontend/design-tokens/README.md`를 참고한다.
+
+모션(스프링 이징·키프레임)은 색 토큰 파이프라인과 별개로
+`oss-frontend/src/app/styles/motion.css`에서 손으로 관리한다.
+Tailwind `@theme` 변수라 `ease-spring-wobbly`, `animate-balance-boing`처럼 클래스로 쓴다.
 
 ## 환경 변수 구조
 
