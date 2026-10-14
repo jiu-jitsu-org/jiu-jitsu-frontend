@@ -13,6 +13,7 @@
 ├── src/
 │   ├── app/
 │   │   ├── styles/
+│   │   │   ├── motion.css        # 모션 토큰 (스프링 이징·키프레임, 손으로 관리)
 │   │   │   └── tokens/           # 자동 생성 CSS (npm run tokens)
 │   │   ├── layout.tsx
 │   │   ├── page.tsx
