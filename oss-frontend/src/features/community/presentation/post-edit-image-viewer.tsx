@@ -26,11 +26,12 @@ export function PostEditImageViewer({
   onClose: () => void;
 }) {
   return (
+    // 열 때 갑자기 덮이지 않게 사진 크게 보기와 같은 0.35초로 옅게 덮는다(닫기는 호출부가 바로 언마운트).
     <div
       role="dialog"
       aria-modal="true"
       aria-label="이미지 상세"
-      className="fixed inset-0 z-50 flex flex-col bg-overlay-scrim-heavy"
+      className="fixed inset-0 z-50 flex flex-col bg-overlay-scrim-heavy motion-safe:animate-overlay-in"
     >
       {/* 본 이미지: 남는 높이 가운데, 폭은 상세와 같은 화면 − 32. 편집 불가라 프레임·제스처 없음. */}
       <div className="flex min-h-0 flex-1 items-center justify-center">

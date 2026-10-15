@@ -33,8 +33,8 @@ import { CloseIcon } from "@/shared/ui/icons";
  * 제스처(핀치 줌·더블탭·팬·아래로 스와이프 닫기)는 useImageViewerGestures가 맡는다.
  */
 
-/** 진입·닫기 페이드 시간 — ConfirmDialog와 같은 200. */
-const FADE_MS = 200;
+/** 진입·닫기 페이드 시간 — 0.2초는 빠르다는 피드백으로 0.35초(overlay-in 토큰과 같은 값). 아래 duration-350과 맞춘다. */
+const FADE_MS = 350;
 /** 닫기 버튼 44x44, radius 10 — 디자인 스펙. */
 const CLOSE_BUTTON_SIZE = 44;
 /** 스크롤 위치 → 현재 장 판정 시 소수점 좌표 보정. */
@@ -146,7 +146,7 @@ export function PostImageViewer({
       aria-modal="true"
       aria-label="이미지 뷰어"
       className={cn(
-        "fixed inset-0 z-50 opacity-0 transition-opacity duration-200",
+        "fixed inset-0 z-50 opacity-0 transition-opacity duration-350",
         DIM_CLASS,
       )}
     >

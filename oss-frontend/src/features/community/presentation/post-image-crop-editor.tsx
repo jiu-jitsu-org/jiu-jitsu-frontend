@@ -345,11 +345,15 @@ export function PostImageCropEditor({
 
   return (
     // 상태바 영역까지 딤(inset-0). 작성 화면(z-30 앱바) 위, 토스트와 같은 층(z-50).
+    // 열 때 갑자기 덮이지 않게 사진 크게 보기와 같은 0.35초로 옅게 덮는다(닫기는 호출부가 바로 언마운트).
     <div
       role="dialog"
       aria-modal="true"
       aria-label="이미지 편집"
-      className={cn("fixed inset-0 z-50 flex flex-col", DIM_CLASS)}
+      className={cn(
+        "fixed inset-0 z-50 flex flex-col motion-safe:animate-overlay-in",
+        DIM_CLASS,
+      )}
     >
       {/* 스테이지: 남는 높이 전부. 그림은 원본 px 크기로 두고 transform만 바꾼다(제스처 훅이 직접 씀).
           프레임은 중앙 고정 + 바깥을 scrim으로 덮어 "잘려 나갈 부분"을 흐리게 보여준다. */}
