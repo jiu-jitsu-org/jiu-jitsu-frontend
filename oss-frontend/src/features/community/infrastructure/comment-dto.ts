@@ -1,4 +1,5 @@
 import type { Comment } from "@/features/community/domain/comment";
+import { toKstIso } from "@/shared/lib/time";
 
 /**
  * 업스트림 댓글 응답 DTO(봉투 data 안의 형태).
@@ -35,10 +36,7 @@ export type CommentDto = {
   } | null;
   /** 작성 시각(ISO 8601). */
   createdAt: string;
-  /**
-   * 서버가 계산한 상대 시각(예: "8일 전"). 게시글(board)에는 있고 댓글에는 아직 없다.
-   * 추가되면 별도 코드 변경 없이 화면에 노출되도록 미리 매핑해 둔다.
-   */
+  /** 서버가 계산한 상대 시각. 웹은 쓰지 않는다 — createdAt으로 직접 계산한다(#188). */
   timeAgo?: string;
   /** 수정 시각(ISO 8601). */
   updatedAt?: string | null;
@@ -97,8 +95,7 @@ export function toComment(dto: CommentDto): Comment {
       avatarUrl: dto.author?.profileImage?.imageUrl ?? null,
     },
     body: dto.body ?? "",
-    createdAt: dto.createdAt,
-    timeAgo: dto.timeAgo,
+    createdAt: toKstIso(dto.createdAt),
     isOwner: dto.isAuthor,
     isPostAuthor: false,
     likeCount: dto.likes,

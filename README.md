@@ -461,6 +461,7 @@ src/features/product/
 - `src/app` 기반 Next.js App Router
 - `src/config/env.ts` 기반 환경 변수 관리
 - `src/shared/lib/http` 기반 공통 서버 HTTP 클라이언트
+- `src/shared/lib/time` + `src/shared/ui/server-clock` 기반 공통 상대 시간 표기 (서버 시각 기준 · 60초/포그라운드 복귀 재계산)
 - `bootstrap` feature 기반 초기 Server Component 조회 구현
 - `VersionInfoPage` Client Component와 `useActionState` 기반 Server Action 갱신 구현
 - `.env.development`, `.env.production` 기반 Base URL 분기

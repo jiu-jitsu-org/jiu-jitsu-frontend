@@ -299,7 +299,6 @@ function FeedCardItem({
         avatarUrl: post.author.avatarUrl ?? undefined,
       }}
       createdAt={post.createdAt}
-      dateLabel={post.timeAgo}
       categoryName={post.categoryName}
       title={post.title}
       body={post.body}

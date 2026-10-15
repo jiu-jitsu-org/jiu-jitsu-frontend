@@ -2,6 +2,8 @@ import { SessionHintProvider } from "@/features/auth/presentation/session-hint";
 import { MyActivityScreen } from "@/features/community/presentation/my-activity/my-activity-screen";
 import { normalizeMyActivityTab } from "@/features/community/presentation/my-activity/my-activity-tab";
 import { readSessionToken } from "@/shared/lib/auth";
+import { readServerNow } from "@/shared/lib/time";
+import { ServerClockProvider } from "@/shared/ui/server-clock";
 
 /**
  * 내 커뮤니티 활동 라우트 (얇은 엔트리) — /community/me?tab=posts(기본) | saved.
@@ -20,7 +22,10 @@ export default async function CommunityMyActivityPage({
   // 카드 ⋮ · 좋아요 가드가 로그인 여부로 갈린다 — 세션 판정 전에도 맞게 그리도록 힌트를 깐다(#173).
   return (
     <SessionHintProvider authenticated={sessionToken !== null}>
-      <MyActivityScreen tab={normalizeMyActivityTab(tab)} />
+      {/* 상대 시간("5분 전")을 서버 시각 기준으로 계산하고 60초마다 갱신한다(#188). */}
+      <ServerClockProvider serverNow={readServerNow()}>
+        <MyActivityScreen tab={normalizeMyActivityTab(tab)} />
+      </ServerClockProvider>
     </SessionHintProvider>
   );
 }

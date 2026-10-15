@@ -1,21 +1,20 @@
-import { formatDetailDateTime } from "@/features/community/presentation/format-detail-date";
+import { PostDetailTime } from "@/features/community/presentation/post-detail-time";
 import { cn } from "@/shared/lib/cn";
 
 /**
- * 상세 화면 메타 행 (서버 컴포넌트): 카테고리 · 작성일 · 조회수 · 수정됨.
+ * 상세 화면 메타 행 (서버 컴포넌트): 카테고리 · 작성일(· 수정됨) · 조회수.
  *
  * 제목 바로 아래에 표시된다. 전 항목 Label M(Pretendard Medium 12), 같은 색·간격.
- * mockup 예: "매트 위 수다   8일 전   조회 0   수정됨"
+ * 예: "매트 위 수다   3일 전 · 수정됨   조회 0"
  *
- * 날짜는 서버가 계산한 상대 시각(timeAgo)이 정본이다 — 목록 카드와 기준·문구를 어긋나지 않게 하려고
- * FE에서 다시 계산하지 않는다. 구버전 응답 등으로 없을 때만 createdAt을 절대 시각으로 포맷해 폴백한다.
+ * 날짜는 공통 상대 시간 규칙이고, 탭하면 정확 시각으로 바뀐다(PostDetailTime, #188).
+ * 수정됨은 시간 우측에 " · "로 붙인다(정책 5) — 독립 항목으로 두면 조회수와 같은 간격으로 떨어져
+ * 무엇이 수정됐다는 건지 읽히지 않는다. 표시 시간 자체는 수정해도 작성 시각 그대로다(정책 4).
  * 조회수(views)는 0이어도 노출한다(디자인 기준). 필드 자체가 없을 때만 생략.
  */
-
 export function PostMetaRow({
   categoryName,
   createdAt,
-  timeAgo,
   views,
   edited,
   className,
@@ -23,7 +22,6 @@ export function PostMetaRow({
   /** 카테고리명(#177). 빈 값이면 생략. */
   categoryName?: string;
   createdAt: string;
-  timeAgo?: string;
   views?: number;
   edited: boolean;
   className?: string;
@@ -37,11 +35,11 @@ export function PostMetaRow({
       )}
     >
       {categoryName ? <span>{categoryName}</span> : null}
-      <time dateTime={createdAt}>
-        {timeAgo ?? formatDetailDateTime(createdAt)}
-      </time>
+      <span>
+        <PostDetailTime createdAt={createdAt} />
+        {edited ? " · 수정됨" : null}
+      </span>
       {typeof views === "number" ? <span>조회 {views}</span> : null}
-      {edited ? <span>수정됨</span> : null}
     </div>
   );
 }
