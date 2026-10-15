@@ -18,9 +18,10 @@ export function FeedListEnd({
   return (
     // 높이 69 고정, 좌우 인셋 16(px-4)으로 디바이스 폭에 꽉 차게. 문구는 가로·세로 가운데.
     // 폰트: Body S(14/21). 색상: feed-card/end-text 토큰.
+    // 마지막 페이지가 붙는 순간 툭 끼어들지 않게 옅게 나타난다(로딩 표시와 같은 등장).
     <div
       className={cn(
-        "flex h-[69px] items-center justify-center px-4",
+        "flex h-[69px] items-center justify-center px-4 motion-safe:animate-fade-in",
         className,
       )}
     >

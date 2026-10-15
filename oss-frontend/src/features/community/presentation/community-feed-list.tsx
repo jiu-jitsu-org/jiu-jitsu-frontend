@@ -340,10 +340,10 @@ function FeedCardItem({
   );
 }
 
-/** 다음 페이지 로딩 표시(끝 표식과 동일 높이·정렬). */
+/** 다음 페이지 로딩 표시(끝 표식과 동일 높이·정렬). 스크롤 끝에서 툭 끼어들지 않게 옅게 나타난다. */
 function FeedLoadingMore() {
   return (
-    <div className="flex h-[69px] items-center justify-center px-4">
+    <div className="flex h-[69px] items-center justify-center px-4 motion-safe:animate-fade-in">
       <span
         className="size-5 animate-spin rounded-full border-2 border-feed-card-header-avatar-bg border-t-transparent"
         role="status"
@@ -353,17 +353,19 @@ function FeedLoadingMore() {
   );
 }
 
-/** 다음 페이지 로드 실패 — 안내 + 재시도. */
+/** 다음 페이지 로드 실패 — 안내 + 재시도. 로딩 표시와 같이 옅게 나타난다. */
 function FeedLoadMoreError({ onRetry }: { onRetry: () => void }) {
   return (
-    <div className="flex h-[69px] flex-col items-center justify-center gap-1 px-4">
+    <div className="flex h-[69px] flex-col items-center justify-center gap-1 px-4 motion-safe:animate-fade-in">
       <p className="text-body-s text-feed-card-body-text">
         게시글을 더 불러오지 못했어요
       </p>
       <button
         type="button"
         onClick={onRetry}
-        className="text-sm font-semibold text-feed-card-body-text underline"
+        // 글자 버튼이라 평소엔 면이 없고, 누르는 동안만 앱바 아이콘과 같은 옅은 면이 깔린다.
+        // 면 여백(px-2·py-0.5)은 음수 마진으로 상쇄해 줄 높이·문구 위치를 그대로 둔다.
+        className="-mx-2 -my-0.5 rounded-[6px] px-2 py-0.5 text-sm font-semibold text-feed-card-body-text underline motion-safe:transition-colors motion-safe:duration-120 active:bg-surface-container-pressed"
       >
         다시 시도
       </button>
