@@ -15,6 +15,12 @@
   /* ζ=0.4 — 한 번 크게(최대 1.25) 넘치고 빨리 잦아든다. 작은 강조(숫자 팝)에. */
   --ease-spring-bouncy: linear(0, 0.061, 0.215, 0.421, 0.642, 0.847, 1.019, 1.144, 1.22, 1.252, 1.246, 1.214, 1.164, 1.109, 1.054, 1.008, 0.972, 0.949, 0.937, 0.936, 0.943, 0.954, 0.968, 0.982, 0.995, 1.005, 1.011, 1.015, 1.016, 1.015, 1.013, 1.009, 1.006, 1.002, 1, 0.998, 1);
 
+  /* ζ=0.7 — 거의 넘치지 않고(최대 1.05) 한 번에 자리 잡는다. 미끄러지는 위치 이동(탭 밑줄)에. */
+  --ease-spring-gentle: linear(0, 0.022, 0.081, 0.163, 0.258, 0.36, 0.462, 0.559, 0.649, 0.73, 0.801, 0.861, 0.911, 0.951, 0.983, 1.007, 1.024, 1.035, 1.042, 1.045, 1.046, 1.044, 1.041, 1.037, 1.033, 1.028, 1.023, 1.019, 1.015, 1.011, 1.008, 1.006, 1.003, 1.002, 1, 0.999, 1);
+
+  /* 넘침 없는 감속 — 화면 밖에서 들어오는 시트·알림 띠처럼 "차분히 올라오는" 것에. */
+  --ease-smooth-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+
   /* 밸런스 게임 선택지 — 고른 캐릭터: 웅크렸다(12%) 쭉 늘며 솟았다가(30%) 납작하게 착지(48%). */
   --animate-balance-boing: balance-boing 800ms ease-out both;
   /* 밸런스 게임 선택지 — 밀려난 캐릭터: 시무룩하게 좌우로 흔들리다 멈춘다. */
@@ -24,6 +30,112 @@
     var(--ease-spring-bouncy) 550ms both;
   /* 밸런스 게임 진행률 fill — 처음 나타날 때 0에서 출렁이며 차오른다(이후 변경은 transition). */
   --animate-balance-fill-in: balance-fill-in 1000ms var(--ease-spring-wobbly);
+
+  /* 리액션(좋아요·저장) — 켜지는 순간 아이콘이 움츠렸다(15%) 톡 부풀고(45%) 출렁이며 제자리. */
+  --animate-reaction-pop: reaction-pop 500ms ease-out both;
+  /* 댓글 등록 성공 — 종이비행기가 오른쪽 위로 날아갔다가 왼쪽 아래에서 다시 들어온다. */
+  --animate-comment-send-fly: comment-send-fly 500ms ease-out both;
+
+  /* 남은 시간 숫자 — 바뀐 자리만 새 숫자가 아래에서 출렁이며 올라오고, 옛 숫자는 위로 빠진다. */
+  --animate-digit-roll-in: digit-roll-in 500ms var(--ease-spring-wobbly) both;
+  --animate-digit-roll-out: digit-roll-out 260ms ease-in both;
+  /* 탭 패널 — 옮겨 간 쪽에서 살짝(--tab-shift) 밀려 들어온다. */
+  --animate-tab-panel-in: tab-panel-in 300ms ease-out both;
+  /* 글쓰기 버튼 — 놓을 때 연필이 좌우로 한 번 흔들린다. */
+  --animate-pen-wiggle: pen-wiggle 500ms ease-out both;
+
+  @keyframes digit-roll-in {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes digit-roll-out {
+    from {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
+  }
+
+  @keyframes tab-panel-in {
+    from {
+      opacity: 0;
+      transform: translateX(var(--tab-shift, 0));
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes pen-wiggle {
+    0% {
+      transform: rotate(0deg);
+    }
+    25% {
+      transform: rotate(-14deg);
+    }
+    50% {
+      transform: rotate(10deg);
+    }
+    75% {
+      transform: rotate(-4deg);
+    }
+    100% {
+      transform: rotate(0deg);
+    }
+  }
+
+  @keyframes reaction-pop {
+    0% {
+      transform: scale(1);
+    }
+    15% {
+      transform: scale(0.7);
+    }
+    45% {
+      transform: scale(1.3);
+    }
+    65% {
+      transform: scale(0.92);
+    }
+    82% {
+      transform: scale(1.05);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  @keyframes comment-send-fly {
+    0% {
+      transform: translate(0, 0) scale(1);
+      opacity: 1;
+    }
+    35% {
+      transform: translate(14px, -14px) scale(0.6);
+      opacity: 0;
+    }
+    36% {
+      transform: translate(-10px, 10px) scale(0.6);
+      opacity: 0;
+    }
+    70% {
+      transform: translate(1px, -1px) scale(1.1);
+      opacity: 1;
+    }
+    100% {
+      transform: translate(0, 0) scale(1);
+      opacity: 1;
+    }
+  }
 
   @keyframes balance-boing {
     0% {
