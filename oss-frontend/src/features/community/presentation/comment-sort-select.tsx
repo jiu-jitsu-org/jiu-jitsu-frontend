@@ -8,6 +8,7 @@ import {
   MenuBox,
   MenuItem,
 } from "@/features/community/presentation/menu-box";
+import { cn } from "@/shared/lib/cn";
 import { ChevronDownIcon } from "@/shared/ui/icons";
 
 const SORT_OPTIONS: { value: CommentSort; label: string }[] = [
@@ -42,16 +43,24 @@ export function CommentSortSelect({ sort }: { sort: CommentSort }) {
   return (
     <div className="relative">
       {/* 텍스트(Button S = 12 Semibold) + chevron 16, 간격 2(gap-0.5). 높이 32, 너비 콘텐츠 맞춤.
-          좌 8(pl-2)/우 4(pr-1). 색 comment-sort-select-default-text(아이콘은 currentColor로 동일). */}
+          좌 8(pl-2)/우 4(pr-1). 색 comment-sort-select-default-text(아이콘은 currentColor로 동일).
+          누르는 동안 comment-sort-select/pressed 면·글자색 — radius 10은 옆 반응 버튼(comment-reaction-styles)과 맞춘다. */}
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="inline-flex h-8 items-center gap-0.5 pl-2 pr-1 text-button-s text-comment-sort-select-default-text"
+        className="inline-flex h-8 items-center gap-0.5 rounded-[10px] pl-2 pr-1 text-button-s text-comment-sort-select-default-text active:bg-comment-sort-select-pressed-bg active:text-comment-sort-select-pressed-text"
       >
         {current.label}
-        <ChevronDownIcon size={16} />
+        {/* 메뉴가 열려 있는 동안 위를 향한다 — 살짝 넘쳤다 돌아오는 스프링으로 돌려 열림/닫힘을 손에 느끼게. */}
+        <ChevronDownIcon
+          size={16}
+          className={cn(
+            "motion-safe:transition-transform motion-safe:duration-400 motion-safe:ease-spring-gentle",
+            open && "rotate-180",
+          )}
+        />
       </button>
 
       {open ? (
