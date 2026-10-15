@@ -164,7 +164,6 @@ function toSummary(detail: PostDetail): PostSummary {
     counts: detail.counts,
     viewer: detail.viewer,
     createdAt: detail.createdAt,
-    timeAgo: detail.timeAgo,
     updatedAt: detail.updatedAt,
     edited: detail.edited,
   };

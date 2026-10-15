@@ -20,6 +20,7 @@ import {
   toComment,
 } from "@/features/community/infrastructure/comment-dto";
 import type { HttpClient } from "@/shared/lib/http";
+import { toKstIso } from "@/shared/lib/time";
 
 /**
  * 업스트림 커뮤니티 읽기 API를 사용하는 infrastructure 구현.
@@ -112,7 +113,7 @@ type BoardDetailDto = {
   viewCount?: number;
   /** 저장(북마크) 수. */
   saveCount?: number;
-  /** 서버가 계산한 상대 시각(예: "8일 전"). 상세 메타행 날짜의 정본. */
+  /** 서버가 계산한 상대 시각. 웹은 쓰지 않는다 — 정책상 60초마다 다시 계산해야 해서 createdAt으로 직접 계산한다(#188). */
   timeAgo?: string;
   /**
    * 태그 이름 목록. 초기 계약 문서는 `tagList: {id,name}[]`였지만 실제 응답은 `tags: string[]`다 —
@@ -146,7 +147,7 @@ type BoardSummaryDto = {
   viewCount?: number;
   /** 태그 이름 목록. 상세와 같은 `string[]` 형태. */
   tags?: string[];
-  /** 서버가 계산한 상대 시각(예: "10일 전"). 카드 날짜 라벨의 정본 — 없으면 createdAt으로 폴백. */
+  /** 서버가 계산한 상대 시각. 웹은 쓰지 않는다 — createdAt으로 직접 계산한다(#188). */
   timeAgo?: string;
   isCommented: boolean;
   isLiked: boolean;
@@ -195,9 +196,8 @@ function toPostSummary(dto: BoardSummaryDto): PostSummary {
       commented: dto.isCommented,
       isOwner: dto.isAuthor,
     },
-    createdAt: dto.createdAt,
-    timeAgo: dto.timeAgo,
-    updatedAt: dto.updatedAt ?? null,
+    createdAt: toKstIso(dto.createdAt),
+    updatedAt: dto.updatedAt ? toKstIso(dto.updatedAt) : null,
     edited: dto.isUpdated ?? false,
   };
 }
@@ -239,9 +239,8 @@ function toPostDetail(dto: BoardDetailDto): PostDetail {
       commented: dto.isCommented,
       isOwner: dto.isAuthor,
     },
-    createdAt: dto.createdAt,
-    timeAgo: dto.timeAgo,
-    updatedAt: dto.updatedAt ?? null,
+    createdAt: toKstIso(dto.createdAt),
+    updatedAt: dto.updatedAt ? toKstIso(dto.updatedAt) : null,
     edited: dto.isUpdated,
     noticeEnabled: dto.noticeEnabled ?? false,
   };

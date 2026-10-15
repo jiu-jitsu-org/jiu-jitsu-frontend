@@ -26,6 +26,7 @@ import {
   MoreVerticalIcon,
   PersonIcon,
 } from "@/shared/ui/icons";
+import { RelativeTime } from "@/shared/ui/relative-time";
 
 // 본문 말줄임 줄 수는 Tailwind 정적 클래스 `line-clamp-3`이 단일 출처다.
 // (Tailwind는 동적 클래스명을 감지하지 못하므로 상수 보간 대신 클래스로 고정)
@@ -53,13 +54,8 @@ export type FeedReactionCounts = {
 
 export type FeedCardProps = {
   author: FeedAuthor;
-  /** 작성 시각(ISO 8601). `<time datetime>` 원본값이자 dateLabel이 없을 때의 표시 소스. */
+  /** 작성 시각(ISO 8601, 오프셋 명시). 공통 상대 시간 규칙으로 표시한다(#188). */
   createdAt: string;
-  /**
-   * 날짜 표시 라벨. 서버가 계산한 상대 시각(timeAgo, 예: "10일 전")을 그대로 노출하기 위한 슬롯.
-   * 없으면 카드가 createdAt을 "M월 D일"로 포맷한다(데모/구버전 응답 폴백).
-   */
-  dateLabel?: string;
   /** 카테고리명(#177). 제목 아래 메타행에서 날짜 앞에 표시. 빈 값이면 생략. */
   categoryName?: string;
   title: string;
@@ -107,7 +103,6 @@ export type FeedCardProps = {
 export function FeedCard({
   author,
   createdAt,
-  dateLabel,
   categoryName,
   title,
   body,
@@ -162,7 +157,6 @@ export function FeedCard({
         body={body}
         categoryName={categoryName}
         createdAt={createdAt}
-        dateLabel={dateLabel}
         onPress={onPress}
         trailing={
           hideAuthor ? (
@@ -187,13 +181,6 @@ export function FeedCard({
       />
     </article>
   );
-}
-
-/** ISO 문자열 → "M월 D일" 표시 라벨. 파싱 실패 시 원문 반환. */
-function formatDateLabel(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return iso;
-  return `${date.getMonth() + 1}월 ${date.getDate()}일`;
 }
 
 /**
@@ -323,7 +310,6 @@ export function FeedCardBody({
   body,
   categoryName,
   createdAt,
-  dateLabel,
   onPress,
   trailing,
   className,
@@ -332,7 +318,6 @@ export function FeedCardBody({
   body: string;
   categoryName?: string;
   createdAt: string;
-  dateLabel?: string;
   onPress?: () => void;
   /** 제목행 우측 요소(작성자 행을 감춘 카드의 ⋮). 제목은 그 앞에서 말줄임된다. */
   trailing?: ReactNode;
@@ -384,9 +369,7 @@ export function FeedCardBody({
       {/* 메타행: 카테고리·날짜. Label M(Pretendard Medium 12), 같은 색, 항목 간격 10(gap-2.5) */}
       <div className="flex items-center gap-2.5 text-label-m text-feed-card-header-date-text">
         {categoryName ? <span>{categoryName}</span> : null}
-        <time dateTime={createdAt}>
-          {dateLabel ?? formatDateLabel(createdAt)}
-        </time>
+        <RelativeTime iso={createdAt} />
       </div>
       {/* 본문: Body S Multi-line(14/21), 메타행 아래 8 */}
       <p

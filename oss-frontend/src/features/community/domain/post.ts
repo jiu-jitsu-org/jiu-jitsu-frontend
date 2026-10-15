@@ -59,13 +59,8 @@ export type PostDetail = {
   /** 조회수. 단건 조회 응답에 필드가 있으면 매핑(optional). */
   views?: number;
   viewer: PostViewerState;
-  /** createdAt(ISO 8601). */
+  /** createdAt(ISO 8601, 오프셋 명시). 화면이 공통 규칙으로 상대 시간을 계산한다(#188). */
   createdAt: string;
-  /**
-   * timeAgo — 서버가 계산한 상대 시각 라벨(예: "8일 전"). 메타행 날짜의 정본.
-   * 목록(PostSummary)과 동일 규칙을 쓰려고 서버값을 그대로 노출한다 — 없으면 화면이 createdAt으로 폴백.
-   */
-  timeAgo?: string;
   /** updatedAt(ISO 8601). */
   updatedAt?: string | null;
   /** isUpdated → "수정됨" 표시 여부. */

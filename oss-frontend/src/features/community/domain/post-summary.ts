@@ -26,10 +26,8 @@ export type PostSummary = {
   /** likeCount/commentCount/saveCount. */
   counts: PostCounts;
   viewer: PostViewerState;
-  /** createdAt(ISO 8601). */
+  /** createdAt(ISO 8601, 오프셋 명시). 화면이 공통 규칙으로 상대 시간을 계산한다(#188). */
   createdAt: string;
-  /** timeAgo — 서버가 계산한 상대 시각 라벨(예: "10일 전"). 없으면 화면이 createdAt으로 포맷. */
-  timeAgo?: string;
   /** updatedAt(ISO 8601). */
   updatedAt?: string | null;
   /** isUpdated → "수정됨" 표시 여부. */

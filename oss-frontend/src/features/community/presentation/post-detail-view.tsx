@@ -67,7 +67,6 @@ export function PostDetailView({
               body={post.body}
               categoryName={post.categoryName}
               createdAt={post.createdAt}
-              timeAgo={post.timeAgo}
               views={post.views}
               edited={post.edited}
             />

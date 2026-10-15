@@ -12,6 +12,8 @@ import { FeedEmptyState } from "@/features/community/presentation/feed-empty-sta
 import { FeedErrorState } from "@/features/community/presentation/feed-error-state";
 import { PostWriteFab } from "@/features/community/presentation/post-write-fab";
 import { readSessionToken } from "@/shared/lib/auth";
+import { readServerNow } from "@/shared/lib/time";
+import { ServerClockProvider } from "@/shared/ui/server-clock";
 
 /**
  * 메인 화면 — 커뮤니티 게시글 피드.
@@ -34,12 +36,15 @@ export default async function Home() {
   return (
     // 카드 ⋮가 로그인 여부로 갈린다 — 세션 판정 전에도 맞게 그리도록 힌트를 깐다(#173).
     <SessionHintProvider authenticated={sessionToken !== null}>
-      <main className="feed-bounce-scroll min-h-screen bg-[var(--bw-white)]">
-        {renderFeed(result, balanceGame)}
+      {/* 상대 시간("5분 전")을 서버 시각 기준으로 계산하고 60초마다 갱신한다(#188). */}
+      <ServerClockProvider serverNow={readServerNow()}>
+        <main className="feed-bounce-scroll min-h-screen bg-[var(--bw-white)]">
+          {renderFeed(result, balanceGame)}
 
-        {/* 게시글 작성 진입 FAB — 네이티브면 OPEN_SUBVIEW로 풀스크린 서브뷰, 웹 단독이면 라우터 이동. */}
-        <PostWriteFab />
-      </main>
+          {/* 게시글 작성 진입 FAB — 네이티브면 OPEN_SUBVIEW로 풀스크린 서브뷰, 웹 단독이면 라우터 이동. */}
+          <PostWriteFab />
+        </main>
+      </ServerClockProvider>
     </SessionHintProvider>
   );
 }
