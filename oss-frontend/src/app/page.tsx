@@ -14,6 +14,7 @@ import { PostWriteFab } from "@/features/community/presentation/post-write-fab";
 import { readSessionToken } from "@/shared/lib/auth";
 import { readServerNow } from "@/shared/lib/time";
 import { ServerClockProvider } from "@/shared/ui/server-clock";
+import { Spinner } from "@/shared/ui/spinner";
 
 /**
  * 메인 화면 — 커뮤니티 게시글 피드.
@@ -99,11 +100,7 @@ function renderFeed(
 function FeedLoading() {
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
-      <span
-        className="size-6 animate-spin rounded-full border-2 border-feed-card-header-avatar-bg border-t-transparent"
-        role="status"
-        aria-label="불러오는 중"
-      />
+      <Spinner />
     </div>
   );
 }

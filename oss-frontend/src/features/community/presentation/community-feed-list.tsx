@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type AnimationEvent,
+} from "react";
 
 import { useOnLogin } from "@/features/auth/presentation/auth-provider";
 import { useOpenPostDetail } from "@/features/community/presentation/use-open-post-detail";
@@ -23,7 +30,11 @@ import {
   toggleHidePost,
 } from "@/features/community/presentation/hide-post";
 import { cn } from "@/shared/lib/cn";
-import { type PendingToastAction, usePendingToast, useToast } from "@/shared/ui";
+import {
+  type PendingToastAction,
+  usePendingToast,
+  useToast,
+} from "@/shared/ui";
 
 /**
  * 커뮤니티 메인 피드 목록(무한 스크롤).
@@ -57,6 +68,21 @@ import { type PendingToastAction, usePendingToast, useToast } from "@/shared/ui"
  * 이 시간이 지난 뒤 실제로 목록에서 제거하기 때문이다.
  */
 const COLLAPSE_MS = 200;
+
+/**
+ * 새로 붙은 카드가 차례로 떠오르는 간격(ms)과 상한. 한 묶음(첫 페이지 · 다음 페이지) 안에서
+ * 순서마다 60ms씩 늦추되, 7번째부터는 6번째와 같이 늦춘다 — 한 페이지가 길어도 마지막 카드가
+ * 한참 뒤에야 나타나지 않게.
+ */
+const ENTER_STAGGER_MS = 60;
+const ENTER_STAGGER_CAP = 6;
+/** 떠오르는 시간(ms) — motion.css의 feed-rise-in과 같은 값. */
+const ENTER_MS = 280;
+
+function enterDelay(indexInBatch: number): string {
+  return `${Math.min(indexInBatch, ENTER_STAGGER_CAP) * ENTER_STAGGER_MS}ms`;
+}
+
 export function CommunityFeedList({
   posts,
   page,
@@ -201,6 +227,82 @@ export function CommunityFeedList({
     listUrl,
   });
 
+  // 첫 페이지 카드는 차례로 떠오르며 나타난다. SSR로 그려진 카드라 클래스를 렌더에서 바로 건다 —
+  // 하이드레이션 뒤에 걸면 이미 보이던 카드가 한 번 사라졌다 다시 떠오른다. 끝나면 목록에서 뺀다:
+  // 남겨 두면 접힘(opacity 전환) 때 애니메이션이 다시 얽힌다.
+  // feed-rise-in은 끝나면 transform·opacity를 남기지 않는다(backwards) — 남은 transform은 카드 안
+  // fixed 요소(메뉴 바깥 판·확인 창·시트)를 카드 안에 가둔다.
+  const [enteringIds, setEnteringIds] = useState<ReadonlyMap<number, number>>(
+    () => new Map(posts.map((post, index) => [post.id, index])),
+  );
+
+  const handleEnterEnd = useCallback(
+    (postId: number, event: AnimationEvent<HTMLDivElement>) => {
+      // animationend는 버블링되므로 카드 안쪽 아이콘 모션이 끝난 것과 구분한다.
+      if (event.target !== event.currentTarget) return;
+      setEnteringIds((prev) => {
+        if (!prev.has(postId)) return prev;
+        const next = new Map(prev);
+        next.delete(postId);
+        return next;
+      });
+    },
+    [],
+  );
+
+  // 하이드레이션 전에 끝난 카드는 animationend를 놓친다(리스너가 아직 없다). 가장 늦은 카드가
+  // 끝났을 시각 뒤에 한꺼번에 비운다 — 클래스가 남아도 backwards라 화면은 같지만, 목록에서 빼야
+  // 접힘이 애니메이션과 얽히지 않는다.
+  useEffect(() => {
+    const timer = window.setTimeout(
+      () => setEnteringIds((prev) => (prev.size === 0 ? prev : new Map())),
+      ENTER_STAGGER_CAP * ENTER_STAGGER_MS + ENTER_MS + 100,
+    );
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  // 무한 스크롤로 뒤에 붙은 카드만 차례로 떠오르게 한다(comment-replies의 더보기와 같은 방식).
+  // 이미 있던 카드는 다시 움직이지 않고, 위에 끼어든 새 글(prependNew) · 되돌린 카드는 펼침이 따로 있어 제외한다
+  // — 직전 커밋의 마지막 카드보다 뒤에 처음 보는 id만 고른다.
+  const listRef = useRef<HTMLDivElement>(null);
+  const renderedIdsRef = useRef<ReadonlySet<number> | null>(null);
+  useLayoutEffect(() => {
+    const previous = renderedIdsRef.current;
+    renderedIdsRef.current = new Set(items.map((post) => post.id));
+    // 첫 커밋은 위 enteringIds가 맡는다.
+    if (!previous) return;
+
+    let lastSeenIndex = -1;
+    items.forEach((post, index) => {
+      if (previous.has(post.id)) lastSeenIndex = index;
+    });
+    const appended = items
+      .slice(lastSeenIndex + 1)
+      .filter((post) => !previous.has(post.id));
+    if (appended.length === 0) return;
+    // motion-safe와 같은 조건 — 동작 줄이기를 켠 사용자에게는 바로 보여준다.
+    if (!window.matchMedia("(prefers-reduced-motion: no-preference)").matches)
+      return;
+
+    const list = listRef.current;
+    appended.forEach((post, index) => {
+      const el = list?.querySelector<HTMLElement>(
+        `[data-feed-item="${post.id}"]`,
+      );
+      if (!el) return;
+      // 첫 페이지와 같은 feed-rise-in — 끝난 뒤 남는 transform이 없다.
+      el.style.animation = "var(--animate-feed-rise-in)";
+      el.style.animationDelay = enterDelay(index);
+      const clear = (event: Event) => {
+        if (event.target !== el) return;
+        el.style.animation = "";
+        el.style.animationDelay = "";
+        el.removeEventListener("animationend", clear);
+      };
+      el.addEventListener("animationend", clear);
+    });
+  }, [items]);
+
   // 에러 상태에선 자동 재요청을 멈추고, 사용자가 재시도 버튼으로만 다시 시도하게 한다.
   const sentinelRef = useInfiniteScroll({
     onReach: loadMore,
@@ -212,34 +314,54 @@ export function CommunityFeedList({
     // 하단 91: 우하단 플로팅 FAB(작성 버튼)이 마지막 카드 UX를 가리지 않도록 여유를 둔 스펙값.
     // 카드 사이 간격 16은 각 카드가 mb-4로 갖는다 — 접힐 때 간격도 함께 사라져야 하기 때문
     // (컨테이너 gap은 높이가 0이 돼도 그대로 남아 빈 자리가 생긴다).
-    <div className={cn("flex flex-col pt-6 pb-[91px]", className)}>
-      {items.map((post, index) => (
-        // grid-rows 0fr↔1fr + overflow-hidden — 카드 높이가 이미지 유무로 제각각이라
-        // 고정 높이를 쓸 수 없다. 아래 여백(16)도 함께 접어야 빈 자리가 남지 않는다.
-        <div
-          key={post.id}
-          className={cn(
-            "grid transition-[grid-template-rows,opacity,margin-bottom] duration-200 ease-out",
-            collapsedIds.has(post.id)
-              ? "mb-0 grid-rows-[0fr] opacity-0"
-              : "mb-4 grid-rows-[1fr] opacity-100",
-          )}
-        >
-          <div className="overflow-hidden">
-            <FeedCardItem
-              post={post}
-              hideAuthor={hideAuthor}
-              authorLink={authorLink}
-              onDeleted={() => collapseAndRemove(post.id)}
-              // 되돌리기로 복원할 수 있도록 걷어낸 위치를 함께 넘긴다.
-              onRestored={() => {
-                restorePost(post, index);
-                expandAfterInsert(post.id);
-              }}
-            />
+    <div
+      ref={listRef}
+      className={cn("flex flex-col pt-6 pb-[91px]", className)}
+    >
+      {items.map((post, index) => {
+        const enterIndex = enteringIds.get(post.id);
+
+        return (
+          // grid-rows 0fr↔1fr + overflow-hidden — 카드 높이가 이미지 유무로 제각각이라
+          // 고정 높이를 쓸 수 없다. 아래 여백(16)도 함께 접어야 빈 자리가 남지 않는다.
+          // 떠오르는 모션은 overflow-hidden 바깥(이 칸)에 건다 — 안쪽에 걸면 아래 8px이 잘린다.
+          <div
+            key={post.id}
+            data-feed-item={post.id}
+            onAnimationEnd={
+              enterIndex === undefined
+                ? undefined
+                : (event) => handleEnterEnd(post.id, event)
+            }
+            style={
+              enterIndex === undefined
+                ? undefined
+                : { animationDelay: enterDelay(enterIndex) }
+            }
+            className={cn(
+              "grid transition-[grid-template-rows,opacity,margin-bottom] duration-200 ease-out",
+              collapsedIds.has(post.id)
+                ? "mb-0 grid-rows-[0fr] opacity-0"
+                : "mb-4 grid-rows-[1fr] opacity-100",
+              enterIndex !== undefined && "motion-safe:animate-feed-rise-in",
+            )}
+          >
+            <div className="overflow-hidden">
+              <FeedCardItem
+                post={post}
+                hideAuthor={hideAuthor}
+                authorLink={authorLink}
+                onDeleted={() => collapseAndRemove(post.id)}
+                // 되돌리기로 복원할 수 있도록 걷어낸 위치를 함께 넘긴다.
+                onRestored={() => {
+                  restorePost(post, index);
+                  expandAfterInsert(post.id);
+                }}
+              />
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
 
       {!isLast && status !== "error" ? (
         <div ref={sentinelRef} aria-hidden className="h-px" />

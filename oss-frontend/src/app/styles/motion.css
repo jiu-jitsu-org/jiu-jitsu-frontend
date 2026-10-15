@@ -52,12 +52,16 @@
   --animate-tick-bump-alt: tick-bump-alt 500ms var(--ease-spring-bouncy);
   /* 드롭다운 메뉴 — 트리거 쪽에서 --menu-shift만큼 떨어진 곳부터 차분히 미끄러져 나타난다. */
   --animate-menu-slide-in: menu-slide-in 260ms var(--ease-smooth-out) both;
+  /* 드롭다운 메뉴 닫힘 — 들어온 길(--menu-shift)로 되돌아가며 옅어진다. 끝나면 호출부가 DOM에서 뺀다. */
+  --animate-menu-slide-out: menu-slide-out 200ms ease-in both;
   /* 알림 켜기 — 종이 꼭대기를 축으로 좌우로 땡그랑 흔들린다. */
   --animate-bell-ring: bell-ring 700ms ease-out both;
   /* 알림 끄기 — 종이 움츠렸다 출렁이며 돌아온다. */
   --animate-bell-mute: bell-mute 500ms ease-out both;
   /* 밸런스 게임 고정 바 — 위에서 떨어지듯 내려와 출렁이며 자리 잡는다. */
   --animate-sticky-drop-in: sticky-drop-in 600ms var(--ease-spring-bouncy) both;
+  /* 밸런스 게임 고정 바 숨김 — 출렁임 없이 위로 걷히며 사라진다. */
+  --animate-sticky-lift-out: sticky-lift-out 260ms ease-in both;
 
   /* 추가되는 작은 조각(사진 썸네일·태그 칩) — 작게 시작해 톡 부풀며 자리 잡는다. */
   --animate-pop-in: pop-in 400ms var(--ease-spring-bouncy) both;
@@ -69,8 +73,40 @@
   --animate-overlay-in: fade-in 350ms ease-out both;
   /* 빈 화면 — 8px 아래에서 올라오며 나타난다. */
   --animate-rise-in: rise-in 280ms var(--ease-smooth-out) both;
+  /* 피드 카드 — rise-in과 같은 움직임이되 끝난 뒤 아무것도 남기지 않는다(backwards).
+     both로 남긴 transform은 카드 안 fixed 요소(메뉴 바깥 판·확인 창·시트)의 기준 상자가 되어
+     화면 대신 카드에 갇힌다. 늦춰 둔 동안은 backwards가 첫 장면(투명)으로 숨겨 둔다. */
+  --animate-feed-rise-in: rise-in 280ms var(--ease-smooth-out) backwards;
   /* 불러온 답글 — rise-in보다 느리게, 호출부가 0.1초씩 늦춰 차례로 올라오게 한다. */
   --animate-reply-rise-in: rise-in 450ms var(--ease-smooth-out) both;
+  /* 스피너 — 0.15초 늦게 옅게 나타난다. 빨리 끝나는 로딩에서는 아예 보이지 않아 깜빡이지 않는다. */
+  --animate-spinner-in: fade-in 200ms ease-out 150ms both;
+  /* 다 불러온 사진 — 제자리에서 천천히 옅게 나타난다. overlay-in과 같은 0.35초. */
+  --animate-image-in: fade-in 350ms ease-out both;
+  /* 확인 창(다이얼로그) 상자 — 살짝 작게(0.92) 시작해 한 번 톡 넘치며 자리 잡는다. */
+  --animate-dialog-in: dialog-in 450ms var(--ease-spring-bouncy) both;
+  /* 떠 있는 토스트가 다시 불릴 때(같은 문구든 다른 문구든) — 살짝 움츠렸다(0.94) 출렁이며 돌아온다. */
+  --animate-toast-repop: toast-repop 400ms var(--ease-spring-bouncy) both;
+
+  @keyframes dialog-in {
+    from {
+      opacity: 0;
+      transform: scale(0.92);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes toast-repop {
+    from {
+      transform: scale(0.94);
+    }
+    to {
+      transform: scale(1);
+    }
+  }
 
   @keyframes pop-in {
     from {
@@ -156,6 +192,17 @@
     }
   }
 
+  @keyframes menu-slide-out {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(var(--menu-shift, -8px));
+    }
+  }
+
   @keyframes bell-ring {
     0% {
       transform: rotate(0deg);
@@ -206,6 +253,17 @@
     to {
       opacity: 1;
       transform: translateY(0);
+    }
+  }
+
+  @keyframes sticky-lift-out {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(-120%);
     }
   }
 

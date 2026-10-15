@@ -20,6 +20,7 @@ import {
   postToNative,
 } from "@/shared/lib/native-bridge";
 import { enqueuePendingToast, useToast } from "@/shared/ui";
+import { SURFACE_PRESS } from "@/shared/ui/press-styles";
 import { AppBarShell } from "@/features/community/presentation/app-bar-shell";
 import { useNativeDialog } from "@/features/community/presentation/use-native-dialog";
 import {
@@ -818,7 +819,17 @@ export function PostWriteScreen({
                 "inline-flex h-8 shrink-0 items-center rounded-full border px-3 text-button-s text-tag-chip-default-text transition-colors",
                 selected
                   ? cn("bg-tag-chip-selected-bg", CHIP_BORDER_SELECTED_CLASS)
-                  : cn("bg-tag-chip-default-bg", CHIP_BORDER_DEFAULT_CLASS),
+                  : cn(
+                      "bg-tag-chip-default-bg",
+                      CHIP_BORDER_DEFAULT_CLASS,
+                      // 눌림 면은 비선택 칩에만 — 선택 칩은 제 바탕(chip/selected)을 그대로 지킨다.
+                      "active:bg-surface-container-pressed",
+                    ),
+                // 누르는 동안 96%로 눌렸다가 놓으면 스프링으로 돌아온다(PRESS_BOUNCE와 같은 값).
+                // transition 속성 하나에 색·크기를 함께 적는다 — 따로 걸면 transition-property가 서로 덮어쓴다.
+                "motion-safe:[transition:scale_500ms_var(--ease-spring-wobbly),background-color_120ms_ease-out,border-color_120ms_ease-out]",
+                "motion-safe:active:[transition:scale_100ms_ease-out,background-color_120ms_ease-out,border-color_120ms_ease-out]",
+                "motion-safe:active:scale-96",
               )}
             >
               {category.name}
@@ -1100,6 +1111,8 @@ export function PostWriteScreen({
             className={cn(
               "inline-flex items-center justify-center gap-3",
               TOOLBAR_TEXT_CLASS,
+              // 칸이 넓어 둥근 면(rounded-xl)으로 눌림을 깐다. 수정 모드(비활성처럼 보임)는 눌림 면을 두지 않는다.
+              !isEdit && cn("rounded-xl", SURFACE_PRESS),
             )}
           >
             <ImageIcon
@@ -1120,8 +1133,9 @@ export function PostWriteScreen({
             type="button"
             onClick={focusTagInput}
             className={cn(
-              "inline-flex items-center justify-center gap-3",
+              "inline-flex items-center justify-center gap-3 rounded-xl",
               TOOLBAR_TEXT_CLASS,
+              SURFACE_PRESS,
             )}
           >
             <TagIcon size={24} />
@@ -1132,15 +1146,16 @@ export function PostWriteScreen({
 
       {/* 등록 진행 오버레이 — 게시글 생성 중(submitting) 전 영역을 덮어 입력/버튼 재탭을 막고
           (overlay가 포인터 이벤트를 가로챔) 중앙 스피너로 진행을 알린다. 앱바(z-30)까지 덮도록 z-50.
-          스피너 색은 Color/Blue/600(--blue-600). */}
+          스피너 색은 Color/Blue/600 — interactive/primary-pressed 토큰. 바탕은 surface/container 60%(다크에서도 화면 바탕을 따른다).
+          켜질 때 옅게 나타난다(200ms). */}
       {submitting ? (
         <div
-          className="absolute inset-0 z-50 flex items-center justify-center bg-white/60"
+          className="absolute inset-0 z-50 flex items-center justify-center bg-surface-container/60 motion-safe:animate-fade-in"
           role="status"
           aria-live="polite"
           aria-label="게시글 등록 중"
         >
-          <span className="h-8 w-8 animate-spin rounded-full border-[3px] border-[var(--blue-600)] border-t-transparent" />
+          <span className="h-8 w-8 animate-spin rounded-full border-[3px] border-interactive-primary-pressed border-t-transparent" />
         </div>
       ) : null}
 
@@ -1200,6 +1215,8 @@ function ThumbnailRemoveButton({
       className={cn(
         "absolute inline-flex items-center justify-center rounded-full text-image-delete-icon",
         THUMBNAIL_REMOVE_BG_CLASS,
+        // 눌림: 바탕(surface/secondary)이 짝인 pressed로 한 단계 진해진다.
+        "motion-safe:transition-colors motion-safe:duration-120 active:bg-surface-secondary-pressed",
       )}
     >
       <CloseIcon size={THUMBNAIL_REMOVE_ICON_SIZE} />

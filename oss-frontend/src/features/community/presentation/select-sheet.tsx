@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { cn } from "@/shared/lib/cn";
 import type { SelectSheetOption } from "@/shared/lib/native-bridge";
+import { PRESS_BOUNCE, SURFACE_PRESS } from "@/shared/ui/press-styles";
 
 const SHEET_FADE_MS = 200;
 
@@ -139,7 +140,8 @@ export function SelectSheet({
           />
         ) : null}
 
-        {/* 하단 CTA: 높이 51, radius 15 — 앱 공통 버튼 스펙과 동일 */}
+        {/* 하단 CTA: 높이 51, radius 15 — 앱 공통 버튼 스펙과 동일.
+            누르는 동안 cta 눌림 색이 깔리고 살짝 눌렸다 출렁인다(고르기 전 비활성일 때는 반응하지 않는다). */}
         <button
           type="button"
           disabled={!canSubmit}
@@ -155,7 +157,11 @@ export function SelectSheet({
                 })
               : undefined
           }
-          className="mt-4 h-[51px] w-full rounded-[15px] bg-cta-primary-bg text-button-m text-cta-primary-text disabled:bg-cta-primary-disabled-bg disabled:text-cta-primary-disabled-text"
+          className={cn(
+            "mt-4 h-[51px] w-full rounded-[15px] bg-cta-primary-bg text-button-m text-cta-primary-text disabled:bg-cta-primary-disabled-bg disabled:text-cta-primary-disabled-text",
+            "enabled:active:bg-cta-primary-pressed-bg",
+            PRESS_BOUNCE,
+          )}
         >
           {submitText}
         </button>
@@ -181,7 +187,11 @@ function SheetOption({
         role="radio"
         aria-checked={selected}
         onClick={onSelect}
-        className="flex h-[51px] w-full items-center gap-3 text-left"
+        // 누르는 동안 줄 바탕이 옅게 물든다. 면이 시트 좌우 끝(px-5)까지 닿도록 여백을 음수 마진으로 넓힌다.
+        className={cn(
+          "-mx-5 flex h-[51px] w-[calc(100%+2.5rem)] items-center gap-3 px-5 text-left",
+          SURFACE_PRESS,
+        )}
       >
         <span
           className={cn(

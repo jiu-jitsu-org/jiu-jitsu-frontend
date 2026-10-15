@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 
 import { BackArrowIcon } from "@/shared/ui/icons";
+import { ICON_BUTTON_PRESS } from "@/shared/ui/press-styles";
 
 /**
  * 좌측 상단 뒤로가기 버튼 (개발용 테스트 페이지 전용).
@@ -41,7 +42,7 @@ export function BackButton({
         type="button"
         onClick={goBack}
         aria-label="뒤로 가기"
-        className="inline-flex size-10 items-center justify-center rounded-full motion-safe:transition-colors motion-safe:duration-120 active:bg-surface-container-pressed text-zinc-900"
+        className={`inline-flex size-10 items-center justify-center text-zinc-900 ${ICON_BUTTON_PRESS}`}
       >
         <BackArrowIcon size={24} />
       </button>

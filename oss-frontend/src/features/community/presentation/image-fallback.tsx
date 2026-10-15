@@ -3,6 +3,7 @@
 import type { CSSProperties } from "react";
 
 import { cn } from "@/shared/lib/cn";
+import { NEUTRAL_BUTTON_PRESS } from "@/shared/ui/press-styles";
 
 /**
  * 이미지 로드 실패 폴백 · 재시도 공용 조각 (#104).
@@ -44,6 +45,41 @@ export function readSettledImage(img: HTMLImageElement | null): SettledImage {
 }
 
 /**
+ * 사진 등장 상태.
+ * - undefined: 아무것도 하지 않는다(그대로 보인다). 서버 HTML과 첫 렌더, 부착 때 이미 끝나 있던 사진.
+ * - "pending": 부착 때 아직 받는 중이라 투명하게 숨겼다.
+ * - "loaded": 숨겼던 사진을 다 받아 옅게 나타나는 중.
+ */
+export type ImageReveal = "pending" | "loaded" | undefined;
+
+/**
+ * 부착 시점(ref 콜백)의 등장 상태 — 아직 받는 중일 때만 숨긴다.
+ * 서버 HTML에서는 숨기지 않는다: 하이드레이션 전에 이미 받은 사진이 그때까지(JS가 실패하면 영영)
+ * 투명하게 남기 때문이다. src가 바뀐 같은 img에도 다시 불러 새 사진 기준으로 고친다.
+ */
+export function revealOnAttach(img: HTMLImageElement): ImageReveal {
+  return img.complete ? undefined : "pending";
+}
+
+/** load 이벤트의 등장 상태 — 숨겼던 사진만 나타나게 한다(숨긴 적 없으면 그대로 둔다). */
+export function revealOnLoad(prev: ImageReveal): ImageReveal {
+  return prev === "pending" ? "loaded" : prev;
+}
+
+/**
+ * 다 불러온 사진만 옅게 나타나게 하는 클래스 — 반쯤 받은 사진이 위에서부터 그려지는 모습을 감춘다.
+ *
+ * 받는 중에는 투명하게 두고(자리 색은 감싼 칸의 바탕이 보인다), 받으면 image-in으로 0.35초 동안
+ * 나타난다. 둘 다 motion-safe라 동작 줄이기면 숨기지 않고 그대로 보인다.
+ * 호출부는 ref에서 revealOnAttach, onLoad에서 revealOnLoad로 상태를 옮긴다.
+ */
+export function imageRevealClassName(reveal: ImageReveal): string | undefined {
+  if (reveal === "pending") return "motion-safe:opacity-0";
+  if (reveal === "loaded") return "motion-safe:animate-image-in";
+  return undefined;
+}
+
+/**
  * 로드 실패 안내 + 재시도. 확보한 영역을 유지해 아래 요소가 밀려 올라오지 않게 한다.
  *
  * 바깥 영역 크기만 호출부가 주입하고(sizeClassName · style) 내용(문구 · 재시도 버튼)은 이쪽이
@@ -64,7 +100,13 @@ export function ImageLoadError({
   style?: CSSProperties;
 }) {
   return (
-    <div className={cn("overflow-hidden rounded-2xl", className)}>
+    // 사진 자리에서 툭 바뀌지 않게 옅게 나타난다(사진 등장과 같은 image-in).
+    <div
+      className={cn(
+        "overflow-hidden rounded-2xl motion-safe:animate-image-in",
+        className,
+      )}
+    >
       {/* 안내 문구는 세로 가운데가 아니라 컨테이너 top에서 84에 붙인다(피드·상세 공통 규격). */}
       <div
         style={style}
@@ -76,11 +118,15 @@ export function ImageLoadError({
         <p className="text-body-s text-image-load-error-text">
           이미지를 불러올 수 없어요
         </p>
-        {/* 재시도: 64(hug) x 32, radius 10 — 라벨이 길어지면 가로로만 늘어난다. */}
+        {/* 재시도: 64(hug) x 32, radius 10 — 라벨이 길어지면 가로로만 늘어난다.
+            누르는 동안 neutral 눌림 색으로 짙어진다(피드 재시도 버튼과 같은 눌림). */}
         <button
           type="button"
           onClick={onRetry}
-          className="text-body-s mt-2 inline-flex h-8 min-w-16 items-center justify-center rounded-[10px] bg-button-neutral-default-bg px-2 text-button-neutral-default-text"
+          className={cn(
+            "text-body-s mt-2 inline-flex h-8 min-w-16 items-center justify-center rounded-[10px] bg-button-neutral-default-bg px-2 text-button-neutral-default-text",
+            NEUTRAL_BUTTON_PRESS,
+          )}
         >
           재시도
         </button>

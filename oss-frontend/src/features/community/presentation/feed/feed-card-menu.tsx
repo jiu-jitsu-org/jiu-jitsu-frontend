@@ -136,14 +136,15 @@ export function FeedCardMenu({
 
   return (
     <>
-      {/* 트리거: 헤더 스펙 그대로(28x32, eclipsis-vertical 16) */}
+      {/* 트리거: 헤더 스펙 그대로(28x32, eclipsis-vertical 16).
+          눌림은 댓글 ⋮(CommentMenu)와 같다 — radius 10 면 + reaction-bar 눌림 색. */}
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="게시물 메뉴 열기"
-        className="inline-flex h-7 w-8 items-center justify-center text-feed-card-header-more-icon"
+        className="inline-flex h-7 w-8 items-center justify-center rounded-[10px] text-feed-card-header-more-icon active:bg-reaction-bar-pressed-bg active:text-reaction-bar-pressed-icon"
       >
         <MoreVerticalIcon size={16} />
       </button>
@@ -153,40 +154,20 @@ export function FeedCardMenu({
           {/* 자신 게시글: 삭제/수정 · 타인 게시글: 신고/숨기기 */}
           {isOwner ? (
             <>
-              <MenuItem
-                onClick={() => {
-                  setOpen(false);
-                  void handleDelete();
-                }}
-              >
+              <MenuItem onClick={() => void handleDelete()}>
                 삭제하기
               </MenuItem>
-              <MenuItem
-                onClick={() => {
-                  setOpen(false);
-                  openPostEdit(postId);
-                }}
-              >
+              <MenuItem onClick={() => openPostEdit(postId)}>
                 수정하기
               </MenuItem>
             </>
           ) : (
             <>
-              <MenuItem
-                onClick={() => {
-                  setOpen(false);
-                  void handleReport();
-                }}
-              >
+              <MenuItem onClick={() => void handleReport()}>
                 신고하기
               </MenuItem>
               {/* 숨기기는 확인 알럿 없이 바로 처리 — 되돌리기 토스트가 취소 수단이다. */}
-              <MenuItem
-                onClick={() => {
-                  setOpen(false);
-                  void handleHide();
-                }}
-              >
+              <MenuItem onClick={() => void handleHide()}>
                 숨기기
               </MenuItem>
             </>

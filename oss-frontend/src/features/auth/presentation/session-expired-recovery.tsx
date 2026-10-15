@@ -3,11 +3,16 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
+import { cn } from "@/shared/lib/cn";
 import {
   OutboundMessageType,
   postToNative,
   refreshSessionViaBridge,
 } from "@/shared/lib/native-bridge";
+import {
+  FILLED_BUTTON_PRESS,
+  NEUTRAL_BUTTON_PRESS,
+} from "@/shared/ui/press-styles";
 
 /**
  * 만료 세션 복구 경계(서버 → 클라이언트 위임).
@@ -106,7 +111,8 @@ export function SessionExpiredRecovery({
  */
 function SessionExpiredFallback({ onRetry }: { onRetry: () => void }) {
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-[13px] px-4 text-center">
+    // 복구 스피너 자리에서 8px 아래에서 올라오며 나타난다(빈 화면과 같은 rise-in).
+    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-[13px] px-4 text-center motion-safe:animate-rise-in">
       <p className="text-body-m text-text-primary">
         로그인이 만료됐어요
       </p>
@@ -118,7 +124,11 @@ function SessionExpiredFallback({ onRetry }: { onRetry: () => void }) {
         <button
           type="button"
           onClick={onRetry}
-          className="h-[38px] rounded-[10px] bg-button-neutral-default-bg px-4 text-button-m text-button-neutral-default-text"
+          // 누르는 동안 각자 눌림 색으로 짙어진다(피드 재시도 버튼과 같은 눌림).
+          className={cn(
+            "h-[38px] rounded-[10px] bg-button-neutral-default-bg px-4 text-button-m text-button-neutral-default-text",
+            NEUTRAL_BUTTON_PRESS,
+          )}
         >
           재시도
         </button>
@@ -127,7 +137,10 @@ function SessionExpiredFallback({ onRetry }: { onRetry: () => void }) {
           onClick={() =>
             postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT })
           }
-          className="h-[38px] rounded-[10px] bg-button-filled-default-bg px-4 text-button-m text-button-filled-default-text"
+          className={cn(
+            "h-[38px] rounded-[10px] bg-button-filled-default-bg px-4 text-button-m text-button-filled-default-text",
+            FILLED_BUTTON_PRESS,
+          )}
         >
           로그인
         </button>

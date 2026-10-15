@@ -13,6 +13,11 @@ import {
 import { scheduleAppStoreFallback } from "@/shared/lib/app-link";
 import { cn } from "@/shared/lib/cn";
 import { useOpenInAppHref } from "@/shared/lib/use-open-in-app-href";
+import {
+  FILLED_BUTTON_PRESSED_BG,
+  NEUTRAL_BUTTON_PRESSED_BG,
+  PRESS_BOUNCE,
+} from "@/shared/ui/press-styles";
 
 /**
  * 외부 브라우저(비로그인)에서 로그인이 필요한 행위를 눌렀을 때 띄우는 "앱에서 계속하기" 안내.
@@ -140,7 +145,8 @@ function OpenInAppDialog({
       <div
         role="dialog"
         aria-modal="true"
-        className="relative w-full max-w-[320px] rounded-[20px] bg-dialog-container-bg px-5 pb-5 pt-5"
+        // 상자만 살짝 작게 시작해 톡 넘치며 자리 잡는다(ConfirmDialog와 같은 dialog-in).
+        className="relative w-full max-w-[320px] rounded-[20px] bg-dialog-container-bg px-5 pb-5 pt-5 motion-safe:animate-dialog-in"
       >
         <h2 className="text-left text-title-2 text-dialog-title-text">
           앱에서 계속할 수 있어요
@@ -153,7 +159,12 @@ function OpenInAppDialog({
           <button
             type="button"
             onClick={onClose}
-            className="h-[51px] flex-1 rounded-[15px] bg-button-neutral-default-bg text-button-m text-button-neutral-default-text"
+            // 누르는 동안 눌림 색이 깔리고 살짝 눌렸다 출렁인다(ConfirmDialog 버튼과 같은 눌림).
+            className={cn(
+              "h-[51px] flex-1 rounded-[15px] bg-button-neutral-default-bg text-button-m text-button-neutral-default-text",
+              NEUTRAL_BUTTON_PRESSED_BG,
+              PRESS_BOUNCE,
+            )}
           >
             닫기
           </button>
@@ -166,7 +177,11 @@ function OpenInAppDialog({
               scheduleAppStoreFallback();
               onClose();
             }}
-            className="inline-flex h-[51px] flex-1 items-center justify-center rounded-[15px] bg-button-filled-default-bg text-button-m text-button-filled-default-text"
+            className={cn(
+              "inline-flex h-[51px] flex-1 items-center justify-center rounded-[15px] bg-button-filled-default-bg text-button-m text-button-filled-default-text",
+              FILLED_BUTTON_PRESSED_BG,
+              PRESS_BOUNCE,
+            )}
           >
             앱에서 계속하기
           </a>

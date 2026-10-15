@@ -9,6 +9,8 @@ import { POST_EDIT_FROM_DETAIL } from "@/features/community/presentation/post-ed
 import { readSessionToken } from "@/shared/lib/auth";
 import { ApiErrorCode, toApiError } from "@/shared/lib/http";
 
+import EditLoading from "./loading";
+
 /**
  * 게시글 수정 라우트. 피드/상세 ⋮ 메뉴의 "수정하기"(useOpenPostEdit)가 여는 화면.
  *
@@ -73,18 +75,5 @@ export default async function CommunityPostEditPage({
         returnToDetail: from === POST_EDIT_FROM_DETAIL,
       }}
     />
-  );
-}
-
-/** 수정 화면 복구(세션 갱신) 중 표시. */
-function EditLoading() {
-  return (
-    <div className="flex min-h-dvh items-center justify-center">
-      <span
-        className="size-6 animate-spin rounded-full border-2 border-feed-card-header-avatar-bg border-t-transparent"
-        role="status"
-        aria-label="불러오는 중"
-      />
-    </div>
   );
 }

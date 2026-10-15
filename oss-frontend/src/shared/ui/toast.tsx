@@ -11,6 +11,7 @@ import {
 } from "react";
 
 import { cn } from "@/shared/lib/cn";
+import { NEUTRAL_BUTTON_PRESS } from "@/shared/ui/press-styles";
 
 /**
  * 공통 토스트.
@@ -55,33 +56,66 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const [visible, setVisible] = useState(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const unmountTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 지금 떠 있는 문구 — show가 "이미 떠 있는 토스트를 다시 부르는지" 판단하려고 렌더와 별개로 들고 있는다.
+  const messageRef = useRef<string | null>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+  // 떠 있는 토스트가 다시 불려 톡 다시 튀는 중(animate-toast-repop 스위치).
+  const [repopping, setRepopping] = useState(false);
+
+  const unmount = useCallback(() => {
+    messageRef.current = null;
+    setMessage(null);
+    setAction(null);
+    setRepopping(false);
+  }, []);
 
   const dismiss = useCallback(() => {
     if (hideTimer.current) clearTimeout(hideTimer.current);
     setVisible(false); // 페이드 아웃
-    unmountTimer.current = setTimeout(() => {
-      setMessage(null);
-      setAction(null);
-    }, TOAST_FADE_MS);
-  }, []);
+    unmountTimer.current = setTimeout(unmount, TOAST_FADE_MS);
+  }, [unmount]);
 
-  const show = useCallback((next: string, nextAction?: ToastAction) => {
-    if (hideTimer.current) clearTimeout(hideTimer.current);
-    if (unmountTimer.current) clearTimeout(unmountTimer.current);
+  const show = useCallback(
+    (next: string, nextAction?: ToastAction) => {
+      if (hideTimer.current) clearTimeout(hideTimer.current);
+      if (unmountTimer.current) clearTimeout(unmountTimer.current);
 
-    setMessage(next);
-    setAction(nextAction ?? null);
-    hideTimer.current = setTimeout(
-      () => {
-        setVisible(false); // 페이드 아웃
-        unmountTimer.current = setTimeout(() => {
-          setMessage(null);
-          setAction(null);
-        }, TOAST_FADE_MS);
-      },
-      nextAction ? TOAST_WITH_ACTION_VISIBLE_MS : TOAST_VISIBLE_MS,
-    );
-  }, []);
+      // 떠 있는 토스트가 다시 불리면(같은 문구든 다른 문구든) 박스가 톡 다시 튄다 — 같은 자리에
+      // 그대로 있으면 새 소식인지, 같은 일이 한 번 더 일어났는지 알 수 없다.
+      // 올라오는 전환(translate·opacity)과는 다른 속성(transform: scale)이라 서로 건드리지 않는다.
+      // 이미 튀는 중이면 클래스를 다시 붙여도 재생되지 않으므로 돌고 있는 애니메이션을 처음으로 되감는다.
+      if (messageRef.current !== null) {
+        const running = boxRef.current
+          ?.getAnimations()
+          .find(
+            (animation) =>
+              animation instanceof CSSAnimation &&
+              animation.animationName === "toast-repop",
+          );
+        if (running) {
+          running.currentTime = 0;
+          running.play();
+        } else {
+          setRepopping(true);
+        }
+        // 사라지는 중(페이드 아웃)에 불렸으면 다시 올린다 — 같은 문구면 아래 페이드 인 효과가
+        // 다시 돌지 않아(message 그대로) 투명한 채 남는다.
+        setVisible(true);
+      }
+      messageRef.current = next;
+
+      setMessage(next);
+      setAction(nextAction ?? null);
+      hideTimer.current = setTimeout(
+        () => {
+          setVisible(false); // 페이드 아웃
+          unmountTimer.current = setTimeout(unmount, TOAST_FADE_MS);
+        },
+        nextAction ? TOAST_WITH_ACTION_VISIBLE_MS : TOAST_VISIBLE_MS,
+      );
+    },
+    [unmount],
+  );
 
   // 메시지가 마운트되면 다음 프레임에 알파 0→1로 페이드 인(초기 opacity-0 프레임을 먼저 그린 뒤 전환).
   useEffect(() => {
@@ -107,8 +141,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           {/* 최소 높이 58(멀티라인 가변), 라운드 15, 좌우 16/상하 8, toast/default 토큰, Body S(Medium 14/21). 아래에서 올라온다. */}
           {/* 본문↔버튼 간격 16. 버튼 우측 여백 16은 컨테이너 px-4가 담당한다. */}
           <div
+            ref={boxRef}
             role="status"
             aria-live="polite"
+            onAnimationEnd={(event) => {
+              if (event.animationName === "toast-repop") setRepopping(false);
+            }}
             className={cn(
               "flex min-h-[58px] w-full items-center gap-4 rounded-[15px] bg-toast-default-background px-4 py-2 text-body-s text-toast-default-text",
               // 나타날 때 아래에서 500ms 감속하며 올라오고, 사라질 때 200ms에 내려가며 흐려진다.
@@ -116,6 +154,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               visible
                 ? "translate-y-0 opacity-100 duration-500 ease-smooth-out"
                 : "translate-y-full opacity-0 duration-200 ease-in",
+              repopping && "motion-safe:animate-toast-repop",
             )}
           >
             <span className="flex-1">{message}</span>
@@ -129,7 +168,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                   dismiss();
                   action.onAction();
                 }}
-                className="text-button-s pointer-events-auto inline-flex min-h-[30px] shrink-0 items-center justify-center rounded-[10px] bg-button-neutral-default-bg px-4 py-2 text-button-neutral-default-text"
+                // 눌림도 neutral 버튼 짝(button/neutral/pressed)을 따른다 — 버튼이 제 바탕을 가져 어두운 토스트 위에서도 보인다.
+                className={cn(
+                  "text-button-s pointer-events-auto inline-flex min-h-[30px] shrink-0 items-center justify-center rounded-[10px] bg-button-neutral-default-bg px-4 py-2 text-button-neutral-default-text",
+                  NEUTRAL_BUTTON_PRESS,
+                )}
               >
                 {action.label}
               </button>

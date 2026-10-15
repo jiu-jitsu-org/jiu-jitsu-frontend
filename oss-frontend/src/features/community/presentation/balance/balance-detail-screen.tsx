@@ -1,8 +1,10 @@
 import { SessionExpiredRecovery } from "@/features/auth/presentation/session-expired-recovery";
 import { getBalanceDetailPageData } from "@/features/community/application/get-balance-detail-page-data";
 import type { CommentSort } from "@/features/community/domain/post";
+import { DetailErrorState } from "@/features/community/presentation/detail-error-state";
 import { BalanceDetailGone } from "@/features/community/presentation/balance/balance-detail-gone";
 import { BalanceDetailView } from "@/features/community/presentation/balance/balance-detail-view";
+import { Spinner } from "@/shared/ui/spinner";
 
 /**
  * 밸런스 게임 상세 화면 루트 (서버 컴포넌트).
@@ -35,7 +37,7 @@ export async function BalanceDetailScreen({
       return <BalanceDetailGone />;
     }
 
-    return <BalanceDetailError message={result.error} />;
+    return <DetailErrorState title="밸런스 게임을 불러오지 못했습니다." />;
   }
 
   const { game, comments } = result.data;
@@ -47,22 +49,7 @@ export async function BalanceDetailScreen({
 function BalanceDetailLoading() {
   return (
     <div className="flex min-h-dvh items-center justify-center">
-      <span
-        className="size-6 animate-spin rounded-full border-2 border-feed-card-header-avatar-bg border-t-transparent"
-        role="status"
-        aria-label="불러오는 중"
-      />
-    </div>
-  );
-}
-
-function BalanceDetailError({ message }: { message: string }) {
-  return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-2 px-6 text-center">
-      <p className="text-body-m text-text-primary">
-        밸런스 게임을 불러오지 못했습니다.
-      </p>
-      <p className="text-body-s text-text-tertiary">{message}</p>
+      <Spinner />
     </div>
   );
 }

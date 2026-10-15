@@ -2,7 +2,13 @@
 
 import { useCallback, useState } from "react";
 
-import { readSettledImage } from "@/features/community/presentation/image-fallback";
+import {
+  type ImageReveal,
+  imageRevealClassName,
+  readSettledImage,
+  revealOnAttach,
+  revealOnLoad,
+} from "@/features/community/presentation/image-fallback";
 import { cn } from "@/shared/lib/cn";
 import { PersonIcon } from "@/shared/ui/icons";
 
@@ -24,12 +30,16 @@ export function Avatar({
   // 실패 여부(boolean)가 아니라 "실패한 주소"를 기억한다 — src가 바뀌면 비교 결과가 저절로
   // 달라져 새 이미지를 다시 시도하므로, 폴백을 풀어주는 초기화 로직이 필요 없다.
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  // 받는 중이던 사진만 다 불러온 뒤에 옅게 나타난다(image-fallback의 ImageReveal).
+  const [reveal, setReveal] = useState<ImageReveal>(undefined);
 
-  // 아바타는 실패만 본다 — 성공 시 할 일이 없다(대체 아이콘을 안 띄우면 그만).
-  // src가 바뀌면 콜백 identity가 바뀌어 새 이미지에 대해 다시 실행된다.
-  const detectBrokenImage = useCallback(
+  // 하이드레이션 전에 이미 끝난 이미지는 load/error 이벤트를 놓치므로 부착 시점에 직접 확인한다.
+  // src가 바뀌면 콜백 identity가 바뀌어 새 이미지에 대해 다시 실행된다 — 등장 상태도 여기서 새로 정한다.
+  const detectSettledImage = useCallback(
     (img: HTMLImageElement | null) => {
+      if (!img) return;
       if (readSettledImage(img) === "failed") setFailedSrc(src ?? null);
+      setReveal(revealOnAttach(img));
     },
     [src],
   );
@@ -47,10 +57,12 @@ export function Avatar({
         // 공통 컴포넌트라 호출처 이미지 도메인이 다양 → next/image 설정 의존을 피해 plain img 사용.
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          ref={detectBrokenImage}
+          ref={detectSettledImage}
           src={src ?? undefined}
           alt=""
-          className="size-full object-cover"
+          // 다 불러오기 전에는 동그라미 바탕만 보이고, 불러오면 옅게 나타난다.
+          className={cn("size-full object-cover", imageRevealClassName(reveal))}
+          onLoad={() => setReveal(revealOnLoad)}
           onError={() => setFailedSrc(src ?? null)}
         />
       ) : (

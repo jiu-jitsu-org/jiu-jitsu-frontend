@@ -2,6 +2,8 @@
 
 import { scheduleAppStoreFallback } from "@/shared/lib/app-link";
 import { useOpenInAppHref } from "@/shared/lib/use-open-in-app-href";
+import { cn } from "@/shared/lib/cn";
+import { FILLED_BUTTON_PRESS } from "@/shared/ui/press-styles";
 
 /**
  * 외부 브라우저 전용 '앱 열기' 유도 배너 — 앱 웹뷰용 앱바를 대신해 최상단에 선다(#72).
@@ -19,7 +21,8 @@ export function OpenInAppBanner() {
   const openInAppHref = useOpenInAppHref();
 
   return (
-    <div className="box-content bg-[var(--bw-true-white)] pt-[env(safe-area-inset-top)]">
+    // 처음 그려질 때 옅게 나타난다(200ms).
+    <div className="box-content bg-surface-container pt-[env(safe-area-inset-top)] motion-safe:animate-fade-in">
       <div className="flex items-center gap-3 border-b border-border-subtle px-4 py-3">
         {/* 앱 아이콘 — iOS 홈 화면 아이콘과 같은 라운드(약 22%)를 준다. 정적 자산이라 next/image 불필요. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -46,7 +49,10 @@ export function OpenInAppBanner() {
         <a
           href={openInAppHref}
           onClick={() => scheduleAppStoreFallback()}
-          className="text-button-s inline-flex h-8 shrink-0 items-center justify-center rounded-[10px] bg-button-filled-default-bg px-3 text-button-filled-default-text"
+          className={cn(
+            "text-button-s inline-flex h-8 shrink-0 items-center justify-center rounded-[10px] bg-button-filled-default-bg px-3 text-button-filled-default-text",
+            FILLED_BUTTON_PRESS,
+          )}
         >
           앱으로 보기
         </a>

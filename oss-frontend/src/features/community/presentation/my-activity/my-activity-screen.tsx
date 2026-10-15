@@ -18,6 +18,7 @@ import {
   type MyActivityTab,
 } from "@/features/community/presentation/my-activity/my-activity-tab";
 import { MyActivityTabs } from "@/features/community/presentation/my-activity/my-activity-tabs";
+import { Spinner } from "@/shared/ui/spinner";
 
 /**
  * 내 커뮤니티 활동 화면 루트 (서버 컴포넌트) — 내가 쓴 글 · 저장한 글.
@@ -125,11 +126,7 @@ function MyActivityPanel({
 function MyActivityLoading() {
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
-      <span
-        className="size-6 animate-spin rounded-full border-2 border-feed-card-header-avatar-bg border-t-transparent"
-        role="status"
-        aria-label="불러오는 중"
-      />
+      <Spinner />
     </div>
   );
 }

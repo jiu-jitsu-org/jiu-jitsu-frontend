@@ -13,7 +13,11 @@ import {
 } from "@/features/community/presentation/image-aspect";
 import {
   ImageLoadError,
+  type ImageReveal,
+  imageRevealClassName,
   readSettledImage,
+  revealOnAttach,
+  revealOnLoad,
   withRetryParam,
 } from "@/features/community/presentation/image-fallback";
 import { PostImageViewer } from "@/features/community/presentation/post-image-viewer";
@@ -127,10 +131,15 @@ function SingleImage({
 }) {
   const [attempt, setAttempt] = useState(0);
   const [failed, setFailed] = useState(false);
+  const [reveal, setReveal] = useState<ImageReveal>(undefined);
 
-  // 실패만 본다 — 높이를 CSS가 잡으므로 성공 시 잴 것이 없다.
-  const detectBrokenImage = useCallback((img: HTMLImageElement | null) => {
+  // 높이는 CSS가 잡아 잴 것은 없지만, 받는 중이던 사진은 다 불러온 뒤에 옅게 나타나게 한다.
+  // 하이드레이션 전에 끝난 이미지는 이벤트를 놓치므로 부착 시점에 직접 확인한다.
+  // 재시도는 실패 폴백을 거쳐 새 img로 붙으므로 여기서 등장 상태도 새로 정해진다.
+  const detectSettledImage = useCallback((img: HTMLImageElement | null) => {
+    if (!img) return;
     if (readSettledImage(img) === "failed") setFailed(true);
+    setReveal(revealOnAttach(img));
   }, []);
 
   function handleRetry() {
@@ -155,11 +164,15 @@ function SingleImage({
       type="button"
       onClick={onOpen}
       aria-label="이미지 크게 보기"
-      className={cn("relative block w-full overflow-hidden rounded-2xl", className)}
+      // 로드 전 자리 색(surface/secondary)은 버튼이 깐다 — 사진은 다 불러온 뒤 옅게 나타난다.
+      className={cn(
+        "relative block w-full overflow-hidden rounded-2xl bg-surface-secondary",
+        className,
+      )}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        ref={detectBrokenImage}
+        ref={detectSettledImage}
         src={withRetryParam(image.imageUrl, attempt)}
         alt=""
         style={{
@@ -167,9 +180,13 @@ function SingleImage({
           minHeight: IMAGE_MIN_HEIGHT,
           maxHeight: IMAGE_MAX_HEIGHT,
         }}
+        onLoad={() => setReveal(revealOnLoad)}
         onError={() => setFailed(true)}
         // block: inline 이미지의 baseline 여백을 없앤다.
-        className="block w-full bg-[var(--cool-gray-50)] object-cover object-center"
+        className={cn(
+          "block w-full object-cover object-center",
+          imageRevealClassName(reveal),
+        )}
       />
     </button>
   );
@@ -278,10 +295,13 @@ function CarouselSlide({
 }) {
   const [attempt, setAttempt] = useState(0);
   const [failed, setFailed] = useState(false);
+  const [reveal, setReveal] = useState<ImageReveal>(undefined);
 
-  // 슬라이드는 실패만 본다 — 높이 고정이라 성공 시 측정할 것이 없다.
-  const detectBrokenImage = useCallback((img: HTMLImageElement | null) => {
+  // 높이 고정이라 잴 것은 없지만, 받는 중이던 사진은 다 불러온 뒤에 옅게 나타나게 한다.
+  const detectSettledImage = useCallback((img: HTMLImageElement | null) => {
+    if (!img) return;
     if (readSettledImage(img) === "failed") setFailed(true);
+    setReveal(revealOnAttach(img));
   }, []);
 
   function handleRetry() {
@@ -310,11 +330,12 @@ function CarouselSlide({
       type="button"
       onClick={onOpen}
       aria-label={label}
-      className="relative h-full shrink-0 overflow-hidden rounded-2xl"
+      // 로드 전 자리 색(surface/secondary)은 버튼이 깐다 — 사진은 다 불러온 뒤 옅게 나타난다.
+      className="relative h-full shrink-0 overflow-hidden rounded-2xl bg-surface-secondary"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        ref={detectBrokenImage}
+        ref={detectSettledImage}
         src={withRetryParam(image.imageUrl, attempt)}
         alt=""
         style={{
@@ -324,8 +345,12 @@ function CarouselSlide({
           minWidth: SLIDE_MIN_WIDTH,
           maxWidth: SLIDE_MAX_WIDTH,
         }}
+        onLoad={() => setReveal(revealOnLoad)}
         onError={() => setFailed(true)}
-        className="block h-full bg-[var(--cool-gray-50)] object-cover object-center"
+        className={cn(
+          "block h-full object-cover object-center",
+          imageRevealClassName(reveal),
+        )}
       />
     </button>
   );
