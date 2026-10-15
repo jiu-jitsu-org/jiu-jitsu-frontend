@@ -288,39 +288,19 @@ export function PostDetailAppBar({
                 {/* 자신 게시글: 삭제/수정 · 타인 게시글: 신고/숨기기 */}
                 {isOwner ? (
                   <>
-                    <MenuItem
-                      onClick={() => {
-                        setMenuOpen(false);
-                        void handleDelete();
-                      }}
-                    >
+                    <MenuItem onClick={() => void handleDelete()}>
                       삭제하기
                     </MenuItem>
-                    <MenuItem
-                      onClick={() => {
-                        setMenuOpen(false);
-                        openPostEdit(postId);
-                      }}
-                    >
+                    <MenuItem onClick={() => openPostEdit(postId)}>
                       수정하기
                     </MenuItem>
                   </>
                 ) : (
                   <>
-                    <MenuItem
-                      onClick={() => {
-                        setMenuOpen(false);
-                        void handleReport();
-                      }}
-                    >
+                    <MenuItem onClick={() => void handleReport()}>
                       신고하기
                     </MenuItem>
-                    <MenuItem
-                      onClick={() => {
-                        setMenuOpen(false);
-                        void handleHide();
-                      }}
-                    >
+                    <MenuItem onClick={() => void handleHide()}>
                       숨기기
                     </MenuItem>
                   </>

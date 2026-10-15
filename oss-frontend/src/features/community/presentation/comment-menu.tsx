@@ -177,13 +177,7 @@ export function CommentMenu({
       {open ? (
         <MenuBox placement="top-right" onClose={() => setOpen(false)}>
           {items.map((item) => (
-            <MenuItem
-              key={item.label}
-              onClick={() => {
-                setOpen(false);
-                item.onSelect();
-              }}
-            >
+            <MenuItem key={item.label} onClick={item.onSelect}>
               {item.label}
             </MenuItem>
           ))}
