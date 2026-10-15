@@ -104,14 +104,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         // 기본 16, 댓글 입력 바가 있는 상세는 바 위(85). z는 최상단 —
         // 우하단 플로팅 버튼(FAB, z auto)과 시트·알럿(z-50)보다 위에 와야 한다.
         <div className="pointer-events-none fixed inset-x-6 bottom-[calc(var(--toast-bottom-inset)_+_env(safe-area-inset-bottom))] z-[60]">
-          {/* 최소 높이 58(멀티라인 가변), 라운드 15, 좌우 16/상하 8, toast/default 토큰, Body S(Medium 14/21). 알파 페이드. */}
+          {/* 최소 높이 58(멀티라인 가변), 라운드 15, 좌우 16/상하 8, toast/default 토큰, Body S(Medium 14/21). 아래에서 올라온다. */}
           {/* 본문↔버튼 간격 16. 버튼 우측 여백 16은 컨테이너 px-4가 담당한다. */}
           <div
             role="status"
             aria-live="polite"
             className={cn(
-              "flex min-h-[58px] w-full items-center gap-4 rounded-[15px] bg-toast-default-background px-4 py-2 text-body-s text-toast-default-text transition-opacity duration-200",
-              visible ? "opacity-100" : "opacity-0",
+              "flex min-h-[58px] w-full items-center gap-4 rounded-[15px] bg-toast-default-background px-4 py-2 text-body-s text-toast-default-text",
+              // 나타날 때 아래에서 500ms 감속하며 올라오고, 사라질 때 200ms에 내려가며 흐려진다.
+              "transition-opacity motion-safe:transition-[opacity,translate]",
+              visible
+                ? "translate-y-0 opacity-100 duration-500 ease-smooth-out"
+                : "translate-y-full opacity-0 duration-200 ease-in",
             )}
           >
             <span className="flex-1">{message}</span>
