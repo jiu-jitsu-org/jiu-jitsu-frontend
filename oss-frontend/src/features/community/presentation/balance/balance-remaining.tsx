@@ -1,8 +1,10 @@
 "use client";
 
+import { RollingText } from "@/features/community/presentation/balance/rolling-text";
+import { TickingTimerIcon } from "@/features/community/presentation/balance/ticking-timer-icon";
+import { useTickBump } from "@/features/community/presentation/balance/use-tick-bump";
 import { useBalanceCountdown } from "@/features/community/presentation/balance/use-balance-countdown";
 import { cn } from "@/shared/lib/cn";
-import { TimerIcon } from "@/shared/ui/icons";
 
 /**
  * 잔여 시간 표기 — 카운트다운을 소유하는 **말단** 컴포넌트.
@@ -36,22 +38,30 @@ export function BalanceRemaining({
   showIcon?: boolean;
   className?: string;
 }) {
-  const { label } = useBalanceCountdown({ endAt, serverTime, onExpired });
+  const { label, remainMs } = useBalanceCountdown({ endAt, serverTime, onExpired });
+  // 상세 배지처럼 초마다 줄 전체가 살짝 부풀었다 돌아온다.
+  const bump = useTickBump(remainMs);
 
   if (label === null) return null;
 
   return (
     // 아이콘 ↔ 텍스트 간격 2 (디자인 실측).
-    <span className={cn("inline-flex items-center gap-0.5", className)}>
+    <span className={cn("inline-flex items-center gap-0.5", bump, className)}>
       {/* 아이콘만 interactive-primary — 텍스트(tertiary)와 색이 다르다(디자인 실측). */}
       {showIcon ? (
-        <TimerIcon size={16} className="text-interactive-primary" />
+        <TickingTimerIcon
+          remainMs={remainMs}
+          className="text-interactive-primary"
+        />
       ) : null}
       {/*
         매초 바뀌는 값이라 aria-live를 두지 않는다 — 스크린리더가 초마다 읽으면 카드의 다른
         내용을 들을 수 없다. 남은 시간은 보조 정보이고, 마감되면 카드가 다음 판으로 교체된다.
       */}
-      <span className="text-label-m">{label}</span>
+      {/* 숫자는 상세 배지와 같이 자리마다 굴러 올라간다. */}
+      <span className="text-label-m">
+        <RollingText text={label} />
+      </span>
     </span>
   );
 }
