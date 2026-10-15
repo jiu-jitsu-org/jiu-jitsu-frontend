@@ -16,6 +16,7 @@ import {
 } from "@/features/community/presentation/my-activity/my-activity-tab";
 import { MY_ACTIVITY_PATH } from "@/features/community/presentation/use-open-my-activity";
 import { cn } from "@/shared/lib/cn";
+import { Spinner } from "@/shared/ui/spinner";
 
 const PANEL_ID = "my-activity-panel";
 
@@ -113,7 +114,10 @@ export function MyActivityTabs({
               onClick={() => select(item.value)}
               onKeyDown={handleKeyDown}
               className={cn(
-                "relative h-11 flex-1 text-body-m",
+                "relative h-11 flex-1 rounded-lg text-body-m",
+                // 선택이 옮겨 갈 때 글자색·굵기가 200ms로 바뀌고, 누르는 동안 옅은 면이 깔린다(120ms).
+                "motion-safe:[transition:color_200ms_ease-out,font-weight_200ms_ease-out,background-color_120ms_ease-out]",
+                "active:bg-surface-container-pressed",
                 selected
                   ? "font-semibold text-tab-bar-selected-text"
                   : "font-medium text-tab-bar-unselected-text",
@@ -158,11 +162,7 @@ export function MyActivityTabs({
 function MyActivityPanelLoading() {
   return (
     <div className="flex justify-center pt-24">
-      <span
-        className="size-6 animate-spin rounded-full border-2 border-feed-card-header-avatar-bg border-t-transparent"
-        role="status"
-        aria-label="불러오는 중"
-      />
+      <Spinner />
     </div>
   );
 }
