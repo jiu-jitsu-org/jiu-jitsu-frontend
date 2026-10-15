@@ -4,10 +4,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useOnLogin } from "@/features/auth/presentation/auth-provider";
 import { BalanceGameCard } from "@/features/community/presentation/balance/balance-game-card";
-import { BalanceStickyBar } from "@/features/community/presentation/balance/balance-sticky-bar";
+import {
+  BalanceStickyBar,
+  STICKY_LIFT_OUT_MS,
+} from "@/features/community/presentation/balance/balance-sticky-bar";
 import { useBalanceVote } from "@/features/community/presentation/balance/use-balance-vote";
 import { useOpenBalanceDetail } from "@/features/community/presentation/balance/use-open-balance-detail";
 import { useStickyReveal } from "@/features/community/presentation/balance/use-sticky-reveal";
+import { prefersReducedMotion } from "@/features/community/presentation/use-presence-motion";
 import type { BalanceGame } from "@/features/community/domain/balance-game";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 
@@ -108,6 +112,22 @@ function BalanceGameBody({
     enabled: canReveal,
   });
 
+  // 바는 보일 조건이 꺼져도 바로 빼지 않고 위로 걷히는 동안(STICKY_LIFT_OUT_MS) 남겨 둔다.
+  // animationend 대신 타이머인 이유는 useLeavingKeys와 같다 — 끝 이벤트를 못 받으면 영영 남는다.
+  // 걷히는 도중 다시 보일 조건이 되면 타이머가 취소되고 바는 그대로 다시 내려온다.
+  const showSticky = canReveal && passed;
+  const [stickyMounted, setStickyMounted] = useState(showSticky);
+  if (showSticky && !stickyMounted) setStickyMounted(true);
+  const stickyLeaving = stickyMounted && !showSticky;
+
+  useEffect(() => {
+    if (!stickyLeaving) return;
+    // 움직임 줄이기 설정이면 기다리지 않는다(다음 틱에 바로 뺀다).
+    const delay = prefersReducedMotion() ? 0 : STICKY_LIFT_OUT_MS;
+    const timer = window.setTimeout(() => setStickyMounted(false), delay);
+    return () => window.clearTimeout(timer);
+  }, [stickyLeaving]);
+
   return (
     <>
       {/* 카드 위아래 24 + hairline 구분선. 구분선 아래 24는 피드 목록의 pt-6이 만든다. */}
@@ -127,11 +147,12 @@ function BalanceGameBody({
         만료 통지(onExpired)는 넘기지 않는다 — 카드와 동시에 마운트돼 있어 양쪽이 알리면
         재조회가 두 번 걸린다(BalanceRemaining 주석 참조).
       */}
-      {canReveal && passed ? (
+      {stickyMounted ? (
         <BalanceStickyBar
           endAt={game.endAt}
           serverTime={game.serverTime}
           onPress={() => openDetail(game.contentId)}
+          leaving={stickyLeaving}
         />
       ) : null}
     </>

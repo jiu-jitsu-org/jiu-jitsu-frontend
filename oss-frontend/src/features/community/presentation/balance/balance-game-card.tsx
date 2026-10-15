@@ -7,6 +7,7 @@ import {
   type BalanceOptionState,
 } from "@/features/community/presentation/balance/balance-option-button";
 import { BalanceRemaining } from "@/features/community/presentation/balance/balance-remaining";
+import { REACTION_PRESS_MOTION } from "@/features/community/presentation/comment-reaction-styles";
 import type {
   BalanceGame,
   BalanceOptionKey,
@@ -70,7 +71,15 @@ export function BalanceGameCard({
     <section
       onClick={handleCardPress}
       // 배경을 두지 않는다 — 피드 배경이 그대로 비쳐야 한다(디자인). 좌우 16만 준다.
-      className="flex cursor-pointer flex-col px-4"
+      // 눌림은 피드 카드(FeedCard)와 같다 — 바탕이 옅게 깔리며 98%로 눌렸다가 놓으면 스프링으로 돌아온다.
+      // 안쪽 버튼(선택지·댓글 링크)을 누를 때는 카드가 반응하지 않게 not-has로 뺀다.
+      className={cn(
+        "flex cursor-pointer flex-col px-4",
+        "active:not-has-[:is(button,a):active]:bg-surface-container-pressed",
+        "motion-safe:[transition:scale_500ms_var(--ease-spring-wobbly),background-color_120ms_ease-out]",
+        "motion-safe:active:[transition:scale_100ms_ease-out,background-color_120ms_ease-out]",
+        "motion-safe:active:not-has-[:is(button,a):active]:scale-[0.98]",
+      )}
       aria-label="오늘의 밸런스 게임"
     >
       {/* 제목·타이머는 가운데 정렬 — 카드 안에서 선택지 묶음보다 상위 정보라는 것을 위계로 드러낸다. */}
@@ -122,10 +131,13 @@ export function BalanceGameCard({
           onClick={onPressDetail}
           aria-pressed={game.commented}
           className={cn(
-            "flex h-7 cursor-pointer items-center gap-1 rounded-[10px] px-2",
+            "group flex h-7 cursor-pointer items-center gap-1 rounded-[10px] px-2",
             game.commented
               ? "text-reaction-bar-active-comment-icon"
               : "text-text-tertiary",
+            // 눌림은 댓글 반응 버튼과 같다 — reaction-bar 눌림 면·색에, 눌렸다 튀어 돌아오는 스프링.
+            "active:bg-reaction-bar-pressed-bg active:text-reaction-bar-pressed-icon",
+            REACTION_PRESS_MOTION,
           )}
         >
           <CommentIcon size={16} filled={game.commented} />
@@ -133,6 +145,7 @@ export function BalanceGameCard({
             className={cn(
               "text-body-s",
               game.commented && "text-reaction-bar-active-count-text",
+              "group-active:text-reaction-bar-pressed-count-text",
             )}
           >
             {/* 댓글이 없으면 "보러 갈 것"이 없다 — 첫 댓글을 유도하는 문구로 바꾼다. */}
