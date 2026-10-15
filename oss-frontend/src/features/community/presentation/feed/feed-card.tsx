@@ -18,6 +18,11 @@ import {
   readSettledImage,
   withRetryParam,
 } from "@/features/community/presentation/image-fallback";
+import {
+  REACTION_POP_MOTION,
+  REACTION_PRESS_MOTION,
+} from "@/features/community/presentation/comment-reaction-styles";
+import { usePopOnActivate } from "@/features/community/presentation/use-pop-on-activate";
 import { cn } from "@/shared/lib/cn";
 import {
   BookmarkIcon,
@@ -566,6 +571,7 @@ export function FeedCardReactions({
         label={`좋아요 ${counts.likes}개`}
         active={liked}
         activeColorClass="text-reaction-bar-active-like-icon"
+        popOnActivate
         onClick={onToggleLike}
       />
       <ReactionButton
@@ -574,6 +580,7 @@ export function FeedCardReactions({
         label={`북마크 ${counts.bookmarks}개`}
         active={bookmarked}
         activeColorClass="text-reaction-bar-active-bookmark-icon"
+        popOnActivate
         onClick={onToggleBookmark}
       />
     </div>
@@ -592,6 +599,7 @@ function ReactionButton({
   label,
   active = false,
   activeColorClass,
+  popOnActivate = false,
   onClick,
 }: {
   icon: ReactNode;
@@ -599,9 +607,13 @@ function ReactionButton({
   label: string;
   active?: boolean;
   activeColorClass?: string;
+  /** 켜지는 순간 아이콘이 톡 부푼다(좋아요·저장). 댓글은 상세로 가는 버튼이라 끈다. */
+  popOnActivate?: boolean;
   onClick?: () => void;
 }) {
   const showCount = count > 0;
+  // 상세 리액션바와 같은 움직임 — 마운트 때 이미 켜진 카드는 튀지 않고, 끌 때도 조용하다.
+  const pop = usePopOnActivate(popOnActivate && active);
 
   return (
     <button
@@ -613,9 +625,13 @@ function ReactionButton({
         "inline-flex h-7 items-center text-reaction-bar-default-icon",
         showCount ? "gap-1 pl-2 pr-2" : "w-8 justify-center",
         active && activeColorClass,
+        REACTION_PRESS_MOTION,
       )}
     >
-      {icon}
+      {/* 팝은 아이콘만 — 버튼의 눌림(scale)과 transform이 겹치지 않게 감싼다. 색은 currentColor 상속. */}
+      <span className={cn("inline-flex", pop && REACTION_POP_MOTION)}>
+        {icon}
+      </span>
       {showCount ? (
         // 숫자: Body S(14/21)
         <span
