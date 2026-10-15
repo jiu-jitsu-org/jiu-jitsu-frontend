@@ -4,6 +4,16 @@
 // features/community/presentation으로 이동했다(단일 기능 전용은 공통화하지 않는다).
 export * from "./icons";
 export { BackButton } from "./back-button";
+export {
+  FILLED_BUTTON_PRESS,
+  FILLED_BUTTON_PRESSED_BG,
+  ICON_BUTTON_PRESS,
+  NEUTRAL_BUTTON_PRESS,
+  NEUTRAL_BUTTON_PRESSED_BG,
+  PRESS_BOUNCE,
+  SURFACE_PRESS,
+} from "./press-styles";
+export { Spinner } from "./spinner";
 export { ToastProvider, useToast } from "./toast";
 export { enqueuePendingToast, usePendingToast } from "./pending-toast";
 export type { PendingToastAction } from "./pending-toast";
