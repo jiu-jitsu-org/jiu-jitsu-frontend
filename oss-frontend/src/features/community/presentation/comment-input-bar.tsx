@@ -41,7 +41,7 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [value, setValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const { target, cancelReply } = useCommentReply();
+  const { target, cancelReply, markPosted } = useCommentReply();
   // 키보드가 떠 있는 동안엔 홈 인디케이터(safe-area)가 키보드에 가려 의미가 없으므로 하단 패딩 0.
   const rect = useViewportRect();
   const { guest, guard } = useLoginGuard();
@@ -102,6 +102,11 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
 
       setValue("");
       setSentCount((n) => n + 1);
+      // 새 댓글 id를 알려 두면 목록이 새로 그려질 때 그 댓글만 펼쳐지며 들어온다.
+      const created = (await response.json().catch(() => null)) as {
+        data?: { id?: unknown };
+      } | null;
+      if (typeof created?.data?.id === "number") markPosted(created.data.id);
       // 답글도 최상위 댓글도 대상 해제만 한다. 서버가 대댓글을 상위 3개로 잘라 내려주므로
       // 작성된 순에서 답글이 3개를 넘으면 방금 쓴 답글이 미리보기 밖(맨 뒤)에 남는다 —
       // 그때는 「대댓글 더보기」로 확인한다(#62).

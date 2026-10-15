@@ -8,6 +8,8 @@ import { CommentReplyButton } from "@/features/community/presentation/comment-re
 import { CommentMenu } from "@/features/community/presentation/comment-menu";
 import { CommentPlaceholder } from "@/features/community/presentation/comment-placeholder";
 import { CommentReplies } from "@/features/community/presentation/comment-replies";
+import { useCommentReply } from "@/features/community/presentation/comment-reply-context";
+import { useArriveMotion } from "@/features/community/presentation/use-arrive-motion";
 import { MyActivityLink } from "@/features/community/presentation/my-activity-link";
 import { cn } from "@/shared/lib/cn";
 import { ReplyBranchIcon } from "@/shared/ui/icons";
@@ -58,6 +60,10 @@ export function CommentItem({
       />
     ) : null;
 
+  // 방금 등록한 댓글이면 펼쳐지며 반짝인다(아래 li에 건다 — 가린 댓글 자리표시에는 걸지 않는다).
+  const { justPostedId } = useCommentReply();
+  const arriveRef = useArriveMotion<HTMLLIElement>(comment.id === justPostedId);
+
   // 삭제된 댓글은 목록에서 빼지 않고 자리 표시만 남긴다 — 대댓글(children)은 그대로 노출된다.
   // 신고보다 먼저 본다: 신고해 둔 댓글이 뒤이어 삭제됐다면 최종 상태는 삭제다.
   // FIXME(#61 후속): 되돌리기(복구)는 복구 API(backend#112) 선행이라 이번 범위에서 제외.
@@ -95,7 +101,7 @@ export function CommentItem({
     //
     // 대댓글: -ml-7(28)로 왼쪽 28을 되찾아 분기 아이콘(24) + gap 4 = 28을 그 자리에 채운다.
     // 결과적으로 아바타·본문의 최종 x는 아이콘이 없을 때와 동일하다(들여쓰기 변화 없음).
-    <li className={cn("flex gap-1", isReply && "-ml-7")}>
+    <li ref={arriveRef} className={cn("flex gap-1", isReply && "-ml-7")}>
       {isReply ? (
         // 위에서 내려와 오른쪽으로 꺾이는 연결선 — 이 행이 위 댓글의 대댓글임을 나타낸다.
         <ReplyBranchIcon
