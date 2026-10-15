@@ -102,12 +102,13 @@ export function BalanceDetailAppBar({
 
   return (
     <AppBarShell>
-      {/* 좌측 뒤로가기 — 게시글 상세 앱바와 같은 규격(40x40, 아이콘 24, 배경 없음). */}
+      {/* 좌측 뒤로가기 — 게시글 상세 앱바와 같은 규격(40x40, 아이콘 24, 평소 배경 없음).
+          누르는 동안만 둥근 옅은 면이 깔린다 — 게시글 상세 앱바와 같은 눌림. */}
       <button
         type="button"
         onClick={closeDetail}
         aria-label="뒤로 가기"
-        className="inline-flex size-10 items-center justify-center text-icon-primary"
+        className="inline-flex size-10 items-center justify-center rounded-full motion-safe:transition-colors motion-safe:duration-120 active:bg-surface-container-pressed text-icon-primary"
       >
         <BackArrowIcon size={24} />
       </button>
@@ -121,7 +122,7 @@ export function BalanceDetailAppBar({
             aria-label={alarmOn ? "알림 끄기" : "알림 켜기"}
             aria-pressed={alarmOn}
             disabled={alarmPending}
-            className="inline-flex size-10 items-center justify-center text-icon-primary"
+            className="inline-flex size-10 items-center justify-center rounded-full motion-safe:transition-colors motion-safe:duration-120 active:bg-surface-container-pressed text-icon-primary"
           >
             {alarmOn ? <BellIcon size={24} /> : <BellOffIcon size={24} />}
           </button>
