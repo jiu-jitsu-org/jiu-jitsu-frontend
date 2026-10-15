@@ -26,6 +26,16 @@ export const COMMENT_REACTION_ICON = "text-reaction-bar-default-icon";
 export const COMMENT_REACTION_TEXT =
   "text-body-s text-reaction-bar-default-count-text group-active:text-reaction-bar-pressed-count-text";
 
+/**
+ * 누르는 동안 살짝 눌렸다가(100ms) 놓으면 스프링으로 튀어 돌아온다(500ms).
+ * 상세 리액션바·댓글 반응 버튼·댓글 등록 버튼이 함께 쓴다.
+ */
+export const REACTION_PRESS_MOTION =
+  "motion-safe:transition-[scale] motion-safe:duration-500 motion-safe:ease-spring-wobbly motion-safe:active:scale-90 motion-safe:active:duration-100 motion-safe:active:ease-out";
+
+/** 켜지는 순간(좋아요·저장) 아이콘이 톡 부풀었다 돌아온다 — usePopOnActivate와 함께. */
+export const REACTION_POP_MOTION = "motion-safe:animate-reaction-pop";
+
 /** Active(내가 누른/단) 상태의 카운트 텍스트 색. */
 export const COMMENT_REACTION_TEXT_ACTIVE =
   "text-reaction-bar-active-count-text";

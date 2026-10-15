@@ -4,6 +4,12 @@ import type { ReactNode } from "react";
 
 import { cn } from "@/shared/lib/cn";
 
+import {
+  REACTION_POP_MOTION,
+  REACTION_PRESS_MOTION,
+} from "./comment-reaction-styles";
+import { usePopOnActivate } from "./use-pop-on-activate";
+
 /**
  * 액션바 단일 버튼.
  *
@@ -40,6 +46,7 @@ export function ReactionBarButton({
 }) {
   const showCount = typeof count === "number" && count > 0;
   const text = showCount ? String(count) : hideLabel ? null : label;
+  const pop = usePopOnActivate(pressable && active);
 
   return (
     <button
@@ -53,12 +60,14 @@ export function ReactionBarButton({
         // Active는 배경을 Default 그대로 두고, 눌린 동안에만 pressed 배경으로 바뀐다.
         "bg-reaction-bar-detail-default-bg active:bg-reaction-bar-detail-pressed-bg",
         text !== null && "gap-1",
+        REACTION_PRESS_MOTION,
       )}
     >
       <span
         className={cn(
-          "text-reaction-bar-detail-default-icon group-active:text-reaction-bar-detail-pressed-icon",
+          "inline-flex text-reaction-bar-detail-default-icon group-active:text-reaction-bar-detail-pressed-icon",
           active && activeIconColorClass,
+          pop && REACTION_POP_MOTION,
         )}
       >
         {icon}
