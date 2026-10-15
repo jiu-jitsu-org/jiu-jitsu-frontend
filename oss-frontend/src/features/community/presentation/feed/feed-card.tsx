@@ -149,7 +149,17 @@ export function FeedCard({
       onClick={onPress ? handleCardPress : undefined}
       className={cn(
         "flex flex-col bg-surface-container px-4",
-        onPress && "cursor-pointer",
+        // 누르는 동안 바탕이 옅게 어두워지며 98%로 살짝 눌렸다가(100ms) 놓으면 스프링으로 돌아온다(500ms).
+        // :active는 눌린 요소의 조상에도 걸려 안쪽 버튼(리액션·⋮·더보기)을 눌러도 카드가 반응한다
+        // → 안에 눌린 버튼/링크가 있으면(not-has) 빼서, 카드 자체를 누를 때만 반응하게 한다.
+        onPress && [
+          "cursor-pointer",
+          "active:not-has-[:is(button,a):active]:bg-surface-container-pressed",
+          // 크기는 스프링으로 튀지만 바탕색에 스프링을 걸면 색이 넘쳐 번쩍이므로 색은 120ms 감속으로 따로 둔다.
+          "motion-safe:[transition:scale_500ms_var(--ease-spring-wobbly),background-color_120ms_ease-out]",
+          "motion-safe:active:[transition:scale_100ms_ease-out,background-color_120ms_ease-out]",
+          "motion-safe:active:not-has-[:is(button,a):active]:scale-[0.98]",
+        ],
         className,
       )}
     >
