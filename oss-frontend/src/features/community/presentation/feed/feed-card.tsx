@@ -8,6 +8,7 @@ import {
   type MouseEvent,
   type ReactNode,
 } from "react";
+import { flushSync } from "react-dom";
 
 import {
   IMAGE_MAX_HEIGHT,
@@ -356,6 +357,33 @@ export function FeedCardBody({
   const [expanded, setExpanded] = useState(false);
   const [overflowing, setOverflowing] = useState(false);
   const bodyRef = useRef<HTMLParagraphElement>(null);
+  const moreRef = useRef<HTMLButtonElement>(null);
+
+  // 3줄 클램프가 한 번에 툭 풀리지 않게, 접힌 높이 → 전체 높이로 600ms 동안 늘린다(400ms는 빨랐다).
+  // 시작 높이는 본문 위 끝부터 "더보기" 아래 끝까지 — 버튼이 사라지는 자리를 본문이 그대로 이어받아
+  // 아래 리액션행이 위로 튀었다 내려오지 않는다. 클램프를 풀어야 전체 높이를 잴 수 있어
+  // flushSync로 펼친 상태를 먼저 그린 뒤 잰다.
+  function handleExpand() {
+    const el = bodyRef.current;
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    if (!el || reduceMotion) {
+      setExpanded(true);
+      return;
+    }
+    const top = el.getBoundingClientRect().top;
+    const bottom = (moreRef.current ?? el).getBoundingClientRect().bottom;
+    flushSync(() => setExpanded(true));
+    el.animate(
+      [
+        { height: `${bottom - top}px`, overflow: "hidden" },
+        { height: `${el.scrollHeight}px`, overflow: "hidden" },
+      ],
+      // = ease-smooth-out 토큰(motion.css). WAAPI는 CSS 변수를 못 읽어 값을 그대로 쓴다.
+      { duration: 600, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" },
+    );
+  }
 
   // 클램프된 상태에서 실제 높이가 보이는 높이를 넘으면 "더보기"를 노출한다.
   // 펼친 뒤에는 재측정하지 않는다(early return) — 깜빡임/불필요 측정 방지.
@@ -415,8 +443,9 @@ export function FeedCardBody({
       </p>
       {!expanded && overflowing ? (
         <button
+          ref={moreRef}
           type="button"
-          onClick={() => setExpanded(true)}
+          onClick={handleExpand}
           className="self-start text-body-s text-feed-card-body-more-text"
         >
           더보기
