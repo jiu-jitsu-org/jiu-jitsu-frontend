@@ -36,11 +36,12 @@ export function BackButton({
 
   return (
     <header className={`flex items-center px-2 pb-2 pt-4 ${className}`}>
+      {/* 누르는 동안 아이콘 뒤에 둥근 옅은 면이 깔린다 — 커뮤니티 앱바 아이콘 버튼과 같은 눌림. */}
       <button
         type="button"
         onClick={goBack}
         aria-label="뒤로 가기"
-        className="inline-flex size-10 items-center justify-center text-zinc-900"
+        className="inline-flex size-10 items-center justify-center rounded-full motion-safe:transition-colors motion-safe:duration-120 active:bg-surface-container-pressed text-zinc-900"
       >
         <BackArrowIcon size={24} />
       </button>

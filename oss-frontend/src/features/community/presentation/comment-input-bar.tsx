@@ -42,6 +42,11 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
   const [value, setValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const { target, cancelReply, markPosted } = useCommentReply();
+  // 답장 행이 접히는 동안에도 글자가 비지 않게 마지막 대상을 들고 있는다 — 컨텍스트 대상은
+  // 취소 즉시 null이 되지만, 행은 300ms에 걸쳐 닫히므로 그동안 직전 닉네임을 그대로 보여준다.
+  const [lastTarget, setLastTarget] = useState(target);
+  if (target && target !== lastTarget) setLastTarget(target);
+  const shownTarget = target ?? lastTarget;
   // 키보드가 떠 있는 동안엔 홈 인디케이터(safe-area)가 키보드에 가려 의미가 없으므로 하단 패딩 0.
   const rect = useViewportRect();
   const { guest, guard } = useLoginGuard();
@@ -131,38 +136,52 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
     >
       {/* 답장 대상 행 — 답글 모드일 때만. 높이 44 고정, 수직 가운데, 좌우 16.
           분기 아이콘 24 바로 옆(간격 0)에 텍스트, 우측 끝에 × 버튼(40x40, 아이콘 24).
-          좌우 16은 × "버튼 영역" 기준이라 음수 마진으로 당기지 않는다. */}
-      {target ? (
-        <div className="flex h-11 items-center px-4">
-          {/* 대댓글 목록의 분기 아이콘과 동일 에셋(24, strokeWidth 2) — 색만 다르다. */}
-          <ReplyBranchIcon
-            size={24}
-            className="shrink-0 text-comment-input-bar-reply-ref-thread-icon"
-          />
-          <span className="min-w-0 flex-1 truncate text-body-s text-comment-input-bar-reply-ref-text">
-            {target.nickname}님에게 답장
-          </span>
-          <button
-            type="button"
-            onClick={cancelReply}
-            aria-label="답장 취소"
-            // 버튼 영역 40x40(size-10) = 아이콘 24 + 사방 여백 8. 우측 16은 이 버튼 바깥 기준.
-            className="inline-flex size-10 shrink-0 items-center justify-center text-comment-input-bar-reply-ref-close-icon"
-          >
-            <CloseIcon size={24} />
-          </button>
+          좌우 16은 × "버튼 영역" 기준이라 음수 마진으로 당기지 않는다.
+          열고 닫힐 때 입력창이 툭 튀지 않게 높이를 300ms에 걸쳐 0↔44로 늘이고 줄인다
+          (grid 행 0fr↔1fr + 안쪽 overflow-hidden). 닫힌 동안엔 inert로 × 버튼에 포커스가 가지 않게 한다. */}
+      <div
+        aria-hidden={!target}
+        inert={!target}
+        className={cn(
+          "grid motion-safe:transition-[grid-template-rows] motion-safe:duration-300 motion-safe:ease-smooth-out",
+          target ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+        )}
+      >
+        <div className="min-h-0 overflow-hidden">
+          {shownTarget ? (
+            <div className="flex h-11 items-center px-4">
+              {/* 대댓글 목록의 분기 아이콘과 동일 에셋(24, strokeWidth 2) — 색만 다르다. */}
+              <ReplyBranchIcon
+                size={24}
+                className="shrink-0 text-comment-input-bar-reply-ref-thread-icon"
+              />
+              <span className="min-w-0 flex-1 truncate text-body-s text-comment-input-bar-reply-ref-text">
+                {shownTarget.nickname}님에게 답장
+              </span>
+              <button
+                type="button"
+                onClick={cancelReply}
+                aria-label="답장 취소"
+                // 버튼 영역 40x40(size-10) = 아이콘 24 + 사방 여백 8. 우측 16은 이 버튼 바깥 기준.
+                className="inline-flex size-10 shrink-0 items-center justify-center text-comment-input-bar-reply-ref-close-icon"
+              >
+                <CloseIcon size={24} />
+              </button>
+            </div>
+          ) : null}
         </div>
-      ) : null}
+      </div>
 
       {/* 입력 행 — 높이는 필드(1줄 41) + 상하 여백으로만 결정된다(min-h 없음).
           전송 버튼은 하단 고정(items-end), 좌우 16(px-4).
             상 여백: 답장 행이 있으면 4, 없으면 12
             하 여백: 키보드가 올라오면 12, 내려가면 16
           결과 높이 — 답장 행 없음 65/69, 있음 57/61 (키보드 올라옴/내려감).
-          transition을 두지 않아 키보드 전환 시 애니메이션 없이 바로 바뀐다. */}
+          하 여백은 transition을 두지 않아 키보드 전환 시 애니메이션 없이 바로 바뀐다.
+          상 여백만 답장 행과 같은 300ms로 옮겨, 행이 열고 닫힐 때 8px이 따로 튀지 않게 한다. */}
       <div
         className={cn(
-          "flex items-end px-4",
+          "flex items-end px-4 motion-safe:transition-[padding-top] motion-safe:duration-300 motion-safe:ease-smooth-out",
           target ? "pt-1" : "pt-3",
           rect?.keyboardOpen ? "pb-3" : "pb-4",
         )}

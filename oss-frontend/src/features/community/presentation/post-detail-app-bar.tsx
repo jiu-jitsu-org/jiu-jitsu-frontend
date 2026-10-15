@@ -226,12 +226,13 @@ export function PostDetailAppBar({
 
   return (
     <AppBarShell>
-      {/* 좌측 뒤로가기 — 우측 종·⋮와 같은 규격(40x40, 아이콘 24, 배경 없음). 좌 8·세로 중앙은 셸이 담당. */}
+      {/* 좌측 뒤로가기 — 우측 종·⋮와 같은 규격(40x40, 아이콘 24, 평소 배경 없음). 좌 8·세로 중앙은 셸이 담당.
+          누르는 동안만 아이콘 뒤에 둥근 옅은 면이 깔려 눌렸다는 걸 알린다 — 앱바 아이콘 버튼 공통. */}
       <button
         type="button"
         onClick={closeDetail}
         aria-label="뒤로 가기"
-        className="inline-flex size-10 items-center justify-center text-icon-primary"
+        className="inline-flex size-10 items-center justify-center rounded-full motion-safe:transition-colors motion-safe:duration-120 active:bg-surface-container-pressed text-icon-primary"
       >
         <BackArrowIcon size={24} />
       </button>
@@ -245,8 +246,10 @@ export function PostDetailAppBar({
             aria-label={alarmOn ? "알림 끄기" : "알림 켜기"}
             aria-pressed={alarmOn}
             disabled={alarmPending}
+            // 눌림 면은 색 전환 없이 바로 깔린다 — 전환 속성은 이미 눌림 축소(scale)가 쓰고 있어
+            // transition-colors를 더하면 둘 중 하나가 덮인다.
             className={cn(
-              "inline-flex size-10 items-center justify-center text-icon-primary",
+              "inline-flex size-10 items-center justify-center rounded-full text-icon-primary active:bg-surface-container-pressed",
               REACTION_PRESS_MOTION,
             )}
           >
@@ -272,7 +275,7 @@ export function PostDetailAppBar({
               aria-haspopup="menu"
               aria-expanded={menuOpen}
               aria-label="게시물 메뉴 열기"
-              className="inline-flex size-10 items-center justify-center text-icon-primary"
+              className="inline-flex size-10 items-center justify-center rounded-full motion-safe:transition-colors motion-safe:duration-120 active:bg-surface-container-pressed text-icon-primary"
             >
               <MoreVerticalIcon size={24} />
             </button>

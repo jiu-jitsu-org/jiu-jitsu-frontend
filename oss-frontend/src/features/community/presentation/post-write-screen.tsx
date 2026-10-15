@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import {
+  type AnimationEvent,
   type ClipboardEvent,
   type KeyboardEvent,
   useEffect,
@@ -49,6 +50,7 @@ import {
 import { PostEditImageViewer } from "./post-edit-image-viewer";
 import { PostImageCropEditor } from "./post-image-crop-editor";
 import { useAutoResizeTextarea } from "./use-auto-resize-textarea";
+import { useLeavingKeys, usePopInKeys } from "./use-presence-motion";
 import {
   isAttachmentOutOfAspect,
   MAX_IMAGES,
@@ -102,6 +104,16 @@ const SUBMIT_TOAST = {
 const THUMBNAIL_SIZE = 64;
 /** 썸네일 컨테이너 높이(px) — 상하 여백 16 + 썸네일 64. 툴바 위에 고정. */
 const THUMBNAIL_STRIP_HEIGHT = 96;
+/** 썸네일 사이 간격(px) — 스트립의 gap-3. 지워지는 칸이 접힐 때 이만큼 음수 마진으로 같이 접는다. */
+const THUMBNAIL_GAP = 12;
+/**
+ * 썸네일 삭제 모션(ms): 줄어들며 사라지고(shrink-out 220) → 빈 칸이 접히며 옆 장들이 미끄러져 온다(250).
+ * 둘 다 끝난 뒤에야 상태에서 뺀다 — 먼저 빼면 칸이 한 번에 사라져 옆 장이 튄다.
+ */
+const THUMBNAIL_SHRINK_MS = 220;
+const THUMBNAIL_COLLAPSE_MS = 250;
+/** 태그 칩 삭제 모션(ms) — shrink-out과 같은 220. */
+const TAG_SHRINK_MS = 220;
 /** 썸네일 우상단 삭제(✕) 원 지름(px)과 모서리에서 삐져나오는 양(px). 아이콘 16. */
 const THUMBNAIL_REMOVE_SIZE = 24;
 const THUMBNAIL_REMOVE_OVERHANG = 8;
@@ -203,6 +215,15 @@ export function PostWriteScreen({
   // 삭제·수정으로 3개 미만이 되면 다시 열 수 있다.
   const isTagFull = tags.length >= MAX_TAGS;
   const tagLimitMessage = `태그는 최대 ${MAX_TAGS}개까지 추가할 수 있어요`;
+  // 새로 확정된 태그 칩만 톡 튀어 들어온다(수정 화면의 기존 태그는 그대로).
+  const tagPop = usePopInKeys(tags);
+  // Backspace로 지운 태그는 상태에서 바로 빼고(개수·중복·전송 판정은 그대로), 그 자리에 줄어들며 사라지는
+  // 잔상만 잠깐 그린다 — 실제 태그를 늦게 빼면 입력칸 자리(editingTagIndex) 계산이 어긋난다.
+  const [tagGhosts, setTagGhosts] = useState<
+    { id: number; name: string; order: number }[]
+  >([]);
+  const tagGhostSeq = useRef(0);
+  const tagLeave = useLeavingKeys<number>();
   // 제목·본문은 내용만큼 자라는 textarea — 화면(main) 하나가 스크롤되는 디자인.
   const titleRef = useAutoResizeTextarea(title);
   const bodyRef = useAutoResizeTextarea(body);
@@ -232,6 +253,12 @@ export function PostWriteScreen({
   const hasThumbnails = isEdit
     ? existingImages.length > 0
     : attachments.length > 0;
+  // 썸네일 등장·삭제 모션의 키 — 작성은 첨부 localId, 수정은 등록 이미지 id(수정은 추가가 없어 팝인도 없다).
+  const thumbnailKeys = isEdit
+    ? existingImages.map((image) => String(image.id))
+    : attachments.map((image) => image.localId);
+  const thumbnailPop = usePopInKeys(thumbnailKeys);
+  const thumbnailLeave = useLeavingKeys<string>();
 
   // 작성: 한 글자라도 적었거나 카테고리/이미지를 골랐으면 "작성 중" → 닫기 시 이탈 가드를 띄운다.
   // 수정: 기존 값과 하나라도 다르면 "변경됨" — 완료 버튼 활성·이탈 가드의 근거. 미확정 태그 입력도 변경으로 본다.
@@ -393,6 +420,17 @@ export function PostWriteScreen({
     if (event.key === "Backspace" && tagInput === "") {
       event.preventDefault();
       if (tagInputIndex > 0) {
+        // 잔상은 지운 뒤 입력칸 바로 앞(같은 홀수 order, DOM상 입력칸보다 앞)에 둔다.
+        const removedIndex = tagInputIndex - 1;
+        const ghost = {
+          id: ++tagGhostSeq.current,
+          name: tags[removedIndex],
+          order: removedIndex * 2 - 1,
+        };
+        setTagGhosts((prev) => [...prev, ghost]);
+        tagLeave.leave(ghost.id, TAG_SHRINK_MS, () =>
+          setTagGhosts((prev) => prev.filter((item) => item.id !== ghost.id)),
+        );
         setTags((prev) =>
           prev.filter((_, index) => index !== tagInputIndex - 1),
         );
@@ -544,7 +582,38 @@ export function PostWriteScreen({
 
   /** 수정 모드 이미지 삭제(스트립 ✕). 상세는 스트립이 딤 뒤에 있어 여기서만 지운다. */
   function removeExistingImage(imageId: number) {
-    setExistingImages((prev) => prev.filter((image) => image.id !== imageId));
+    thumbnailLeave.leave(
+      String(imageId),
+      THUMBNAIL_SHRINK_MS + THUMBNAIL_COLLAPSE_MS,
+      () =>
+        setExistingImages((prev) =>
+          prev.filter((image) => image.id !== imageId),
+        ),
+    );
+  }
+
+  /**
+   * 썸네일 칸 하나(li)의 모션 속성. 새로 붙은 장은 팝인, 지우는 장은 줄어든 뒤(shrink-out) 칸 폭과 뒤 간격을
+   * 0으로 접어 옆 장이 미끄러져 오게 한다. 폭은 늘 64로 박아 두어야 0으로 가는 transition이 시작점을 잡는다.
+   * 접기는 줄어들기가 끝난 뒤 시작하도록 delay를 준다. 나가는 중엔 탭(편집·재시도·✕)을 막는다.
+   */
+  function thumbnailMotion(key: string) {
+    const leaving = thumbnailLeave.isLeaving(key);
+    return {
+      className: cn(
+        "relative shrink-0 motion-safe:transition-[width,margin-right] motion-safe:duration-250 motion-safe:ease-smooth-out",
+        leaving
+          ? "pointer-events-none motion-safe:animate-shrink-out motion-safe:delay-220"
+          : thumbnailPop.isPopping(key) && "motion-safe:animate-pop-in",
+      ),
+      style: {
+        width: leaving ? 0 : THUMBNAIL_SIZE,
+        marginRight: leaving ? -THUMBNAIL_GAP : 0,
+      },
+      onAnimationEnd: (event: AnimationEvent<HTMLLIElement>) => {
+        if (event.target === event.currentTarget) thumbnailPop.onPopEnd(key);
+      },
+    };
   }
 
   /**
@@ -832,12 +901,31 @@ export function PostWriteScreen({
               key={tag}
               type="button"
               onClick={() => editTag(tag)}
+              onAnimationEnd={() => tagPop.onPopEnd(tag)}
               aria-label={`태그 ${tag} 수정`}
-              className={cn("text-body-s", TAG_TEXT_CLASS)}
+              className={cn(
+                "text-body-s",
+                TAG_TEXT_CLASS,
+                tagPop.isPopping(tag) && "motion-safe:animate-pop-in",
+              )}
               style={{ order: index * 2 }}
             >
               # {tag}
             </button>
+          ))}
+          {/* Backspace로 지운 태그의 잔상 — 줄어들며 사라진 뒤 빠진다. 입력칸보다 DOM상 앞이라 같은 order에서 앞에 선다. */}
+          {tagGhosts.map((ghost) => (
+            <span
+              key={`ghost-${ghost.id}`}
+              aria-hidden
+              className={cn(
+                "pointer-events-none text-body-s motion-safe:animate-shrink-out",
+                TAG_TEXT_CLASS,
+              )}
+              style={{ order: ghost.order }}
+            >
+              # {ghost.name}
+            </span>
           ))}
           {tagInputOpen
             ? tagInputField
@@ -898,7 +986,7 @@ export function PostWriteScreen({
             >
               {isEdit
                 ? existingImages.map((image) => (
-                    <li key={image.id} className="relative shrink-0">
+                    <li key={image.id} {...thumbnailMotion(String(image.id))}>
                       <button
                         type="button"
                         onClick={() => setViewerImageId(image.id)}
@@ -926,7 +1014,7 @@ export function PostWriteScreen({
                     const isFailed = image.status === "failed";
                     const isUploading = image.status === "uploading";
                     return (
-                      <li key={image.localId} className="relative shrink-0">
+                      <li key={image.localId} {...thumbnailMotion(image.localId)}>
                         <button
                           type="button"
                           onClick={() => handleThumbnailTap(image.localId)}
@@ -969,7 +1057,13 @@ export function PostWriteScreen({
                         </button>
                         <ThumbnailRemoveButton
                           label="첨부 이미지 삭제"
-                          onClick={() => remove(image.localId)}
+                          onClick={() =>
+                            thumbnailLeave.leave(
+                              image.localId,
+                              THUMBNAIL_SHRINK_MS + THUMBNAIL_COLLAPSE_MS,
+                              () => remove(image.localId),
+                            )
+                          }
                         />
                       </li>
                     );

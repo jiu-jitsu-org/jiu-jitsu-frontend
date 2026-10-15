@@ -20,10 +20,10 @@ export function FeedErrorState({ className }: { className?: string }) {
   const [pending, startTransition] = useTransition();
 
   return (
-    // 컨텐츠 묶음은 뷰포트 전체 기준 가로·세로 가운데 정렬.
+    // 컨텐츠 묶음은 뷰포트 전체 기준 가로·세로 가운데 정렬. 빈 화면에서 툭 튀지 않게 옅게 나타난다.
     <div
       className={cn(
-        "flex min-h-screen flex-col items-center justify-center gap-[13px] px-4 text-center",
+        "flex min-h-screen flex-col items-center justify-center gap-[13px] px-4 text-center motion-safe:animate-fade-in",
         className,
       )}
     >
@@ -34,7 +34,8 @@ export function FeedErrorState({ className }: { className?: string }) {
         type="button"
         disabled={pending}
         onClick={() => startTransition(() => router.refresh())}
-        className="h-[38px] rounded-[10px] bg-button-neutral-default-bg px-4 text-button-m text-button-neutral-default-text disabled:bg-button-neutral-disabled-bg disabled:text-button-neutral-disabled-text"
+        // 누르는 동안 neutral 눌림 색으로 짙어진다(빈 상태 글쓰기 버튼과 같은 규격·같은 눌림).
+        className="h-[38px] rounded-[10px] bg-button-neutral-default-bg px-4 text-button-m text-button-neutral-default-text motion-safe:transition-colors motion-safe:duration-120 enabled:active:bg-button-neutral-pressed-bg disabled:bg-button-neutral-disabled-bg disabled:text-button-neutral-disabled-text"
       >
         재시도
       </button>

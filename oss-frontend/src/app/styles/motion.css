@@ -59,6 +59,54 @@
   /* 밸런스 게임 고정 바 — 위에서 떨어지듯 내려와 출렁이며 자리 잡는다. */
   --animate-sticky-drop-in: sticky-drop-in 600ms var(--ease-spring-bouncy) both;
 
+  /* 추가되는 작은 조각(사진 썸네일·태그 칩) — 작게 시작해 톡 부풀며 자리 잡는다. */
+  --animate-pop-in: pop-in 400ms var(--ease-spring-bouncy) both;
+  /* 지워지는 작은 조각 — 줄어들며 사라진다. 끝나면 호출부가 DOM에서 뺀다. */
+  --animate-shrink-out: shrink-out 220ms ease-in both;
+  /* 짧은 등장(불러오는 중·목록 끝·다시 시도) — 제자리에서 옅게 나타난다. */
+  --animate-fade-in: fade-in 200ms ease-out both;
+  /* 화면을 덮는 판(사진 크게 보기·자르기) — 천천히 덮는다. 0.2초는 빠르다는 피드백으로 0.35초. */
+  --animate-overlay-in: fade-in 350ms ease-out both;
+  /* 빈 화면 — 8px 아래에서 올라오며 나타난다. */
+  --animate-rise-in: rise-in 280ms var(--ease-smooth-out) both;
+  /* 불러온 답글 — rise-in보다 느리게, 호출부가 0.1초씩 늦춰 차례로 올라오게 한다. */
+  --animate-reply-rise-in: rise-in 450ms var(--ease-smooth-out) both;
+
+  @keyframes pop-in {
+    from {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes shrink-out {
+    to {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
   @keyframes timer-tick {
     0% {
       transform: rotate(0deg) scale(1);

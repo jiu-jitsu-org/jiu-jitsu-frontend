@@ -8,6 +8,7 @@ import {
   type MouseEvent,
   type ReactNode,
 } from "react";
+import { flushSync } from "react-dom";
 
 import {
   IMAGE_MAX_HEIGHT,
@@ -18,6 +19,11 @@ import {
   readSettledImage,
   withRetryParam,
 } from "@/features/community/presentation/image-fallback";
+import {
+  REACTION_POP_MOTION,
+  REACTION_PRESS_MOTION,
+} from "@/features/community/presentation/comment-reaction-styles";
+import { usePopOnActivate } from "@/features/community/presentation/use-pop-on-activate";
 import { cn } from "@/shared/lib/cn";
 import {
   BookmarkIcon,
@@ -139,7 +145,17 @@ export function FeedCard({
       onClick={onPress ? handleCardPress : undefined}
       className={cn(
         "flex flex-col bg-surface-container px-4",
-        onPress && "cursor-pointer",
+        // 누르는 동안 바탕이 옅게 어두워지며 98%로 살짝 눌렸다가(100ms) 놓으면 스프링으로 돌아온다(500ms).
+        // :active는 눌린 요소의 조상에도 걸려 안쪽 버튼(리액션·⋮·더보기)을 눌러도 카드가 반응한다
+        // → 안에 눌린 버튼/링크가 있으면(not-has) 빼서, 카드 자체를 누를 때만 반응하게 한다.
+        onPress && [
+          "cursor-pointer",
+          "active:not-has-[:is(button,a):active]:bg-surface-container-pressed",
+          // 크기는 스프링으로 튀지만 바탕색에 스프링을 걸면 색이 넘쳐 번쩍이므로 색은 120ms 감속으로 따로 둔다.
+          "motion-safe:[transition:scale_500ms_var(--ease-spring-wobbly),background-color_120ms_ease-out]",
+          "motion-safe:active:[transition:scale_100ms_ease-out,background-color_120ms_ease-out]",
+          "motion-safe:active:not-has-[:is(button,a):active]:scale-[0.98]",
+        ],
         className,
       )}
     >
@@ -326,6 +342,33 @@ export function FeedCardBody({
   const [expanded, setExpanded] = useState(false);
   const [overflowing, setOverflowing] = useState(false);
   const bodyRef = useRef<HTMLParagraphElement>(null);
+  const moreRef = useRef<HTMLButtonElement>(null);
+
+  // 3줄 클램프가 한 번에 툭 풀리지 않게, 접힌 높이 → 전체 높이로 600ms 동안 늘린다(400ms는 빨랐다).
+  // 시작 높이는 본문 위 끝부터 "더보기" 아래 끝까지 — 버튼이 사라지는 자리를 본문이 그대로 이어받아
+  // 아래 리액션행이 위로 튀었다 내려오지 않는다. 클램프를 풀어야 전체 높이를 잴 수 있어
+  // flushSync로 펼친 상태를 먼저 그린 뒤 잰다.
+  function handleExpand() {
+    const el = bodyRef.current;
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    if (!el || reduceMotion) {
+      setExpanded(true);
+      return;
+    }
+    const top = el.getBoundingClientRect().top;
+    const bottom = (moreRef.current ?? el).getBoundingClientRect().bottom;
+    flushSync(() => setExpanded(true));
+    el.animate(
+      [
+        { height: `${bottom - top}px`, overflow: "hidden" },
+        { height: `${el.scrollHeight}px`, overflow: "hidden" },
+      ],
+      // = ease-smooth-out 토큰(motion.css). WAAPI는 CSS 변수를 못 읽어 값을 그대로 쓴다.
+      { duration: 600, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" },
+    );
+  }
 
   // 클램프된 상태에서 실제 높이가 보이는 높이를 넘으면 "더보기"를 노출한다.
   // 펼친 뒤에는 재측정하지 않는다(early return) — 깜빡임/불필요 측정 방지.
@@ -383,8 +426,9 @@ export function FeedCardBody({
       </p>
       {!expanded && overflowing ? (
         <button
+          ref={moreRef}
           type="button"
-          onClick={() => setExpanded(true)}
+          onClick={handleExpand}
           className="self-start text-body-s text-feed-card-body-more-text"
         >
           더보기
@@ -549,6 +593,7 @@ export function FeedCardReactions({
         label={`좋아요 ${counts.likes}개`}
         active={liked}
         activeColorClass="text-reaction-bar-active-like-icon"
+        popOnActivate
         onClick={onToggleLike}
       />
       <ReactionButton
@@ -557,6 +602,7 @@ export function FeedCardReactions({
         label={`북마크 ${counts.bookmarks}개`}
         active={bookmarked}
         activeColorClass="text-reaction-bar-active-bookmark-icon"
+        popOnActivate
         onClick={onToggleBookmark}
       />
     </div>
@@ -575,6 +621,7 @@ function ReactionButton({
   label,
   active = false,
   activeColorClass,
+  popOnActivate = false,
   onClick,
 }: {
   icon: ReactNode;
@@ -582,9 +629,13 @@ function ReactionButton({
   label: string;
   active?: boolean;
   activeColorClass?: string;
+  /** 켜지는 순간 아이콘이 톡 부푼다(좋아요·저장). 댓글은 상세로 가는 버튼이라 끈다. */
+  popOnActivate?: boolean;
   onClick?: () => void;
 }) {
   const showCount = count > 0;
+  // 상세 리액션바와 같은 움직임 — 마운트 때 이미 켜진 카드는 튀지 않고, 끌 때도 조용하다.
+  const pop = usePopOnActivate(popOnActivate && active);
 
   return (
     <button
@@ -596,9 +647,13 @@ function ReactionButton({
         "inline-flex h-7 items-center text-reaction-bar-default-icon",
         showCount ? "gap-1 pl-2 pr-2" : "w-8 justify-center",
         active && activeColorClass,
+        REACTION_PRESS_MOTION,
       )}
     >
-      {icon}
+      {/* 팝은 아이콘만 — 버튼의 눌림(scale)과 transform이 겹치지 않게 감싼다. 색은 currentColor 상속. */}
+      <span className={cn("inline-flex", pop && REACTION_POP_MOTION)}>
+        {icon}
+      </span>
       {showCount ? (
         // 숫자: Body S(14/21)
         <span
