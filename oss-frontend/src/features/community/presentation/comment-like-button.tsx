@@ -9,7 +9,10 @@ import {
   COMMENT_REACTION_ICON,
   COMMENT_REACTION_TEXT,
   COMMENT_REACTION_TEXT_ACTIVE,
+  REACTION_POP_MOTION,
+  REACTION_PRESS_MOTION,
 } from "@/features/community/presentation/comment-reaction-styles";
+import { usePopOnActivate } from "@/features/community/presentation/use-pop-on-activate";
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
 import { cn } from "@/shared/lib/cn";
 import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
@@ -39,6 +42,7 @@ export function CommentLikeButton({
   const [liked, setLiked] = useState(initialLiked);
   const [count, setCount] = useState(initialLikeCount);
   const [pending, setPending] = useState(false);
+  const pop = usePopOnActivate(liked);
 
   // 서버 렌더 값이 바뀌면 다시 맞춘다 — 로그인 후 router.refresh로 viewer 상태가 새로 내려오는데(#173)
   // 댓글 행은 재마운트되지 않아 useState가 비로그인 시점 값을 붙들고 있다. 진행 중 토글은 건드리지 않는다.
@@ -119,10 +123,13 @@ export function CommentLikeButton({
       // Pressed는 두 경우 모두 pressed 색이 덮는다(comment-reaction-styles).
       className={cn(
         COMMENT_REACTION_BUTTON,
+        REACTION_PRESS_MOTION,
         liked ? "text-reaction-bar-active-like-icon" : COMMENT_REACTION_ICON,
       )}
     >
-      <HeartIcon size={16} filled={liked} />
+      <span className={cn("inline-flex", pop && REACTION_POP_MOTION)}>
+        <HeartIcon size={16} filled={liked} />
+      </span>
       <span
         className={cn(
           COMMENT_REACTION_TEXT,

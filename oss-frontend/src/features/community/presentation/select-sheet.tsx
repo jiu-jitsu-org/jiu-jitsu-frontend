@@ -40,7 +40,7 @@ export function SelectSheet({
   const [selected, setSelected] = useState<string | null>(null);
   const [customText, setCustomText] = useState("");
 
-  // 알럿과 동일한 페이드 처리(열릴 때 한 프레임 뒤 전환 / 닫힐 때 페이드 아웃 후 언마운트).
+  // 열릴 때 한 프레임 뒤 전환 / 닫힐 때 내려간 뒤 언마운트. 딤은 페이드, 시트는 아래에서 올라온다.
   useEffect(() => {
     if (!open) {
       const raf = requestAnimationFrame(() => setVisible(false));
@@ -76,8 +76,7 @@ export function SelectSheet({
   return (
     <div
       className={cn(
-        "fixed inset-0 z-50 flex items-end transition-opacity duration-200",
-        visible ? "opacity-100" : "opacity-0",
+        "fixed inset-0 z-50 flex items-end",
       )}
     >
       {/* 딤(바깥 탭 시 닫기) — 웹뷰 영역까지만 덮이는 건 웹 폴백의 한계다(앱에서는 네이티브가 그린다). */}
@@ -85,14 +84,24 @@ export function SelectSheet({
         type="button"
         aria-label="닫기"
         onClick={onDismiss}
-        className="absolute inset-0 bg-bottom-sheet-selected-container-scrim"
+        className={cn(
+          "absolute inset-0 bg-bottom-sheet-selected-container-scrim transition-opacity duration-200",
+          visible ? "opacity-100" : "opacity-0",
+        )}
       />
 
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="relative w-full rounded-t-[20px] bg-bottom-sheet-selected-container-background px-5 pb-5"
+        // 올라올 때 500ms 감속(넘침 없음) / 내려갈 때 200ms 가속(호출부가 200ms 뒤 언마운트한다). 동작 줄이기면 이동 없이 바로 뜬다.
+        className={cn(
+          "relative w-full rounded-t-[20px] bg-bottom-sheet-selected-container-background px-5 pb-5",
+          "motion-safe:transition-[translate]",
+          visible
+            ? "translate-y-0 duration-500 ease-smooth-out"
+            : "translate-y-full duration-200 ease-in",
+        )}
       >
         {/* 핸들바: 상단 여백 8, 폭 40 높이 4 */}
         <div className="flex justify-center pt-2">

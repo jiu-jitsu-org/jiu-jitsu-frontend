@@ -13,6 +13,8 @@ import { CloseIcon, LoadingIcon, ReplyBranchIcon, SendIcon } from "@/shared/ui/i
 import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
 import { useToast } from "@/shared/ui";
 
+import { REACTION_PRESS_MOTION } from "./comment-reaction-styles";
+
 /** 액션바의 "댓글쓰기"가 포커스 대상으로 참조하는 입력 id(단일 출처). */
 export const COMMENT_INPUT_ELEMENT_ID = "community-comment-input";
 
@@ -39,7 +41,7 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [value, setValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const { target, cancelReply } = useCommentReply();
+  const { target, cancelReply, markPosted } = useCommentReply();
   // 키보드가 떠 있는 동안엔 홈 인디케이터(safe-area)가 키보드에 가려 의미가 없으므로 하단 패딩 0.
   const rect = useViewportRect();
   const { guest, guard } = useLoginGuard();
@@ -61,6 +63,8 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
   }, [target]);
 
   const canSubmit = value.trim().length > 0 && !submitting;
+  // 등록에 성공할 때마다 1씩 — 아이콘 key로 써서 종이비행기 모션을 처음부터 다시 재생한다.
+  const [sentCount, setSentCount] = useState(0);
 
   async function submit() {
     const content = value.trim();
@@ -70,6 +74,7 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
     if (demo) {
       setValue("");
       cancelReply();
+      setSentCount((n) => n + 1);
       return;
     }
 
@@ -96,6 +101,12 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
       }
 
       setValue("");
+      setSentCount((n) => n + 1);
+      // 새 댓글 id를 알려 두면 목록이 새로 그려질 때 그 댓글만 펼쳐지며 들어온다.
+      const created = (await response.json().catch(() => null)) as {
+        data?: { id?: unknown };
+      } | null;
+      if (typeof created?.data?.id === "number") markPosted(created.data.id);
       // 답글도 최상위 댓글도 대상 해제만 한다. 서버가 대댓글을 상위 3개로 잘라 내려주므로
       // 작성된 순에서 답글이 3개를 넘으면 방금 쓴 답글이 미리보기 밖(맨 뒤)에 남는다 —
       // 그때는 「대댓글 더보기」로 확인한다(#62).
@@ -189,6 +200,7 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
         // 전송 중: 스피너(active색) / 입력 1자 이상: send-icon-active / 빈 상태: send-icon-disabled.
         className={cn(
           "inline-flex size-10 shrink-0 items-center justify-center rounded-full",
+          canSubmit && REACTION_PRESS_MOTION,
           submitting || canSubmit
             ? "text-comment-input-bar-send-icon-active"
             : "text-comment-input-bar-send-icon-disabled",
@@ -197,7 +209,15 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
         {submitting ? (
           <LoadingIcon size={24} className="animate-spin" />
         ) : (
-          <SendIcon size={24} />
+          <span
+            key={sentCount}
+            className={cn(
+              "inline-flex",
+              sentCount > 0 && "motion-safe:animate-comment-send-fly",
+            )}
+          >
+            <SendIcon size={24} />
+          </span>
         )}
       </button>
       </div>

@@ -3,7 +3,9 @@
 import { useRouter } from "next/navigation";
 import {
   useOptimistic,
+  useState,
   useTransition,
+  type CSSProperties,
   type KeyboardEvent,
   type ReactNode,
 } from "react";
@@ -34,6 +36,9 @@ function tabId(tab: MyActivityTab): string {
  *
  * 스타일: 두 탭 등폭, 높이 44, 컨테이너 좌우 16, Body M. 선택 탭은 semibold + 탭 폭 전체 2px 밑줄,
  * 미선택은 medium. 탭 행 아래 구분선은 없다.
+ *
+ * 모션: 밑줄은 하나만 두고 새 탭으로 미끄러진다(400ms, 거의 넘치지 않는 스프링). 패널은 옮겨 간
+ * 쪽에서 8px 밀려 들어온다. 처음 열 때는 움직이지 않는다.
  */
 export function MyActivityTabs({
   tab,
@@ -46,6 +51,17 @@ export function MyActivityTabs({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [selectedTab, setSelectedTab] = useOptimistic(tab);
+  const selectedIndex = MY_ACTIVITY_TABS.findIndex(
+    (item) => item.value === selectedTab,
+  );
+
+  // 탭을 한 번이라도 옮겼는지와 방향(오른쪽 1 / 왼쪽 -1) — 패널 진입 모션의 스위치.
+  const [lastIndex, setLastIndex] = useState(selectedIndex);
+  const [direction, setDirection] = useState(0);
+  if (lastIndex !== selectedIndex) {
+    setLastIndex(selectedIndex);
+    setDirection(selectedIndex > lastIndex ? 1 : -1);
+  }
 
   function select(next: MyActivityTab) {
     if (next === selectedTab) return;
@@ -77,7 +93,11 @@ export function MyActivityTabs({
 
   return (
     <>
-      <div role="tablist" aria-label="커뮤니티 활동" className="flex px-4">
+      <div
+        role="tablist"
+        aria-label="커뮤니티 활동"
+        className="relative flex px-4"
+      >
         {MY_ACTIVITY_TABS.map((item) => {
           const selected = item.value === selectedTab;
 
@@ -100,24 +120,35 @@ export function MyActivityTabs({
               )}
             >
               {item.label}
-              {selected ? (
-                // 밑줄: 탭 폭 전체, 2px, 끝 둥글게
-                <span
-                  aria-hidden
-                  className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-tab-bar-selected-underline"
-                />
-              ) : null}
             </button>
           );
         })}
+        {/* 밑줄: 탭 폭 전체, 2px, 끝 둥글게. 탭 하나 폭만큼씩 옮겨 선택 탭 아래에 둔다. */}
+        <span
+          aria-hidden
+          className="absolute bottom-0 left-4 h-0.5 rounded-full bg-tab-bar-selected-underline motion-safe:transition-transform motion-safe:duration-400 motion-safe:ease-spring-gentle"
+          style={{
+            width: `calc((100% - 2rem) / ${MY_ACTIVITY_TABS.length})`,
+            transform: `translateX(${Math.max(0, selectedIndex) * 100}%)`,
+          }}
+        />
       </div>
 
       <div
         id={PANEL_ID}
         role="tabpanel"
+        // 패널이 옆에서 밀려 들어오는 동안 화면이 가로로 흔들리지 않게 자른다.
+        className="overflow-x-clip"
         aria-labelledby={tabId(selectedTab)}
       >
-        {pending ? <MyActivityPanelLoading /> : children}
+        {/* 로딩 → 목록으로 바뀔 때도 같은 방향으로 한 번 더 들어온다(key가 바뀌면 처음부터 재생). */}
+        <div
+          key={pending ? "loading" : selectedTab}
+          className={cn(direction !== 0 && "motion-safe:animate-tab-panel-in")}
+          style={{ "--tab-shift": `${direction * 8}px` } as CSSProperties}
+        >
+          {pending ? <MyActivityPanelLoading /> : children}
+        </div>
       </div>
     </>
   );

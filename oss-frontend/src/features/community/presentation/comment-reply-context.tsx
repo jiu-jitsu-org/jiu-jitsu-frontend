@@ -26,6 +26,10 @@ type CommentReplyContextValue = {
   startReply: (target: ReplyTarget) => void;
   /** 칩 × 또는 등록 완료 → 대상 해제. */
   cancelReply: () => void;
+  /** 방금 등록한 댓글 id — 목록에 처음 나타날 때 펼쳐지며 반짝이는 모션의 대상. */
+  justPostedId: number | null;
+  /** 입력 바가 등록 성공 직후 부른다. */
+  markPosted: (id: number) => void;
 };
 
 const CommentReplyContext = createContext<CommentReplyContextValue | null>(null);
@@ -38,6 +42,7 @@ const CommentReplyContext = createContext<CommentReplyContextValue | null>(null)
  */
 export function CommentReplyProvider({ children }: { children: ReactNode }) {
   const [target, setTarget] = useState<ReplyTarget | null>(null);
+  const [justPostedId, setJustPostedId] = useState<number | null>(null);
 
   const startReply = useCallback((next: ReplyTarget) => {
     setTarget(next);
@@ -48,8 +53,14 @@ export function CommentReplyProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ target, startReply, cancelReply }),
-    [target, startReply, cancelReply],
+    () => ({
+      target,
+      startReply,
+      cancelReply,
+      justPostedId,
+      markPosted: setJustPostedId,
+    }),
+    [target, startReply, cancelReply, justPostedId],
   );
 
   return (
@@ -71,6 +82,8 @@ export function useCommentReply(): CommentReplyContextValue {
       target: null,
       startReply: () => {},
       cancelReply: () => {},
+      justPostedId: null,
+      markPosted: () => {},
     }
   );
 }
