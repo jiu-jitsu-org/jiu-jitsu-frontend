@@ -21,7 +21,13 @@ export function EmptyState({
   className?: string;
 }) {
   return (
-    <div className={cn("flex flex-col items-center px-6 text-center", className)}>
+    // 빈 화면은 8px 아래에서 올라오며 나타난다 — 목록이 비었다는 걸 "자리 잡는" 움직임으로 알린다.
+    <div
+      className={cn(
+        "flex flex-col items-center px-6 text-center motion-safe:animate-rise-in",
+        className,
+      )}
+    >
       {/* 제목: Body M(16 Medium) */}
       <p className="text-body-m text-empty-state-default-title-text">{title}</p>
       {description ? (
@@ -31,11 +37,12 @@ export function EmptyState({
         </p>
       ) : null}
       {action ? (
-        // 버튼: 재시도 버튼과 동일한 neutral 규격(38/rounded 10/px16), 부제목과 간격 13
+        // 버튼: 재시도 버튼과 동일한 neutral 규격(38/rounded 10/px16), 부제목과 간격 13.
+        // 누르는 동안 neutral 눌림 색으로 짙어진다(재시도 버튼과 같은 눌림).
         <button
           type="button"
           onClick={action.onClick}
-          className="mt-[13px] h-[38px] rounded-[10px] bg-button-neutral-default-bg px-4 text-button-m text-button-neutral-default-text"
+          className="mt-[13px] h-[38px] rounded-[10px] bg-button-neutral-default-bg px-4 text-button-m text-button-neutral-default-text motion-safe:transition-colors motion-safe:duration-120 active:bg-button-neutral-pressed-bg"
         >
           {action.label}
         </button>
