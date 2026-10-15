@@ -42,7 +42,8 @@ function RollingDigit({ digit }: { digit: string }) {
 
   return (
     // 보이지 않는 숫자가 칸의 폭·높이를 잡고, 실제 숫자들은 그 위에 겹쳐 칸 밖은 잘린다.
-    <span className="relative inline-block overflow-hidden">
+    // align-top: overflow-hidden인 inline-block은 기준선이 아래 끝으로 내려가 숫자가 글자보다 떠 보인다.
+    <span className="relative inline-block overflow-hidden align-top">
       <span className="invisible">{current}</span>
       {previous !== null ? (
         <span
