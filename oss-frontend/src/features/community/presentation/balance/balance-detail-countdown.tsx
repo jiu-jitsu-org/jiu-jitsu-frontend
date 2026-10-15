@@ -5,9 +5,10 @@ import {
   readRemainingParts,
 } from "@/features/community/presentation/balance/balance-countdown";
 import { RollingNumber } from "@/features/community/presentation/balance/rolling-number";
-import { useBalanceCountdown } from "@/features/community/presentation/balance/use-balance-countdown";
+import { TickingTimerIcon } from "@/features/community/presentation/balance/ticking-timer-icon";
+import { useTickBump } from "@/features/community/presentation/balance/use-tick-bump";
 import { cn } from "@/shared/lib/cn";
-import { TimerIcon } from "@/shared/ui/icons";
+import { useBalanceCountdown } from "@/features/community/presentation/balance/use-balance-countdown";
 
 /**
  * 밸런스 게임 상세의 타이머 배지 — 카운트다운을 소유하는 **말단** 컴포넌트.
@@ -80,6 +81,8 @@ export function BalanceDetailCountdown({
     serverTime,
     onExpired,
   });
+  // 마감이면 멈춘다. 훅은 조기 반환보다 위에서 부른다.
+  const bump = useTickBump(closed ? null : remainMs);
 
   // 시각을 파싱하지 못하면 배지를 통째로 감춘다. 단 마감이라고 들었으면 시각과 무관한 사실이라 남긴다.
   if (label === null && !closed) return null;
@@ -105,10 +108,17 @@ export function BalanceDetailCountdown({
   return (
     // 높이 40 고정 · radius 16 · 조각 사이 간격 5(아이콘 ↔ 첫 숫자 포함).
     // 상하 8은 패딩으로 두되 높이가 40으로 고정이라 실제로는 가운데 정렬이 자리를 잡는다.
-    <div className="inline-flex h-10 items-center gap-[5px] rounded-2xl bg-balance-game-countdown-badge-bg px-4 py-2">
-      <TimerIcon
-        size={16}
-        className={cn("shrink-0 transition-colors", iconColorClass)}
+    // 초가 바뀔 때마다 배지 전체가 살짝 부풀었다 돌아온다 — 회색 판도 시간과 함께 숨 쉰다.
+    <div
+      className={cn(
+        "inline-flex h-10 items-center gap-[5px] rounded-2xl bg-balance-game-countdown-badge-bg px-4 py-2",
+        bump,
+      )}
+    >
+      {/* 색은 1초 주기로 바뀌되 뚝 끊기지 않게 0.5초에 걸쳐 번지고, 바뀔 때마다 시계가 째깍 흔들린다. */}
+      <TickingTimerIcon
+        remainMs={closed ? null : remainMs}
+        className={`transition-colors duration-500 ${iconColorClass}`}
       />
 
       {closed ? (

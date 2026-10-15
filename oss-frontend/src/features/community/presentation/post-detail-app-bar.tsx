@@ -19,6 +19,8 @@ import { POST_EDIT_FROM_DETAIL } from "@/features/community/presentation/post-ed
 import { useOpenPostEdit } from "@/features/community/presentation/use-open-post-edit";
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
 import { useReportFlow } from "@/features/community/presentation/use-report-flow";
+import { REACTION_PRESS_MOTION } from "@/features/community/presentation/comment-reaction-styles";
+import { cn } from "@/shared/lib/cn";
 import {
   BackArrowIcon,
   BellIcon,
@@ -67,6 +69,8 @@ export function PostDetailAppBar({
   const [alarmOn, setAlarmOn] = useState(initialNoticeEnabled);
   // 저장 중 재탭 방지 — 토글 엔드포인트라 연타하면 서버 상태가 화면과 어긋난 채로 뒤집힌다.
   const [alarmPending, setAlarmPending] = useState(false);
+  // 토글할 때마다 1씩 — 종 key로 써서 켜면 흔들림·끄면 움츠림을 처음부터 재생한다. 0이면(마운트) 가만히.
+  const [alarmTurn, setAlarmTurn] = useState(0);
   // 서버 값이 바뀌면 다시 맞춘다 — 비로그인으로 열었다가 로그인하면 router.refresh로 실제 설정이
   // 내려오는데(#173), 앱바는 재마운트되지 않아 useState가 비로그인 시점 값을 붙들고 있다.
   const [seededNotice, setSeededNotice] = useState(initialNoticeEnabled);
@@ -89,6 +93,7 @@ export function PostDetailAppBar({
     const previous = alarmOn;
     const next = !previous;
     setAlarmOn(next);
+    setAlarmTurn((n) => n + 1);
 
     // 예시(데모)에선 네트워크 없이 토스트만(저장·롤백 없음).
     if (demo) {
@@ -240,9 +245,24 @@ export function PostDetailAppBar({
             aria-label={alarmOn ? "알림 끄기" : "알림 켜기"}
             aria-pressed={alarmOn}
             disabled={alarmPending}
-            className="inline-flex size-10 items-center justify-center text-icon-primary"
+            className={cn(
+              "inline-flex size-10 items-center justify-center text-icon-primary",
+              REACTION_PRESS_MOTION,
+            )}
           >
-            {alarmOn ? <BellIcon size={24} /> : <BellOffIcon size={24} />}
+            {/* 켜면 꼭대기를 축으로 땡그랑 흔들리고, 끄면 움츠렸다 돌아온다. */}
+            <span
+              key={alarmTurn}
+              className={cn(
+                "inline-flex",
+                alarmTurn > 0 &&
+                  (alarmOn
+                    ? "origin-top motion-safe:animate-bell-ring"
+                    : "motion-safe:animate-bell-mute"),
+              )}
+            >
+              {alarmOn ? <BellIcon size={24} /> : <BellOffIcon size={24} />}
+            </span>
           </button>
 
           <div className="relative">

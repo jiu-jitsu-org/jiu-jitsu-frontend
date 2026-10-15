@@ -7,11 +7,12 @@ import { cn } from "@/shared/lib/cn";
 /** 트리거 기준 메뉴 위치. bottom=아래로 드롭, top=위로(붙여서). */
 type MenuPlacement = "bottom-left" | "bottom-right" | "top-right";
 
+// --menu-shift는 열릴 때 출발점 — 트리거 쪽에서 8px 떨어진 곳부터 미끄러져 나온다.
 const PLACEMENT_CLASS: Record<MenuPlacement, string> = {
-  "bottom-left": "top-full left-0 mt-1",
-  "bottom-right": "top-full right-0 mt-1",
+  "bottom-left": "top-full left-0 mt-1 [--menu-shift:-8px]",
+  "bottom-right": "top-full right-0 mt-1 [--menu-shift:-8px]",
   // 버튼 top에 붙여 위로
-  "top-right": "bottom-full right-0",
+  "top-right": "bottom-full right-0 [--menu-shift:8px]",
 };
 
 /**
@@ -48,7 +49,7 @@ export function MenuBox({
         role={role}
         aria-label={ariaLabel}
         className={cn(
-          "absolute z-20 flex w-[140px] flex-col overflow-hidden rounded-2xl border border-[var(--cool-gray-50)] bg-list-setting-background py-1",
+          "absolute z-20 flex w-[140px] flex-col overflow-hidden rounded-2xl border border-[var(--cool-gray-50)] bg-list-setting-background py-1 motion-safe:animate-menu-slide-in",
           PLACEMENT_CLASS[placement],
         )}
       >

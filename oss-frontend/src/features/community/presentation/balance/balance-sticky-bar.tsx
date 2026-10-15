@@ -1,5 +1,7 @@
 "use client";
 
+import { RollingText } from "@/features/community/presentation/balance/rolling-text";
+import { TickingTimerIcon } from "@/features/community/presentation/balance/ticking-timer-icon";
 import { useBalanceCountdown } from "@/features/community/presentation/balance/use-balance-countdown";
 import { ChevronDownIcon } from "@/shared/ui/icons";
 
@@ -30,17 +32,19 @@ export function BalanceStickyBar({
   onPress: () => void;
 }) {
   return (
-    <div className="fixed inset-x-0 top-0 z-20 px-4 pt-[env(safe-area-inset-top)]">
+    // 나타날 때 위에서 떨어지듯 내려와 출렁이며 자리 잡는다.
+    <div className="fixed inset-x-0 top-0 z-20 px-4 pt-[env(safe-area-inset-top)] motion-safe:animate-sticky-drop-in">
       <button
         type="button"
         onClick={onPress}
         className={
           // 테두리는 안쪽으로 그린다 — Tailwind가 box-sizing: border-box라 1px이 바 크기를 늘리지 않는다.
           // blue-200은 시맨틱 토큰을 거치지 않는 원시값이라 Tailwind 색으로 노출돼 있지 않다(page.tsx와 같은 방식).
-          // 그림자는 디자인의 drop shadow 2겹을 순서대로 옮긴 것이다(0/4/4 25% 위에 0/2/2 6%).
+          // 그림자는 넓고 옅게 번지는 파란 기운 한 겹 + 바로 밑 얇은 접지 한 겹이다. 진한 검정 4px은
+          // 바 아래에 띠처럼 끊겨 보여 바꿨다 — 연파랑 바와 같은 색 계열이라 떠 있되 무겁지 않다.
           // gap-2.5는 텍스트와 아이콘 사이 **최소** 간격이다 — 아이콘은 ml-auto로 오른쪽 끝에 붙고,
           // 문구가 길어져 남는 자리가 사라지면 이 10에서 멈춘다.
-          "mt-4 flex w-full cursor-pointer items-center gap-2.5 rounded-xl border border-[var(--blue-200)] bg-poll-sticky-bar-bg px-4 py-3 text-poll-sticky-bar-text shadow-[0_4px_4px_rgba(0,0,0,0.25),0_2px_2px_rgba(0,0,0,0.06)]"
+          "mt-4 flex w-full cursor-pointer items-center gap-2.5 rounded-xl border border-[var(--blue-200)] bg-poll-sticky-bar-bg px-4 py-3 text-poll-sticky-bar-text shadow-[0_10px_24px_-8px_rgba(37,99,235,0.28),0_2px_4px_rgba(15,23,42,0.06)]"
         }
       >
         <StickyLabel endAt={endAt} serverTime={serverTime} />
@@ -78,12 +82,26 @@ function StickyLabel({
   endAt: string;
   serverTime: string;
 }) {
-  const { label: remaining } = useBalanceCountdown({ endAt, serverTime });
+  const { label: remaining, remainMs } = useBalanceCountdown({
+    endAt,
+    serverTime,
+  });
 
   return (
     // 잔여 시간을 만들지 못하면 구분점까지 함께 뺀다 — "오늘의 밸런스 게임 · "로 끝나지 않도록.
-    <span className="text-body-s">
-      {remaining === null ? TITLE : `${TITLE} · ${remaining}`}
+    // 남은 시간은 리스트 카드와 같이 시계가 째깍 흔들리고 숫자가 자리마다 굴러 올라간다.
+    <span className="inline-flex items-center gap-0.5 text-body-s">
+      {remaining === null ? (
+        TITLE
+      ) : (
+        <>
+          {`${TITLE} · `}
+          <TickingTimerIcon remainMs={remainMs} size={14} />
+          <span>
+            <RollingText text={remaining} />
+          </span>
+        </>
+      )}
     </span>
   );
 }
