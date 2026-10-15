@@ -34,7 +34,8 @@ export function PostDetailGone() {
   }, []);
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-2 px-6 text-center">
+    // 빈 화면과 같이 8px 아래에서 올라오며 나타난다(웹 단독 진입에서만 보인다).
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-2 px-6 text-center motion-safe:animate-rise-in">
       <p className="text-body-m text-text-primary">{GONE_MESSAGE}</p>
     </div>
   );

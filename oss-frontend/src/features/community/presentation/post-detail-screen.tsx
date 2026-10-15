@@ -1,9 +1,11 @@
 import { getPostDetailPageData } from "@/features/community/application/get-post-detail-page-data";
 import { SessionExpiredRecovery } from "@/features/auth/presentation/session-expired-recovery";
 import type { CommentSort } from "@/features/community/domain/post";
+import { DetailErrorState } from "@/features/community/presentation/detail-error-state";
 import { PostDetailGone } from "@/features/community/presentation/post-detail-gone";
 import { PostDetailView } from "@/features/community/presentation/post-detail-view";
 import { ApiErrorCode } from "@/shared/lib/http";
+import { Spinner } from "@/shared/ui/spinner";
 
 /**
  * 게시글 상세 화면 루트 (서버 컴포넌트).
@@ -37,7 +39,7 @@ export async function PostDetailScreen({
     if (result.code === ApiErrorCode.BOARD_NOT_FOUND || result.status === 404) {
       return <PostDetailGone />;
     }
-    return <PostDetailError message={result.error} />;
+    return <DetailErrorState title="게시글을 불러오지 못했습니다." />;
   }
 
   const { post, comments } = result.data;
@@ -49,22 +51,7 @@ export async function PostDetailScreen({
 function PostDetailLoading() {
   return (
     <div className="flex min-h-dvh items-center justify-center">
-      <span
-        className="size-6 animate-spin rounded-full border-2 border-feed-card-header-avatar-bg border-t-transparent"
-        role="status"
-        aria-label="불러오는 중"
-      />
-    </div>
-  );
-}
-
-function PostDetailError({ message }: { message: string }) {
-  return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-2 px-6 text-center">
-      <p className="text-body-m text-text-primary">
-        게시글을 불러오지 못했습니다.
-      </p>
-      <p className="text-body-s text-text-tertiary">{message}</p>
+      <Spinner />
     </div>
   );
 }
