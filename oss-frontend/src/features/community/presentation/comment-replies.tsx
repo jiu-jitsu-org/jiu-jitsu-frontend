@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 import { useAuth } from "@/features/auth/presentation/auth-provider";
 import type { Comment } from "@/features/community/domain/comment";
@@ -140,6 +140,41 @@ export function CommentReplies({
   const items = dedupeById([...replies, ...current.loaded]);
   const hasMore = current.hasNext ?? totalCount > replies.length;
 
+  // 더보기로 새로 붙은 줄만 차례로 떠오르게 한다(처음 그려진 미리보기·새로고침으로 바뀐 목록은 그대로).
+  // 줄(li)은 CommentItem이 그려 클래스를 넘길 수 없어, 커밋 직후 새 줄에만 애니메이션을 직접 건다.
+  // 직전 커밋의 줄 수·signature를 기억해 두고, 같은 signature에서 줄이 늘었을 때만 늘어난 부분을 움직인다.
+  const listRef = useRef<HTMLUListElement>(null);
+  const renderedRef = useRef<{ signature: string; count: number } | null>(null);
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    const count = list?.children.length ?? 0;
+    const previous = renderedRef.current;
+    renderedRef.current = { signature, count };
+    if (!list || !previous || previous.signature !== signature) return;
+    if (count <= previous.count) return;
+    // motion-safe와 같은 조건 — 동작 줄이기를 켠 사용자에게는 바로 보여준다.
+    if (!window.matchMedia("(prefers-reduced-motion: no-preference)").matches)
+      return;
+
+    Array.from(list.children)
+      .slice(previous.count)
+      .forEach((child, index) => {
+        const el = child as HTMLElement;
+        // 토큰(reply-rise-in 450ms) 그대로 — 한 줄씩 100ms 간격으로 이어서 떠오른다.
+        el.style.animation = "var(--animate-reply-rise-in)";
+        el.style.animationDelay = `${index * 100}ms`;
+        // 끝나면 지운다 — 남겨 두면 이 줄에 걸릴 다른 모션(방금 등록한 댓글 펼침)을 가린다.
+        // animationend는 버블링되므로 줄 안쪽 아이콘 모션이 끝난 것과 구분한다.
+        const clear = (event: AnimationEvent) => {
+          if (event.target !== el) return;
+          el.style.animation = "";
+          el.style.animationDelay = "";
+          el.removeEventListener("animationend", clear);
+        };
+        el.addEventListener("animationend", clear);
+      });
+  }, [signature, items.length]);
+
   async function loadNextPage() {
     if (current.status === "loading") return;
 
@@ -170,7 +205,7 @@ export function CommentReplies({
 
   return (
     <div className="mt-3 flex flex-col gap-3">
-      <ul className="flex flex-col gap-3">
+      <ul ref={listRef} className="flex flex-col gap-3">
         {items.map((reply) => (
           <CommentItem
             key={reply.id}
@@ -188,7 +223,8 @@ export function CommentReplies({
           disabled={current.status === "loading"}
           // 높이 19 고정. 텍스트는 대댓글 본문 좌측과 정렬 → 아바타 24 + gap 4 = 28 들여쓰기(pl-7).
           // 폰트 Body M, 색 comment-replies-text.
-          className="flex h-[19px] items-center self-start pl-7 text-body-m text-comment-replies-text"
+          // 눌렀을 때 살짝 옅어져 눌림을 알린다(면·테두리 없는 글자 버튼이라 투명도로만).
+          className="flex h-[19px] items-center self-start pl-7 text-body-m text-comment-replies-text motion-safe:transition-opacity motion-safe:duration-150 active:opacity-60"
         >
           {BUTTON_LABEL[current.status]}
         </button>
