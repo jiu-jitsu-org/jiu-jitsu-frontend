@@ -4,6 +4,7 @@ import {
   CLOSING_SOON_TEXT,
   readRemainingParts,
 } from "@/features/community/presentation/balance/balance-countdown";
+import { RollingNumber } from "@/features/community/presentation/balance/rolling-number";
 import { useBalanceCountdown } from "@/features/community/presentation/balance/use-balance-countdown";
 import { cn } from "@/shared/lib/cn";
 import { TimerIcon } from "@/shared/ui/icons";
@@ -120,13 +121,13 @@ export function BalanceDetailCountdown({
           {/* 시간이 0이면 단위째 뺀다 — "42분 08초 남음"이 된다. */}
           {parts.hours !== null ? (
             <>
-              <span className={VALUE_CLASS}>{parts.hours}</span>
+              <RollingNumber className={VALUE_CLASS} value={parts.hours} />
               <span className={LABEL_CLASS}>시간</span>
             </>
           ) : null}
-          <span className={VALUE_CLASS}>{parts.minutes}</span>
+          <RollingNumber className={VALUE_CLASS} value={parts.minutes} />
           <span className={LABEL_CLASS}>분</span>
-          <span className={VALUE_CLASS}>{parts.seconds}</span>
+          <RollingNumber className={VALUE_CLASS} value={parts.seconds} />
           <span className={LABEL_CLASS}>초 남음</span>
         </>
       )}
