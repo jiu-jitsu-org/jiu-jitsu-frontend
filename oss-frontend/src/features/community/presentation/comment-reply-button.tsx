@@ -5,6 +5,7 @@ import {
   COMMENT_REACTION_ICON,
   COMMENT_REACTION_TEXT,
   COMMENT_REACTION_TEXT_ACTIVE,
+  REACTION_PRESS_MOTION,
 } from "@/features/community/presentation/comment-reaction-styles";
 import { useCommentReply } from "@/features/community/presentation/comment-reply-context";
 import { COMMENT_INPUT_ELEMENT_ID } from "@/features/community/presentation/comment-input-bar";
@@ -55,9 +56,11 @@ export function CommentReplyButton({
       className={cn(
         COMMENT_REACTION_BUTTON,
         COMMENT_REACTION_ICON,
+        REACTION_PRESS_MOTION,
         replied && "text-reaction-bar-active-comment-icon",
       )}
     >
+      {/* 눌림만 준다 — 켜고 끄는 버튼이 아니라 아이콘은 가만히 둔다. */}
       <CommentIcon size={16} filled={replied} />
       <span
         className={cn(
