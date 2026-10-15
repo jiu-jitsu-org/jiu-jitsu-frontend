@@ -16,7 +16,11 @@ import {
 } from "@/features/community/presentation/image-aspect";
 import {
   ImageLoadError,
+  type ImageReveal,
+  imageRevealClassName,
   readSettledImage,
+  revealOnAttach,
+  revealOnLoad,
   withRetryParam,
 } from "@/features/community/presentation/image-fallback";
 import {
@@ -208,10 +212,14 @@ export function FeedCard({
  */
 function FeedCardAvatar({ avatarUrl }: { avatarUrl?: string }) {
   const [failed, setFailed] = useState(false);
+  const [reveal, setReveal] = useState<ImageReveal>(undefined);
 
-  // 아바타는 실패만 본다 — 성공 시 할 일이 없다(대체 아이콘을 안 띄우면 그만).
-  const detectBrokenImage = useCallback((img: HTMLImageElement | null) => {
+  // 받는 중이던 사진만 다 불러온 뒤에 옅게 나타나게 한다. 하이드레이션 전에 끝난 이미지는 이벤트를
+  // 놓치므로 부착 시점에 직접 확인한다.
+  const detectSettledImage = useCallback((img: HTMLImageElement | null) => {
+    if (!img) return;
     if (readSettledImage(img) === "failed") setFailed(true);
+    setReveal(revealOnAttach(img));
   }, []);
 
   const showImage = Boolean(avatarUrl) && !failed;
@@ -222,10 +230,11 @@ function FeedCardAvatar({ avatarUrl }: { avatarUrl?: string }) {
         // 공통 컴포넌트라 호출처 이미지 도메인이 다양 → next/image 설정 의존을 피해 plain img 사용.
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          ref={detectBrokenImage}
+          ref={detectSettledImage}
           src={avatarUrl}
           alt=""
-          className="size-full object-cover"
+          className={cn("size-full object-cover", imageRevealClassName(reveal))}
+          onLoad={() => setReveal(revealOnLoad)}
           onError={() => setFailed(true)}
         />
       ) : (
@@ -479,12 +488,17 @@ function FeedCardCover({
   const [attempt, setAttempt] = useState(0);
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  // 등장(투명→옅게)은 자리 잡기(loaded)와 따로 둔다 — 이미 받은 사진은 자리는 풀되 숨기지 않는다.
+  const [reveal, setReveal] = useState<ImageReveal>(undefined);
 
   // 커버는 성공도 봐야 한다 — 로드 전 자리를 잡아둔 플레이스홀더를 성공 시점에 풀기 때문이다.
+  // 재시도는 실패 폴백을 거쳐 새 img로 붙으므로 여기서 등장 상태도 새로 정해진다.
   const detectSettledImage = useCallback((img: HTMLImageElement | null) => {
+    if (!img) return;
     const settled = readSettledImage(img);
     if (settled === "failed") setFailed(true);
     else if (settled === "loaded") setLoaded(true);
+    setReveal(revealOnAttach(img));
   }, []);
 
   function handleRetry() {
@@ -506,11 +520,17 @@ function FeedCardCover({
   }
 
   return (
-    <div className={cn("relative overflow-hidden rounded-2xl", className)}>
+    // 로드 전 자리 색은 이 칸이 깐다 — 사진은 다 불러오기 전까지 투명했다가 옅게 나타난다.
+    <div
+      className={cn(
+        "relative overflow-hidden rounded-2xl bg-surface-secondary",
+        className,
+      )}
+    >
       {/* 가로는 카드 내용 폭(= 화면 폭 − 32)에 꽉 채운다. */}
       {/* 높이는 원본 비율대로 자동. 허용 비율 4:5 ~ 1.91:1 밖이면 object-cover가 center crop. */}
       {/* 규격은 상세 1장과 같고 상수는 image-aspect.ts가 단일 출처다(#121). */}
-      {/* 비어 있을 때 채움색: Color/Cool Gray/50 */}
+      {/* 비어 있을 때 채움색: Color/Cool Gray/50(= surface/secondary) — 바깥 칸의 바탕 */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         ref={detectSettledImage}
@@ -523,7 +543,10 @@ function FeedCardCover({
         // 값을 넘기는 호출부가 생기면 아래 플레이스홀더 분기가 속성 비율을 덮어쓰지 않게 손봐야 한다.
         width={image.width}
         height={image.height}
-        onLoad={() => setLoaded(true)}
+        onLoad={() => {
+          setLoaded(true);
+          setReveal(revealOnLoad);
+        }}
         onError={() => setFailed(true)}
         // 로드 전에는 아래 aspect 클래스가 높이를 잡는다 — 같이 주면 서로 싸우므로 그때는 걸지 않는다.
         style={
@@ -533,7 +556,8 @@ function FeedCardCover({
         }
         className={cn(
           // block: inline 이미지의 baseline 여백을 없애 뱃지가 이미지 하단에 정확히 붙게 한다.
-          "block w-full bg-[var(--cool-gray-50)] object-cover object-center",
+          "block w-full object-cover object-center",
+          imageRevealClassName(reveal),
           // 로드 전에는 기준 비율 343:220으로 자리를 잡는다. 높이 0으로 시작해 로드 순간
           // 아래 요소를 밀어내는 시프트를 막는 게 목적이고, 실패 폴백도 같은 343:220이라
           // 어느 쪽으로 끝나든 확보한 영역이 그대로 유지된다.
