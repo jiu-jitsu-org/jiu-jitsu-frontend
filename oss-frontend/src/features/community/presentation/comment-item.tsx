@@ -11,13 +11,7 @@ import { CommentReplies } from "@/features/community/presentation/comment-replie
 import { MyActivityLink } from "@/features/community/presentation/my-activity-link";
 import { cn } from "@/shared/lib/cn";
 import { ReplyBranchIcon } from "@/shared/ui/icons";
-
-/** 서버 timeAgo가 없을 때만 쓰는 폴백. ISO → "M월 D일". 파싱 실패 시 원문 반환. */
-function formatCommentDate(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return iso;
-  return `${date.getMonth() + 1}월 ${date.getDate()}일`;
-}
+import { RelativeTime } from "@/shared/ui/relative-time";
 
 /**
  * 단일 댓글 행 (클라이언트 컴포넌트, 초안).
@@ -129,13 +123,11 @@ export function CommentItem({
               작성자
             </span>
           ) : null}
-          {/* 날짜: Label M, feed-card/header/date-text */}
-          <time
-            dateTime={comment.createdAt}
+          {/* 날짜: Label M, feed-card/header/date-text. 댓글·대댓글은 상대 시간 고정(정책 2). */}
+          <RelativeTime
+            iso={comment.createdAt}
             className="text-label-m text-feed-card-header-date-text"
-          >
-            {comment.timeAgo ?? formatCommentDate(comment.createdAt)}
-          </time>
+          />
         </div>
         {/* 본문: 프로필 행과 간격 7, 닉네임 좌측 정렬(컬럼 기준), n줄 전부 노출(클램프 없음).
             Body S(14/21), feed-card/body/body-text */}
