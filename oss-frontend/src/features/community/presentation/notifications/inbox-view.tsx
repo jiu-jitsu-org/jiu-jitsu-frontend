@@ -70,11 +70,14 @@ export function InboxView({
         <InboxEmptyState />
       ) : (
         <>
-          <p className="px-4 pt-2 pb-3 text-label-m text-text-secondary">
-            새 알림 <span className="ml-1 text-primary">{unreadCount}</span>
+          <p className="flex h-11 items-center pl-5 text-label-m font-normal text-text-secondary">
+            새 알림
+            <span className="ml-1.5 text-interactive-primary">
+              {unreadCount}
+            </span>
           </p>
 
-          <ul className="border-t border-border-subtle">
+          <ul>
             {notifications.map((notification) => (
               <InboxItem
                 key={notification.id}
@@ -84,7 +87,8 @@ export function InboxView({
             ))}
           </ul>
 
-          <p className="px-4 pt-8 pb-[calc(32px+env(safe-area-inset-bottom))] text-center text-label-m text-text-secondary">
+          {/* 높이 47 고정 · 마지막 셀과 21 · 아래 여백 0(하단 safe-area도 두지 않는다 — 디자인 확정). */}
+          <p className="mt-[21px] flex h-[47px] items-center justify-center px-4 text-label-m font-normal text-text-secondary">
             최근 {INBOX_RETENTION_DAYS}일 이내 알림만 보여요
           </p>
         </>

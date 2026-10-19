@@ -3,6 +3,7 @@ export { IconBase } from "./icon-base";
 
 export { PersonIcon } from "./person-icon";
 export { CommentIcon } from "./comment-icon";
+export { ChatBubbleIcon } from "./chat-bubble-icon";
 export { HeartIcon } from "./heart-icon";
 export { BookmarkIcon } from "./bookmark-icon";
 export { MoreIcon } from "./more-icon";
@@ -12,6 +13,7 @@ export { BellOffIcon } from "./bell-off-icon";
 export { MoreVerticalIcon } from "./more-vertical-icon";
 export { ShareIcon } from "./share-icon";
 export { ChevronDownIcon } from "./chevron-down-icon";
+export { ChevronLeftIcon } from "./chevron-left-icon";
 export { EditIcon } from "./edit-icon";
 export { ImageIcon } from "./image-icon";
 export { HashIcon } from "./hash-icon";
