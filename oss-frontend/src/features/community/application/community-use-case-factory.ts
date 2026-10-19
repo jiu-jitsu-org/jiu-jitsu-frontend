@@ -22,7 +22,11 @@ import { BlockUserUseCase } from "@/features/community/application/block-user";
 import { GetBalanceGameDetailUseCase } from "@/features/community/application/get-balance-game-detail";
 import { GetCurrentBalanceGameUseCase } from "@/features/community/application/get-current-balance-game";
 import { VoteBalanceGameUseCase } from "@/features/community/application/vote-balance-game";
+import { GetInboxNotificationsUseCase } from "@/features/community/application/get-inbox-notifications";
+import { MarkAllInboxNotificationsReadUseCase } from "@/features/community/application/mark-all-inbox-notifications-read";
+import { MarkInboxNotificationReadUseCase } from "@/features/community/application/mark-inbox-notification-read";
 import { ExternalBalanceGameRepository } from "@/features/community/infrastructure/external-balance-game-repository";
+import { ExternalInboxNotificationRepository } from "@/features/community/infrastructure/external-inbox-notification-repository";
 import { ExternalCommunityWriteRepository } from "@/features/community/infrastructure/external-community-write-repository";
 import { ExternalPostRepository } from "@/features/community/infrastructure/external-post-repository";
 import {
@@ -224,4 +228,37 @@ export function createVoteBalanceGameUseCase(
   accessToken: string,
 ): VoteBalanceGameUseCase {
   return new VoteBalanceGameUseCase(createBalanceGameRepository(accessToken));
+}
+
+/** 알림함(#187). 목록 · 읽음 처리 모두 로그인 전용이라 토큰을 강제한다. */
+function createInboxNotificationRepository(
+  accessToken: string,
+): ExternalInboxNotificationRepository {
+  return new ExternalInboxNotificationRepository(
+    createAuthedServerHttpClient(accessToken),
+  );
+}
+
+export function createGetInboxNotificationsUseCase(
+  accessToken: string,
+): GetInboxNotificationsUseCase {
+  return new GetInboxNotificationsUseCase(
+    createInboxNotificationRepository(accessToken),
+  );
+}
+
+export function createMarkInboxNotificationReadUseCase(
+  accessToken: string,
+): MarkInboxNotificationReadUseCase {
+  return new MarkInboxNotificationReadUseCase(
+    createInboxNotificationRepository(accessToken),
+  );
+}
+
+export function createMarkAllInboxNotificationsReadUseCase(
+  accessToken: string,
+): MarkAllInboxNotificationsReadUseCase {
+  return new MarkAllInboxNotificationsReadUseCase(
+    createInboxNotificationRepository(accessToken),
+  );
 }

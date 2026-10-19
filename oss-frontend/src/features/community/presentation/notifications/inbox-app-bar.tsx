@@ -19,7 +19,8 @@ export function InboxAppBar({
   onMarkAllRead,
 }: {
   canMarkAllRead: boolean;
-  onMarkAllRead: () => void;
+  /** 목록이 없는 분기(비로그인 · 세션 복구 · 에러)는 서버 컴포넌트가 그려 핸들러 없이 비활성으로 둔다. */
+  onMarkAllRead?: () => void;
 }) {
   return (
     <AppBarShell className="h-10 items-start px-4 pt-[calc(env(safe-area-inset-top)+12px)]">
@@ -43,7 +44,7 @@ export function InboxAppBar({
       <button
         type="button"
         onClick={onMarkAllRead}
-        disabled={!canMarkAllRead}
+        disabled={!canMarkAllRead || !onMarkAllRead}
         className="ml-auto inline-flex h-9 w-[61px] items-center justify-center text-button-s text-button-text-default-text disabled:text-button-text-disabled-text"
       >
         모두 읽음

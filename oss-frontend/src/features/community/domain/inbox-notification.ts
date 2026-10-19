@@ -25,7 +25,8 @@ export type InboxNotificationTarget =
 
 export type InboxNotification = {
   id: number;
-  type: InboxNotificationType;
+  /** 알 수 없는 pushType(서버가 새 종류를 추가했는데 FE가 아직 모름)이면 null — 서버 title로 그린다. */
+  type: InboxNotificationType | null;
   /** 서버 title. 디자인 문구와 달라 지금은 화면이 type으로 대체한다(카드 노출 정책 수정 예정). */
   title: string;
   /** 서버 body. 카드 본문 노출 정책이 수정 예정이라 지금은 그대로 쓴다. */

@@ -17,7 +17,10 @@ const TITLE_BY_TYPE: Partial<Record<InboxNotificationType, string>> = {
 
 /** 디자인에 없는 종류(좋아요 계열 — 노출 여부 기획 확인 중)는 서버 문구를 그대로 쓴다. */
 export function inboxTitle(notification: InboxNotification): string {
-  return TITLE_BY_TYPE[notification.type] ?? notification.title;
+  const designTitle = notification.type
+    ? TITLE_BY_TYPE[notification.type]
+    : undefined;
+  return designTitle ?? notification.title;
 }
 
 /**

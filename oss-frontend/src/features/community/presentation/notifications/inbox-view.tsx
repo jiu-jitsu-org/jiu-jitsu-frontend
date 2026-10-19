@@ -11,19 +11,22 @@ import { InboxAppBar } from "@/features/community/presentation/notifications/inb
 import { InboxEmptyState } from "@/features/community/presentation/notifications/inbox-empty-state";
 import { InboxItem } from "@/features/community/presentation/notifications/inbox-item";
 import { useOpenPostDetail } from "@/features/community/presentation/use-open-post-detail";
-import { usePendingToast } from "@/shared/ui";
+import { bffFetch } from "@/shared/lib/http/bff-fetch";
+import { usePendingToast, useToast } from "@/shared/ui";
 
 /**
  * 알림함 화면 본체 (클라이언트) — 목록 · 읽음 처리 · 상세 이동.
  *
- * 셀 탭: 읽음으로 바꾸고(낙관적) 대상 상세를 연다. 앱에서는 OPEN_SUBVIEW로 상세가 위에 쌓이고
- *   이 화면은 그대로 살아 있어, 돌아왔을 때 읽음 상태가 유지된다.
- * 모두 읽음: 전체를 읽음으로 바꾼다.
+ * 셀 탭: 읽음으로 바꾸고(낙관적) 대상 상세를 연다. 저장(PUT /api/community/notifications/{id})은
+ *   이동과 병렬로 보내고, 실패하면 조용히 안 읽음으로 되돌린다 — 사용자는 이미 상세로 넘어가
+ *   토스트가 엉뚱한 화면에 뜬다. 앱에서는 OPEN_SUBVIEW로 상세가 위에 쌓이고 이 화면은 그대로 살아 있어,
+ *   돌아왔을 때 읽음 상태가 유지된다.
+ * 모두 읽음: 전체를 읽음으로 바꾸고(낙관적) PUT /api/community/notifications로 저장한다.
+ *   실패하면 그때 안 읽음이던 것만 되돌리고 토스트로 알린다(이 화면에 머물러 있으니 알려야 한다).
  *
  * 알림함을 연 뒤에 대상이 삭제돼 상세까지 들어간 경우는 상세(PostDetailGone)가 문구를 남기고 닫히고,
  * 돌아온 이 화면이 usePendingToast로 받아 띄운다 — 피드와 같은 공용 경로라 문구도 피드 문구다.
  *
- * TODO(#187 API 연동): 읽음 처리를 PUT /notice/{id} · PUT /notice 로 저장하고 실패 시 되돌린다.
  * TODO(#187, backend#154): 삭제된 대상이면 이동하지 않고 알림함 문구(inbox-copy)로 토스트를 띄운다.
  */
 export function InboxView({
@@ -32,26 +35,52 @@ export function InboxView({
   initialNotifications: InboxNotification[];
 }) {
   const [notifications, setNotifications] = useState(initialNotifications);
+  const [markAllPending, setMarkAllPending] = useState(false);
   const openPostDetail = useOpenPostDetail();
   const openBalanceDetail = useOpenBalanceDetail();
+  const toast = useToast();
   usePendingToast();
 
   const unreadCount = notifications.filter((item) => !item.isRead).length;
 
-  function markRead(id: number) {
+  function setReadState(ids: ReadonlySet<number>, isRead: boolean) {
     setNotifications((items) =>
-      items.map((item) => (item.id === id ? { ...item, isRead: true } : item)),
+      items.map((item) => (ids.has(item.id) ? { ...item, isRead } : item)),
     );
   }
 
-  function markAllRead() {
-    setNotifications((items) =>
-      items.map((item) => (item.isRead ? item : { ...item, isRead: true })),
+  async function markRead(id: number) {
+    const ids = new Set([id]);
+    setReadState(ids, true);
+
+    const response = await bffFetch(`/api/community/notifications/${id}`, {
+      method: "PUT",
+    }).catch(() => null);
+    if (!response?.ok) setReadState(ids, false);
+  }
+
+  async function markAllRead() {
+    if (markAllPending) return;
+
+    const ids = new Set(
+      notifications.filter((item) => !item.isRead).map((item) => item.id),
     );
+    setReadState(ids, true);
+    setMarkAllPending(true);
+
+    const response = await bffFetch("/api/community/notifications", {
+      method: "PUT",
+    }).catch(() => null);
+    setMarkAllPending(false);
+
+    if (!response?.ok) {
+      setReadState(ids, false);
+      toast.show("알림을 읽음 처리하지 못했어요");
+    }
   }
 
   function handlePress(notification: InboxNotification) {
-    if (!notification.isRead) markRead(notification.id);
+    if (!notification.isRead) void markRead(notification.id);
 
     const { target } = notification;
     if (!target) return;
@@ -62,8 +91,8 @@ export function InboxView({
   return (
     <>
       <InboxAppBar
-        canMarkAllRead={unreadCount > 0}
-        onMarkAllRead={markAllRead}
+        canMarkAllRead={unreadCount > 0 && !markAllPending}
+        onMarkAllRead={() => void markAllRead()}
       />
 
       {notifications.length === 0 ? (
