@@ -184,3 +184,17 @@ export function validatePostBody(fields: PostBodyFields) {
   }
   return null;
 }
+
+/**
+ * 알림 `[id]` 동적 세그먼트를 양의 정수로 파싱한다(parsePostId와 동일 규약).
+ */
+export function parseNotificationId(
+  raw: string,
+): { notificationId: number } | { response: NextResponse } {
+  const notificationId = Number(raw);
+  if (!Number.isInteger(notificationId) || notificationId <= 0) {
+    return { response: jsonError("잘못된 알림 ID입니다.", 400) };
+  }
+
+  return { notificationId };
+}
