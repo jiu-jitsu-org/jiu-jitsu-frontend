@@ -244,6 +244,21 @@ export function useImageAttachments() {
     [patch, startUpload],
   );
 
+  /**
+   * 서버가 imageId를 이미 지운 경우(등록 응답 C0000 — TEMP 만료) 완료된 장을 전부 실패(↻)로 되돌린다.
+   * 어느 id가 없는지 서버가 알려주지 않아 전 장을 되돌린다(드문 케이스). 이후 복구는 기존 재시도(retry)
+   * 그대로 — 업로드 파일(크롭본 포함)은 남아 있으므로 썸네일 탭만으로 다시 올라간다.
+   */
+  const expireUploaded = useCallback(() => {
+    setAttachments((prev) =>
+      prev.map((item) =>
+        item.status === "done"
+          ? { ...item, status: "failed", imageId: undefined }
+          : item,
+      ),
+    );
+  }, []);
+
   /** 썸네일 삭제(업로드 중이어도 가능, 확인 없음). 뒤 장이 앞으로 당겨져 순서는 유지된다. */
   const remove = useCallback((localId: string) => {
     setAttachments((prev) => {
@@ -272,6 +287,7 @@ export function useImageAttachments() {
     pick,
     retry,
     replaceFile,
+    expireUploaded,
     remove,
     discardAll,
   };

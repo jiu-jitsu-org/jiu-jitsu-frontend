@@ -19,6 +19,8 @@ export type ApiErrorBody = {
 export const ApiErrorCode = {
   /** 400 잘못된 요청 파라미터. */
   WRONG_PARAMETER: "R0002",
+  /** 404 존재하지 않는 이미지 파일. 게시글 등록·수정의 imageFileIdList 중 서버에서 지워진(TEMP 만료) id가 있을 때. */
+  IMAGE_FILE_NOT_FOUND: "C0000",
   /** 404 존재하지 않는 게시글. */
   BOARD_NOT_FOUND: "C0002",
   /** 403 만료된 액세스 토큰. 브라우저는 bffFetch가 네이티브 갱신·재시도로 처리한다. */
