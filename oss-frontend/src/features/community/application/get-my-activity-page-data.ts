@@ -57,8 +57,7 @@ export async function getMyActivityPageData(
 /**
  * '밸런스 게임' 탭 — 프로필 + 내가 참여한 게임 첫 페이지.
  *
- * 분기(guest · 만료 · 에러)는 다른 탭과 같다. 업스트림 목록 API가 아직 없어
- * NEXT_PUBLIC_MY_BALANCE_GAMES가 on/preview일 때만 화면이 이 쿼리를 부른다.
+ * 분기(guest · 만료 · 에러)는 다른 탭과 같다.
  */
 export async function getMyBalanceGamesPageData(): Promise<
   MyActivityPageDataResult<BalanceGameList>

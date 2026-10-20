@@ -74,8 +74,7 @@ type BalanceGameListDto = {
 };
 
 /**
- * 참여한 게임 목록 경로. 운영 배포 전까지는 NEXT_PUBLIC_MY_BALANCE_GAMES가 off라
- * 탭이 감춰져 호출되지 않는다.
+ * 참여한 게임 목록 경로.
  */
 const PARTICIPATED_PATH = `${BALANCE_GAME_ENDPOINT_PATH}/participated`;
 
