@@ -32,27 +32,37 @@ const { uploadUrl: IMAGEKIT_UPLOAD_URL, publicKey: IMAGEKIT_PUBLIC_KEY } =
 /** ImageKit 업로드 폴더. 루트가 아니라 커뮤니티 게시글 이미지 경로 아래로 모은다. */
 const IMAGEKIT_FOLDER = "community/posts";
 
-/** status를 실은 에러(호출부가 401 등을 분기). */
+/**
+ * status(+업스트림 에러 code)를 실은 에러. 호출부가 401·C0000 등을 분기한다.
+ * code는 BFF가 details로 내려준 업스트림 봉투에서 꺼낸 값 — ImageKit 직접 호출 등 봉투가 없으면 undefined.
+ */
 export class WriteRequestError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    readonly code?: string,
   ) {
     super(message);
     this.name = "WriteRequestError";
   }
 }
 
-/** BFF 응답({ success, data })에서 data를 꺼낸다. 실패면 status를 실어 throw. */
+/** BFF 응답({ success, data })에서 data를 꺼낸다. 실패면 status와 업스트림 code(details.code)를 실어 throw. */
 async function unwrap<T>(response: Response, context: string): Promise<T> {
   // 본문을 한 번만 읽어 성공/실패 모두 로깅한다(디버깅용).
   const json = (await response.json().catch(() => null)) as {
     data?: T;
+    details?: { code?: unknown };
   } | null;
 
   if (!response.ok) {
     console.error(`[community-write] ${context} ${response.status} 실패`, json);
-    throw new WriteRequestError(`${context} failed`, response.status);
+    const code = json?.details?.code;
+    throw new WriteRequestError(
+      `${context} failed`,
+      response.status,
+      typeof code === "string" ? code : undefined,
+    );
   }
 
   console.info(`[community-write] ${context} ${response.status} 성공`, json);

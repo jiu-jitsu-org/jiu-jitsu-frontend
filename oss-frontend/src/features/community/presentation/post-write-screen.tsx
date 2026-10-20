@@ -12,6 +12,7 @@ import {
 import { flushSync } from "react-dom";
 
 import { cn } from "@/shared/lib/cn";
+import { ApiErrorCode } from "@/shared/lib/http/api-error";
 import { useViewportRect } from "@/features/community/presentation/use-viewport-rect";
 import {
   closeNativeSubview,
@@ -100,6 +101,8 @@ const SUBMIT_TOAST = {
   editFailed: "수정하지 못했어요. 잠시 후 다시 시도해주세요",
   createDone: "게시글을 등록했어요",
   createFailed: "등록하지 못했어요. 잠시 후 다시 시도해주세요",
+  /** 첨부 이미지가 서버에서 만료(C0000)돼 썸네일을 ↻로 되돌렸을 때(#147). FIXME: 기획 문구 확정 전 임시 문구. */
+  createImageExpired: "사진을 다시 올려주세요",
 } as const;
 /** 첨부 미리보기 썸네일 한 변(px, 정책 64×64). */
 const THUMBNAIL_SIZE = 64;
@@ -241,6 +244,7 @@ export function PostWriteScreen({
     pick,
     retry,
     replaceFile,
+    expireUploaded,
     remove,
     discardAll,
   } = useImageAttachments();
@@ -722,6 +726,17 @@ export function PostWriteScreen({
       // 인증 만료(401)면 네이티브 로그인 유도, 그 외(생성/수정 실패)는 재시도 안내.
       if (error instanceof WriteRequestError && error.status === 401) {
         postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
+        return;
+      }
+      // 작성 화면을 서버 TEMP 정리 주기보다 오래 켜 둬 첨부 id가 지워졌으면(C0000) 썸네일을 ↻로 되돌려
+      // 기존 재시도 UX로 복구시킨다. 수정은 서버에 있던 이미지가 사라진 경우라 재업로드 대상이 없어 일반 실패로 둔다.
+      if (
+        !isEdit &&
+        error instanceof WriteRequestError &&
+        error.code === ApiErrorCode.IMAGE_FILE_NOT_FOUND
+      ) {
+        expireUploaded();
+        toast.show(SUBMIT_TOAST.createImageExpired);
         return;
       }
       toast.show(isEdit ? SUBMIT_TOAST.editFailed : SUBMIT_TOAST.createFailed);
