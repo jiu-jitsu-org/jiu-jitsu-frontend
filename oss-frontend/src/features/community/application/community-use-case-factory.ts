@@ -21,6 +21,7 @@ import { ToggleLikeUseCase } from "@/features/community/application/toggle-like"
 import { BlockUserUseCase } from "@/features/community/application/block-user";
 import { GetBalanceGameDetailUseCase } from "@/features/community/application/get-balance-game-detail";
 import { GetCurrentBalanceGameUseCase } from "@/features/community/application/get-current-balance-game";
+import { GetParticipatedBalanceGamesUseCase } from "@/features/community/application/get-participated-balance-games";
 import { VoteBalanceGameUseCase } from "@/features/community/application/vote-balance-game";
 import { GetInboxNotificationsUseCase } from "@/features/community/application/get-inbox-notifications";
 import { MarkAllInboxNotificationsReadUseCase } from "@/features/community/application/mark-all-inbox-notifications-read";
@@ -29,6 +30,8 @@ import { ExternalBalanceGameRepository } from "@/features/community/infrastructu
 import { ExternalInboxNotificationRepository } from "@/features/community/infrastructure/external-inbox-notification-repository";
 import { ExternalCommunityWriteRepository } from "@/features/community/infrastructure/external-community-write-repository";
 import { ExternalPostRepository } from "@/features/community/infrastructure/external-post-repository";
+import { PreviewBalanceGameRepository } from "@/features/community/infrastructure/preview-balance-game-repository";
+import { getMyBalanceGamesMode } from "@/config/env";
 import {
   createAuthedServerHttpClient,
   createServerHttpClient,
@@ -220,6 +223,24 @@ export function createGetBalanceGameDetailUseCase(
 ): GetBalanceGameDetailUseCase {
   return new GetBalanceGameDetailUseCase(
     createBalanceGameRepository(accessToken),
+  );
+}
+
+/**
+ * 참여한 밸런스 게임 목록. 로그인 전용이라 토큰을 강제한다.
+ *
+ * NEXT_PUBLIC_MY_BALANCE_GAMES=preview면 실제 판으로 목록을 지어내는 임시 repository로 감싼다
+ * (업스트림 목록 API 미구현 — preview-balance-game-repository 주석 참조). API가 생기면 분기째 지운다.
+ */
+export function createGetParticipatedBalanceGamesUseCase(
+  accessToken: string,
+): GetParticipatedBalanceGamesUseCase {
+  const repository = createBalanceGameRepository(accessToken);
+
+  return new GetParticipatedBalanceGamesUseCase(
+    getMyBalanceGamesMode() === "preview"
+      ? new PreviewBalanceGameRepository(repository)
+      : repository,
   );
 }
 

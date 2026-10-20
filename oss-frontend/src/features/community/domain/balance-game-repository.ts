@@ -1,5 +1,7 @@
 import type {
   BalanceGame,
+  BalanceGameList,
+  BalanceGameListQuery,
   BalanceOptionKey,
 } from "@/features/community/domain/balance-game";
 
@@ -28,6 +30,13 @@ export interface BalanceGameRepository {
    * "화면을 닫는다" 하나뿐이라 여기서 null로 합친다.
    */
   getById(contentId: number): Promise<BalanceGame | null>;
+  /**
+   * 내가 참여한(투표한) 게임 목록 — 최신 판 먼저, 마감된 판 포함. 인증 필요.
+   *
+   * 업스트림 계약은 **제안 단계**다(GET /community/balance-game/participated, 백엔드 미구현).
+   * 경로·응답 모양은 infrastructure 주석 참조.
+   */
+  getParticipated(query: BalanceGameListQuery): Promise<BalanceGameList>;
   /**
    * 투표(POST /community/balance-game/{contentId}/vote). 인증 필요.
    *

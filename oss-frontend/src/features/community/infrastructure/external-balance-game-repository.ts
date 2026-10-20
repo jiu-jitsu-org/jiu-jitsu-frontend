@@ -1,5 +1,7 @@
 import type {
   BalanceGame,
+  BalanceGameList,
+  BalanceGameListQuery,
   BalanceGameOption,
   BalanceOptionKey,
 } from "@/features/community/domain/balance-game";
@@ -57,6 +59,27 @@ type BalanceGameDto = {
 };
 
 /**
+ * 참여한 게임 목록 응답 DTO(봉투 data 안의 형태) — **제안 계약, 백엔드 미구현.**
+ *
+ * 내가 쓴 글(GET /board/write)과 같은 Spring Page 모양에 항목만 상세 DTO(BalanceGameDto)를
+ * 담는다고 가정한다. 백엔드 확정 시 경로(PARTICIPATED_PATH)와 이 타입만 맞추면 된다.
+ */
+type BalanceGameListDto = {
+  content: BalanceGameDto[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  last: boolean;
+};
+
+/**
+ * 참여한 게임 목록 경로 — **제안 경로, 백엔드 미구현(응답 모양은 BalanceGameListDto).**
+ * 그 전까지는 NEXT_PUBLIC_MY_BALANCE_GAMES가 off라 탭이 감춰져 호출되지 않는다.
+ */
+const PARTICIPATED_PATH = `${BALANCE_GAME_ENDPOINT_PATH}/participated`;
+
+/**
  * 선택지 매핑.
  *
  * key는 DTO의 option을 그대로 쓴다 — 투표 요청 body에 되돌려 보내는 값이라, 화면이 A/B를
@@ -95,6 +118,17 @@ function toBalanceGame(dto: BalanceGameDto): BalanceGame {
   };
 }
 
+function toBalanceGameList(dto: BalanceGameListDto): BalanceGameList {
+  return {
+    items: (dto.content ?? []).map(toBalanceGame),
+    page: dto.number,
+    size: dto.size,
+    totalElements: dto.totalElements,
+    totalPages: dto.totalPages,
+    isLast: dto.last,
+  };
+}
+
 export class ExternalBalanceGameRepository implements BalanceGameRepository {
   constructor(private readonly httpClient: HttpClient) {}
 
@@ -121,6 +155,16 @@ export class ExternalBalanceGameRepository implements BalanceGameRepository {
       if (error instanceof HttpError && error.status === 404) return null;
       throw error;
     }
+  }
+
+  async getParticipated(query: BalanceGameListQuery): Promise<BalanceGameList> {
+    // 제안 계약 — 내가 쓴 글(GET /board/write)처럼 Spring Pageable만 평탄한 쿼리스트링으로 보낸다.
+    const response = await this.httpClient.get<Envelope<BalanceGameListDto>>({
+      path: PARTICIPATED_PATH,
+      query: { page: query.page, size: query.size },
+    });
+
+    return toBalanceGameList(response.data);
   }
 
   async vote(
