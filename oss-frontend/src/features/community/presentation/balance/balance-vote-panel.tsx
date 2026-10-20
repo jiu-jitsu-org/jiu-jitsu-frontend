@@ -26,7 +26,11 @@ import { useBalanceVote } from "@/features/community/presentation/balance/use-ba
  * 머물러야 하므로 복귀했다고 다음 판을 끌어오면 안 된다. 유일한 재조회는 마감 전환뿐이고,
  * 그때도 화면은 그 판에 남는다(다음 판은 토스트 버튼으로만 간다).
  */
-export function BalanceVotePanel({ initialGame }: { initialGame: BalanceGame }) {
+export function BalanceVotePanel({
+  initialGame,
+}: {
+  initialGame: BalanceGame;
+}) {
   const [game, setGame] = useState(initialGame);
 
   // SSR이 다시 돌아 새 seed가 내려오면(세션 복구 후 router.refresh 등) 그 값으로 갈아탄다.
@@ -84,7 +88,9 @@ export function BalanceVotePanel({ initialGame }: { initialGame: BalanceGame }) 
           endAt={game.endAt}
           serverTime={game.serverTime}
           closed={game.closed}
-          onExpired={handleExpired}
+          // 이미 마감된 판으로 들어왔으면(지난 게임 · 내 활동 목록) 마감 안내를 띄우지 않는다 —
+          // 보는 중에 0에 닿은 경우만 알린다.
+          onExpired={game.closed ? undefined : handleExpired}
         />
       </div>
 
