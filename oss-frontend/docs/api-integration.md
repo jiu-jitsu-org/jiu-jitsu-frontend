@@ -78,6 +78,8 @@ if (!result.ok) {
   · 다음 페이지 BFF `GET /api/community/board/mine?kind=written|saved` (업스트림 `GET /board/write` · `GET /board/save`)
   · 밸런스 게임 탭 `?tab=balance` (참여한 게임 — [`get-my-activity-page-data.ts`](../src/features/community/application/get-my-activity-page-data.ts) `getMyBalanceGamesPageData`) · 다음 페이지 BFF `GET /api/community/balance-game/participated`
     (업스트림 `GET /community/balance-game/participated?page=&size=` — jiu-jitsu-backend#156, `/board/write`와 같은 Page 봉투 + 항목은 밸런스 상세 DTO, gameDate 최신순 고정 · 마감 포함 · 투표 취소한 판 제외).
+차단한 회원(`/community/blocked-users`, 로그인 전용 — 앱 설정 서브뷰) [`get-blocked-members-page-data.ts`](../src/features/community/application/get-blocked-members-page-data.ts) · [`blocked-members-screen.tsx`](../src/features/community/presentation/blocked-members/blocked-members-screen.tsx)
+  · 업스트림 `GET /user/block` — **백엔드 요청 중**(jiu-jitsu-backend#158, 계약안: [blocked-members-plan.md](./blocked-members-plan.md)) · 해제는 기존 BFF `POST /api/community/users/{id}/block`(토글).
 
 ---
 
