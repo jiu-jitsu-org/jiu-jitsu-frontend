@@ -4,9 +4,10 @@ import { RefreshOnLogin } from "@/features/auth/presentation/refresh-on-login";
 import { SessionExpiredRecovery } from "@/features/auth/presentation/session-expired-recovery";
 import {
   getMyActivityPageData,
-  type MyActivityPageData,
+  getMyBalanceGamesPageData,
+  type MyActivityPageDataResult,
 } from "@/features/community/application/get-my-activity-page-data";
-import { Avatar } from "@/features/community/presentation/avatar";
+import type { PostList } from "@/features/community/domain/post-summary";
 import { CommunityFeedList } from "@/features/community/presentation/community-feed-list";
 import { EmptyState } from "@/features/community/presentation/empty-state";
 import { FeedErrorState } from "@/features/community/presentation/feed-error-state";
@@ -16,13 +17,15 @@ import {
   myPostListUrl,
   toMyPostListKind,
   type MyActivityTab,
+  type MyPostTab,
 } from "@/features/community/presentation/my-activity/my-activity-tab";
 import { MyActivityTabs } from "@/features/community/presentation/my-activity/my-activity-tabs";
+import { MyBalanceGameList } from "@/features/community/presentation/my-activity/my-balance-game-list";
 import { SubviewScrollShell } from "@/features/community/presentation/subview-scroll-shell";
 import { Spinner } from "@/shared/ui/spinner";
 
 /**
- * 내 커뮤니티 활동 화면 루트 (서버 컴포넌트) — 내가 쓴 글 · 저장한 글.
+ * 내 커뮤니티 활동 화면 루트 (서버 컴포넌트) — 내가 쓴 글 · 저장한 글 · 참여한 밸런스 게임(플래그).
  *
  * 상단 프로필과 선택된 탭의 첫 페이지를 서버에서 읽고(get-my-activity-page-data), 목록 상호작용
  * (무한 스크롤 · 좋아요 · 저장 · ⋮)은 메인 피드 목록(CommunityFeedList)을 그대로 쓴다.
@@ -35,27 +38,50 @@ import { Spinner } from "@/shared/ui/spinner";
  * 앱에서 서브뷰로 열려 문서 스크롤이 막히므로 SubviewScrollShell이 스크롤한다(#200).
  */
 export async function MyActivityScreen({ tab }: { tab: MyActivityTab }) {
-  const result = await getMyActivityPageData(toMyPostListKind(tab));
+  // 탭마다 목록 모양이 달라(게시글 · 밸런스 게임) 조회와 패널을 짝지어 고른다. 분기 화면은 공통이다.
+  const content =
+    tab === "balance"
+      ? renderContent(await getMyBalanceGamesPageData(), tab, (list) =>
+          list.items.length === 0 ? (
+            <MyActivityEmptyState tab={tab} />
+          ) : (
+            <MyBalanceGameList
+              key={tab}
+              games={list.items}
+              page={list.page}
+              isLast={list.isLast}
+            />
+          ),
+        )
+      : renderContent(
+          await getMyActivityPageData(toMyPostListKind(tab)),
+          tab,
+          (list) => <MyActivityPanel list={list} tab={tab} />,
+        );
 
   return (
     // 목록 카드(surface-container)가 메인 피드와 같아 보이도록 바탕도 피드와 같은 색을 쓴다.
     <SubviewScrollShell className="bg-[var(--bw-white)]">
       <MyActivityAppBar />
-      {renderContent(result, tab)}
+      {content}
     </SubviewScrollShell>
   );
 }
 
-function renderContent(
-  result: Awaited<ReturnType<typeof getMyActivityPageData>>,
+function renderContent<L>(
+  result: MyActivityPageDataResult<L>,
   tab: MyActivityTab,
+  renderPanel: (list: L) => ReactNode,
 ): ReactNode {
   if (!result.ok) {
     if (result.reason === "guest") {
       return (
         <>
           <RefreshOnLogin />
-          <EmptyState title="로그인 후 이용할 수 있어요" className="pt-[35vh]" />
+          <EmptyState
+            title="로그인 후 이용할 수 있어요"
+            className="pt-[35vh]"
+          />
         </>
       );
     }
@@ -68,27 +94,10 @@ function renderContent(
 
   return (
     <>
-      <MyActivityProfileRow profile={result.data.profile} />
-      <MyActivityTabs tab={tab}>
-        <MyActivityPanel list={result.data.list} tab={tab} />
+      <MyActivityTabs tab={tab} profile={result.data.profile}>
+        {renderPanel(result.data.list)}
       </MyActivityTabs>
     </>
-  );
-}
-
-/** 상단 프로필 행 — 아바타 64(폴백 아이콘 40) + 닉네임(Title 2). 위 12 · 좌우 16 · 아래 20, 간격 12. */
-function MyActivityProfileRow({
-  profile,
-}: {
-  profile: MyActivityPageData["profile"];
-}) {
-  return (
-    <div className="flex items-center gap-3 px-4 pt-3 pb-5">
-      <Avatar src={profile.avatarUrl} className="size-16" iconSize={40} />
-      <p className="min-w-0 truncate text-title-2 text-text-primary">
-        {profile.nickname}
-      </p>
-    </div>
   );
 }
 
@@ -102,13 +111,7 @@ function MyActivityProfileRow({
  * 같은 화면을 또 쌓지 않도록 작성자 탭을 끈다(authorLink=false).
  * 목록 시작은 탭 아래 16(pt-4), 아래는 FAB이 없어 홈 인디케이터 여백만 둔다.
  */
-function MyActivityPanel({
-  list,
-  tab,
-}: {
-  list: MyActivityPageData["list"];
-  tab: MyActivityTab;
-}) {
+function MyActivityPanel({ list, tab }: { list: PostList; tab: MyPostTab }) {
   if (list.items.length === 0) return <MyActivityEmptyState tab={tab} />;
 
   return (

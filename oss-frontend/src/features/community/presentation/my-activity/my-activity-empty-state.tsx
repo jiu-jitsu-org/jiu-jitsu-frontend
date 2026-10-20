@@ -7,12 +7,17 @@ import { peekRevalidateTarget } from "@/features/community/presentation/dirty-po
 import { EmptyState } from "@/features/community/presentation/empty-state";
 import type { MyActivityTab } from "@/features/community/presentation/my-activity/my-activity-tab";
 import { useOpenPostWrite } from "@/features/community/presentation/use-open-post-write";
+import {
+  closeNativeSubview,
+  isNativeBridgeAvailable,
+} from "@/shared/lib/native-bridge";
 
 /**
  * 내 커뮤니티 활동 탭별 빈 상태.
  *
  * 쓴 글은 글쓰기 버튼까지 둔다(메인 피드 빈 상태와 같은 진입 — useOpenPostWrite).
  * 저장은 어디서 저장하는지만 알려주고 버튼은 없다.
+ * 밸런스 게임은 오늘의 게임이 있는 커뮤니티 홈으로 보낸다(useOpenCommunityHome).
  * 세로 위치는 탭 아래 96(pt-24) — 피드처럼 뷰포트 35%로 내리면 상단 프로필·탭과 멀어진다.
  *
  * 빈 상태에는 목록(CommunityFeedList)이 없어 작성 후 복귀 재조회(useFeedRevalidate)가 돌지 않는다.
@@ -21,7 +26,19 @@ import { useOpenPostWrite } from "@/features/community/presentation/use-open-pos
  */
 export function MyActivityEmptyState({ tab }: { tab: MyActivityTab }) {
   const openWrite = useOpenPostWrite();
+  const openCommunityHome = useOpenCommunityHome();
   useRefreshOnPostCreated(tab === "posts");
+
+  if (tab === "balance") {
+    return (
+      <EmptyState
+        title="아직 참여한 밸런스 게임이 없어요"
+        description="투표한 게임은 끝난 뒤에도 여기서 결과를 볼 수 있어요."
+        action={{ label: "오늘의 게임 하러 가기", onClick: openCommunityHome }}
+        className="pt-24"
+      />
+    );
+  }
 
   if (tab === "saved") {
     return (
@@ -63,4 +80,23 @@ function useRefreshOnPostCreated(enabled: boolean) {
       document.removeEventListener("visibilitychange", refreshIfCreated);
     };
   }, [enabled, router]);
+}
+
+/**
+ * 커뮤니티 홈(오늘의 밸런스 게임이 맨 위에 있는 메인 피드)으로 간다.
+ *
+ * 앱에서 이 화면은 서브뷰라 닫으면 연 화면으로 돌아간다(뒤로가기와 같은 CLOSE_SUBVIEW). 홈 탭으로
+ * 바로 옮기는 브릿지 메시지는 아직 없다. 웹 단독이면 히스토리가 아니라 홈(/)으로 직접 이동한다 —
+ * 직전 페이지가 홈이라는 보장이 없다.
+ */
+function useOpenCommunityHome() {
+  const router = useRouter();
+
+  return () => {
+    if (isNativeBridgeAvailable()) {
+      closeNativeSubview();
+      return;
+    }
+    router.push("/");
+  };
 }

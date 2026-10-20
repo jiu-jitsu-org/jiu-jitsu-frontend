@@ -21,6 +21,7 @@ import { ToggleLikeUseCase } from "@/features/community/application/toggle-like"
 import { BlockUserUseCase } from "@/features/community/application/block-user";
 import { GetBalanceGameDetailUseCase } from "@/features/community/application/get-balance-game-detail";
 import { GetCurrentBalanceGameUseCase } from "@/features/community/application/get-current-balance-game";
+import { GetParticipatedBalanceGamesUseCase } from "@/features/community/application/get-participated-balance-games";
 import { VoteBalanceGameUseCase } from "@/features/community/application/vote-balance-game";
 import { GetInboxNotificationsUseCase } from "@/features/community/application/get-inbox-notifications";
 import { MarkAllInboxNotificationsReadUseCase } from "@/features/community/application/mark-all-inbox-notifications-read";
@@ -219,6 +220,17 @@ export function createGetBalanceGameDetailUseCase(
   accessToken: string | null,
 ): GetBalanceGameDetailUseCase {
   return new GetBalanceGameDetailUseCase(
+    createBalanceGameRepository(accessToken),
+  );
+}
+
+/**
+ * 참여한 밸런스 게임 목록. 로그인 전용이라 토큰을 강제한다.
+ */
+export function createGetParticipatedBalanceGamesUseCase(
+  accessToken: string,
+): GetParticipatedBalanceGamesUseCase {
+  return new GetParticipatedBalanceGamesUseCase(
     createBalanceGameRepository(accessToken),
   );
 }

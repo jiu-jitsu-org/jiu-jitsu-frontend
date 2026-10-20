@@ -144,13 +144,21 @@ export function BalanceOptionButton({
    * 결과를 그릴지 말지는 정책이라 balance-result가 판단하고, 이 컴포넌트는 받은 대로 그린다.
    */
   result = null,
+  /**
+   * 표시 전용 — 버튼이 아니라 같은 모양의 span으로 그린다(누름 반응 · 탭 없음).
+   *
+   * 내 커뮤니티 활동 '밸런스 게임' 목록이 쓴다. 그 목록은 항목 전체가 상세로 가는 버튼이라
+   * 안에 또 버튼을 둘 수 없고(중첩 버튼), 목록에서 투표하지도 않는다.
+   */
+  displayOnly = false,
   onPress,
 }: {
   option: BalanceGameOption;
   state: BalanceOptionState;
   interactive: boolean;
   result?: BalanceOptionResult | null;
-  onPress: () => void;
+  displayOnly?: boolean;
+  onPress?: () => void;
 }) {
   const styles = OPTION_STYLES[option.key];
   const selected = state === "selected";
@@ -194,14 +202,21 @@ export function BalanceOptionButton({
         }
     : null;
 
+  // 표시 전용이면 같은 모양의 span — 버튼 안에 들어가도 마크업이 유효하다(span은 phrasing content).
+  const Root = displayOnly ? "span" : "button";
+
   return (
-    <button
-      type="button"
-      // disabled를 쓰지 않는 이유: 투표 후에도 이 버튼은 "내 선택"을 보여주는 정보이고,
-      // 비로그인 탭은 로그인 유도로 이어져야 한다(막으면 탭 자체가 죽는다).
-      // 실제 차단은 상위 투표 훅이 판단하므로 여기서는 커서만 바꾼다.
-      aria-pressed={selected}
-      onClick={onPress}
+    <Root
+      {...(displayOnly
+        ? {}
+        : {
+            type: "button" as const,
+            // disabled를 쓰지 않는 이유: 투표 후에도 이 버튼은 "내 선택"을 보여주는 정보이고,
+            // 비로그인 탭은 로그인 유도로 이어져야 한다(막으면 탭 자체가 죽는다).
+            // 실제 차단은 상위 투표 훅이 판단하므로 여기서는 커서만 바꾼다.
+            "aria-pressed": selected,
+            onClick: onPress,
+          })}
       className={cn(
         // 좌측 패딩이 없다 — 캐릭터 패널이 행 왼쪽 끝에 붙어 위아래를 꽉 채운다(디자인 실측).
         // 높이는 고정하지 않는다. 문구가 길어지면 행이 늘어나야 하고, 그 최소값(66)은
@@ -211,8 +226,11 @@ export function BalanceOptionButton({
         // 누름 반응: 누르는 동안 세로로 납작하게 눌렸다가(0.1s), 떼면 스프링으로 출렁이며 돌아온다
         // (0.7s). 누를 때와 뗄 때 속도가 달라야 해서 :active 쪽 transition을 따로 덮어쓴다.
         // scale은 Tailwind v4에서 transform이 아니라 개별 scale 속성이라 transition 대상도 scale이다.
-        "motion-safe:[transition:background-color_200ms_ease,color_200ms_ease,scale_700ms_var(--ease-spring-wobbly)]",
-        "motion-safe:active:scale-x-95 motion-safe:active:scale-y-90 motion-safe:active:[transition:background-color_200ms_ease,color_200ms_ease,scale_100ms_ease-out]",
+        // 표시 전용은 누를 수 없으니 눌림 반응을 뺀다(항목 전체의 눌림이 대신한다).
+        !displayOnly && [
+          "motion-safe:[transition:background-color_200ms_ease,color_200ms_ease,scale_700ms_var(--ease-spring-wobbly)]",
+          "motion-safe:active:scale-x-95 motion-safe:active:scale-y-90 motion-safe:active:[transition:background-color_200ms_ease,color_200ms_ease,scale_100ms_ease-out]",
+        ],
         // 결과를 그리면 배경이 트랙으로 바뀐다. 아니면 기존 규칙 —
         // 행 배경·글자색은 unselected가 default와 같고, 갈리는 것은 캐릭터뿐이다.
         resultStyles
@@ -220,7 +238,7 @@ export function BalanceOptionButton({
           : selected
             ? styles.selected
             : styles.default,
-        interactive && "cursor-pointer",
+        interactive && !displayOnly && "cursor-pointer",
       )}
     >
       {/*
@@ -315,6 +333,6 @@ export function BalanceOptionButton({
           {shownPercent}%
         </span>
       ) : null}
-    </button>
+    </Root>
   );
 }

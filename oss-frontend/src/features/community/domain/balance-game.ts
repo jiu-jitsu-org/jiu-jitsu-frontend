@@ -106,6 +106,31 @@ export type BalanceGame = {
 };
 
 /**
+ * 내가 참여한(투표한) 밸런스 게임 목록 — 내 커뮤니티 활동 '밸런스 게임' 탭.
+ *
+ * 게시글 목록(PostList)과 같은 페이지 메타를 쓴다 — 무한 스크롤 훅이 같은 규칙(page/isLast)으로
+ * 다음 페이지를 이어 붙인다. 항목은 상세와 같은 BalanceGame이라 마감된 판의 결과도 그대로 그린다.
+ * 최신 판이 먼저다(정렬은 업스트림 책임).
+ */
+export type BalanceGameList = {
+  items: BalanceGame[];
+  /** 현재 페이지 번호(0-base). */
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  /** 마지막 페이지 여부 → 끝 표식/추가 로드 중단 판단. */
+  isLast: boolean;
+};
+
+/** 참여한 밸런스 게임 목록 요청 파라미터(Spring Pageable). */
+export type BalanceGameListQuery = {
+  /** 0-base 페이지 번호. */
+  page: number;
+  size: number;
+};
+
+/**
  * 저장(북마크)은 업스트림 미지원이라 필드가 없다 — `saveCount`·`isSaved`는 내려오지 않는다.
  * 밸런스 contentId로 저장을 호출하면 C0008(CONTENT_SAVE_NOT_SUPPORTED)이 온다.
  * 기획도 미지원으로 확정했다(2026-09-29, #119) — 24시간 소멸성 콘텐츠라 "나중에 다시 보기"의
