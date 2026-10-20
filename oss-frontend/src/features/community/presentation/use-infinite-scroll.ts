@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from "react";
 
+import { scrollContainerOf } from "@/features/community/presentation/scroll-container";
+
 /**
  * 목록 하단 감지용 무한 스크롤 훅.
  *
@@ -12,6 +14,8 @@ import { useEffect, useRef } from "react";
  * - resetKey가 바뀌면 관찰을 재구성한다. IntersectionObserver는 "교차 상태 변화"에만
  *   콜백하므로, 항목을 이어붙인 뒤에도 sentinel이 여전히 화면 안이면 다시 로드가 필요하다.
  *   항목 수 등을 resetKey로 넘기면 재관찰 시점에 교차 여부를 즉시 재평가한다.
+ * - 목록이 내부 스크롤러(SubviewScrollShell) 안이면 그 스크롤러를 root로 둔다. 뷰포트를 root로 두면
+ *   스크롤러가 잘라낸 영역 밖은 교차로 치지 않아 rootMargin(미리 불러오기)이 먹지 않는다(#200).
  */
 export function useInfiniteScroll<T extends Element = HTMLDivElement>({
   onReach,
@@ -41,7 +45,7 @@ export function useInfiniteScroll<T extends Element = HTMLDivElement>({
       (entries) => {
         if (entries[0]?.isIntersecting) onReachRef.current();
       },
-      { rootMargin },
+      { root: scrollContainerOf(el), rootMargin },
     );
     observer.observe(el);
 

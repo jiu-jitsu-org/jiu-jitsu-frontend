@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, type RefObject } from "react";
 
 import type { PostDetail } from "@/features/community/domain/post";
 import type {
@@ -11,6 +11,7 @@ import {
   clearRevalidated,
   peekRevalidateTarget,
 } from "@/features/community/presentation/dirty-posts";
+import { scrollContainerOf } from "@/features/community/presentation/scroll-container";
 import {
   FEED_LIST_URL,
   feedPageUrl,
@@ -53,12 +54,15 @@ export function useFeedRevalidate({
   removePost,
   prependNew,
   listUrl = FEED_LIST_URL,
+  listRef,
 }: {
   replacePost: (post: PostSummary) => void;
   removePost: (postId: number) => void;
   prependNew: (posts: PostSummary[]) => void;
   /** 작성 후 복귀 시 다시 읽을 목록(BFF 경로). 기본은 메인 피드 — useBoardFeed와 같은 값을 넘긴다. */
   listUrl?: string;
+  /** 작성 후 복귀 시 맨 위로 올릴 스크롤 기준을 찾는 목록 요소. 문서 · 내부 스크롤러(#200) 어느 쪽이든 맞춘다. */
+  listRef: RefObject<HTMLElement | null>;
 }) {
   // "진짜 복귀" 확정 타이머. 다시 가려지면 취소해 기록을 남긴다.
   const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -76,7 +80,10 @@ export function useFeedRevalidate({
         revalidatePost(id, { replacePost, removePost }),
       ),
       createdPostId !== null
-        ? revalidateFirstPage(createdPostId, listUrl, { prependNew })
+        ? revalidateFirstPage(createdPostId, listUrl, {
+            prependNew,
+            scrollToTop: () => scrollToTop(listRef.current),
+          })
         : null,
     ]);
 
@@ -85,7 +92,7 @@ export function useFeedRevalidate({
     confirmTimer.current = setTimeout(() => {
       if (document.visibilityState === "visible") clearRevalidated(target);
     }, RETURN_CONFIRM_DELAY_MS);
-  }, [listUrl, prependNew, removePost, replacePost]);
+  }, [listRef, listUrl, prependNew, removePost, replacePost]);
 
   useEffect(() => {
     function handlePageShow() {
@@ -150,6 +157,12 @@ async function revalidatePost(
   }
 }
 
+/** 목록이 든 스크롤 기준(내부 스크롤러 또는 문서)을 맨 위로 올린다. */
+function scrollToTop(list: HTMLElement | null): void {
+  const container = list ? scrollContainerOf(list) : null;
+  (container ?? window).scrollTo({ top: 0 });
+}
+
 /** 상세 응답에서 목록 카드가 쓰는 필드만 추린다. */
 function toSummary(detail: PostDetail): PostSummary {
   return {
@@ -182,7 +195,10 @@ function toSummary(detail: PostDetail): PostSummary {
 async function revalidateFirstPage(
   createdPostId: number,
   listUrl: string,
-  handlers: { prependNew: (posts: PostSummary[]) => void },
+  handlers: {
+    prependNew: (posts: PostSummary[]) => void;
+    scrollToTop: () => void;
+  },
 ): Promise<void> {
   try {
     const response = await bffFetch(feedPageUrl(listUrl, 0));
@@ -197,7 +213,7 @@ async function revalidateFirstPage(
     handlers.prependNew(fresh);
 
     if (fresh.some((post) => post.id === createdPostId)) {
-      window.scrollTo({ top: 0 });
+      handlers.scrollToTop();
     }
   } catch {
     // 위와 같음.

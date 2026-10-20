@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 
 import { MyActivityAppBar } from "@/features/community/presentation/my-activity/my-activity-app-bar";
+import { SubviewScrollShell } from "@/features/community/presentation/subview-scroll-shell";
 
 /** 덩어리마다 150ms씩 늦춰 위에서 아래로 물결치게 깜빡인다(메인 피드 스켈레톤과 같은 방식). */
 function pulseDelay(order: number): CSSProperties {
@@ -18,7 +19,7 @@ const BLOCK = "rounded bg-feed-card-header-avatar-bg";
  */
 export function MyActivitySkeleton() {
   return (
-    <main className="min-h-screen bg-[var(--bw-white)]">
+    <SubviewScrollShell className="bg-[var(--bw-white)]">
       <MyActivityAppBar />
 
       <div aria-hidden>
@@ -59,6 +60,6 @@ export function MyActivitySkeleton() {
           ))}
         </div>
       </div>
-    </main>
+    </SubviewScrollShell>
   );
 }

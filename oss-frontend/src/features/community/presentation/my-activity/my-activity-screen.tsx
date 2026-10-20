@@ -18,6 +18,7 @@ import {
   type MyActivityTab,
 } from "@/features/community/presentation/my-activity/my-activity-tab";
 import { MyActivityTabs } from "@/features/community/presentation/my-activity/my-activity-tabs";
+import { SubviewScrollShell } from "@/features/community/presentation/subview-scroll-shell";
 import { Spinner } from "@/shared/ui/spinner";
 
 /**
@@ -30,16 +31,18 @@ import { Spinner } from "@/shared/ui/spinner";
  * - guest: 로그인 전용 API를 부르지 않고 안내만. 로그인하면 SSR을 다시 돌린다(RefreshOnLogin).
  * - session-expired: 메인 피드와 같이 네이티브 갱신 후 SSR 재실행(SessionExpiredRecovery).
  * - error: 메인 피드 에러 화면(재시도 = router.refresh).
+ *
+ * 앱에서 서브뷰로 열려 문서 스크롤이 막히므로 SubviewScrollShell이 스크롤한다(#200).
  */
 export async function MyActivityScreen({ tab }: { tab: MyActivityTab }) {
   const result = await getMyActivityPageData(toMyPostListKind(tab));
 
   return (
     // 목록 카드(surface-container)가 메인 피드와 같아 보이도록 바탕도 피드와 같은 색을 쓴다.
-    <main className="min-h-screen bg-[var(--bw-white)]">
+    <SubviewScrollShell className="bg-[var(--bw-white)]">
       <MyActivityAppBar />
       {renderContent(result, tab)}
-    </main>
+    </SubviewScrollShell>
   );
 }
 

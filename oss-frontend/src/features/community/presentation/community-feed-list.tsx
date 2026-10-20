@@ -218,6 +218,9 @@ export function CommunityFeedList({
 
   useOnLogin(() => void refreshLoaded());
 
+  // 목록 컨테이너 — 작성 후 복귀 스크롤 기준 · 뒤에 붙은 카드 모션에 함께 쓴다.
+  const listRef = useRef<HTMLDivElement>(null);
+
   // 404로 걷어내는 카드도 접었다 제거한다 — 삭제 · 신고 · 차단은 상세에서 벌어지고 목록은
   // 복귀 후 재조회로 알게 되는데, 여기서 곧장 지우면 목록 ⋮ 경로와 달리 카드가 툭 사라진다.
   useFeedRevalidate({
@@ -225,6 +228,7 @@ export function CommunityFeedList({
     removePost: collapseAndRemove,
     prependNew,
     listUrl,
+    listRef,
   });
 
   // 첫 페이지 카드는 차례로 떠오르며 나타난다. SSR로 그려진 카드라 클래스를 렌더에서 바로 건다 —
@@ -264,7 +268,6 @@ export function CommunityFeedList({
   // 무한 스크롤로 뒤에 붙은 카드만 차례로 떠오르게 한다(comment-replies의 더보기와 같은 방식).
   // 이미 있던 카드는 다시 움직이지 않고, 위에 끼어든 새 글(prependNew) · 되돌린 카드는 펼침이 따로 있어 제외한다
   // — 직전 커밋의 마지막 카드보다 뒤에 처음 보는 id만 고른다.
-  const listRef = useRef<HTMLDivElement>(null);
   const renderedIdsRef = useRef<ReadonlySet<number> | null>(null);
   useLayoutEffect(() => {
     const previous = renderedIdsRef.current;

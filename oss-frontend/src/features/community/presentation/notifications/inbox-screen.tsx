@@ -10,6 +10,7 @@ import { EmptyState } from "@/features/community/presentation/empty-state";
 import { FeedErrorState } from "@/features/community/presentation/feed-error-state";
 import { InboxAppBar } from "@/features/community/presentation/notifications/inbox-app-bar";
 import { InboxView } from "@/features/community/presentation/notifications/inbox-view";
+import { SubviewScrollShell } from "@/features/community/presentation/subview-scroll-shell";
 
 /**
  * 알림함 화면 루트 (서버 컴포넌트) — /community/notifications (#187).
@@ -23,14 +24,15 @@ import { InboxView } from "@/features/community/presentation/notifications/inbox
  * 목록이 없는 분기도 앱바는 그린다(뒤로가기가 있어야 빠져나갈 수 있다) — "모두 읽음"은 비활성.
  *
  * 바탕은 True White — 안 읽은 셀(흰색)과 읽은 셀(회색)의 대비가 디자인의 핵심이라 화면 바탕도 흰색이다.
+ * 앱에서 서브뷰로 열려 문서 스크롤이 막히므로 SubviewScrollShell이 스크롤한다(#200).
  */
 export async function InboxScreen() {
   const result = await getInboxPageData();
 
   return (
-    <main className="min-h-screen bg-[var(--bw-true-white)]">
+    <SubviewScrollShell className="bg-[var(--bw-true-white)]">
       {renderContent(result)}
-    </main>
+    </SubviewScrollShell>
   );
 }
 
