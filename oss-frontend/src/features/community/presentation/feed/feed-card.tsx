@@ -634,6 +634,31 @@ export function FeedCardReactions({
 }
 
 /**
+ * 댓글 수 표시 전용 — 리액션 행의 댓글 버튼과 같은 모양이되 누를 수 없다(span).
+ *
+ * 내 커뮤니티 활동 '밸런스 게임' 목록이 쓴다. 항목 전체가 상세로 가는 버튼이라 안에 버튼을
+ * 또 둘 수 없다. 내가 댓글을 남겼으면 아이콘이 filled + active 색이다(피드 카드와 같은 규칙).
+ */
+export function FeedCardCommentCount({
+  count,
+  commented = false,
+}: {
+  count: number;
+  commented?: boolean;
+}) {
+  return (
+    <ReactionButton
+      icon={<CommentIcon size={16} filled={commented} />}
+      count={count}
+      label={`댓글 ${count}개`}
+      active={commented}
+      activeColorClass="text-reaction-bar-active-comment-icon"
+      displayOnly
+    />
+  );
+}
+
+/**
  * 리액션 단일 버튼(아이콘 + 카운트). 높이 28 고정, 아이콘 16x16.
  * - 카운트가 0이면 숫자를 숨기고 버튼을 32x28(아이콘 가운데)로 둔다.
  * - 카운트가 있으면 폭은 유동: 아이콘 좌측 8 · 아이콘↔숫자 4 · 숫자 우측 8.
@@ -646,6 +671,7 @@ function ReactionButton({
   active = false,
   activeColorClass,
   popOnActivate = false,
+  displayOnly = false,
   onClick,
 }: {
   icon: ReactNode;
@@ -655,23 +681,31 @@ function ReactionButton({
   activeColorClass?: string;
   /** 켜지는 순간 아이콘이 톡 부푼다(좋아요·저장). 댓글은 상세로 가는 버튼이라 끈다. */
   popOnActivate?: boolean;
+  /** 표시 전용 — 같은 모양의 span으로 그리고 눌림 반응을 뺀다(FeedCardCommentCount). */
+  displayOnly?: boolean;
   onClick?: () => void;
 }) {
   const showCount = count > 0;
   // 상세 리액션바와 같은 움직임 — 마운트 때 이미 켜진 카드는 튀지 않고, 끌 때도 조용하다.
   const pop = usePopOnActivate(popOnActivate && active);
+  const Root = displayOnly ? "span" : "button";
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
+    <Root
+      {...(displayOnly
+        ? // 아이콘 + 숫자를 "댓글 n개" 한 덩어리로 읽힌다(span의 aria-label은 role 없이는 읽히지 않는다).
+          { role: "img" }
+        : {
+            type: "button" as const,
+            onClick,
+            "aria-pressed": activeColorClass ? active : undefined,
+          })}
       aria-label={label}
-      aria-pressed={activeColorClass ? active : undefined}
       className={cn(
         "inline-flex h-7 items-center text-reaction-bar-default-icon",
         showCount ? "gap-1 pl-2 pr-2" : "w-8 justify-center",
         active && activeColorClass,
-        REACTION_PRESS_MOTION,
+        !displayOnly && REACTION_PRESS_MOTION,
       )}
     >
       {/* 팝은 아이콘만 — 버튼의 눌림(scale)과 transform이 겹치지 않게 감싼다. 색은 currentColor 상속. */}
@@ -689,6 +723,6 @@ function ReactionButton({
           {count}
         </span>
       ) : null}
-    </button>
+    </Root>
   );
 }

@@ -1,4 +1,8 @@
-import { createGetMyPostListUseCase } from "@/features/community/application/community-use-case-factory";
+import {
+  createGetMyPostListUseCase,
+  createGetParticipatedBalanceGamesUseCase,
+} from "@/features/community/application/community-use-case-factory";
+import type { BalanceGameList } from "@/features/community/domain/balance-game";
 import {
   FEED_PAGE_SIZE,
   type MyPostListKind,
@@ -14,13 +18,14 @@ export type MyActivityProfile = {
   avatarUrl: string | null;
 };
 
-export type MyActivityPageData = {
+/** list는 탭마다 모양이 다르다 — 쓴 글 · 저장은 PostList, 밸런스 게임은 BalanceGameList. */
+export type MyActivityPageData<L = PostList> = {
   profile: MyActivityProfile;
-  list: PostList;
+  list: L;
 };
 
-export type MyActivityPageDataResult =
-  | { ok: true; data: MyActivityPageData }
+export type MyActivityPageDataResult<L = PostList> =
+  | { ok: true; data: MyActivityPageData<L> }
   // 비로그인 — 로그인 전용 API를 부르지 않고 안내만 그린다.
   | { ok: false; reason: "guest" }
   // 만료 토큰 — 서버는 갱신 불가하니 클라이언트가 네이티브 갱신 후 SSR을 재실행한다.
@@ -40,17 +45,43 @@ export type MyActivityPageDataResult =
 export async function getMyActivityPageData(
   kind: MyPostListKind,
 ): Promise<MyActivityPageDataResult> {
+  return loadMyActivityPageData((accessToken) =>
+    createGetMyPostListUseCase(accessToken).execute({
+      kind,
+      page: 0,
+      size: FEED_PAGE_SIZE,
+    }),
+  );
+}
+
+/**
+ * '밸런스 게임' 탭 — 프로필 + 내가 참여한 게임 첫 페이지.
+ *
+ * 분기(guest · 만료 · 에러)는 다른 탭과 같다. 업스트림 목록 API가 아직 없어
+ * NEXT_PUBLIC_MY_BALANCE_GAMES가 on/preview일 때만 화면이 이 쿼리를 부른다.
+ */
+export async function getMyBalanceGamesPageData(): Promise<
+  MyActivityPageDataResult<BalanceGameList>
+> {
+  return loadMyActivityPageData((accessToken) =>
+    createGetParticipatedBalanceGamesUseCase(accessToken).execute({
+      page: 0,
+      size: FEED_PAGE_SIZE,
+    }),
+  );
+}
+
+/** 탭 공통 조회 — 프로필과 탭 목록을 병렬로 읽고 실패를 화면 분기로 바꾼다. */
+async function loadMyActivityPageData<L>(
+  loadList: (accessToken: string) => Promise<L>,
+): Promise<MyActivityPageDataResult<L>> {
   const accessToken = await readSessionToken();
   if (!accessToken) return { ok: false, reason: "guest" };
 
   try {
     const [profile, list] = await Promise.all([
       createGetMyProfileUseCase(accessToken).execute(),
-      createGetMyPostListUseCase(accessToken).execute({
-        kind,
-        page: 0,
-        size: FEED_PAGE_SIZE,
-      }),
+      loadList(accessToken),
     ]);
 
     return {

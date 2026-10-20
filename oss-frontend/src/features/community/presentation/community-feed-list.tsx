@@ -464,25 +464,38 @@ function FeedCardItem({
   );
 }
 
-/** 다음 페이지 로딩 표시(끝 표식과 동일 높이·정렬). 스크롤 끝에서 툭 끼어들지 않게 옅게 나타난다. */
-function FeedLoadingMore() {
+/**
+ * 다음 페이지 로딩 표시(끝 표식과 동일 높이·정렬). 스크롤 끝에서 툭 끼어들지 않게 옅게 나타난다.
+ * 내 커뮤니티 활동 '밸런스 게임' 목록도 같은 모양을 쓴다(label만 다르다).
+ */
+export function FeedLoadingMore({
+  label = "게시글 불러오는 중",
+}: {
+  label?: string;
+}) {
   return (
     <div className="flex h-[69px] items-center justify-center px-4 motion-safe:animate-fade-in">
       <span
         className="size-5 animate-spin rounded-full border-2 border-feed-card-header-avatar-bg border-t-transparent"
         role="status"
-        aria-label="게시글 불러오는 중"
+        aria-label={label}
       />
     </div>
   );
 }
 
 /** 다음 페이지 로드 실패 — 안내 + 재시도. 로딩 표시와 같이 옅게 나타난다. */
-function FeedLoadMoreError({ onRetry }: { onRetry: () => void }) {
+export function FeedLoadMoreError({
+  onRetry,
+  message = "게시글을 더 불러오지 못했어요",
+}: {
+  onRetry: () => void;
+  message?: string;
+}) {
   return (
     <div className="flex h-[69px] flex-col items-center justify-center gap-1 px-4 motion-safe:animate-fade-in">
       <p className="text-body-s text-feed-card-body-text">
-        게시글을 더 불러오지 못했어요
+        {message}
       </p>
       <button
         type="button"
