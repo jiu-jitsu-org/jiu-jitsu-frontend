@@ -5,11 +5,9 @@ import { SessionExpiredRecovery } from "@/features/auth/presentation/session-exp
 import {
   getMyActivityPageData,
   getMyBalanceGamesPageData,
-  type MyActivityPageData,
   type MyActivityPageDataResult,
 } from "@/features/community/application/get-my-activity-page-data";
 import type { PostList } from "@/features/community/domain/post-summary";
-import { Avatar } from "@/features/community/presentation/avatar";
 import { CommunityFeedList } from "@/features/community/presentation/community-feed-list";
 import { EmptyState } from "@/features/community/presentation/empty-state";
 import { FeedErrorState } from "@/features/community/presentation/feed-error-state";
@@ -80,7 +78,10 @@ function renderContent<L>(
       return (
         <>
           <RefreshOnLogin />
-          <EmptyState title="로그인 후 이용할 수 있어요" className="pt-[35vh]" />
+          <EmptyState
+            title="로그인 후 이용할 수 있어요"
+            className="pt-[35vh]"
+          />
         </>
       );
     }
@@ -93,25 +94,10 @@ function renderContent<L>(
 
   return (
     <>
-      <MyActivityProfileRow profile={result.data.profile} />
-      <MyActivityTabs tab={tab}>{renderPanel(result.data.list)}</MyActivityTabs>
+      <MyActivityTabs tab={tab} profile={result.data.profile}>
+        {renderPanel(result.data.list)}
+      </MyActivityTabs>
     </>
-  );
-}
-
-/** 상단 프로필 행 — 아바타 64(폴백 아이콘 40) + 닉네임(Title 2). 위 12 · 좌우 16 · 아래 20, 간격 12. */
-function MyActivityProfileRow({
-  profile,
-}: {
-  profile: MyActivityPageData["profile"];
-}) {
-  return (
-    <div className="flex items-center gap-3 px-4 pt-3 pb-5">
-      <Avatar src={profile.avatarUrl} className="size-16" iconSize={40} />
-      <p className="min-w-0 truncate text-title-2 text-text-primary">
-        {profile.nickname}
-      </p>
-    </div>
   );
 }
 
@@ -125,13 +111,7 @@ function MyActivityProfileRow({
  * 같은 화면을 또 쌓지 않도록 작성자 탭을 끈다(authorLink=false).
  * 목록 시작은 탭 아래 16(pt-4), 아래는 FAB이 없어 홈 인디케이터 여백만 둔다.
  */
-function MyActivityPanel({
-  list,
-  tab,
-}: {
-  list: PostList;
-  tab: MyPostTab;
-}) {
+function MyActivityPanel({ list, tab }: { list: PostList; tab: MyPostTab }) {
   if (list.items.length === 0) return <MyActivityEmptyState tab={tab} />;
 
   return (

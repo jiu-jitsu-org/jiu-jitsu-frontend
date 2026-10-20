@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 
+import { MyActivityHeader } from "@/features/community/presentation/my-activity/my-activity-header";
 import {
   MY_ACTIVITY_TABS,
   type MyActivityTab,
@@ -25,7 +26,7 @@ function tabId(tab: MyActivityTab): string {
 }
 
 /**
- * 내 커뮤니티 활동 탭 바 + 탭 패널 (클라이언트).
+ * 내 커뮤니티 활동 탭 바 + 탭 패널 (클라이언트). 탭 바는 프로필 행과 함께 상단에 붙는다(MyActivityHeader).
  *
  * 탭은 URL(?tab=)이 정본이다 — 네이티브가 특정 탭으로 바로 열 수 있어야 하기 때문. 탭을 누르면
  * URL을 replace로 바꾸고(히스토리를 쌓지 않는다 — 뒤로가기가 탭을 되감으면 화면을 닫을 수 없다)
@@ -43,9 +44,11 @@ function tabId(tab: MyActivityTab): string {
  */
 export function MyActivityTabs({
   tab,
+  profile,
   children,
 }: {
   tab: MyActivityTab;
+  profile: { nickname: string; avatarUrl: string | null };
   /** 선택된 탭의 패널 내용(서버가 그린 목록 · 빈 상태). */
   children: ReactNode;
 }) {
@@ -94,49 +97,51 @@ export function MyActivityTabs({
 
   return (
     <>
-      <div
-        role="tablist"
-        aria-label="커뮤니티 활동"
-        className="relative flex px-4"
-      >
-        {MY_ACTIVITY_TABS.map((item) => {
-          const selected = item.value === selectedTab;
+      <MyActivityHeader profile={profile}>
+        <div
+          role="tablist"
+          aria-label="커뮤니티 활동"
+          className="relative flex px-4"
+        >
+          {MY_ACTIVITY_TABS.map((item) => {
+            const selected = item.value === selectedTab;
 
-          return (
-            <button
-              key={item.value}
-              id={tabId(item.value)}
-              type="button"
-              role="tab"
-              aria-selected={selected}
-              aria-controls={PANEL_ID}
-              tabIndex={selected ? 0 : -1}
-              onClick={() => select(item.value)}
-              onKeyDown={handleKeyDown}
-              className={cn(
-                "relative h-11 flex-1 rounded-lg text-body-m",
-                // 선택이 옮겨 갈 때 글자색·굵기가 200ms로 바뀌고, 누르는 동안 옅은 면이 깔린다(120ms).
-                "motion-safe:[transition:color_200ms_ease-out,font-weight_200ms_ease-out,background-color_120ms_ease-out]",
-                "active:bg-surface-container-pressed",
-                selected
-                  ? "font-semibold text-tab-bar-selected-text"
-                  : "font-medium text-tab-bar-unselected-text",
-              )}
-            >
-              {item.label}
-            </button>
-          );
-        })}
-        {/* 밑줄: 탭 폭 전체, 2px, 끝 둥글게. 탭 하나 폭만큼씩 옮겨 선택 탭 아래에 둔다. */}
-        <span
-          aria-hidden
-          className="absolute bottom-0 left-4 h-0.5 rounded-full bg-tab-bar-selected-underline motion-safe:transition-transform motion-safe:duration-400 motion-safe:ease-spring-gentle"
-          style={{
-            width: `calc((100% - 2rem) / ${MY_ACTIVITY_TABS.length})`,
-            transform: `translateX(${Math.max(0, selectedIndex) * 100}%)`,
-          }}
-        />
-      </div>
+            return (
+              <button
+                key={item.value}
+                id={tabId(item.value)}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                aria-controls={PANEL_ID}
+                tabIndex={selected ? 0 : -1}
+                onClick={() => select(item.value)}
+                onKeyDown={handleKeyDown}
+                className={cn(
+                  "relative h-11 flex-1 rounded-lg text-body-m",
+                  // 선택이 옮겨 갈 때 글자색·굵기가 200ms로 바뀌고, 누르는 동안 옅은 면이 깔린다(120ms).
+                  "motion-safe:[transition:color_200ms_ease-out,font-weight_200ms_ease-out,background-color_120ms_ease-out]",
+                  "active:bg-surface-container-pressed",
+                  selected
+                    ? "font-semibold text-tab-bar-selected-text"
+                    : "font-medium text-tab-bar-unselected-text",
+                )}
+              >
+                {item.label}
+              </button>
+            );
+          })}
+          {/* 밑줄: 탭 폭 전체, 2px, 끝 둥글게. 탭 하나 폭만큼씩 옮겨 선택 탭 아래에 둔다. */}
+          <span
+            aria-hidden
+            className="absolute bottom-0 left-4 h-0.5 rounded-full bg-tab-bar-selected-underline motion-safe:transition-transform motion-safe:duration-400 motion-safe:ease-spring-gentle"
+            style={{
+              width: `calc((100% - 2rem) / ${MY_ACTIVITY_TABS.length})`,
+              transform: `translateX(${Math.max(0, selectedIndex) * 100}%)`,
+            }}
+          />
+        </div>
+      </MyActivityHeader>
 
       <div
         id={PANEL_ID}
