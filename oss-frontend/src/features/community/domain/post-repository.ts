@@ -1,3 +1,4 @@
+import type { BlockedMember } from "@/features/community/domain/blocked-member";
 import type {
   Comment,
   CommentList,
@@ -160,4 +161,9 @@ export interface CommunityWriteRepository {
    * 대상이라 인자는 commentId가 아닌 작성자 userId다. 토글 후의 차단 여부(true=차단)를 반환한다.
    */
   toggleBlock(userId: number): Promise<boolean>;
+  /**
+   * 내가 차단한 회원 목록(GET /user/block — 백엔드 요청 중). 차단한 시각 최신순.
+   * 읽기인데 쓰기 repository에 있는 이유: 토글(toggleBlock)과 같은 업스트림 컨트롤러이고 서로의 짝이다.
+   */
+  getBlockedMembers(): Promise<BlockedMember[]>;
 }

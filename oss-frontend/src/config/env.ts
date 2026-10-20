@@ -85,3 +85,11 @@ export function getImageKitClientEnv(): ImageKitClientEnv {
       "public_mQk8MsljUr3YQ2KBYGqSJg3gYAc=",
   };
 }
+
+/**
+ * (dev 전용) 로컬 개발 서버(next dev)에서 도는지 — 화면 확인용 예시 데이터 같은 개발 편의 분기에 쓴다.
+ * production 빌드에서는 항상 false라 그 분기는 운영에서 동작하지 않는다.
+ */
+export function isDevelopmentRuntime(): boolean {
+  return process.env.NODE_ENV === "development";
+}

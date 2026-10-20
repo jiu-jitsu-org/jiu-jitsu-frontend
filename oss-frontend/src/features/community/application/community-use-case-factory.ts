@@ -19,6 +19,7 @@ import { ToggleNoticeUseCase } from "@/features/community/application/toggle-not
 import { ToggleCommentLikeUseCase } from "@/features/community/application/toggle-comment-like";
 import { ToggleLikeUseCase } from "@/features/community/application/toggle-like";
 import { BlockUserUseCase } from "@/features/community/application/block-user";
+import { GetBlockedMembersUseCase } from "@/features/community/application/get-blocked-members";
 import { GetBalanceGameDetailUseCase } from "@/features/community/application/get-balance-game-detail";
 import { GetCurrentBalanceGameUseCase } from "@/features/community/application/get-current-balance-game";
 import { GetParticipatedBalanceGamesUseCase } from "@/features/community/application/get-participated-balance-games";
@@ -189,6 +190,12 @@ export function createUpdatePostUseCase(
 
 export function createBlockUserUseCase(accessToken: string): BlockUserUseCase {
   return new BlockUserUseCase(createWriteRepository(accessToken));
+}
+
+export function createGetBlockedMembersUseCase(
+  accessToken: string,
+): GetBlockedMembersUseCase {
+  return new GetBlockedMembersUseCase(createWriteRepository(accessToken));
 }
 
 /**

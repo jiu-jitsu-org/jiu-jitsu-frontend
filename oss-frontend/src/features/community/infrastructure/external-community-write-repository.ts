@@ -1,3 +1,4 @@
+import type { BlockedMember } from "@/features/community/domain/blocked-member";
 import type { Comment } from "@/features/community/domain/comment";
 import {
   type CommentDto,
@@ -230,5 +231,18 @@ export class ExternalCommunityWriteRepository implements CommunityWriteRepositor
     });
 
     return typeof response === "boolean" ? response : response.data;
+  }
+
+  async getBlockedMembers(): Promise<BlockedMember[]> {
+    // GET /user/block — 내가 차단한 회원 목록(최신순). 백엔드 요청 중인 제안 계약이다
+    // (docs/blocked-members-plan.md). 토글과 같은 컨트롤러라 봉투 밖 raw 배열도 함께 허용한다.
+    const response = await this.httpClient.get<
+      Envelope<BlockedMember[]> | BlockedMember[]
+    >({
+      path: `${USER_ENDPOINT_PATH}/block`,
+    });
+
+    const members = Array.isArray(response) ? response : response.data;
+    return members ?? [];
   }
 }
