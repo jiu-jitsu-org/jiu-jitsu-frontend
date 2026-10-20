@@ -85,14 +85,3 @@ export function getImageKitClientEnv(): ImageKitClientEnv {
       "public_mQk8MsljUr3YQ2KBYGqSJg3gYAc=",
   };
 }
-
-/**
- * '참여한 밸런스 게임' 탭(내 커뮤니티 활동 ?tab=balance) 노출 여부. "on"일 때만 켠다.
- *
- * 업스트림 목록 API(GET /community/balance-game/participated)는 dev에만 배포돼 있어 운영은 꺼 둔다.
- * NEXT_PUBLIC인 이유: 탭 바(클라이언트)와 서버 라우트가 같은 값을 봐야 한다. 빌드 시 인라인된다.
- * 운영 배포가 끝나면 이 플래그를 걷어낸다.
- */
-export function isMyBalanceGamesEnabled(): boolean {
-  return process.env.NEXT_PUBLIC_MY_BALANCE_GAMES === "on";
-}
