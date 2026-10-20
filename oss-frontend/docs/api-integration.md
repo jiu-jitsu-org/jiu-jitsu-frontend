@@ -77,8 +77,8 @@ if (!result.ok) {
 내 커뮤니티 활동(`/community/me?tab=posts|saved`, 로그인 전용 — 비로그인은 조회 없이 안내) [`get-my-activity-page-data.ts`](../src/features/community/application/get-my-activity-page-data.ts) · [`my-activity-screen.tsx`](../src/features/community/presentation/my-activity/my-activity-screen.tsx)
   · 다음 페이지 BFF `GET /api/community/board/mine?kind=written|saved` (업스트림 `GET /board/write` · `GET /board/save`)
   · 밸런스 게임 탭 `?tab=balance` (참여한 게임 — [`get-my-activity-page-data.ts`](../src/features/community/application/get-my-activity-page-data.ts) `getMyBalanceGamesPageData`) · 다음 페이지 BFF `GET /api/community/balance-game/participated`
-    (업스트림 `GET /community/balance-game/participated?page=&size=` — **제안 계약 · 백엔드 미구현**, `/board/write`와 같은 Page 봉투 + 항목은 밸런스 상세 DTO).
-    플래그 `NEXT_PUBLIC_MY_BALANCE_GAMES`: 미설정/그 외 = 탭 숨김(`?tab=balance`는 쓴 글로) · `on` = 실제 API · `preview` = 오늘의 게임부터 contentId를 거슬러 단건 조회로 최대 10개를 모은 임시 목록(디자인 검토 전용, [`preview-balance-game-repository.ts`](../src/features/community/infrastructure/preview-balance-game-repository.ts) — API가 생기면 삭제)
+    (업스트림 `GET /community/balance-game/participated?page=&size=` — jiu-jitsu-backend#156, `/board/write`와 같은 Page 봉투 + 항목은 밸런스 상세 DTO, gameDate 최신순 고정 · 마감 포함 · 투표 취소한 판 제외).
+    플래그 `NEXT_PUBLIC_MY_BALANCE_GAMES`: 미설정/그 외 = 탭 숨김(`?tab=balance`는 쓴 글로) · `on` = 탭 노출. 업스트림이 운영에 배포되면 플래그째 걷어낸다.
 
 ---
 
