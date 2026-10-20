@@ -16,6 +16,11 @@ export const MAX_IMAGES = 3;
 const MAX_IMAGES_MESSAGE = `사진은 최대 ${MAX_IMAGES}장까지 첨부할 수 있어요`;
 /** 재시도 반복 실패 안내(정책 문구). 첫 실패는 썸네일의 ↻만으로 알리고, 재시도가 또 실패했을 때만 띄운다. */
 const RETRY_FAILED_MESSAGE = "업로드하지 못했어요. 잠시 후 다시 시도해주세요";
+/**
+ * 이만큼 이상 백그라운드에 있다 돌아오면 업로드 중인 장을 실패(↻)로 돌린다. WKWebView는 백그라운드에서
+ * 네트워크·타이머가 멈춰 응답도 타임아웃도 안 올 수 있다. 피커 왕복 같은 짧은 전환은 건드리지 않는다.
+ */
+const BACKGROUND_STALE_MS = 30_000;
 
 /**
  * 썸네일 1장의 업로드 상태(정책: 각 썸네일은 개별 상태).
@@ -142,6 +147,36 @@ export function useImageAttachments() {
     },
     [patch, toast],
   );
+
+  /**
+   * 백그라운드 복귀: 오래 숨겨져 있었다면 업로드 중인 장을 실패로 돌린다. 세대를 올려 멈춰 있던
+   * 이전 요청의 결과가 늦게 와도 버린다(↻ 재시도한 결과를 덮지 않게). 첫 실패라 토스트는 없다.
+   */
+  useEffect(() => {
+    let hiddenAt: number | null = null;
+    const handleVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        hiddenAt = Date.now();
+        return;
+      }
+      const hiddenFor = hiddenAt === null ? 0 : Date.now() - hiddenAt;
+      hiddenAt = null;
+      if (hiddenFor < BACKGROUND_STALE_MS) return;
+      // 업로드 중인 장이 없으면 prev를 그대로 돌려 불필요한 리렌더를 막는다(수정 모드·첨부 없음 포함).
+      setAttachments((prev) =>
+        prev.some((item) => item.status === "uploading")
+          ? prev.map((item) =>
+              item.status === "uploading"
+                ? { ...item, status: "failed", uploadSeq: item.uploadSeq + 1 }
+                : item,
+            )
+          : prev,
+      );
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibility);
+  }, []);
 
   /** 원본 크기를 읽어 채운다 — 비율 밖 경고·편집 가능 여부의 근거. 늦게 와도 patch가 흡수한다. */
   const measureSource = useCallback(

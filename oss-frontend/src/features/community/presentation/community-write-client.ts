@@ -47,6 +47,48 @@ export class WriteRequestError extends Error {
   }
 }
 
+/**
+ * 이미지 파이프라인 단계별 타임아웃(ms). 응답이 끝내 안 오면(웹뷰가 백그라운드에서 멈춤·네트워크 끊김)
+ * 썸네일이 '업로드 중'에 머물고 등록 버튼이 잠기므로, 초과 시 실패로 흘려 ↻ 재시도로 복구하게 한다.
+ * ①③은 bffFetch의 만료 → 네이티브 토큰 갱신(상한 15초) → 재호출 경로까지 담도록 BFF 업스트림 상한(10초)
+ * + 갱신 상한보다 넉넉히 잡는다. ②는 서명 유효(240초)보다 충분히 짧아야 재시도가 새 서명(①)부터
+ * 다시 받는 흐름이 자연스럽다.
+ */
+const IMAGE_AUTH_TIMEOUT_MS = 30_000;
+const IMAGEKIT_UPLOAD_TIMEOUT_MS = 60_000;
+const IMAGE_REGISTER_TIMEOUT_MS = 30_000;
+
+/** 타임아웃으로 끊긴 요청의 WriteRequestError code(status는 0 — 응답 자체가 없음). */
+const WRITE_TIMEOUT_CODE = "TIMEOUT";
+
+/**
+ * 한 단계를 타임아웃 안에서 실행한다. 초과하면 signal을 abort(요청·본문 읽기 중단)하고
+ * WriteRequestError(status 0, TIMEOUT)로 끊는다. abort가 닿지 않는 대기(bffFetch의 네이티브 세션
+ * 갱신 등)도 race로 함께 끊는다.
+ */
+async function withTimeout<T>(
+  context: string,
+  timeoutMs: number,
+  run: (signal: AbortSignal) => Promise<T>,
+): Promise<T> {
+  const controller = new AbortController();
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      controller.abort();
+      console.error(`[community-write] ${context} ${timeoutMs}ms 타임아웃`);
+      reject(
+        new WriteRequestError(`${context} timeout`, 0, WRITE_TIMEOUT_CODE),
+      );
+    }, timeoutMs);
+  });
+  try {
+    return await Promise.race([run(controller.signal), timeout]);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 /** BFF 응답({ success, data })에서 data를 꺼낸다. 실패면 status와 업스트림 code(details.code)를 실어 throw. */
 async function unwrap<T>(response: Response, context: string): Promise<T> {
   // 본문을 한 번만 읽어 성공/실패 모두 로깅한다(디버깅용).
@@ -71,10 +113,13 @@ async function unwrap<T>(response: Response, context: string): Promise<T> {
 
 /** ① ImageKit 업로드용 서명 발급. */
 async function fetchImageUploadAuth(): Promise<ImageUploadAuth> {
-  const response = await bffFetch("/api/community/image/auth", {
-    method: "GET",
+  return withTimeout("image-auth", IMAGE_AUTH_TIMEOUT_MS, async (signal) => {
+    const response = await bffFetch("/api/community/image/auth", {
+      method: "GET",
+      signal,
+    });
+    return unwrap<ImageUploadAuth>(response, "image-auth");
   });
-  return unwrap<ImageUploadAuth>(response, "image-auth");
 }
 
 /** ② 서명으로 ImageKit에 직접 업로드 → { fileId, url }. */
@@ -95,31 +140,48 @@ async function uploadToImageKit(
   form.append("expire", String(auth.expire));
   form.append("signature", auth.signature);
 
-  const response = await fetch(IMAGEKIT_UPLOAD_URL, {
-    method: "POST",
-    body: form,
-  });
-  if (!response.ok) {
-    throw new WriteRequestError("ImageKit 업로드 실패", response.status);
-  }
+  return withTimeout(
+    "imagekit-upload",
+    IMAGEKIT_UPLOAD_TIMEOUT_MS,
+    async (signal) => {
+      const response = await fetch(IMAGEKIT_UPLOAD_URL, {
+        method: "POST",
+        body: form,
+        signal,
+      });
+      if (!response.ok) {
+        throw new WriteRequestError("ImageKit 업로드 실패", response.status);
+      }
 
-  const json = (await response.json()) as { fileId?: string; url?: string };
-  console.info("[community-write] imagekit 업로드 성공", json);
-  if (!json.fileId || !json.url) {
-    throw new WriteRequestError("ImageKit 응답이 올바르지 않음", 502);
-  }
-  return { fileId: json.fileId, url: json.url };
+      const json = (await response.json()) as {
+        fileId?: string;
+        url?: string;
+      };
+      console.info("[community-write] imagekit 업로드 성공", json);
+      if (!json.fileId || !json.url) {
+        throw new WriteRequestError("ImageKit 응답이 올바르지 않음", 502);
+      }
+      return { fileId: json.fileId, url: json.url };
+    },
+  );
 }
 
 /** ③ 업로드 결과를 우리 서버에 등록 → 우리 서버 int imageId. */
 async function registerImage(cdnId: string, imageUrl: string): Promise<number> {
-  const response = await bffFetch("/api/community/image", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ cdnId, imageUrl }),
-  });
-  const data = await unwrap<{ id: number }>(response, "image-register");
-  return data.id;
+  return withTimeout(
+    "image-register",
+    IMAGE_REGISTER_TIMEOUT_MS,
+    async (signal) => {
+      const response = await bffFetch("/api/community/image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cdnId, imageUrl }),
+        signal,
+      });
+      const data = await unwrap<{ id: number }>(response, "image-register");
+      return data.id;
+    },
+  );
 }
 
 /**
