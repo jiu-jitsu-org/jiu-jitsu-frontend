@@ -6254,12 +6254,12 @@
         "$value": {
           "colorSpace": "srgb",
           "components": [
-            0.43921568989753723,
-            0.45098039507865906,
-            0.48627451062202454
+            0.36000001430511475,
+            0.7226666212081909,
+            1
           ],
           "alpha": 1,
-          "hex": "#70737C"
+          "hex": "#5CB8FF"
         },
         "$extensions": {
           "com.figma.variableId": "VariableID:2908:13059",
@@ -6267,10 +6267,10 @@
             "ALL_SCOPES"
           ],
           "com.figma.aliasData": {
-            "targetVariableId": "VariableID:c8f4680787ab6921c72bd3643b57e5c0d20e5b96/-1:-1",
-            "targetVariableName": "icon/icon-secondary",
-            "targetVariableSetId": "VariableCollectionId:15186b5b892c3eee2ab46145c4a2b0eff01d46b7/-1:-1",
-            "targetVariableSetName": "Semantic"
+            "targetVariableId": "VariableID:85d5e97d4b5519f71c1019567d8dd5598457ad1b/-1:-1",
+            "targetVariableName": "Color/Blue/300",
+            "targetVariableSetId": "VariableCollectionId:7f00cdd25149ef1089b75cf5032c9e3c0007fe95/-1:-1",
+            "targetVariableSetName": "Primitive"
           }
         }
       }
@@ -6538,12 +6538,12 @@
           "$value": {
             "colorSpace": "srgb",
             "components": [
-              0.43921568989753723,
-              0.45098039507865906,
-              0.48627451062202454
+              0.36000001430511475,
+              0.7226666212081909,
+              1
             ],
             "alpha": 1,
-            "hex": "#70737C"
+            "hex": "#5CB8FF"
           },
           "$extensions": {
             "com.figma.variableId": "VariableID:4081:19577",
@@ -6551,10 +6551,10 @@
               "ALL_SCOPES"
             ],
             "com.figma.aliasData": {
-              "targetVariableId": "VariableID:c8f4680787ab6921c72bd3643b57e5c0d20e5b96/-1:-1",
-              "targetVariableName": "icon/icon-secondary",
-              "targetVariableSetId": "VariableCollectionId:15186b5b892c3eee2ab46145c4a2b0eff01d46b7/-1:-1",
-              "targetVariableSetName": "Semantic"
+              "targetVariableId": "VariableID:85d5e97d4b5519f71c1019567d8dd5598457ad1b/-1:-1",
+              "targetVariableName": "Color/Blue/300",
+              "targetVariableSetId": "VariableCollectionId:7f00cdd25149ef1089b75cf5032c9e3c0007fe95/-1:-1",
+              "targetVariableSetName": "Primitive"
             }
           }
         },

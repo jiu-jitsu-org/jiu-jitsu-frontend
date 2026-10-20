@@ -245,7 +245,7 @@
   --reaction-bar-active-like-icon: var(--error);
   --reaction-bar-active-bookmark-icon: var(--interactive-primary);
   --reaction-bar-active-count-text: var(--text-secondary);
-  --reaction-bar-active-comment-icon: var(--icon-secondary);
+  --reaction-bar-active-comment-icon: var(--blue-300);
   --reaction-bar-pressed-count-text: var(--interactive-primary);
   --reaction-bar-pressed-icon: var(--interactive-primary);
   --reaction-bar-pressed-bg: var(--surface-primary-subtle);
@@ -256,7 +256,7 @@
   --reaction-bar-detail-disabled-count-text: var(--text-tertiary);
   --reaction-bar-detail-active-like-icon: var(--error);
   --reaction-bar-detail-active-bookmark-icon: var(--interactive-primary);
-  --reaction-bar-detail-active-comment-icon: var(--icon-secondary);
+  --reaction-bar-detail-active-comment-icon: var(--blue-300);
   --reaction-bar-detail-active-count-text: var(--text-secondary);
   --reaction-bar-detail-pressed-count-text: var(--interactive-primary);
   --reaction-bar-detail-pressed-bg: var(--surface-primary-subtle);
