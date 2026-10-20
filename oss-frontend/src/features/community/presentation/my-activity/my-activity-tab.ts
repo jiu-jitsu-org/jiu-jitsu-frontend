@@ -1,4 +1,4 @@
-import { getMyBalanceGamesMode } from "@/config/env";
+import { isMyBalanceGamesEnabled } from "@/config/env";
 import type { MyPostListKind } from "@/features/community/domain/post-summary";
 
 /**
@@ -8,7 +8,7 @@ import type { MyPostListKind } from "@/features/community/domain/post-summary";
  * URL 어휘(posts)와 업스트림 목록 종류(written)는 이름이 달라 여기서 한 번만 잇는다.
  * "댓글" 탭은 내 댓글 목록 API가 생기면 추가한다.
  *
- * "밸런스 게임" 탭은 업스트림 목록 API가 아직 없어 NEXT_PUBLIC_MY_BALANCE_GAMES(on|preview)일 때만
+ * "밸런스 게임" 탭은 업스트림 목록 API가 아직 운영에 없어 NEXT_PUBLIC_MY_BALANCE_GAMES=on일 때만
  * 노출한다. 꺼져 있으면 ?tab=balance도 모르는 값처럼 기본 탭으로 떨어진다.
  */
 export type MyActivityTab = MyPostTab | "balance";
@@ -16,7 +16,7 @@ export type MyActivityTab = MyPostTab | "balance";
 /** 게시글 목록(PostList)을 그리는 탭 — 쓴 글 · 저장. */
 export type MyPostTab = "posts" | "saved";
 
-const BALANCE_TAB_ENABLED = getMyBalanceGamesMode() !== "off";
+const BALANCE_TAB_ENABLED = isMyBalanceGamesEnabled();
 
 export const MY_ACTIVITY_TABS: { value: MyActivityTab; label: string }[] = [
   { value: "posts", label: "쓴 글" },

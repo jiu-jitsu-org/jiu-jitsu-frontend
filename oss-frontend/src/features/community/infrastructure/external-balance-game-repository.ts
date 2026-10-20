@@ -59,10 +59,10 @@ type BalanceGameDto = {
 };
 
 /**
- * 참여한 게임 목록 응답 DTO(봉투 data 안의 형태) — **제안 계약, 백엔드 미구현.**
+ * 참여한 게임 목록 응답 DTO(봉투 data 안의 형태, jiu-jitsu-backend#156).
  *
- * 내가 쓴 글(GET /board/write)과 같은 Spring Page 모양에 항목만 상세 DTO(BalanceGameDto)를
- * 담는다고 가정한다. 백엔드 확정 시 경로(PARTICIPATED_PATH)와 이 타입만 맞추면 된다.
+ * 내가 쓴 글(GET /board/write)과 같은 Spring Page 모양에 항목만 상세 DTO(BalanceGameDto)를 담는다.
+ * 정렬은 gameDate 최신순으로 서버가 고정하고, 마감된 판은 포함 · 투표를 취소한 판은 빠진다.
  */
 type BalanceGameListDto = {
   content: BalanceGameDto[];
@@ -74,8 +74,8 @@ type BalanceGameListDto = {
 };
 
 /**
- * 참여한 게임 목록 경로 — **제안 경로, 백엔드 미구현(응답 모양은 BalanceGameListDto).**
- * 그 전까지는 NEXT_PUBLIC_MY_BALANCE_GAMES가 off라 탭이 감춰져 호출되지 않는다.
+ * 참여한 게임 목록 경로. 운영 배포 전까지는 NEXT_PUBLIC_MY_BALANCE_GAMES가 off라
+ * 탭이 감춰져 호출되지 않는다.
  */
 const PARTICIPATED_PATH = `${BALANCE_GAME_ENDPOINT_PATH}/participated`;
 
@@ -158,7 +158,7 @@ export class ExternalBalanceGameRepository implements BalanceGameRepository {
   }
 
   async getParticipated(query: BalanceGameListQuery): Promise<BalanceGameList> {
-    // 제안 계약 — 내가 쓴 글(GET /board/write)처럼 Spring Pageable만 평탄한 쿼리스트링으로 보낸다.
+    // 내가 쓴 글(GET /board/write)처럼 Spring Pageable만 평탄한 쿼리스트링으로 보낸다.
     const response = await this.httpClient.get<Envelope<BalanceGameListDto>>({
       path: PARTICIPATED_PATH,
       query: { page: query.page, size: query.size },

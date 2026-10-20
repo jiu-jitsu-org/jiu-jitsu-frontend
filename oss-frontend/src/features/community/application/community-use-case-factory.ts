@@ -30,8 +30,6 @@ import { ExternalBalanceGameRepository } from "@/features/community/infrastructu
 import { ExternalInboxNotificationRepository } from "@/features/community/infrastructure/external-inbox-notification-repository";
 import { ExternalCommunityWriteRepository } from "@/features/community/infrastructure/external-community-write-repository";
 import { ExternalPostRepository } from "@/features/community/infrastructure/external-post-repository";
-import { PreviewBalanceGameRepository } from "@/features/community/infrastructure/preview-balance-game-repository";
-import { getMyBalanceGamesMode } from "@/config/env";
 import {
   createAuthedServerHttpClient,
   createServerHttpClient,
@@ -228,19 +226,12 @@ export function createGetBalanceGameDetailUseCase(
 
 /**
  * 참여한 밸런스 게임 목록. 로그인 전용이라 토큰을 강제한다.
- *
- * NEXT_PUBLIC_MY_BALANCE_GAMES=preview면 실제 판으로 목록을 지어내는 임시 repository로 감싼다
- * (업스트림 목록 API 미구현 — preview-balance-game-repository 주석 참조). API가 생기면 분기째 지운다.
  */
 export function createGetParticipatedBalanceGamesUseCase(
   accessToken: string,
 ): GetParticipatedBalanceGamesUseCase {
-  const repository = createBalanceGameRepository(accessToken);
-
   return new GetParticipatedBalanceGamesUseCase(
-    getMyBalanceGamesMode() === "preview"
-      ? new PreviewBalanceGameRepository(repository)
-      : repository,
+    createBalanceGameRepository(accessToken),
   );
 }
 

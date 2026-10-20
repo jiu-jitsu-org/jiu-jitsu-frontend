@@ -33,8 +33,7 @@ export interface BalanceGameRepository {
   /**
    * 내가 참여한(투표한) 게임 목록 — 최신 판 먼저, 마감된 판 포함. 인증 필요.
    *
-   * 업스트림 계약은 **제안 단계**다(GET /community/balance-game/participated, 백엔드 미구현).
-   * 경로·응답 모양은 infrastructure 주석 참조.
+   * 업스트림은 GET /community/balance-game/participated. 경로·응답 모양은 infrastructure 주석 참조.
    */
   getParticipated(query: BalanceGameListQuery): Promise<BalanceGameList>;
   /**

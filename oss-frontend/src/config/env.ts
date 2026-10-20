@@ -87,18 +87,12 @@ export function getImageKitClientEnv(): ImageKitClientEnv {
 }
 
 /**
- * '참여한 밸런스 게임' 탭(내 커뮤니티 활동 ?tab=balance) 노출 모드.
+ * '참여한 밸런스 게임' 탭(내 커뮤니티 활동 ?tab=balance) 노출 여부. "on"일 때만 켠다.
  *
- * - "off": 탭을 감춘다(기본). 업스트림 목록 API가 아직 없어 운영에서는 이 값이다.
- * - "on": 탭을 보이고 실제 목록 API(GET /community/balance-game/participated)를 부른다.
- * - "preview": 탭을 보이되 목록을 기존 단건 조회로 지어낸다 — 디자인 검토 전용 임시 모드.
- *
+ * 업스트림 목록 API(GET /community/balance-game/participated)는 dev에만 배포돼 있어 운영은 꺼 둔다.
  * NEXT_PUBLIC인 이유: 탭 바(클라이언트)와 서버 라우트가 같은 값을 봐야 한다. 빌드 시 인라인된다.
- * 업스트림 API가 생기고 운영에 켜지면 이 플래그와 preview 분기를 함께 걷어낸다.
+ * 운영 배포가 끝나면 이 플래그를 걷어낸다.
  */
-export type MyBalanceGamesMode = "off" | "on" | "preview";
-
-export function getMyBalanceGamesMode(): MyBalanceGamesMode {
-  const value = process.env.NEXT_PUBLIC_MY_BALANCE_GAMES;
-  return value === "on" || value === "preview" ? value : "off";
+export function isMyBalanceGamesEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_MY_BALANCE_GAMES === "on";
 }
