@@ -33,6 +33,38 @@ function nextVoteOf(
   return myVote === option ? null : option;
 }
 
+/**
+ * 투표를 낙관적으로 반영한 게임 — 선택 상태뿐 아니라 **득표수도 함께** 옮긴다.
+ *
+ * 선택 상태만 바꾸면 바는 내 표가 빠진 옛 비율로 먼저 차오르다가, 서버 응답이 오는 순간 새 비율로
+ * 다시 꺾인다(스프링 도중에 목표가 바뀌어 바가 끊겨 보인다). 내 표를 미리 더해 두면 서버 확정값과
+ * 같은 비율로 한 번에 차오른다.
+ */
+function applyVote(
+  game: BalanceGame,
+  next: BalanceOptionKey | null,
+): BalanceGame {
+  const delta = (key: BalanceOptionKey) =>
+    (next === key ? 1 : 0) - (game.myVote === key ? 1 : 0);
+
+  return {
+    ...game,
+    myVote: next,
+    optionA: {
+      ...game.optionA,
+      voteCount: Math.max(0, game.optionA.voteCount + delta("A")),
+    },
+    optionB: {
+      ...game.optionB,
+      voteCount: Math.max(0, game.optionB.voteCount + delta("B")),
+    },
+    totalVoteCount: Math.max(
+      0,
+      game.totalVoteCount + delta("A") + delta("B"),
+    ),
+  };
+}
+
 export function useBalanceVote({
   game,
   onVoted,
@@ -77,7 +109,7 @@ export function useBalanceVote({
       // 같은 선택지를 다시 누른 경우는 취소라 null이 된다(업스트림 규약과 같은 규칙이라
       // 낙관적 값이 곧 서버 확정값과 일치한다).
       const previous = game;
-      onVoted({ ...game, myVote: nextVoteOf(game.myVote, option) });
+      onVoted(applyVote(game, nextVoteOf(game.myVote, option)));
 
       void (async () => {
         try {
