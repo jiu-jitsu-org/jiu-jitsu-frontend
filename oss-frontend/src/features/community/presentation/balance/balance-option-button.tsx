@@ -182,13 +182,16 @@ export function BalanceOptionButton({
    */
   const [lastState, setLastState] = useState(state);
   const [changed, setChanged] = useState(false);
-  if (lastState !== state) {
+  const justChanged = lastState !== state;
+  if (justChanged) {
     setLastState(state);
     setChanged(true);
   }
 
+  // justChanged도 함께 보는 이유: 상태가 바뀐 그 렌더에서는 changed가 아직 false라, 숫자 훅이
+  // "굴리지 않음"으로 읽고 목표값으로 바로 맞춰 버린다(첫 투표 때 숫자가 0에서 올라가지 않았다).
   const shownPercent = useCountUp(result?.percent ?? 0, {
-    animate: changed,
+    animate: changed || justChanged,
     durationMs: PERCENT_COUNT_MS,
   });
 
