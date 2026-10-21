@@ -25,8 +25,10 @@
   --animate-balance-boing: balance-boing 800ms ease-out both;
   /* 밸런스 게임 선택지 — 밀려난 캐릭터: 시무룩하게 좌우로 흔들리다 멈춘다. */
   --animate-balance-sulk: balance-sulk 800ms ease-out both;
-  /* 밸런스 게임 진행률 fill — 처음 나타날 때 0에서 출렁이며 차오른다(이후 변경은 transition). */
-  --animate-balance-fill-in: balance-fill-in 1000ms var(--ease-spring-wobbly);
+  /* 밸런스 게임 진행률 fill — 처음 나타날 때 0에서 부드럽게 차오른다(이후 변경은 transition). */
+  --animate-balance-fill-in: balance-fill-in 1000ms var(--ease-spring-gentle);
+  --animate-balance-fill-in-content: balance-fill-in-content 1000ms
+    var(--ease-spring-gentle);
 
   /* 리액션(좋아요·저장) — 켜지는 순간 아이콘이 움츠렸다(15%) 톡 부풀고(45%) 출렁이며 제자리. */
   --animate-reaction-pop: reaction-pop 500ms ease-out both;
@@ -402,9 +404,16 @@
     }
   }
 
+  /* fill의 창(폭 200%)과 그 안의 글자 겹 — 같은 곡선으로 서로 상쇄된다(balance-option-button). */
   @keyframes balance-fill-in {
     from {
-      width: 0;
+      translate: -50% 0;
+    }
+  }
+
+  @keyframes balance-fill-in-content {
+    from {
+      translate: 100% 0;
     }
   }
 }

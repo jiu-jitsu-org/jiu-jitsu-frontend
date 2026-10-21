@@ -105,25 +105,33 @@ const OPTION_STYLES = {
     default: "bg-poll-option-a-default-bg text-poll-option-a-default-text",
     selected: "bg-poll-option-a-selected-bg text-poll-option-a-selected-text",
     emphasizedTrack:
-      "bg-poll-option-a-selected-bg-track text-poll-option-a-selected-text",
-    emphasizedFill: "bg-poll-option-a-selected-bg",
+      "bg-poll-option-a-selected-bg-track text-poll-option-a-default-text",
+    emphasizedFill:
+      "bg-poll-option-a-selected-bg text-poll-option-a-selected-text",
     emphasizedPercent: "text-poll-option-a-selected-percent-text",
+    emphasizedFillPercent: "text-poll-option-a-selected-text",
     resultTrack:
       "bg-poll-option-a-result-bg-track text-poll-option-a-result-text",
-    resultFill: "bg-poll-option-a-result-bg-fill",
+    resultFill:
+      "bg-poll-option-a-result-bg-fill text-poll-option-a-result-text",
     resultPercent: "text-poll-option-a-result-percent-text",
+    resultFillPercent: "text-poll-option-a-result-percent-text",
   },
   B: {
     default: "bg-poll-option-b-default-bg text-poll-option-b-default-text",
     selected: "bg-poll-option-b-selected-bg text-poll-option-b-selected-text",
     emphasizedTrack:
-      "bg-poll-option-b-selected-bg-track text-poll-option-b-selected-text",
-    emphasizedFill: "bg-poll-option-b-selected-bg",
+      "bg-poll-option-b-selected-bg-track text-poll-option-b-default-text",
+    emphasizedFill:
+      "bg-poll-option-b-selected-bg text-poll-option-b-selected-text",
     emphasizedPercent: "text-poll-option-b-selected-percent-text",
+    emphasizedFillPercent: "text-poll-option-b-selected-text",
     resultTrack:
       "bg-poll-option-b-result-bg-track text-poll-option-b-result-text",
-    resultFill: "bg-poll-option-b-result-bg-fill",
+    resultFill:
+      "bg-poll-option-b-result-bg-fill text-poll-option-b-result-text",
     resultPercent: "text-poll-option-b-result-percent-text",
+    resultFillPercent: "text-poll-option-b-result-percent-text",
   },
 } as const;
 
@@ -194,11 +202,13 @@ export function BalanceOptionButton({
           track: styles.emphasizedTrack,
           fill: styles.emphasizedFill,
           percent: styles.emphasizedPercent,
+          fillPercent: styles.emphasizedFillPercent,
         }
       : {
           track: styles.resultTrack,
           fill: styles.resultFill,
           percent: styles.resultPercent,
+          fillPercent: styles.resultFillPercent,
         }
     : null;
 
@@ -244,23 +254,65 @@ export function BalanceOptionButton({
       {/*
         진행률 fill — 행 좌측부터 percent만큼 덮는다.
 
-        절대 배치라 행 높이에 관여하지 않는다(높이는 캐릭터가 정한다는 규칙이 그대로 유지된다).
-        내용보다 먼저 그려 뒤에 깔리게 하고, 아래 형제들은 relative로 그 위에 올린다.
+        fill은 색 면만이 아니라 **문구·투표율을 한 벌 더 담은 겹**이다. 그래서 fill이 지나간 자리의
+        글자는 fill 위 색(흰색)으로, 아직 안 간 자리는 트랙 위 색으로 경계에서 정확히 갈린다 —
+        차오르는 동안 흰 글자가 연한 트랙에 묻혀 사라지지 않는다.
 
-        처음 나타날 때(투표 직후)는 0에서 출렁이며 차오르고(fill-in), 이미 떠 있는 상태에서
-        비율이 바뀌면(A → B 변경) width transition이 같은 스프링으로 옮겨 간다.
+        움직임은 width가 아니라 translate 한 쌍이다. 창(바깥)이 오른쪽으로 밀려 들어오는 만큼 안의
+        글자 겹을 반대로 밀어, 글자는 제자리에 있고 창의 가장자리만 지나간다. 두 값이 같은 시간·같은
+        곡선을 타서 매 프레임 정확히 상쇄된다. width는 프레임마다 레이아웃을 다시 계산해 캐릭터 크기
+        스프링과 겹치면 바가 끊겨 차올랐다 — translate는 레이아웃 없이 GPU에서만 움직인다.
+
+        창의 폭이 행의 두 배(왼쪽으로 한 행만큼 더 뻗음)인 이유: 스프링이 목표를 넘쳤다 돌아올 때
+        100% 근처에서도 창의 왼쪽 끝이 행 안으로 들어와 틈이 보이지 않게 한다.
+
+        곡선은 wobbly가 아니라 gentle이다 — 크게 넘쳤다 되돌아오는 출렁임은 캐릭터에는 맞지만 게이지에
+        쓰면 차오르다 물러나 끊겨 보인다. 게이지는 한 번에 미끄러지듯 차고 끝에서만 살짝 넘친다.
+
+        처음 나타날 때(투표 직후)는 0에서 차오르고(fill-in), 이미 떠 있는 상태에서
+        비율이 바뀌면(A → B 변경) translate transition이 같은 곡선으로 옮겨 간다.
+        층 순서: 아래 겹 문구(z 없음) < fill(z-1) < 캐릭터(z-2).
       */}
       {resultStyles ? (
         <span
           aria-hidden
           className={cn(
-            "absolute inset-y-0 left-0 transition-colors duration-200",
-            "motion-safe:[transition:width_1000ms_var(--ease-spring-wobbly),background-color_200ms_ease]",
+            "absolute inset-y-0 -left-full z-1 w-[200%] overflow-hidden",
+            "transition-colors duration-200",
+            "motion-safe:[transition:translate_1000ms_var(--ease-spring-gentle),background-color_200ms_ease,color_200ms_ease]",
             changed && "motion-safe:animate-balance-fill-in",
             resultStyles.fill,
           )}
-          style={{ width: `${result?.percent ?? 0}%` }}
-        />
+          style={{ translate: `${((result?.percent ?? 0) - 100) / 2}% 0` }}
+        >
+          <span
+            className={cn(
+              "absolute inset-y-0 left-1/2 flex w-1/2 items-center gap-2.5 pr-4",
+              "motion-safe:[transition:translate_1000ms_var(--ease-spring-gentle)]",
+              changed && "motion-safe:animate-balance-fill-in-content",
+            )}
+            style={{ translate: `${100 - (result?.percent ?? 0)}% 0` }}
+          >
+            <span
+              className={cn(
+                "shrink-0",
+                "motion-safe:transition-[width,height] motion-safe:duration-750 motion-safe:ease-spring-wobbly",
+                CHARACTER_SIZE[state],
+              )}
+            />
+            <span className="min-w-0 flex-1 py-1.5 text-body-s break-keep">
+              {option.text}
+            </span>
+            <span
+              className={cn(
+                "shrink-0 text-body-s tabular-nums",
+                resultStyles.fillPercent,
+              )}
+            >
+              {shownPercent}%
+            </span>
+          </span>
+        </span>
       ) : null}
 
       {/*
@@ -274,7 +326,7 @@ export function BalanceOptionButton({
       <span
         aria-hidden
         className={cn(
-          "relative shrink-0",
+          "relative z-2 shrink-0",
           "motion-safe:transition-[width,height] motion-safe:duration-750 motion-safe:ease-spring-wobbly",
           CHARACTER_SIZE[state],
         )}
