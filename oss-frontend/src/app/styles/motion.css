@@ -10,13 +10,127 @@
    ζ(감쇠비)만 다르다 — 작을수록 더 많이, 더 크게 출렁인다. */
 @theme {
   /* ζ=0.3 — 크게 넘치고(최대 1.37) 두세 번 출렁인다. 크기·막대처럼 "튕겨야 하는" 것에. */
-  --ease-spring-wobbly: linear(0, 0.107, 0.37, 0.694, 0.998, 1.225, 1.348, 1.369, 1.309, 1.201, 1.08, 0.973, 0.899, 0.865, 0.867, 0.895, 0.938, 0.983, 1.019, 1.043, 1.051, 1.047, 1.035, 1.018, 1.002, 0.99, 0.983, 0.981, 0.983, 0.989, 0.995, 1.001, 1.005, 1.007, 1.007, 1.006, 1);
+  --ease-spring-wobbly: linear(
+    0,
+    0.107,
+    0.37,
+    0.694,
+    0.998,
+    1.225,
+    1.348,
+    1.369,
+    1.309,
+    1.201,
+    1.08,
+    0.973,
+    0.899,
+    0.865,
+    0.867,
+    0.895,
+    0.938,
+    0.983,
+    1.019,
+    1.043,
+    1.051,
+    1.047,
+    1.035,
+    1.018,
+    1.002,
+    0.99,
+    0.983,
+    0.981,
+    0.983,
+    0.989,
+    0.995,
+    1.001,
+    1.005,
+    1.007,
+    1.007,
+    1.006,
+    1
+  );
 
   /* ζ=0.4 — 한 번 크게(최대 1.25) 넘치고 빨리 잦아든다. 작은 강조(숫자 팝)에. */
-  --ease-spring-bouncy: linear(0, 0.061, 0.215, 0.421, 0.642, 0.847, 1.019, 1.144, 1.22, 1.252, 1.246, 1.214, 1.164, 1.109, 1.054, 1.008, 0.972, 0.949, 0.937, 0.936, 0.943, 0.954, 0.968, 0.982, 0.995, 1.005, 1.011, 1.015, 1.016, 1.015, 1.013, 1.009, 1.006, 1.002, 1, 0.998, 1);
+  --ease-spring-bouncy: linear(
+    0,
+    0.061,
+    0.215,
+    0.421,
+    0.642,
+    0.847,
+    1.019,
+    1.144,
+    1.22,
+    1.252,
+    1.246,
+    1.214,
+    1.164,
+    1.109,
+    1.054,
+    1.008,
+    0.972,
+    0.949,
+    0.937,
+    0.936,
+    0.943,
+    0.954,
+    0.968,
+    0.982,
+    0.995,
+    1.005,
+    1.011,
+    1.015,
+    1.016,
+    1.015,
+    1.013,
+    1.009,
+    1.006,
+    1.002,
+    1,
+    0.998,
+    1
+  );
 
   /* ζ=0.7 — 거의 넘치지 않고(최대 1.05) 한 번에 자리 잡는다. 미끄러지는 위치 이동(탭 밑줄)에. */
-  --ease-spring-gentle: linear(0, 0.022, 0.081, 0.163, 0.258, 0.36, 0.462, 0.559, 0.649, 0.73, 0.801, 0.861, 0.911, 0.951, 0.983, 1.007, 1.024, 1.035, 1.042, 1.045, 1.046, 1.044, 1.041, 1.037, 1.033, 1.028, 1.023, 1.019, 1.015, 1.011, 1.008, 1.006, 1.003, 1.002, 1, 0.999, 1);
+  --ease-spring-gentle: linear(
+    0,
+    0.022,
+    0.081,
+    0.163,
+    0.258,
+    0.36,
+    0.462,
+    0.559,
+    0.649,
+    0.73,
+    0.801,
+    0.861,
+    0.911,
+    0.951,
+    0.983,
+    1.007,
+    1.024,
+    1.035,
+    1.042,
+    1.045,
+    1.046,
+    1.044,
+    1.041,
+    1.037,
+    1.033,
+    1.028,
+    1.023,
+    1.019,
+    1.015,
+    1.011,
+    1.008,
+    1.006,
+    1.003,
+    1.002,
+    1,
+    0.999,
+    1
+  );
 
   /* 넘침 없는 감속 — 화면 밖에서 들어오는 시트·알림 띠처럼 "차분히 올라오는" 것에. */
   --ease-smooth-out: cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -25,9 +139,15 @@
   --animate-balance-boing: balance-boing 800ms ease-out both;
   /* 밸런스 게임 선택지 — 밀려난 캐릭터: 시무룩하게 좌우로 흔들리다 멈춘다. */
   --animate-balance-sulk: balance-sulk 800ms ease-out both;
-  /* 밸런스 게임 선택지 — 투표 전 대기: A·B가 3초마다 번갈아 한 번(0.5초) 늘었다 납작해진다. */
-  --animate-balance-idle-a: balance-idle-a 3000ms linear infinite;
-  --animate-balance-idle-b: balance-idle-b 3000ms linear infinite;
+  /* 밸런스 게임 선택지 — 투표 전 대기: A·B가 8초 동안 맞붙는다(솟기·움찔·맞붙어 떨기·연타·반격). */
+  --animate-balance-idle-a: balance-idle-a 8000ms ease-out infinite;
+  --animate-balance-idle-b: balance-idle-b 8000ms ease-out infinite;
+  /* 같은 8초 박자의 눈동자 — 노려볼 때는 상대 쪽에 박히고, 밀릴 때는 위아래로 굴러다닌다. */
+  --animate-balance-pupil-a: balance-pupil-a 8000ms ease-in-out infinite;
+  --animate-balance-pupil-b: balance-pupil-b 8000ms ease-in-out infinite;
+  /* 같은 8초 박자의 띠 물들기 — 기세를 잡은 동안 그쪽 띠가 진해진다. */
+  --animate-balance-tone-a: balance-tone-a 8000ms ease-in-out infinite;
+  --animate-balance-tone-b: balance-tone-b 8000ms ease-in-out infinite;
   /* 밸런스 게임 진행률 fill — 처음 나타날 때 0에서 부드럽게 차오른다(이후 변경은 transition). */
   --animate-balance-fill-in: balance-fill-in 1000ms var(--ease-spring-gentle);
   --animate-balance-fill-in-content: balance-fill-in-content 1000ms
@@ -407,37 +527,537 @@
     }
   }
 
-  /* 3초 중 앞 0.5초(16.6%)만 움직이고 나머지는 쉰다. B는 같은 동작을 1.5초(50%) 뒤에 한다. */
+  /*
+    대결(8초) — 번갈아 한 번씩이 아니라 흐름이 있다. 숫자는 ms ÷ 80 = %.
+    0~1.5초   A가 웅크렸다 솟아 노려본다. B는 한 번 작게 움찔하고 가만히 A를 본다.
+    1.3~2.6초 B가 받아치며 솟아 둘이 동시에 커진 채 0.1초씩 부들부들 맞붙는다.
+    2.6~3.7초 B가 들이밀어 A를 밀어낸다(A는 살짝 밀린다).
+    3.7~4.4초 둘 다 쉬며 서로 흘끗 본다.
+    4.4~5.9초 이번엔 B가 먼저 솟아 연타한다. A는 한 번 작게 움찔한다.
+    당하는 쪽은 얌전하다 — 맞는 순간 한 번만 작게 움찔한다. 둘 다 움직이면 시선이 갈라진다.
+    5.7~7.3초 A가 반격해 B를 밀어낸다. 7.3~8초 쉰다.
+    기울기는 "상대 쪽"이 + — A(위)는 시계 방향, B(아래)는 반시계로 꺾는다(둘 다 오른쪽을 보는 그림).
+    솟을 때는 반대로 살짝 웅크렸다(쫀득) 길쭉하게 솟고 납작하게 내려앉는다. 기울면 그림의 잘린 밑단
+    한쪽이 들리므로 내려(translate) 띠 아래에 묻는다. 키프레임은 타임라인 표에서 뽑았다.
+  */
   @keyframes balance-idle-a {
     0% {
       scale: 1 1;
+      rotate: 0deg;
+      translate: 0 0px;
     }
-    5% {
-      scale: 0.94 1.12;
+    2.5% {
+      scale: 1.14 0.86;
+      rotate: -3deg;
+      translate: 0 2px;
     }
-    10% {
-      scale: 1.04 0.96;
+    6% {
+      scale: 1.2 1.54;
+      rotate: 12deg;
+      translate: 0 6px;
     }
-    16.6%,
+    7.75% {
+      scale: 1.44 1.2;
+      rotate: 8deg;
+      translate: 0 6px;
+    }
+    9.5% {
+      scale: 1.3 1.4;
+      rotate: 10deg;
+      translate: 0 6px;
+    }
+    11.25% {
+      scale: 1.34 1.34;
+      rotate: 9deg;
+      translate: 0 6px;
+    }
+    16.25% {
+      scale: 1.34 1.34;
+      rotate: 9deg;
+      translate: 0 6px;
+    }
+    18.75% {
+      scale: 1.34 1.34;
+      rotate: 9deg;
+      translate: 0 6px;
+    }
+    20.62% {
+      scale: 1.28 1.24;
+      rotate: 12deg;
+      translate: 0 6px;
+    }
+    21.88% {
+      scale: 1.26 1.26;
+      rotate: 8deg;
+      translate: 0 6px;
+    }
+    23.12% {
+      scale: 1.28 1.24;
+      rotate: 12deg;
+      translate: 0 6px;
+    }
+    24.38% {
+      scale: 1.26 1.26;
+      rotate: 8deg;
+      translate: 0 6px;
+    }
+    25.62% {
+      scale: 1.28 1.24;
+      rotate: 12deg;
+      translate: 0 6px;
+    }
+    26.88% {
+      scale: 1.26 1.26;
+      rotate: 8deg;
+      translate: 0 6px;
+    }
+    28.12% {
+      scale: 1.28 1.24;
+      rotate: 12deg;
+      translate: 0 6px;
+    }
+    29.38% {
+      scale: 1.26 1.26;
+      rotate: 8deg;
+      translate: 0 6px;
+    }
+    30.62% {
+      scale: 1.28 1.24;
+      rotate: 12deg;
+      translate: 0 6px;
+    }
+    31.88% {
+      scale: 1.26 1.26;
+      rotate: 8deg;
+      translate: 0 6px;
+    }
+    32.5% {
+      scale: 1.34 1.34;
+      rotate: 9deg;
+      translate: 0 6px;
+    }
+    34.38% {
+      scale: 0.97 0.95;
+      rotate: -4deg;
+      translate: 0 2px;
+    }
+    38.75% {
+      scale: 1 1;
+      rotate: 0deg;
+      translate: 0 0px;
+    }
+    58.12% {
+      scale: 1 1;
+      rotate: 0deg;
+      translate: 0 0px;
+    }
+    60% {
+      scale: 0.96 0.97;
+      rotate: -3deg;
+      translate: 0 2px;
+    }
+    63.75% {
+      scale: 1 1;
+      rotate: 0deg;
+      translate: 0 0px;
+    }
+    71.25% {
+      scale: 1.14 0.86;
+      rotate: -3deg;
+      translate: 0 2px;
+    }
+    74.38% {
+      scale: 1.2 1.54;
+      rotate: 12deg;
+      translate: 0 6px;
+    }
+    76% {
+      scale: 1.44 1.2;
+      rotate: 8deg;
+      translate: 0 6px;
+    }
+    77.5% {
+      scale: 1.34 1.34;
+      rotate: 9deg;
+      translate: 0 6px;
+    }
+    78.75% {
+      scale: 1.28 1.44;
+      rotate: 14deg;
+      translate: 0 6px;
+    }
+    80% {
+      scale: 1.4 1.28;
+      rotate: 8deg;
+      translate: 0 6px;
+    }
+    82.5% {
+      scale: 1.34 1.34;
+      rotate: 9deg;
+      translate: 0 6px;
+    }
+    87.5% {
+      scale: 1.34 1.34;
+      rotate: 9deg;
+      translate: 0 6px;
+    }
+    91.25% {
+      scale: 1 1;
+      rotate: 0deg;
+      translate: 0 0px;
+    }
     100% {
       scale: 1 1;
+      rotate: 0deg;
+      translate: 0 0px;
     }
   }
 
   @keyframes balance-idle-b {
-    0%,
-    50% {
+    0% {
       scale: 1 1;
+      rotate: 0deg;
+      translate: 0 0px;
+    }
+    7.75% {
+      scale: 1 1;
+      rotate: 0deg;
+      translate: 0 0px;
+    }
+    9.5% {
+      scale: 0.96 0.97;
+      rotate: 3deg;
+      translate: 0 2px;
+    }
+    13.12% {
+      scale: 1 1;
+      rotate: 0deg;
+      translate: 0 0px;
+    }
+    16.25% {
+      scale: 1.14 0.86;
+      rotate: 3deg;
+      translate: 0 2px;
+    }
+    18.5% {
+      scale: 1.2 1.54;
+      rotate: -12deg;
+      translate: 0 6px;
+    }
+    20% {
+      scale: 1.44 1.2;
+      rotate: -8deg;
+      translate: 0 6px;
+    }
+    20.62% {
+      scale: 1.26 1.26;
+      rotate: -8deg;
+      translate: 0 6px;
+    }
+    21.88% {
+      scale: 1.28 1.24;
+      rotate: -12deg;
+      translate: 0 6px;
+    }
+    23.12% {
+      scale: 1.26 1.26;
+      rotate: -8deg;
+      translate: 0 6px;
+    }
+    24.38% {
+      scale: 1.28 1.24;
+      rotate: -12deg;
+      translate: 0 6px;
+    }
+    25.62% {
+      scale: 1.26 1.26;
+      rotate: -8deg;
+      translate: 0 6px;
+    }
+    26.88% {
+      scale: 1.28 1.24;
+      rotate: -12deg;
+      translate: 0 6px;
+    }
+    28.12% {
+      scale: 1.26 1.26;
+      rotate: -8deg;
+      translate: 0 6px;
+    }
+    29.38% {
+      scale: 1.28 1.24;
+      rotate: -12deg;
+      translate: 0 6px;
+    }
+    30.62% {
+      scale: 1.26 1.26;
+      rotate: -8deg;
+      translate: 0 6px;
+    }
+    31.88% {
+      scale: 1.28 1.24;
+      rotate: -12deg;
+      translate: 0 6px;
+    }
+    32.5% {
+      scale: 1.26 1.26;
+      rotate: -8deg;
+      translate: 0 6px;
+    }
+    33.75% {
+      scale: 1.28 1.44;
+      rotate: -14deg;
+      translate: 0 6px;
+    }
+    35.25% {
+      scale: 1.4 1.28;
+      rotate: -8deg;
+      translate: 0 6px;
+    }
+    37.5% {
+      scale: 1.34 1.34;
+      rotate: -9deg;
+      translate: 0 6px;
+    }
+    42.5% {
+      scale: 1.34 1.34;
+      rotate: -9deg;
+      translate: 0 6px;
+    }
+    46.25% {
+      scale: 1 1;
+      rotate: 0deg;
+      translate: 0 0px;
     }
     55% {
-      scale: 0.94 1.12;
+      scale: 1.14 0.86;
+      rotate: 3deg;
+      translate: 0 2px;
     }
-    60% {
-      scale: 1.04 0.96;
+    58.12% {
+      scale: 1.2 1.54;
+      rotate: -12deg;
+      translate: 0 6px;
     }
-    66.6%,
+    59.75% {
+      scale: 1.44 1.2;
+      rotate: -8deg;
+      translate: 0 6px;
+    }
+    61.25% {
+      scale: 1.34 1.34;
+      rotate: -9deg;
+      translate: 0 6px;
+    }
+    63.12% {
+      scale: 1.28 1.44;
+      rotate: -14deg;
+      translate: 0 6px;
+    }
+    64.38% {
+      scale: 1.4 1.28;
+      rotate: -8deg;
+      translate: 0 6px;
+    }
+    66.25% {
+      scale: 1.28 1.44;
+      rotate: -14deg;
+      translate: 0 6px;
+    }
+    67.5% {
+      scale: 1.4 1.28;
+      rotate: -8deg;
+      translate: 0 6px;
+    }
+    69.38% {
+      scale: 1.34 1.34;
+      rotate: -9deg;
+      translate: 0 6px;
+    }
+    73.75% {
+      scale: 1.34 1.34;
+      rotate: -9deg;
+      translate: 0 6px;
+    }
+    76% {
+      scale: 0.97 0.95;
+      rotate: 4deg;
+      translate: 0 2px;
+    }
+    80% {
+      scale: 1 1;
+      rotate: 0deg;
+      translate: 0 0px;
+    }
     100% {
       scale: 1 1;
+      rotate: 0deg;
+      translate: 0 0px;
+    }
+  }
+
+  /* 눈동자(BalanceIdleEyes) — +가 아래. A는 노려볼 때 아래(B), B는 위(A)에 박힌다.
+     당하는 쪽은 굴러다니지 않고 상대 쪽으로 천천히 옮겨 가만히 본다 — 시선은 노려보는 쪽에 모여야 한다. */
+  @keyframes balance-pupil-a {
+    0% {
+      transform: translateY(0px);
+    }
+    5% {
+      transform: translateY(6px);
+    }
+    6.5% {
+      transform: translateY(5px);
+    }
+    40% {
+      transform: translateY(5px);
+    }
+    43.75% {
+      transform: translateY(0px);
+    }
+    48.75% {
+      transform: translateY(3px);
+    }
+    52.5% {
+      transform: translateY(0px);
+    }
+    58.75% {
+      transform: translateY(3px);
+    }
+    71.25% {
+      transform: translateY(3px);
+    }
+    73.75% {
+      transform: translateY(6px);
+    }
+    75.62% {
+      transform: translateY(5px);
+    }
+    88.75% {
+      transform: translateY(5px);
+    }
+    92.5% {
+      transform: translateY(0px);
+    }
+    100% {
+      transform: translateY(0px);
+    }
+  }
+
+  @keyframes balance-pupil-b {
+    0% {
+      transform: translateY(0px);
+    }
+    8.75% {
+      transform: translateY(-3px);
+    }
+    16.25% {
+      transform: translateY(-3px);
+    }
+    17.5% {
+      transform: translateY(-6px);
+    }
+    19.38% {
+      transform: translateY(-5px);
+    }
+    45% {
+      transform: translateY(-5px);
+    }
+    47.5% {
+      transform: translateY(0px);
+    }
+    49.38% {
+      transform: translateY(-3px);
+    }
+    52.5% {
+      transform: translateY(0px);
+    }
+    57.5% {
+      transform: translateY(-6px);
+    }
+    59.38% {
+      transform: translateY(-5px);
+    }
+    74.38% {
+      transform: translateY(-5px);
+    }
+    78.75% {
+      transform: translateY(-3px);
+    }
+    87.5% {
+      transform: translateY(-3px);
+    }
+    91.25% {
+      transform: translateY(0px);
+    }
+    100% {
+      transform: translateY(0px);
+    }
+  }
+
+  /* 띠 물들기 — 기세를 잡은 동안 그쪽 띠가 진해진다(맞붙는 1.6~2.6초는 둘 다). 트랙 색을 45%만 얹는다. */
+  @keyframes balance-tone-a {
+    0% {
+      opacity: 0;
+    }
+    6.25% {
+      opacity: 0;
+    }
+    10% {
+      opacity: 0.45;
+    }
+    32.5% {
+      opacity: 0.45;
+    }
+    36.25% {
+      opacity: 0;
+    }
+    72.5% {
+      opacity: 0;
+    }
+    76.25% {
+      opacity: 0.45;
+    }
+    88.75% {
+      opacity: 0.45;
+    }
+    92.5% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes balance-tone-b {
+    0% {
+      opacity: 0;
+    }
+    16.25% {
+      opacity: 0;
+    }
+    20% {
+      opacity: 0.45;
+    }
+    43.75% {
+      opacity: 0.45;
+    }
+    47.5% {
+      opacity: 0;
+    }
+    56.25% {
+      opacity: 0;
+    }
+    60% {
+      opacity: 0.45;
+    }
+    73.75% {
+      opacity: 0.45;
+    }
+    77.5% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 0;
     }
   }
 
