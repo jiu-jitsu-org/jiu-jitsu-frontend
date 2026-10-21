@@ -25,9 +25,6 @@
   --animate-balance-boing: balance-boing 800ms ease-out both;
   /* 밸런스 게임 선택지 — 밀려난 캐릭터: 시무룩하게 좌우로 흔들리다 멈춘다. */
   --animate-balance-sulk: balance-sulk 800ms ease-out both;
-  /* 밸런스 게임 투표율 — 숫자가 다 올라갈 즈음(지연 550ms) 한 번 부풀었다 돌아온다. */
-  --animate-balance-percent-pop: balance-percent-pop 600ms
-    var(--ease-spring-bouncy) 550ms both;
   /* 밸런스 게임 진행률 fill — 처음 나타날 때 0에서 출렁이며 차오른다(이후 변경은 transition). */
   --animate-balance-fill-in: balance-fill-in 1000ms var(--ease-spring-wobbly);
 
@@ -402,18 +399,6 @@
     }
     100% {
       transform: rotate(0deg) scale(1);
-    }
-  }
-
-  @keyframes balance-percent-pop {
-    0% {
-      transform: scale(1);
-    }
-    40% {
-      transform: scale(1.3);
-    }
-    100% {
-      transform: scale(1);
     }
   }
 

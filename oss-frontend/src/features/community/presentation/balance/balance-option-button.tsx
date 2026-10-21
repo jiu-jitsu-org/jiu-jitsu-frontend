@@ -317,16 +317,13 @@ export function BalanceOptionButton({
         투표율. 문구가 몇 줄이든 세로 가운데에 머물도록 행의 flex 정렬을 그대로 따른다.
         자릿수가 바뀌어도(9% ↔ 63%) 위치가 흔들리지 않게 tabular-nums를 준다.
 
-        투표 직후에는 숫자가 굴러 올라가고, 내가 고른 쪽(강조)은 다 올라갈 즈음 한 번 부푼다.
-        강조가 붙는 순간 재생되므로 A → B로 바꾸면 새로 고른 쪽이 다시 부푼다.
+        투표 직후에는 숫자가 바와 함께 굴러 올라간다. 다 올라간 뒤 한 번 더 부풀리지 않는다 —
+        바·숫자·캐릭터가 이미 반응했는데 숫자만 늦게 튀면 동작이 하나 더 붙어 산만하다.
       */}
       {resultStyles ? (
         <span
           className={cn(
             "relative shrink-0 text-body-s tabular-nums",
-            changed &&
-              result?.emphasized &&
-              "motion-safe:animate-balance-percent-pop",
             resultStyles.percent,
           )}
         >
