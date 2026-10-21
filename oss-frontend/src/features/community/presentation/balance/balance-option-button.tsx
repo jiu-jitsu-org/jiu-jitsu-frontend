@@ -91,6 +91,29 @@ const CHARACTER_MOTION: Record<BalanceOptionState, string | null> = {
   unselected: "motion-safe:animate-balance-sulk",
 };
 
+/**
+ * 투표 전(default) 캐릭터에 입히는 색과 대기 동작 — 회색이라 앱이 꺼진 듯 보이던 것을 깨운다.
+ *
+ * 색은 새 아트워크가 아니라 회색 그림 위에 선택지 색(poll strong)을 overlay 블렌드로 얹는다.
+ * overlay는 밝은 곳·어두운 곳을 그대로 두고 중간 톤만 물들인다 — 몸통은 진하게, 띠는 어둡게,
+ * 눈 흰자는 하얗게 남아 고른 뒤 아트워크와 가장 가깝다(color 블렌드는 분홍빛으로 떴고,
+ * multiply는 눈 흰자까지 물들였다). 마스크가 그림 모양만 칠한다.
+ * 고르는 순간 이 겹이 빠지고 selected 아트워크(눈 크게 뜬 얼굴)로 바뀐다.
+ *
+ * 대기 동작은 A·B가 번갈아 한 번씩 들썩인다(3초 주기, A는 0초 · B는 1.5초, 각 0.5초).
+ * 둘이 동시에 움직이면 시선이 갈 곳이 없다 — 번갈아야 "나 골라줘"가 차례로 온다.
+ */
+const IDLE_STYLES = {
+  A: {
+    tint: "bg-poll-option-a-selected-bg",
+    motion: "motion-safe:animate-balance-idle-a",
+  },
+  B: {
+    tint: "bg-poll-option-b-selected-bg",
+    motion: "motion-safe:animate-balance-idle-b",
+  },
+} as const;
+
 /** 투표율 숫자를 굴리는 시간 — fill 스프링(1s)이 거의 멈출 즈음 숫자도 멈춘다. */
 const PERCENT_COUNT_MS = 900;
 
@@ -170,6 +193,8 @@ export function BalanceOptionButton({
 }) {
   const styles = OPTION_STYLES[option.key];
   const selected = state === "selected";
+  // 표시 전용 목록은 투표 전 상태가 없지만, 혹시 와도 누를 수 없는 곳에서 손짓하지 않는다.
+  const idle = state === "default" && interactive && !displayOnly;
 
   /**
    * 마운트 이후 상태가 한 번이라도 바뀌었는지 — 일회성 모션(캐릭터·숫자·fill 등장)의 스위치.
@@ -329,9 +354,10 @@ export function BalanceOptionButton({
       <span
         aria-hidden
         className={cn(
-          "relative z-2 shrink-0",
+          "relative z-2 shrink-0 origin-bottom",
           "motion-safe:transition-[width,height] motion-safe:duration-750 motion-safe:ease-spring-wobbly",
           CHARACTER_SIZE[state],
+          idle && IDLE_STYLES[option.key].motion,
         )}
       >
         {/*
@@ -355,6 +381,17 @@ export function BalanceOptionButton({
             changed && CHARACTER_MOTION[state],
           )}
         />
+        {/* 투표 전 색 겹 — 그림 모양으로 마스크해 캐릭터만 선택지 색으로 물든다(IDLE_STYLES). */}
+        {idle ? (
+          <span
+            className={cn(
+              "absolute inset-0 mix-blend-overlay",
+              "[mask-position:center] [mask-repeat:no-repeat] [mask-size:contain]",
+              IDLE_STYLES[option.key].tint,
+            )}
+            style={{ maskImage: `url(${CHARACTER_SRC[option.key].default})` }}
+          />
+        ) : null}
       </span>
 
       {/*

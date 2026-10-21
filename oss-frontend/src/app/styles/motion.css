@@ -25,6 +25,9 @@
   --animate-balance-boing: balance-boing 800ms ease-out both;
   /* 밸런스 게임 선택지 — 밀려난 캐릭터: 시무룩하게 좌우로 흔들리다 멈춘다. */
   --animate-balance-sulk: balance-sulk 800ms ease-out both;
+  /* 밸런스 게임 선택지 — 투표 전 대기: A·B가 3초마다 번갈아 한 번(0.5초) 늘었다 납작해진다. */
+  --animate-balance-idle-a: balance-idle-a 3000ms linear infinite;
+  --animate-balance-idle-b: balance-idle-b 3000ms linear infinite;
   /* 밸런스 게임 진행률 fill — 처음 나타날 때 0에서 부드럽게 차오른다(이후 변경은 transition). */
   --animate-balance-fill-in: balance-fill-in 1000ms var(--ease-spring-gentle);
   --animate-balance-fill-in-content: balance-fill-in-content 1000ms
@@ -401,6 +404,40 @@
     }
     100% {
       transform: rotate(0deg) scale(1);
+    }
+  }
+
+  /* 3초 중 앞 0.5초(16.6%)만 움직이고 나머지는 쉰다. B는 같은 동작을 1.5초(50%) 뒤에 한다. */
+  @keyframes balance-idle-a {
+    0% {
+      scale: 1 1;
+    }
+    5% {
+      scale: 0.94 1.12;
+    }
+    10% {
+      scale: 1.04 0.96;
+    }
+    16.6%,
+    100% {
+      scale: 1 1;
+    }
+  }
+
+  @keyframes balance-idle-b {
+    0%,
+    50% {
+      scale: 1 1;
+    }
+    55% {
+      scale: 0.94 1.12;
+    }
+    60% {
+      scale: 1.04 0.96;
+    }
+    66.6%,
+    100% {
+      scale: 1 1;
     }
   }
 
