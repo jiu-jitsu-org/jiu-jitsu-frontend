@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import type {
   BalanceGameOption,
@@ -92,27 +92,73 @@ const CHARACTER_MOTION: Record<BalanceOptionState, string | null> = {
 };
 
 /**
- * 투표 전(default) 캐릭터에 입히는 색과 대기 동작 — 회색이라 앱이 꺼진 듯 보이던 것을 깨운다.
+ * 투표 전(default) 캐릭터의 그림과 대기 동작 — 회색이라 앱이 꺼진 듯 보이던 것을 깨운다.
  *
- * 색은 새 아트워크가 아니라 회색 그림 위에 선택지 색(poll strong)을 overlay 블렌드로 얹는다.
- * overlay는 밝은 곳·어두운 곳을 그대로 두고 중간 톤만 물들인다 — 몸통은 진하게, 띠는 어둡게,
- * 눈 흰자는 하얗게 남아 고른 뒤 아트워크와 가장 가깝다(color 블렌드는 분홍빛으로 떴고,
- * multiply는 눈 흰자까지 물들였다). 마스크가 그림 모양만 칠한다.
- * 고르는 순간 이 겹이 빠지고 selected 아트워크(눈 크게 뜬 얼굴)로 바뀐다.
+ * 그림은 투표 뒤와 같은 몸통 색이다. unselected 아트워크에서 눈만 지운 몸통(idle)을 쓰고,
+ * 눈은 BalanceIdleEyes가 그 위에 따로 그린다 — 눈동자를 굴려야 해서 그림에 박아 둘 수 없다.
+ * 고르는 순간 selected 아트워크(눈 크게 뜬 얼굴)로 바뀐다.
  *
- * 대기 동작은 A·B가 번갈아 한 번씩 들썩인다(3초 주기, A는 0초 · B는 1.5초, 각 0.5초).
- * 둘이 동시에 움직이면 시선이 갈 곳이 없다 — 번갈아야 "나 골라줘"가 차례로 온다.
+ * 대기 동작은 대결이다(8초, motion.css에 흐름 표) — "너 한 번 나 한 번"이 아니라 한쪽이 솟으면
+ * 상대가 움찔하고, 받아쳐 둘이 맞붙어 떨고, 밀어내고 연타하고 반격한다. 웅크렸다 쭉 솟고 납작하게
+ * 내려앉는 쫀득한 늘고 줄기로 움직인다. 노려보는 쪽 눈동자는 상대 쪽(A는 아래, B는 위)에 박히고,
+ * 당하는 쪽은 얌전하다 — 한 번 작게 움찔하고 눈동자를 상대 쪽으로 옮겨 가만히 본다(시선이 갈라지지 않게).
+ * 기세를 잡은 동안 그쪽 띠가 진해진다(tone) — 띠도 대결에 끼어 누를 곳으로 눈이 간다.
+ *
+ * 커지는 것은 캐릭터뿐이고 띠(누르는 영역)는 그대로다 — 누를 자리가 움직이면 탭이 빗나간다.
+ * 캐릭터는 띠 위로는 솟아도 되고(행의 overflow를 풀어 둔다) 남의 띠 위로 올라가도 탭을 가로채지
+ * 않게 pointer-events를 끈다. 그림 밑단은 잘린 면이라 띠 아래로는 나가면 안 된다 — 캐릭터 칸이
+ * 아래쪽만 자르고(clip-path) 행이 하던 왼쪽 아래 둥근 모서리도 대신 자른다.
  */
 const IDLE_STYLES = {
   A: {
-    tint: "bg-poll-option-a-selected-bg",
+    src: "/images/balance/character-a-idle.png",
     motion: "motion-safe:animate-balance-idle-a",
+    pupil: "motion-safe:animate-balance-pupil-a",
+    tone: "bg-poll-option-a-selected-bg-track motion-safe:animate-balance-tone-a",
   },
   B: {
-    tint: "bg-poll-option-b-selected-bg",
+    src: "/images/balance/character-b-idle.png",
     motion: "motion-safe:animate-balance-idle-b",
+    pupil: "motion-safe:animate-balance-pupil-b",
+    tone: "bg-poll-option-b-selected-bg-track motion-safe:animate-balance-tone-b",
   },
 } as const;
+
+/**
+ * 투표 전 캐릭터의 눈 — 몸통 그림(174×198)과 같은 좌표계의 SVG라 그림과 함께 커지고 기운다.
+ *
+ * 흰자 위를 비스듬한 눈꺼풀 선으로 잘라 미간 쪽이 낮은 "노려보는" 눈을 만든다.
+ * 눈동자는 흰자 안에서만 보이고(clipPath) 위아래로만 움직인다 — 위로 가면 눈꺼풀에 반쯤 묻힌다.
+ * clipPath id는 카드가 여러 장이어도 겹치지 않게 useId로 만든다.
+ */
+function BalanceIdleEyes({ optionKey }: { optionKey: BalanceOptionKey }) {
+  const id = useId();
+  const lid = `${id}-lid`;
+  const whites = `${id}-whites`;
+  return (
+    <svg viewBox="0 0 174 198" className="absolute inset-0 size-full">
+      <defs>
+        <clipPath id={lid}>
+          <polygon points="40,88 80,94 84,94 126,86 126,124 40,124" />
+        </clipPath>
+        <clipPath id={whites}>
+          <ellipse cx="66" cy="96" rx="11" ry="12" />
+          <ellipse cx="101" cy="95" rx="16" ry="13" />
+        </clipPath>
+      </defs>
+      <g clipPath={`url(#${lid})`}>
+        <ellipse cx="66" cy="96" rx="11" ry="12" fill="white" />
+        <ellipse cx="101" cy="95" rx="16" ry="13" fill="white" />
+        <g clipPath={`url(#${whites})`}>
+          <g className={IDLE_STYLES[optionKey].pupil}>
+            <circle cx="70" cy="98" r="4.8" fill="#111" />
+            <circle cx="108" cy="97" r="5.8" fill="#111" />
+          </g>
+        </g>
+      </g>
+    </svg>
+  );
+}
 
 /** 투표율 숫자를 굴리는 시간 — fill 스프링(1s)이 거의 멈출 즈음 숫자도 멈춘다. */
 const PERCENT_COUNT_MS = 900;
@@ -260,7 +306,9 @@ export function BalanceOptionButton({
         // 높이는 고정하지 않는다. 문구가 길어지면 행이 늘어나야 하고, 그 최소값(66)은
         // 캐릭터 패널이 만든다.
         // relative는 진행률 fill(절대 배치)의 기준이다. 결과를 안 그려도 무해하다.
-        "relative flex w-full items-center gap-2.5 overflow-hidden rounded-xl pr-4 text-left transition-colors duration-200",
+        "relative flex w-full items-center gap-2.5 rounded-xl pr-4 text-left transition-colors duration-200",
+        // 투표 전 대결 동작에서 캐릭터가 띠 밖으로 솟도록 그때만 자르지 않는다(IDLE_STYLES).
+        !idle && "overflow-hidden",
         // 누름 반응: 누르는 동안 세로로 납작하게 눌렸다가(0.1s), 떼면 스프링으로 출렁이며 돌아온다
         // (0.7s). 누를 때와 뗄 때 속도가 달라야 해서 :active 쪽 transition을 따로 덮어쓴다.
         // scale은 Tailwind v4에서 transform이 아니라 개별 scale 속성이라 transition 대상도 scale이다.
@@ -344,6 +392,21 @@ export function BalanceOptionButton({
       ) : null}
 
       {/*
+        투표 전 띠 물들기(IDLE_STYLES.tone) — 진한 색 겹의 투명도만 움직인다. 행이 대결 동안 자르지
+        않으므로 이 겹이 띠 모양(rounded-xl)을 스스로 갖는다. 띠 크기는 그대로라 누르는 자리는 변하지 않는다.
+        모션을 끈 사용자에게는 겹이 보이지 않는다(opacity-0이 기본).
+      */}
+      {idle ? (
+        <span
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute inset-0 rounded-xl opacity-0",
+            IDLE_STYLES[option.key].tone,
+          )}
+        />
+      ) : null}
+
+      {/*
         캐릭터 자리. 좌측에 여백 없이 붙고 상태에 따라 크기가 바뀌며, 그 높이가 곧 행 높이다.
         어떤 상태에서도 뒤에 배경을 깔지 않는다 — 자산에 알파가 있어 행 배경이 그대로 비친다.
       */}
@@ -357,7 +420,8 @@ export function BalanceOptionButton({
           "relative z-2 shrink-0 origin-bottom",
           "motion-safe:transition-[width,height] motion-safe:duration-750 motion-safe:ease-spring-wobbly",
           CHARACTER_SIZE[state],
-          idle && IDLE_STYLES[option.key].motion,
+          idle &&
+            "pointer-events-none [clip-path:inset(-50%_-50%_0_0_round_0_0_0_12px)]",
         )}
       >
         {/*
@@ -372,26 +436,28 @@ export function BalanceOptionButton({
           스쿼시·흔들림의 기준점은 아래 가운데다 — 캐릭터 아래쪽이 행 밑에 잘려 있어, 바닥에
           발을 붙인 채 늘고 줄어야 행에서 "솟아오르는" 것처럼 보인다.
         */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={CHARACTER_SRC[option.key][state]}
-          alt=""
+        {/* 대결 동작은 이 겹이 한다 — 바깥 칸은 가만히 밑단만 자르고, 그림과 색 겹이 함께 커지고 기운다. */}
+        <span
           className={cn(
-            "size-full origin-bottom object-contain",
-            changed && CHARACTER_MOTION[state],
+            "relative block size-full origin-bottom",
+            idle && IDLE_STYLES[option.key].motion,
           )}
-        />
-        {/* 투표 전 색 겹 — 그림 모양으로 마스크해 캐릭터만 선택지 색으로 물든다(IDLE_STYLES). */}
-        {idle ? (
-          <span
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={
+              idle
+                ? IDLE_STYLES[option.key].src
+                : CHARACTER_SRC[option.key][state]
+            }
+            alt=""
             className={cn(
-              "absolute inset-0 mix-blend-overlay",
-              "[mask-position:center] [mask-repeat:no-repeat] [mask-size:contain]",
-              IDLE_STYLES[option.key].tint,
+              "size-full origin-bottom object-contain",
+              changed && CHARACTER_MOTION[state],
             )}
-            style={{ maskImage: `url(${CHARACTER_SRC[option.key].default})` }}
           />
-        ) : null}
+          {idle ? <BalanceIdleEyes optionKey={option.key} /> : null}
+        </span>
       </span>
 
       {/*
