@@ -3,19 +3,6 @@ description: 새로운 기능 개발
 labels: ["type: feature 🚀"]
 body:
   - type: dropdown
-    id: platform
-    attributes:
-      label: 🎯 Platform
-      options:
-        - '⚙️ Backend'
-        - '💻 Frontend'
-        - '🤖 Android'
-        - '📱 iOS'
-        - '🎯 All'
-    validations:
-      required: true
-
-  - type: dropdown
     id: priority
     attributes:
       label: 🔥 Priority

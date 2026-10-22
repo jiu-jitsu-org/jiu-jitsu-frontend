@@ -1,9 +1,12 @@
-# 프로젝트 보드(https://github.com/orgs/jiu-jitsu-org/projects/1)의 Priority · Platform 칸을
-# 이슈 라벨과 같게 맞춥니다. 라벨이 기준이고, 보드 칸은 그룹·정렬용 사본입니다.
+# 프로젝트 보드(https://github.com/orgs/jiu-jitsu-org/projects/1)의 Priority · Platform 칸을 자동으로 채웁니다.
 #
-# priority: high 🔥   → Priority = 🔥 High
-# platform: ios 📱    → Platform = 📱 iOS   (platform 라벨이 2개 이상이면 🎯 All)
-# 해당 라벨이 없으면 칸을 비웁니다.
+# Priority
+#   이슈를 열 때 priority 라벨이 없으면, 본문의 "### 🔥 Priority" 값(템플릿에서 고른 값)으로 라벨을 붙입니다.
+#   보드 칸은 priority 라벨을 따라갑니다.  priority: high 🔥 → 🔥 High
+# Platform
+#   레포가 곧 플랫폼입니다.  jiu-jitsu-ios → 📱 iOS
+#   여러 플랫폼에 걸친 이슈만 platform: all 🎯 라벨을 붙이면 🎯 All이 됩니다.
+#   그 밖의 레포(project-management 등)는 🎯 All입니다.
 #
 # Status는 project-status.yml이 맡습니다. 여기서는 건드리지 않습니다.
 # 원본은 project-management 레포입니다. 이 레포에서 직접 고치지 마세요.
@@ -27,12 +30,19 @@ jobs:
       - uses: actions/github-script@v7
         with:
           # 조직 프로젝트는 GITHUB_TOKEN으로 접근할 수 없어 PAT가 필요합니다.
-          # 필요한 권한: project(read/write), repo(read)
+          # 필요한 권한: project(read/write), repo(read/write — 라벨 부여)
           github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
           script: |
             const projectNumber = Number(process.env.PROJECT_NUMBER);
             const { owner, repo } = context.repo;
             const issue = context.payload.issue;
+
+            const PLATFORM_BY_REPO = {
+              'jiu-jitsu-ios': 'ios',
+              'jiu-jitsu-android': 'android',
+              'jiu-jitsu-frontend': 'frontend',
+              'jiu-jitsu-backend': 'backend',
+            };
 
             // 이벤트 시점이 아니라 지금 붙어 있는 라벨을 다시 읽습니다.
             // 라벨 여러 개가 연달아 붙을 때 중간 상태로 덮어쓰지 않기 위해서입니다.
@@ -45,11 +55,31 @@ jobs:
               .filter(n => n.startsWith(prefix))
               .map(n => n.slice(prefix.length).trim().split(/\s+/)[0].toLowerCase());
 
-            const priorities = keys('priority:');
-            const platforms = keys('platform:');
+            let priority = keys('priority:')[0] ?? null;
+
+            // 1. 새 이슈에 priority 라벨이 없으면 본문에서 고른 값을 라벨로 붙입니다.
+            //    "### 🔥 Priority\n\n⚡ Medium" → priority: medium ⚡
+            if (!priority && context.payload.action === 'opened') {
+              const m = (issue.body || '').match(/###\s*🔥\s*Priority\s*\n+\s*(.+)/);
+              const picked = m?.[1].trim().split(/\s+/).pop().toLowerCase();
+              const repoLabels = await github.paginate(github.rest.issues.listLabelsForRepo, {
+                owner, repo, per_page: 100,
+              });
+              const label = repoLabels.find(l => l.name.startsWith(`priority: ${picked} `));
+              if (label) {
+                await github.rest.issues.addLabels({
+                  owner, repo, issue_number: issue.number, labels: [label.name],
+                });
+                priority = picked;
+                core.info(`#${issue.number} 라벨 추가: ${label.name}`);
+              } else if (picked) {
+                core.warning(`본문의 Priority "${m[1].trim()}"에 맞는 라벨이 이 레포에 없습니다.`);
+              }
+            }
+
             const wanted = {
-              Priority: priorities[0] ?? null,
-              Platform: platforms.length > 1 ? 'all' : (platforms[0] ?? null),
+              Priority: priority,
+              Platform: keys('platform:').includes('all') ? 'all' : (PLATFORM_BY_REPO[repo] ?? 'all'),
             };
 
             const project = (await github.graphql(`
@@ -64,6 +94,7 @@ jobs:
               mutation($p:ID!,$c:ID!){addProjectV2ItemById(input:{projectId:$p,contentId:$c}){item{id}}}`,
               { p: project.id, c: issue.node_id })).addProjectV2ItemById.item.id;
 
+            // 2. 보드 칸을 맞춥니다.
             for (const [name, field] of [['Priority', project.priority], ['Platform', project.platform]]) {
               if (!field) {
                 core.setFailed(`보드에 ${name} 필드가 없습니다.`);
