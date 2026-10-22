@@ -130,8 +130,8 @@ function BalanceGameBody({
 
   return (
     <>
-      {/* 카드 위아래 24 + hairline 구분선. 구분선 아래 24는 피드 목록의 pt-6이 만든다. */}
-      <div ref={targetRef} className="border-b border-border-subtle pt-6 pb-6">
+      {/* 카드 위 38 · 아래 24 + hairline 구분선. 구분선 아래 24는 피드 목록의 pt-6이 만든다. */}
+      <div ref={targetRef} className="border-b border-border-subtle pt-9.5 pb-6">
         <BalanceGameCard
           game={game}
           onVote={vote}
