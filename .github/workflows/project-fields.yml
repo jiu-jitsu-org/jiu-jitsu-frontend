@@ -1,0 +1,96 @@
+# 프로젝트 보드(https://github.com/orgs/jiu-jitsu-org/projects/1)의 Priority · Platform 칸을
+# 이슈 라벨과 같게 맞춥니다. 라벨이 기준이고, 보드 칸은 그룹·정렬용 사본입니다.
+#
+# priority: high 🔥   → Priority = 🔥 High
+# platform: ios 📱    → Platform = 📱 iOS   (platform 라벨이 2개 이상이면 🎯 All)
+# 해당 라벨이 없으면 칸을 비웁니다.
+#
+# Status는 project-status.yml이 맡습니다. 여기서는 건드리지 않습니다.
+# 원본은 project-management 레포입니다. 이 레포에서 직접 고치지 마세요.
+name: Project Fields
+
+on:
+  issues:
+    types: [opened, reopened, labeled, unlabeled]
+
+# 라벨을 여러 개 붙이면 이벤트가 한꺼번에 옵니다. 이슈마다 하나씩, 마지막 것까지 돌게 합니다.
+concurrency:
+  group: project-fields-${{ github.event.issue.number }}
+
+env:
+  PROJECT_NUMBER: "1"
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          # 조직 프로젝트는 GITHUB_TOKEN으로 접근할 수 없어 PAT가 필요합니다.
+          # 필요한 권한: project(read/write), repo(read)
+          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
+          script: |
+            const projectNumber = Number(process.env.PROJECT_NUMBER);
+            const { owner, repo } = context.repo;
+            const issue = context.payload.issue;
+
+            // 이벤트 시점이 아니라 지금 붙어 있는 라벨을 다시 읽습니다.
+            // 라벨 여러 개가 연달아 붙을 때 중간 상태로 덮어쓰지 않기 위해서입니다.
+            const labels = (await github.rest.issues.listLabelsOnIssue({
+              owner, repo, issue_number: issue.number, per_page: 100,
+            })).data.map(l => l.name);
+
+            // "priority: high 🔥" → "high"
+            const keys = (prefix) => labels
+              .filter(n => n.startsWith(prefix))
+              .map(n => n.slice(prefix.length).trim().split(/\s+/)[0].toLowerCase());
+
+            const priorities = keys('priority:');
+            const platforms = keys('platform:');
+            const wanted = {
+              Priority: priorities[0] ?? null,
+              Platform: platforms.length > 1 ? 'all' : (platforms[0] ?? null),
+            };
+
+            const project = (await github.graphql(`
+              query($org:String!,$n:Int!){organization(login:$org){projectV2(number:$n){
+                id
+                priority: field(name:"Priority"){... on ProjectV2SingleSelectField{id options{id name}}}
+                platform: field(name:"Platform"){... on ProjectV2SingleSelectField{id options{id name}}}
+              }}}`, { org: owner, n: projectNumber })).organization.projectV2;
+
+            // addProjectV2ItemById는 이미 있는 아이템이면 그대로 돌려줍니다.
+            const itemId = (await github.graphql(`
+              mutation($p:ID!,$c:ID!){addProjectV2ItemById(input:{projectId:$p,contentId:$c}){item{id}}}`,
+              { p: project.id, c: issue.node_id })).addProjectV2ItemById.item.id;
+
+            for (const [name, field] of [['Priority', project.priority], ['Platform', project.platform]]) {
+              if (!field) {
+                core.setFailed(`보드에 ${name} 필드가 없습니다.`);
+                return;
+              }
+              const key = wanted[name];
+              if (!key) {
+                await github.graphql(`
+                  mutation($p:ID!,$i:ID!,$f:ID!){clearProjectV2ItemFieldValue(
+                    input:{projectId:$p,itemId:$i,fieldId:$f}){clientMutationId}}`,
+                  { p: project.id, i: itemId, f: field.id });
+                core.info(`#${issue.number} ${name} → (비움)`);
+                continue;
+              }
+              // 옵션 이름의 마지막 단어로 맞춥니다. "🔥 High" → "high"
+              const option = field.options.find(o => o.name.split(/\s+/).pop().toLowerCase() === key);
+              if (!option) {
+                core.setFailed(
+                  `${name} 필드에 "${key}"에 해당하는 옵션이 없습니다. ` +
+                  `현재 옵션: ${field.options.map(o => o.name).join(', ')}`
+                );
+                return;
+              }
+              await github.graphql(`
+                mutation($p:ID!,$i:ID!,$f:ID!,$o:String!){updateProjectV2ItemFieldValue(
+                  input:{projectId:$p,itemId:$i,fieldId:$f,value:{singleSelectOptionId:$o}}
+                ){clientMutationId}}`,
+                { p: project.id, i: itemId, f: field.id, o: option.id });
+              core.info(`#${issue.number} ${name} → ${option.name}`);
+            }
