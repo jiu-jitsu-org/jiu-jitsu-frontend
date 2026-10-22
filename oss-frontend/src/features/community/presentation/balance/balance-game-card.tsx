@@ -7,6 +7,7 @@ import {
   type BalanceOptionState,
 } from "@/features/community/presentation/balance/balance-option-button";
 import { BalanceRemaining } from "@/features/community/presentation/balance/balance-remaining";
+import { useClashOnView } from "@/features/community/presentation/balance/use-clash-on-view";
 import { REACTION_PRESS_MOTION } from "@/features/community/presentation/comment-reaction-styles";
 import type {
   BalanceGame,
@@ -19,8 +20,8 @@ import { CommentIcon } from "@/shared/ui/icons";
  * 밸런스 게임 풀 카드 — 피드 최상단에 고정 노출된다.
  *
  * 순수 뷰다. 조회·투표·카운트다운은 모두 상위(BalanceGameSection)가 소유하고, 이 컴포넌트는
- * 받은 값을 그리고 탭을 콜백으로 위임한다.
-
+ * 받은 값을 그리고 탭을 콜백으로 위임한다. 스스로 갖는 것은 "지금 한 판 맞붙는 중인가"라는 보기 상태뿐이다
+ * (useClashOnView — 화면에 들어올 때마다 한 판, 나머지는 쉼).
  *
  * 탭이 두 갈래로 갈리는 것이 이 카드의 핵심이다:
  * - 선택지(A/B) → 투표만. 상세로 이동하지 않는다
@@ -48,6 +49,12 @@ export function BalanceGameCard({
    */
   const interactive = !game.closed;
 
+  // 볼 때마다 한 판 — 투표 전에는 대결, 고른 뒤에는 이긴 쪽이 으스대는 한 판. 마감된 판은 쉰다.
+  const { targetRef, clashing } = useClashOnView<HTMLElement>({
+    enabled: interactive,
+    phase: game.myVote ?? "none",
+  });
+
   /**
    * 선택지 표시 상태.
    *
@@ -69,6 +76,7 @@ export function BalanceGameCard({
 
   return (
     <section
+      ref={targetRef}
       onClick={handleCardPress}
       // 배경을 두지 않는다 — 피드 배경이 그대로 비쳐야 한다(디자인). 좌우 16만 준다.
       // 눌림은 피드 카드(FeedCard)와 같다 — 바탕이 옅게 깔리며 98%로 눌렸다가 놓으면 스프링으로 돌아온다.
@@ -103,12 +111,14 @@ export function BalanceGameCard({
           option={game.optionA}
           state={optionState("A")}
           interactive={interactive}
+          clash={clashing ? "once" : "rest"}
           onPress={() => onVote("A")}
         />
         <BalanceOptionButton
           option={game.optionB}
           state={optionState("B")}
           interactive={interactive}
+          clash={clashing ? "once" : "rest"}
           onPress={() => onVote("B")}
         />
       </div>
