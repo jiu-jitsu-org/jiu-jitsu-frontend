@@ -91,12 +91,12 @@ export function FeedCard({
         createdAt={createdAt}
         onPressMore={onPressMore}
       />
-      {/* 헤더행 → 제목행 간격 8 */}
+      {/* 헤더행 → 제목행 간격 12 */}
       <FeedCardBody
         title={title}
         body={body}
         onPress={onPress}
-        className="mt-2"
+        className="mt-3"
       />
       {images && images.length > 0 ? (
         <FeedCardImages images={images} className="mt-3" />
@@ -181,14 +181,14 @@ export function FeedCardHeader({
         {/* key=URL: 아바타 URL이 바뀌면 컴포넌트를 재마운트해 폴백 상태(failed)를 초기화한다. */}
         <FeedCardAvatar key={author.avatarUrl ?? "none"} avatarUrl={author.avatarUrl} />
         {/* 아바타→닉네임 8, 닉네임→날짜 6 (요소별 간격이 달라 gap 대신 ml로 지정) */}
-        {/* 닉네임: BodyM(Pretendard Medium 16) */}
-        <span className="ml-2 text-base font-medium text-feed-card-header-username-text">
+        {/* 닉네임: Body S(Pretendard Medium 14) — 제목(16 SemiBold)보다 한 단계 아래 */}
+        <span className="ml-2 text-sm font-medium text-feed-card-header-username-text">
           {author.name}
         </span>
-        {/* 날짜: Label M(Pretendard Medium 12) */}
+        {/* 날짜: Pretendard Regular 12 — 닉네임(14 Medium)보다 작고 가볍게 */}
         <time
           dateTime={createdAt}
-          className="ml-1.5 text-xs font-medium text-feed-card-header-date-text"
+          className="ml-1.5 text-xs font-normal text-feed-card-header-date-text"
         >
           {formatDateLabel(createdAt)}
         </time>
@@ -236,12 +236,12 @@ export function FeedCardBody({
   return (
     // 제목행 → 본문행 간격 4 (gap-1)
     <div className={cn("flex flex-col gap-1", className)}>
-      {/* 제목: Body M(Pretendard Medium 16) */}
+      {/* 제목: Pretendard SemiBold 16 — 카드에서 가장 먼저 읽히는 줄 */}
       <Title
         type={onPress ? "button" : undefined}
         onClick={onPress}
         className={cn(
-          "line-clamp-1 text-left text-base font-medium text-feed-card-body-title-text",
+          "line-clamp-1 text-left text-base font-semibold text-feed-card-body-title-text",
         )}
       >
         {title}
