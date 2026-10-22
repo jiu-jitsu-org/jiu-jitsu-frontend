@@ -26,7 +26,7 @@ import { BackArrowIcon, BellIcon, BellOffIcon } from "@/shared/ui/icons";
  * 앱 웹뷰 비로그인은 종도 감춰 뒤로가기만 남는다 — 게시글 상세와 같은 정책(#173).
  */
 function alarmToast(enabled: boolean): string {
-  return enabled ? "알림을 받아요" : "알림을 받지 않아요";
+  return enabled ? "이 글의 알림을 받아요" : "이 글의 알림을 받지 않아요";
 }
 
 export function BalanceDetailAppBar({

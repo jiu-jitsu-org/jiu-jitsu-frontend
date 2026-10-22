@@ -322,7 +322,5 @@ export function PostDetailAppBar({
 
 /** 알림 on/off 안내 문구 — 확정된 상태 기준으로만 만든다. */
 function alarmToast(enabled: boolean): string {
-  return enabled
-    ? "이제부터 이 글의 알림을 받아요"
-    : "이제부터 이 글의 알림을 받지 않아요";
+  return enabled ? "이 글의 알림을 받아요" : "이 글의 알림을 받지 않아요";
 }
