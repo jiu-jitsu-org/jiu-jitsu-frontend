@@ -114,98 +114,15 @@ const IDLE_STYLES = {
     src: "/images/balance/character-a-idle.png",
     motion: "motion-safe:animate-balance-idle-a",
     pupil: "motion-safe:animate-balance-pupil-a",
-    toneBg: "bg-poll-option-a-selected-bg-track",
-    tone: "motion-safe:animate-balance-tone-a",
-    // 홈 카드 — 같은 대결을 한 판(0~3.2초)만 돈다(motion.css balance-clash-*).
-    clashMotion: "motion-safe:animate-balance-clash-a",
-    clashPupil: "motion-safe:animate-balance-clash-pupil-a",
-    clashTone: "motion-safe:animate-balance-clash-tone-a",
-    well: "bg-[radial-gradient(200px_120px_at_29px_100%,color-mix(in_oklab,var(--color-poll-option-a-selected-bg)_75%,transparent),transparent_78%)] motion-safe:animate-balance-well-a",
+    tone: "bg-poll-option-a-selected-bg-track motion-safe:animate-balance-tone-a",
   },
   B: {
     src: "/images/balance/character-b-idle.png",
     motion: "motion-safe:animate-balance-idle-b",
     pupil: "motion-safe:animate-balance-pupil-b",
-    toneBg: "bg-poll-option-b-selected-bg-track",
-    tone: "motion-safe:animate-balance-tone-b",
-    clashMotion: "motion-safe:animate-balance-clash-b",
-    clashPupil: "motion-safe:animate-balance-clash-pupil-b",
-    clashTone: "motion-safe:animate-balance-clash-tone-b",
-    well: "bg-[radial-gradient(200px_120px_at_29px_100%,color-mix(in_oklab,var(--color-poll-option-b-selected-bg)_75%,transparent),transparent_78%)] motion-safe:animate-balance-well-b",
+    tone: "bg-poll-option-b-selected-bg-track motion-safe:animate-balance-tone-b",
   },
 } as const;
-
-/**
- * 투표 전 대결을 얼마나 돌릴지.
- *
- * - loop: 8초 대결을 끝없이 반복한다(상세 — 들어와서 머무는 화면).
- * - once / rest: 홈 카드. 하루에도 여러 번 지나치는 피드 맨 위라 끝없이 움직이면 금세 피로해진다.
- *   카드가 화면에 들어올 때 한 판(once)만 맞붙고, 나머지 시간은 쉰다(rest). 언제 한 판을 틀지는
- *   카드가 정한다(use-clash-on-view). 고른 뒤에도 같은 박자로 한 판씩 돈다 — 그때는 대결 대신
- *   이긴 쪽이 으스대고 밀려난 쪽이 움찔하는 한 판이다(HOME_STYLES).
- *
- * 홈 카드(once/rest)는 투표 순간의 표현도 다르다 — HOME_POP 주석 참조.
- */
-export type BalanceClash = "loop" | "once" | "rest";
-
-/**
- * 홈 카드에서 고르는 순간 — 한 동작, 500ms, 넘침 없는 감속(ease-smooth-out).
- *
- * - 고른 띠가 캐릭터 발밑에서부터 고른 색으로 차오른다(clip-path 원이 발밑에서 커진다). 캐릭터가 띠를
- *   끌어당기는 중력을 이 한 동작에 담았다. 취소·변경하면 같은 길로 발밑으로 빨려 들어간다.
- * - 고른 캐릭터는 띠 위로 솟고(HOME_POP) 한 번만 살짝 늘었다 돌아온다(balance-settle). 반복 동작은 없다.
- * - 밀려난 띠는 옅어진다 — 이긴 쪽을 더 꾸미기보다 진 쪽을 물러나게 해서 위계를 만든다.
- * - 그 뒤로는 이긴 캐릭터가 4초에 한 번 느리게 숨 쉬고, 4초마다 작게 으스댄다(AFTER_VOTE_MOTION).
- *
- * 크기는 배율이라 행 높이(=CHARACTER_SIZE)는 그대로다. 기준점이 가운데보다 왼쪽(35%)인 이유는
- * 커지는 만큼 오른쪽 문구를 덮지 않고 띠 왼쪽 밖으로도 삐져나가게 하기 위해서다.
- */
-const HOME_POP = "origin-[35%_100%] scale-[1.3]";
-
-/**
- * 홈 카드에서 고른 뒤의 한 판(clash="once") — 볼 때마다 한 번, 2.4초.
- *
- * 이긴 쪽은 상대 쪽으로 기울며 부들부들 으스대고(balance-win), 밀려난 쪽은 반대로 움찔해 떤다
- * (balance-lose). 그동안 이긴 띠 발밑으로 짙은 색이 한 번 고였다 빠진다(중력). 기울 방향은 --toward
- * 하나로 갈린다 — A는 아래(상대)로 시계 방향, B는 위로 반시계 방향(투표 전 대결과 같은 규칙).
- */
-const HOME_STYLES = {
-  A: {
-    toward: "[--toward:1]",
-    winWell:
-      "bg-[radial-gradient(260px_150px_at_32px_100%,color-mix(in_oklab,var(--color-poll-option-a-selected-bg),black_32%),transparent_80%)]",
-  },
-  B: {
-    toward: "[--toward:-1]",
-    winWell:
-      "bg-[radial-gradient(260px_150px_at_32px_100%,color-mix(in_oklab,var(--color-poll-option-b-selected-bg),black_32%),transparent_80%)]",
-  },
-} as const;
-
-/**
- * 고른 뒤 동작 — 볼 때의 한 판(once)과, 그 사이 쉬는 동안(rest) 4초마다 도는 작은 으스대기.
- *
- * 숨 쉬기만으로는 대결이 끝난 듯 심심해서, 쉬는 동안에도 볼 때의 한 판을 작게 줄여 4초마다 되풀이한다
- * (motion.css balance-gloat 주석). 마감된 판은 쉰다.
- */
-const AFTER_VOTE_MOTION = {
-  win: {
-    once: "motion-safe:animate-balance-win",
-    rest: "motion-safe:animate-balance-gloat",
-  },
-  lose: {
-    once: "motion-safe:animate-balance-lose",
-    rest: "motion-safe:animate-balance-cower",
-  },
-  well: {
-    once: "motion-safe:animate-balance-win-well",
-    rest: "motion-safe:animate-balance-gloat-well",
-  },
-} as const;
-
-/** 차오르는 원의 중심 — 캐릭터 발밑(가운데). 끝 반지름은 띠 오른쪽 끝까지 덮을 만큼 넉넉하게. */
-const FILL_FROM = "[clip-path:circle(0px_at_32px_100%)]";
-const FILL_TO = "[clip-path:circle(420px_at_32px_100%)]";
 
 /**
  * 투표 전 캐릭터의 눈 — 몸통 그림(174×198)과 같은 좌표계의 SVG라 그림과 함께 커지고 기운다.
@@ -214,7 +131,7 @@ const FILL_TO = "[clip-path:circle(420px_at_32px_100%)]";
  * 눈동자는 흰자 안에서만 보이고(clipPath) 위아래로만 움직인다 — 위로 가면 눈꺼풀에 반쯤 묻힌다.
  * clipPath id는 카드가 여러 장이어도 겹치지 않게 useId로 만든다.
  */
-function BalanceIdleEyes({ pupilClass }: { pupilClass: string | null }) {
+function BalanceIdleEyes({ optionKey }: { optionKey: BalanceOptionKey }) {
   const id = useId();
   const lid = `${id}-lid`;
   const whites = `${id}-whites`;
@@ -233,7 +150,7 @@ function BalanceIdleEyes({ pupilClass }: { pupilClass: string | null }) {
         <ellipse cx="66" cy="96" rx="11" ry="12" fill="white" />
         <ellipse cx="101" cy="95" rx="16" ry="13" fill="white" />
         <g clipPath={`url(#${whites})`}>
-          <g className={pupilClass ?? undefined}>
+          <g className={IDLE_STYLES[optionKey].pupil}>
             <circle cx="70" cy="98" r="4.8" fill="#111" />
             <circle cx="108" cy="97" r="5.8" fill="#111" />
           </g>
@@ -256,9 +173,6 @@ const OPTION_STYLES = {
   A: {
     default: "bg-poll-option-a-default-bg text-poll-option-a-default-text",
     selected: "bg-poll-option-a-selected-bg text-poll-option-a-selected-text",
-    homeSelected:
-      "bg-poll-option-a-default-bg text-poll-option-a-selected-text",
-    homeFill: "bg-poll-option-a-selected-bg",
     emphasizedTrack:
       "bg-poll-option-a-selected-bg-track text-poll-option-a-default-text",
     emphasizedFill:
@@ -275,9 +189,6 @@ const OPTION_STYLES = {
   B: {
     default: "bg-poll-option-b-default-bg text-poll-option-b-default-text",
     selected: "bg-poll-option-b-selected-bg text-poll-option-b-selected-text",
-    homeSelected:
-      "bg-poll-option-b-default-bg text-poll-option-b-selected-text",
-    homeFill: "bg-poll-option-b-selected-bg",
     emphasizedTrack:
       "bg-poll-option-b-selected-bg-track text-poll-option-b-default-text",
     emphasizedFill:
@@ -317,8 +228,6 @@ export function BalanceOptionButton({
    * 안에 또 버튼을 둘 수 없고(중첩 버튼), 목록에서 투표하지도 않는다.
    */
   displayOnly = false,
-  /** 투표 전 대결을 얼마나 돌릴지(BalanceClash). 홈 카드만 once/rest를 넘긴다. */
-  clash = "loop",
   onPress,
 }: {
   option: BalanceGameOption;
@@ -326,24 +235,12 @@ export function BalanceOptionButton({
   interactive: boolean;
   result?: BalanceOptionResult | null;
   displayOnly?: boolean;
-  clash?: BalanceClash;
   onPress?: () => void;
 }) {
   const styles = OPTION_STYLES[option.key];
   const selected = state === "selected";
   // 표시 전용 목록은 투표 전 상태가 없지만, 혹시 와도 누를 수 없는 곳에서 손짓하지 않는다.
   const idle = state === "default" && interactive && !displayOnly;
-  // 홈 카드 — 대결은 한 판씩, 고르는 순간은 발밑에서 차오르는 한 동작(HOME_POP).
-  const home = clash !== "loop" && result === null && !displayOnly;
-  const winner = home && selected;
-  // 투표 전 대기 동작 — 상세는 끝없이(loop), 홈은 한 판(once)만, 쉬는 동안(rest)은 없다.
-  const idleMotion = (loop: string, once: string) =>
-    clash === "loop" ? loop : clash === "once" ? once : null;
-  // 고른 뒤(홈 카드) — 볼 때는 한 판, 쉬는 동안은 4초마다 작은 한 판. 마감된 판은 볼 때 한 판만 남긴다.
-  const afterMotion = (part: keyof typeof AFTER_VOTE_MOTION) =>
-    clash === "once"
-      ? AFTER_VOTE_MOTION[part].once
-      : interactive && AFTER_VOTE_MOTION[part].rest;
 
   /**
    * 마운트 이후 상태가 한 번이라도 바뀌었는지 — 일회성 모션(캐릭터·숫자·fill 등장)의 스위치.
@@ -410,26 +307,22 @@ export function BalanceOptionButton({
         // 캐릭터 패널이 만든다.
         // relative는 진행률 fill(절대 배치)의 기준이다. 결과를 안 그려도 무해하다.
         "relative flex w-full items-center gap-2.5 rounded-xl pr-4 text-left transition-colors duration-200",
-        // 투표 전 대결 동작과 홈 카드의 고른 쪽(HOME_POP)은 캐릭터가 띠 밖으로 솟도록 자르지 않는다.
-        !idle && !winner && "overflow-hidden",
-        // 홈 카드에서 밀려난 띠는 옅어진다(HOME_POP 주석).
-        home && state === "unselected" && "opacity-70",
+        // 투표 전 대결 동작에서 캐릭터가 띠 밖으로 솟도록 그때만 자르지 않는다(IDLE_STYLES).
+        !idle && "overflow-hidden",
         // 누름 반응: 누르는 동안 세로로 납작하게 눌렸다가(0.1s), 떼면 스프링으로 출렁이며 돌아온다
         // (0.7s). 누를 때와 뗄 때 속도가 달라야 해서 :active 쪽 transition을 따로 덮어쓴다.
         // scale은 Tailwind v4에서 transform이 아니라 개별 scale 속성이라 transition 대상도 scale이다.
         // 표시 전용은 누를 수 없으니 눌림 반응을 뺀다(항목 전체의 눌림이 대신한다).
         !displayOnly && [
-          "motion-safe:[transition:background-color_200ms_ease,color_200ms_ease,opacity_500ms_var(--ease-smooth-out),scale_700ms_var(--ease-spring-wobbly)]",
-          "motion-safe:active:scale-x-95 motion-safe:active:scale-y-90 motion-safe:active:[transition:background-color_200ms_ease,color_200ms_ease,opacity_500ms_var(--ease-smooth-out),scale_100ms_ease-out]",
+          "motion-safe:[transition:background-color_200ms_ease,color_200ms_ease,scale_700ms_var(--ease-spring-wobbly)]",
+          "motion-safe:active:scale-x-95 motion-safe:active:scale-y-90 motion-safe:active:[transition:background-color_200ms_ease,color_200ms_ease,scale_100ms_ease-out]",
         ],
         // 결과를 그리면 배경이 트랙으로 바뀐다. 아니면 기존 규칙 —
         // 행 배경·글자색은 unselected가 default와 같고, 갈리는 것은 캐릭터뿐이다.
         resultStyles
           ? resultStyles.track
           : selected
-            ? home
-              ? styles.homeSelected
-              : styles.selected
+            ? styles.selected
             : styles.default,
         interactive && !displayOnly && "cursor-pointer",
       )}
@@ -503,58 +396,12 @@ export function BalanceOptionButton({
         않으므로 이 겹이 띠 모양(rounded-xl)을 스스로 갖는다. 띠 크기는 그대로라 누르는 자리는 변하지 않는다.
         모션을 끈 사용자에게는 겹이 보이지 않는다(opacity-0이 기본).
       */}
-      {/*
-        홈 카드의 고른 색 — 캐릭터 발밑에서 원으로 차오른다(HOME_POP 주석). 고르기 전에도 반지름 0으로
-        깔아 두어야 고르는 순간 transition이 돈다. 모션을 끈 사용자에게는 바로 채워진다.
-      */}
-      {home ? (
-        <span
-          aria-hidden
-          className={cn(
-            "pointer-events-none absolute inset-0 rounded-xl",
-            "motion-safe:transition-[clip-path] motion-safe:duration-500 motion-safe:ease-smooth-out",
-            styles.homeFill,
-            selected ? FILL_TO : FILL_FROM,
-          )}
-        />
-      ) : null}
-
-      {/* 고른 뒤 한 판마다 이긴 띠 발밑 중력(HOME_STYLES). 행이 자르지 않으므로 스스로 자른다. */}
-      {winner ? (
-        <span
-          aria-hidden
-          className={cn(
-            "pointer-events-none absolute inset-0 overflow-hidden rounded-xl opacity-0",
-            HOME_STYLES[option.key].winWell,
-            afterMotion("well"),
-          )}
-        />
-      ) : null}
-
       {idle ? (
         <span
           aria-hidden
           className={cn(
             "pointer-events-none absolute inset-0 rounded-xl opacity-0",
-            IDLE_STYLES[option.key].toneBg,
-            idleMotion(
-              IDLE_STYLES[option.key].tone,
-              IDLE_STYLES[option.key].clashTone,
-            ),
-          )}
-        />
-      ) : null}
-
-      {/*
-        홈 카드의 발밑 중력 — 한 판 동안 기세를 잡은 쪽 캐릭터 발밑으로 띠 색이 짙게 고였다 빠진다.
-        행이 대결 동안 자르지 않으므로 이 겹이 띠 모양으로 스스로 자른다.
-      */}
-      {idle && home ? (
-        <span
-          aria-hidden
-          className={cn(
-            "pointer-events-none absolute inset-0 overflow-hidden rounded-xl opacity-0",
-            clash === "once" && IDLE_STYLES[option.key].well,
+            IDLE_STYLES[option.key].tone,
           )}
         />
       ) : null}
@@ -564,22 +411,17 @@ export function BalanceOptionButton({
         어떤 상태에서도 뒤에 배경을 깔지 않는다 — 자산에 알파가 있어 행 배경이 그대로 비친다.
       */}
       {/*
-        상세에서는 크기 변화도 스프링이다 — 고른 쪽은 커지며 한 번 넘쳤다 돌아오고, 밀려난 쪽은 작아지며
-        출렁인다. 높이가 곧 행 높이라 행도 함께 출렁인다(의도된 쫀득함). 홈 카드는 넘침 없는 감속 하나로
-        바뀐다(HOME_POP 주석).
+        크기 변화도 스프링이다 — 고른 쪽은 커지며 한 번 넘쳤다 돌아오고, 밀려난 쪽은 작아지며
+        출렁인다. 높이가 곧 행 높이라 행도 함께 출렁인다(의도된 쫀득함).
       */}
       <span
         aria-hidden
         className={cn(
           "relative z-2 shrink-0 origin-bottom",
-          // 홈 카드는 넘침 없는 감속 하나로 커지고 작아진다(HOME_POP 주석). 상세는 출렁이는 스프링 그대로.
-          home
-            ? "motion-safe:transition-[width,height,scale] motion-safe:duration-500 motion-safe:ease-smooth-out"
-            : "motion-safe:transition-[width,height] motion-safe:duration-750 motion-safe:ease-spring-wobbly",
+          "motion-safe:transition-[width,height] motion-safe:duration-750 motion-safe:ease-spring-wobbly",
           CHARACTER_SIZE[state],
-          (idle || winner) &&
+          idle &&
             "pointer-events-none [clip-path:inset(-50%_-50%_0_0_round_0_0_0_12px)]",
-          winner && HOME_POP,
         )}
       >
         {/*
@@ -598,15 +440,7 @@ export function BalanceOptionButton({
         <span
           className={cn(
             "relative block size-full origin-bottom",
-            idle &&
-              idleMotion(
-                IDLE_STYLES[option.key].motion,
-                IDLE_STYLES[option.key].clashMotion,
-              ),
-            // 고른 뒤의 한 판 — 이긴 쪽은 으스대고 밀려난 쪽은 움찔한다(AFTER_VOTE_MOTION).
-            home && HOME_STYLES[option.key].toward,
-            winner && afterMotion("win"),
-            home && state === "unselected" && afterMotion("lose"),
+            idle && IDLE_STYLES[option.key].motion,
           )}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -619,26 +453,10 @@ export function BalanceOptionButton({
             alt=""
             className={cn(
               "size-full origin-bottom object-contain",
-              // 홈 카드는 고른 쪽만 한 번 늘었다 돌아오고 이어서 느리게 숨 쉰다(마감된 판은 쉰다).
-              // 밀려난 쪽의 시무룩한 흔들림은 뺀다 — 고른 뒤의 한 판에서 움찔하는 것으로 대신한다.
-              home
-                ? winner &&
-                    (interactive
-                      ? changed
-                        ? "motion-safe:animate-balance-settle-breathe"
-                        : "motion-safe:animate-balance-breathe"
-                      : changed && "motion-safe:animate-balance-settle")
-                : changed && CHARACTER_MOTION[state],
+              changed && CHARACTER_MOTION[state],
             )}
           />
-          {idle ? (
-            <BalanceIdleEyes
-              pupilClass={idleMotion(
-                IDLE_STYLES[option.key].pupil,
-                IDLE_STYLES[option.key].clashPupil,
-              )}
-            />
-          ) : null}
+          {idle ? <BalanceIdleEyes optionKey={option.key} /> : null}
         </span>
       </span>
 
