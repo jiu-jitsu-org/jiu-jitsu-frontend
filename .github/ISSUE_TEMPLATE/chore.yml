@@ -3,19 +3,6 @@ description: 설정 / 문서 / 리팩토링 / 잡일
 labels: ["type: chore 🔧"]
 body:
   - type: dropdown
-    id: platform
-    attributes:
-      label: 🎯 Platform
-      options:
-        - '⚙️ Backend'
-        - '💻 Frontend'
-        - '🤖 Android'
-        - '📱 iOS'
-        - '🎯 All'
-    validations:
-      required: true
-
-  - type: dropdown
     id: priority
     attributes:
       label: 🔥 Priority

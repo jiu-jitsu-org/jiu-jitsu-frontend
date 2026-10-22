@@ -3,19 +3,6 @@ description: 버그 리포트 / 수정
 labels: ["type: bug 🐛"]
 body:
   - type: dropdown
-    id: platform
-    attributes:
-      label: 🎯 Platform
-      options:
-        - '⚙️ Backend'
-        - '💻 Frontend'
-        - '🤖 Android'
-        - '📱 iOS'
-        - '🎯 All'
-    validations:
-      required: true
-
-  - type: dropdown
     id: priority
     attributes:
       label: 🔥 Priority
