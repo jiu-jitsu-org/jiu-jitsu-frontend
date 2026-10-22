@@ -13,7 +13,7 @@ import { FeedListEnd } from "@/features/community/presentation/feed/feed-list-en
  *
  * community-playground의 FeedCard 쇼케이스를 그대로 재현하되, 데모용 useState 대신
  * 서버에서 받은 실제 게시글(PostSummary)을 렌더링한다.
- * 카드 양옆 마진 16(카드 자체 px-4), 카드 사이 간격 16 — 쇼케이스와 동일.
+ * 카드 양옆 마진 16(카드 자체 px-4), 카드 사이 간격 32 — 선 없이 간격으로 글을 나눈다.
  *
  * 초기 페이지는 Server Component가 조회해 seed로 넘기고, 하단 sentinel이 화면에 들어오면
  * useBoardFeed가 다음 페이지를 이어 붙인다(BFF GET /api/community/board). 마지막 페이지에
@@ -43,7 +43,7 @@ export function CommunityFeedList({
 
   return (
     // 하단 91: 우하단 플로팅 FAB(작성 버튼)이 마지막 카드 UX를 가리지 않도록 여유를 둔 스펙값.
-    <div className="flex flex-col gap-4 pt-6 pb-[91px]">
+    <div className="flex flex-col gap-8 pt-6 pb-[91px]">
       {items.map((post) => (
         <FeedCardItem key={post.id} post={post} />
       ))}
