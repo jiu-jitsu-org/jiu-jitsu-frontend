@@ -6,6 +6,7 @@ import {
   BalanceOptionButton,
   type BalanceOptionState,
 } from "@/features/community/presentation/balance/balance-option-button";
+import { BalanceHeroWash } from "@/features/community/presentation/balance/balance-hero-wash";
 import { BalanceRemaining } from "@/features/community/presentation/balance/balance-remaining";
 import { REACTION_PRESS_MOTION } from "@/features/community/presentation/comment-reaction-styles";
 import type {
@@ -74,7 +75,7 @@ export function BalanceGameCard({
       // 눌림은 피드 카드(FeedCard)와 같다 — 바탕이 옅게 깔리며 98%로 눌렸다가 놓으면 스프링으로 돌아온다.
       // 안쪽 버튼(선택지·댓글 링크)을 누를 때는 카드가 반응하지 않게 not-has로 뺀다.
       className={cn(
-        "flex cursor-pointer flex-col px-4",
+        "relative isolate flex cursor-pointer flex-col px-4",
         "active:not-has-[:is(button,a):active]:bg-surface-container-pressed",
         "motion-safe:[transition:scale_500ms_var(--ease-spring-wobbly),background-color_120ms_ease-out]",
         "motion-safe:active:[transition:scale_100ms_ease-out,background-color_120ms_ease-out]",
@@ -82,6 +83,16 @@ export function BalanceGameCard({
       )}
       aria-label="오늘의 밸런스 게임"
     >
+      {/*
+        맨 위 바탕 — 투표 전에는 대결에서 기세를 잡은 쪽 색, 고르면 고른 색. 카드 위 여백(감싸는 칸의
+        pt-9.5)까지 덮어야 화면 맨 위부터 물든다.
+      */}
+      <BalanceHeroWash
+        myVote={game.myVote}
+        idle={game.myVote === null && interactive}
+        className="-top-9.5 h-44"
+      />
+
       {/* 제목·타이머는 가운데 정렬 — 카드 안에서 선택지 묶음보다 상위 정보라는 것을 위계로 드러낸다. */}
       <h2 className="text-center text-[26px] leading-[34px] font-semibold text-feed-card-body-title-text">
         오늘의 밸런스 게임

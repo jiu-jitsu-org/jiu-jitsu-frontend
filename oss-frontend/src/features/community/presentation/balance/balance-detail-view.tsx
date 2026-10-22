@@ -60,8 +60,11 @@ export function BalanceDetailView({
         }
       >
         <div>
-          {/* 본문 영역: 헤더와 간격 24, 좌우 16 — 게시글 상세와 같은 규격 */}
-          <section className="flex flex-col px-4 pt-6">
+          {/*
+            본문 영역: 헤더와 간격 24, 좌우 16 — 게시글 상세와 같은 규격.
+            relative·isolate는 투표 패널이 까는 머리 바탕(BalanceHeroWash)의 기준이다.
+          */}
+          <section className="relative isolate flex flex-col px-4 pt-6">
             {/* 제목: Body M · 왼쪽 정렬(디자인 가이드). 게시글 상세와 같은 타이포지만 별개 지정이다. */}
             <h1 className="text-body-m text-feed-card-body-title-text">
               오늘의 밸런스 게임

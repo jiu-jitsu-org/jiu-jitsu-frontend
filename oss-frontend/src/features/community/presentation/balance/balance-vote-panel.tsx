@@ -10,6 +10,7 @@ import {
   BalanceOptionButton,
   type BalanceOptionState,
 } from "@/features/community/presentation/balance/balance-option-button";
+import { BalanceHeroWash } from "@/features/community/presentation/balance/balance-hero-wash";
 import { BalanceDetailCountdown } from "@/features/community/presentation/balance/balance-detail-countdown";
 import { readOptionResult } from "@/features/community/presentation/balance/balance-result";
 import { useBalanceCloseTransition } from "@/features/community/presentation/balance/use-balance-close-transition";
@@ -79,6 +80,16 @@ export function BalanceVotePanel({
 
   return (
     <>
+      {/*
+        머리 바탕 — 홈 카드와 같다(투표 전엔 대결 박자로 빨강↔파랑, 고르면 고른 색). 본문 영역(section)
+        맨 위부터 깔린다. 상태를 이 패널이 가져서 여기서 그린다.
+      */}
+      <BalanceHeroWash
+        myVote={game.myVote}
+        idle={game.myVote === null && interactive}
+        className="top-0 h-44"
+      />
+
       {/*
         타이머 배지 — 조회수 행 아래 24. 배지 자체가 자기 폭만 차지하는 inline-flex라
         가운데 정렬을 위해 한 겹 감싼다.

@@ -148,6 +148,9 @@
   /* 같은 8초 박자의 띠 물들기 — 기세를 잡은 동안 그쪽 띠가 진해진다. */
   --animate-balance-tone-a: balance-tone-a 8000ms ease-in-out infinite;
   --animate-balance-tone-b: balance-tone-b 8000ms ease-in-out infinite;
+  /* 같은 8초 박자의 머리 바탕 — 기세를 잡은 쪽 색이 깔리고, 맞붙는 동안 다음 색으로 스며든다. */
+  --animate-balance-hero-a: balance-hero-a 8000ms ease-in-out infinite;
+  --animate-balance-hero-b: balance-hero-b 8000ms ease-in-out infinite;
   /* 밸런스 게임 진행률 fill — 처음 나타날 때 0에서 부드럽게 차오른다(이후 변경은 transition). */
   --animate-balance-fill-in: balance-fill-in 1000ms var(--ease-spring-gentle);
   --animate-balance-fill-in-content: balance-fill-in-content 1000ms
@@ -1049,6 +1052,77 @@
       opacity: 0.45;
     }
     77.5% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  /*
+    머리 바탕(balance-hero-wash) — 띠 물들기와 같은 흐름을 바탕 전체로 옮긴다. 띠와 달리 둘이 동시에 짙지
+    않다: 맞붙는 1.6~2.4초에 빨강이 파랑으로, 반격하는 5.7~6.2초에 파랑이 빨강으로 넘어간다(0.5~0.8초).
+    쉬는 3.8~4.3초와 7.6~0.4초(다음 바퀴 처음)에만 비워 둔다.
+  */
+  @keyframes balance-hero-a {
+    0% {
+      opacity: 0;
+    }
+    5% {
+      opacity: 0;
+    }
+    11% {
+      opacity: 1;
+    }
+    20% {
+      opacity: 1;
+    }
+    30% {
+      opacity: 0;
+    }
+    71% {
+      opacity: 0;
+    }
+    77% {
+      opacity: 1;
+    }
+    89% {
+      opacity: 1;
+    }
+    95% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes balance-hero-b {
+    0% {
+      opacity: 0;
+    }
+    20% {
+      opacity: 0;
+    }
+    30% {
+      opacity: 1;
+    }
+    40% {
+      opacity: 1;
+    }
+    47% {
+      opacity: 0;
+    }
+    54% {
+      opacity: 0;
+    }
+    60% {
+      opacity: 1;
+    }
+    71% {
+      opacity: 1;
+    }
+    77% {
       opacity: 0;
     }
     100% {
