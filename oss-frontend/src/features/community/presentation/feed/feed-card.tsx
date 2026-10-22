@@ -171,7 +171,7 @@ export function FeedCard({
           menu={menu}
         />
       )}
-      {/* 헤더행 → 제목행 간격 8. 작성자 행을 감추면 제목행이 카드 맨 위이고 ⋮가 그 우측에 붙는다. */}
+      {/* 헤더행 → 제목행 간격 12. 작성자 행을 감추면 제목행이 카드 맨 위이고 ⋮가 그 우측에 붙는다. */}
       <FeedCardBody
         title={title}
         body={body}
@@ -183,7 +183,7 @@ export function FeedCard({
             <FeedCardMoreSlot menu={menu} onPressMore={onPressMore} />
           ) : undefined
         }
-        className={hideAuthor ? undefined : "mt-2"}
+        className={hideAuthor ? undefined : "mt-3"}
       />
       {images && images.length > 0 ? (
         <FeedCardImages images={images} className="mt-3" />
@@ -260,8 +260,8 @@ export function FeedCardHeader({
     <>
       {/* key=URL: 아바타 URL이 바뀌면 컴포넌트를 재마운트해 폴백 상태(failed)를 초기화한다. */}
       <FeedCardAvatar key={author.avatarUrl ?? "none"} avatarUrl={author.avatarUrl} />
-      {/* 아바타→닉네임 8. 닉네임: BodyM(Pretendard Medium 16) */}
-      <span className="ml-2 text-body-m text-feed-card-header-username-text">
+      {/* 아바타→닉네임 8. 닉네임: Body S(Pretendard Medium 14) — 제목(16 SemiBold)보다 한 단계 아래 */}
+      <span className="ml-2 text-body-s text-feed-card-header-username-text">
         {author.name}
       </span>
     </>
@@ -393,7 +393,7 @@ export function FeedCardBody({
   return (
     // 제목행 → 메타행 4 (gap-1), 메타행 → 본문행 8 (gap-1 + 본문 mt-1)
     <div className={cn("flex flex-col gap-1", className)}>
-      {/* 제목: Body M(Pretendard Medium 16) */}
+      {/* 제목: Pretendard SemiBold 16 — 카드에서 가장 먼저 읽히는 줄 */}
       {trailing ? (
         // 제목행 높이는 제목(24) 그대로 둔다 — ⋮(28)는 -my-0.5로 위아래 2씩 겹쳐 세로 가운데에 맞춘다.
         // 제목은 min-w-0 + flex-1이라 ⋮ 앞에서 말줄임되고 그 아래로 파고들지 않는다.
@@ -401,7 +401,7 @@ export function FeedCardBody({
           <Title
             type={onPress ? "button" : undefined}
             onClick={onPress}
-            className="line-clamp-1 min-w-0 flex-1 text-left text-body-m text-feed-card-body-title-text"
+            className="line-clamp-1 min-w-0 flex-1 text-left text-body-m font-semibold text-feed-card-body-title-text"
           >
             {title}
           </Title>
@@ -412,14 +412,14 @@ export function FeedCardBody({
           type={onPress ? "button" : undefined}
           onClick={onPress}
           className={cn(
-            "line-clamp-1 text-left text-body-m text-feed-card-body-title-text",
+            "line-clamp-1 text-left text-body-m font-semibold text-feed-card-body-title-text",
           )}
         >
           {title}
         </Title>
       )}
-      {/* 메타행: 카테고리·날짜. Label M(Pretendard Medium 12), 같은 색, 항목 간격 10(gap-2.5) */}
-      <div className="flex items-center gap-2.5 text-label-m text-feed-card-header-date-text">
+      {/* 메타행: 카테고리·날짜. Pretendard Regular 12 — 닉네임(14 Medium)보다 작고 가볍게, 같은 색, 항목 간격 10(gap-2.5) */}
+      <div className="flex items-center gap-2.5 text-label-m font-normal text-feed-card-header-date-text">
         {categoryName ? <span>{categoryName}</span> : null}
         <RelativeTime iso={createdAt} />
       </div>
