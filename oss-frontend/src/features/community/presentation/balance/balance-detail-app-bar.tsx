@@ -4,8 +4,10 @@ import { useState } from "react";
 
 import { AppBarShell } from "@/features/community/presentation/app-bar-shell";
 import { closeDetail } from "@/features/community/presentation/close-detail";
+import { REACTION_PRESS_MOTION } from "@/features/community/presentation/comment-reaction-styles";
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
+import { cn } from "@/shared/lib/cn";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
 import { useToast } from "@/shared/ui";
@@ -24,7 +26,7 @@ import { BackArrowIcon, BellIcon, BellOffIcon } from "@/shared/ui/icons";
  * 앱 웹뷰 비로그인은 종도 감춰 뒤로가기만 남는다 — 게시글 상세와 같은 정책(#173).
  */
 function alarmToast(enabled: boolean): string {
-  return enabled ? "알림을 받아요" : "알림을 받지 않아요";
+  return enabled ? "이 글의 알림을 받아요" : "이 글의 알림을 받지 않아요";
 }
 
 export function BalanceDetailAppBar({
@@ -39,6 +41,8 @@ export function BalanceDetailAppBar({
   const [alarmOn, setAlarmOn] = useState(initialNoticeEnabled);
   // 저장 중 재탭 방지 — 토글 엔드포인트라 연타하면 서버 상태가 화면과 어긋난 채로 뒤집힌다.
   const [alarmPending, setAlarmPending] = useState(false);
+  // 토글할 때마다 1씩 — 종 key로 써서 켜면 흔들림·끄면 움츠림을 처음부터 재생한다. 0이면(마운트) 가만히.
+  const [alarmTurn, setAlarmTurn] = useState(0);
   // 서버 값이 바뀌면 다시 맞춘다 — 비로그인으로 열었다가 로그인하면 router.refresh로 실제 설정이
   // 내려오는데(#173), 앱바는 재마운트되지 않아 useState가 비로그인 시점 값을 붙들고 있다.
   const [seededNotice, setSeededNotice] = useState(initialNoticeEnabled);
@@ -61,6 +65,7 @@ export function BalanceDetailAppBar({
     const previous = alarmOn;
     const next = !previous;
     setAlarmOn(next);
+    setAlarmTurn((n) => n + 1);
 
     // 예시(데모)에선 네트워크 없이 토스트만(저장·롤백 없음).
     if (demo) {
@@ -84,9 +89,9 @@ export function BalanceDetailAppBar({
 
       // 서버가 현재 설정을 뒤집어 결과(enabled)를 돌려주는 토글이라, 다른 화면·기기에서 이미
       // 바뀌어 있었다면 결과가 next와 다를 수 있다 → 응답 값을 진실로 삼는다.
-      const body = (await response.json().catch(() => null)) as
-        | { data?: { enabled?: boolean } }
-        | null;
+      const body = (await response.json().catch(() => null)) as {
+        data?: { enabled?: boolean };
+      } | null;
       const enabled =
         typeof body?.data?.enabled === "boolean" ? body.data.enabled : next;
 
@@ -122,9 +127,26 @@ export function BalanceDetailAppBar({
             aria-label={alarmOn ? "알림 끄기" : "알림 켜기"}
             aria-pressed={alarmOn}
             disabled={alarmPending}
-            className="inline-flex size-10 items-center justify-center rounded-full motion-safe:transition-colors motion-safe:duration-120 active:bg-surface-container-pressed text-icon-primary"
+            // 눌림 면은 색 전환 없이 바로 깔린다 — 전환 속성은 이미 눌림 축소(scale)가 쓰고 있어
+            // transition-colors를 더하면 둘 중 하나가 덮인다. 게시글 상세의 종과 같다.
+            className={cn(
+              "inline-flex size-10 items-center justify-center rounded-full text-icon-primary active:bg-surface-container-pressed",
+              REACTION_PRESS_MOTION,
+            )}
           >
-            {alarmOn ? <BellIcon size={24} /> : <BellOffIcon size={24} />}
+            {/* 켜면 꼭대기를 축으로 땡그랑 흔들리고, 끄면 움츠렸다 돌아온다. */}
+            <span
+              key={alarmTurn}
+              className={cn(
+                "inline-flex",
+                alarmTurn > 0 &&
+                  (alarmOn
+                    ? "origin-top motion-safe:animate-bell-ring"
+                    : "motion-safe:animate-bell-mute"),
+              )}
+            >
+              {alarmOn ? <BellIcon size={24} /> : <BellOffIcon size={24} />}
+            </span>
           </button>
         </div>
       )}
