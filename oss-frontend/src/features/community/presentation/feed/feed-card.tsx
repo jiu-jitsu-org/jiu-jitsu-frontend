@@ -171,7 +171,8 @@ export function FeedCard({
           menu={menu}
         />
       )}
-      {/* 헤더행 → 제목행 간격 12. 작성자 행을 감추면 제목행이 카드 맨 위이고 ⋮가 그 우측에 붙는다. */}
+      {/* 헤더행 → 제목행: 여백 없음. 헤더 높이는 ⋮(28)가 정해서 아바타(24) 아래 4가 보이는 간격이 된다.
+          작성자 행을 감추면 제목행이 카드 맨 위이고 ⋮가 그 우측에 붙는다. */}
       <FeedCardBody
         title={title}
         body={body}
@@ -183,12 +184,11 @@ export function FeedCard({
             <FeedCardMoreSlot menu={menu} onPressMore={onPressMore} />
           ) : undefined
         }
-        className={hideAuthor ? undefined : "mt-3"}
       />
       {images && images.length > 0 ? (
         <FeedCardImages images={images} className="mt-3" />
       ) : null}
-      {/* 본문행 → 리액션행 간격 8 */}
+      {/* 본문행 → 리액션행: 여백 없음. 아이콘(16)을 감싼 버튼(28)의 위쪽 6이 보이는 간격이 된다. */}
       <FeedCardReactions
         counts={counts}
         commented={commented}
@@ -197,7 +197,6 @@ export function FeedCard({
         onPressComment={onPressComment}
         onToggleLike={onToggleLike}
         onToggleBookmark={onToggleBookmark}
-        className="mt-2"
       />
     </article>
   );
