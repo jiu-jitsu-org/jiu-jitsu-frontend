@@ -258,7 +258,10 @@ export function FeedCardHeader({
   const authorContent = (
     <>
       {/* key=URL: 아바타 URL이 바뀌면 컴포넌트를 재마운트해 폴백 상태(failed)를 초기화한다. */}
-      <FeedCardAvatar key={author.avatarUrl ?? "none"} avatarUrl={author.avatarUrl} />
+      <FeedCardAvatar
+        key={author.avatarUrl ?? "none"}
+        avatarUrl={author.avatarUrl}
+      />
       {/* 아바타→닉네임 8. 닉네임: Body S(Pretendard Medium 14) — 제목(16 SemiBold)보다 한 단계 아래 */}
       <span className="ml-2 text-body-s text-feed-card-header-username-text">
         {author.name}
@@ -652,6 +655,31 @@ export function FeedCardCommentCount({
       label={`댓글 ${count}개`}
       active={commented}
       activeColorClass="text-reaction-bar-active-comment-icon"
+      displayOnly
+    />
+  );
+}
+
+/**
+ * 좋아요 수 표시 전용 — 리액션 행의 좋아요 버튼과 같은 모양이되 누를 수 없다(span).
+ *
+ * FeedCardCommentCount와 같은 이유로 내 커뮤니티 활동 '밸런스 게임' 목록이 쓴다. 내가 좋아요를
+ * 눌렀으면 아이콘이 filled + active 색이다(피드 카드와 같은 규칙).
+ */
+export function FeedCardLikeCount({
+  count,
+  liked = false,
+}: {
+  count: number;
+  liked?: boolean;
+}) {
+  return (
+    <ReactionButton
+      icon={<HeartIcon size={16} filled={liked} />}
+      count={count}
+      label={`좋아요 ${count}개`}
+      active={liked}
+      activeColorClass="text-reaction-bar-active-like-icon"
       displayOnly
     />
   );

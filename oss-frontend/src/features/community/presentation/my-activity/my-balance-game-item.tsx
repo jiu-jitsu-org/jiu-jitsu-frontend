@@ -13,7 +13,10 @@ import {
 import { BalanceRemaining } from "@/features/community/presentation/balance/balance-remaining";
 import { readOptionResult } from "@/features/community/presentation/balance/balance-result";
 import { useOpenBalanceDetail } from "@/features/community/presentation/balance/use-open-balance-detail";
-import { FeedCardCommentCount } from "@/features/community/presentation/feed/feed-card";
+import {
+  FeedCardCommentCount,
+  FeedCardLikeCount,
+} from "@/features/community/presentation/feed/feed-card";
 import { formatGameDate } from "@/features/community/presentation/format-detail-date";
 import { cn } from "@/shared/lib/cn";
 import { PRESS_BOUNCE } from "@/shared/ui/press-styles";
@@ -26,9 +29,9 @@ import { PRESS_BOUNCE } from "@/shared/ui/press-styles";
  * - 8 아래 선택지 두 줄(사이 4): 상세의 결과 상태와 **같은 컴포넌트**(BalanceOptionButton)를 표시 전용으로
  *   그린다 — 캐릭터 크기는 내 투표로, 결과 바 · 퍼센트는 readOptionResult가 정한다(진행 중이면 내 쪽만
  *   강조, 마감이면 양쪽 다 일반 색).
- * - 8 아래 오른쪽 댓글 수(피드 카드 리액션 행의 댓글 모양, 표시 전용).
+ * - 8 아래 오른쪽 댓글 수 · 좋아요 수(피드 카드 리액션 행과 같은 모양 · 순서, 표시 전용).
  *
- * 버튼 안에 버튼을 둘 수 없어 선택지 · 댓글 수는 displayOnly(span)로 그린다.
+ * 버튼 안에 버튼을 둘 수 없어 선택지 · 댓글 · 좋아요 수는 displayOnly(span)로 그린다.
  */
 export function MyBalanceGameItem({ game }: { game: BalanceGame }) {
   const openBalanceDetail = useOpenBalanceDetail();
@@ -86,6 +89,7 @@ export function MyBalanceGameItem({ game }: { game: BalanceGame }) {
           count={shown.commentCount}
           commented={shown.commented}
         />
+        <FeedCardLikeCount count={shown.likeCount} liked={shown.isLiked} />
       </span>
     </button>
   );
