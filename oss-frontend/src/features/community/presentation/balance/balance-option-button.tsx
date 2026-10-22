@@ -125,13 +125,47 @@ const IDLE_STYLES = {
 } as const;
 
 /**
+ * 고른 뒤 맞물림 동작(motion.css) — 투표 전 대결이 끝나도 캐릭터가 굳지 않게 한다.
+ *
+ * 고른 쪽(gloat)은 부풀어 상대 쪽으로 기울며 노려본다. 그림은 대결 때와 같은 눈 없는 몸통에 노려보는 눈을
+ * 얹되, 눈동자를 상대 쪽(A는 아래, B는 위)에 박아 둔다. 밀려난 쪽(cower)은 그 순간 납작하게 움츠러들며
+ * 상대 반대쪽으로 몸을 빼고 떤다 — 그림은 원래의 눈 처진 얼굴 그대로다.
+ * 둘은 같은 3.2초 박자에 같은 렌더에서 붙어 맞물린다. 고르는 순간의 보잉·시무룩(0.8초)이 끝난 뒤 시작한다.
+ *
+ * 대결과 마찬가지로 캐릭터가 띠 위로 솟으므로 행을 자르지 않고 캐릭터 칸이 밑단만 자른다.
+ */
+const GLOAT_STYLES = {
+  A: {
+    gloat: "motion-safe:animate-balance-gloat-a",
+    cower: "motion-safe:animate-balance-cower-a",
+  },
+  B: {
+    gloat: "motion-safe:animate-balance-gloat-b",
+    cower: "motion-safe:animate-balance-cower-b",
+  },
+} as const;
+
+/** 노려보는 눈동자 자리 — 대결에서 상대를 노려볼 때와 같은 값(balance-pupil-a/b의 5px). */
+const GLARE_PUPIL: Record<BalanceOptionKey, string> = {
+  A: "translate-y-[5px]",
+  B: "-translate-y-[5px]",
+};
+
+/**
  * 투표 전 캐릭터의 눈 — 몸통 그림(174×198)과 같은 좌표계의 SVG라 그림과 함께 커지고 기운다.
  *
  * 흰자 위를 비스듬한 눈꺼풀 선으로 잘라 미간 쪽이 낮은 "노려보는" 눈을 만든다.
  * 눈동자는 흰자 안에서만 보이고(clipPath) 위아래로만 움직인다 — 위로 가면 눈꺼풀에 반쯤 묻힌다.
  * clipPath id는 카드가 여러 장이어도 겹치지 않게 useId로 만든다.
  */
-function BalanceIdleEyes({ optionKey }: { optionKey: BalanceOptionKey }) {
+function BalanceIdleEyes({
+  optionKey,
+  glare = false,
+}: {
+  optionKey: BalanceOptionKey;
+  /** 고른 뒤 — 눈동자를 굴리지 않고 상대 쪽에 박아 둔다(GLOAT_STYLES). */
+  glare?: boolean;
+}) {
   const id = useId();
   const lid = `${id}-lid`;
   const whites = `${id}-whites`;
@@ -150,7 +184,11 @@ function BalanceIdleEyes({ optionKey }: { optionKey: BalanceOptionKey }) {
         <ellipse cx="66" cy="96" rx="11" ry="12" fill="white" />
         <ellipse cx="101" cy="95" rx="16" ry="13" fill="white" />
         <g clipPath={`url(#${whites})`}>
-          <g className={IDLE_STYLES[optionKey].pupil}>
+          <g
+            className={
+              glare ? GLARE_PUPIL[optionKey] : IDLE_STYLES[optionKey].pupil
+            }
+          >
             <circle cx="70" cy="98" r="4.8" fill="#111" />
             <circle cx="108" cy="97" r="5.8" fill="#111" />
           </g>
@@ -241,6 +279,9 @@ export function BalanceOptionButton({
   const selected = state === "selected";
   // 표시 전용 목록은 투표 전 상태가 없지만, 혹시 와도 누를 수 없는 곳에서 손짓하지 않는다.
   const idle = state === "default" && interactive && !displayOnly;
+  // 고른 뒤 맞물림 — 마감 전에만. 마감된 판은 끝난 승부라 가만히 둔다.
+  const gloat = state !== "default" && interactive && !displayOnly;
+  const glaring = gloat && state === "selected";
 
   /**
    * 마운트 이후 상태가 한 번이라도 바뀌었는지 — 일회성 모션(캐릭터·숫자·fill 등장)의 스위치.
@@ -307,8 +348,9 @@ export function BalanceOptionButton({
         // 캐릭터 패널이 만든다.
         // relative는 진행률 fill(절대 배치)의 기준이다. 결과를 안 그려도 무해하다.
         "relative flex w-full items-center gap-2.5 rounded-xl pr-4 text-left transition-colors duration-200",
-        // 투표 전 대결 동작에서 캐릭터가 띠 밖으로 솟도록 그때만 자르지 않는다(IDLE_STYLES).
-        !idle && "overflow-hidden",
+        // 대결·맞물림 동작에서 캐릭터가 띠 밖으로 솟도록 그때는 자르지 않는다(IDLE_STYLES·GLOAT_STYLES).
+        // 진행률 fill은 자기 칸(아래)이 따로 자르므로 행을 풀어도 띠 밖으로 새지 않는다.
+        !idle && !gloat && "overflow-hidden",
         // 누름 반응: 누르는 동안 세로로 납작하게 눌렸다가(0.1s), 떼면 스프링으로 출렁이며 돌아온다
         // (0.7s). 누를 때와 뗄 때 속도가 달라야 해서 :active 쪽 transition을 따로 덮어쓴다.
         // scale은 Tailwind v4에서 transform이 아니라 개별 scale 속성이라 transition 대상도 scale이다.
@@ -348,44 +390,49 @@ export function BalanceOptionButton({
         처음 나타날 때(투표 직후)는 0에서 차오르고(fill-in), 이미 떠 있는 상태에서
         비율이 바뀌면(A → B 변경) translate transition이 같은 곡선으로 옮겨 간다.
         층 순서: 아래 겹 문구(z 없음) < fill(z-1) < 캐릭터(z-2).
+        fill은 띠 모양으로 잘린 칸(z-1) 안에 든다 — 맞물림 동안 행이 자르지 않아도 띠 밖으로 새지 않는다.
       */}
       {resultStyles ? (
         <span
           aria-hidden
-          className={cn(
-            "absolute inset-y-0 -left-full z-1 w-[200%] overflow-hidden",
-            "transition-colors duration-200",
-            "motion-safe:[transition:translate_1000ms_var(--ease-spring-gentle),background-color_200ms_ease,color_200ms_ease]",
-            changed && "motion-safe:animate-balance-fill-in",
-            resultStyles.fill,
-          )}
-          style={{ translate: `${((result?.percent ?? 0) - 100) / 2}% 0` }}
+          className="absolute inset-0 z-1 overflow-hidden rounded-xl"
         >
           <span
             className={cn(
-              "absolute inset-y-0 left-1/2 flex w-1/2 items-center gap-2.5 pr-4",
-              "motion-safe:[transition:translate_1000ms_var(--ease-spring-gentle)]",
-              changed && "motion-safe:animate-balance-fill-in-content",
+              "absolute inset-y-0 -left-full w-[200%] overflow-hidden",
+              "transition-colors duration-200",
+              "motion-safe:[transition:translate_1000ms_var(--ease-spring-gentle),background-color_200ms_ease,color_200ms_ease]",
+              changed && "motion-safe:animate-balance-fill-in",
+              resultStyles.fill,
             )}
-            style={{ translate: `${100 - (result?.percent ?? 0)}% 0` }}
+            style={{ translate: `${((result?.percent ?? 0) - 100) / 2}% 0` }}
           >
             <span
               className={cn(
-                "shrink-0",
-                "motion-safe:transition-[width,height] motion-safe:duration-750 motion-safe:ease-spring-wobbly",
-                CHARACTER_SIZE[state],
+                "absolute inset-y-0 left-1/2 flex w-1/2 items-center gap-2.5 pr-4",
+                "motion-safe:[transition:translate_1000ms_var(--ease-spring-gentle)]",
+                changed && "motion-safe:animate-balance-fill-in-content",
               )}
-            />
-            <span className="min-w-0 flex-1 py-1.5 text-body-s break-keep">
-              {option.text}
-            </span>
-            <span
-              className={cn(
-                "shrink-0 text-body-s tabular-nums",
-                resultStyles.fillPercent,
-              )}
+              style={{ translate: `${100 - (result?.percent ?? 0)}% 0` }}
             >
-              {shownPercent}%
+              <span
+                className={cn(
+                  "shrink-0",
+                  "motion-safe:transition-[width,height] motion-safe:duration-750 motion-safe:ease-spring-wobbly",
+                  CHARACTER_SIZE[state],
+                )}
+              />
+              <span className="min-w-0 flex-1 py-1.5 text-body-s break-keep">
+                {option.text}
+              </span>
+              <span
+                className={cn(
+                  "shrink-0 text-body-s tabular-nums",
+                  resultStyles.fillPercent,
+                )}
+              >
+                {shownPercent}%
+              </span>
             </span>
           </span>
         </span>
@@ -420,7 +467,7 @@ export function BalanceOptionButton({
           "relative z-2 shrink-0 origin-bottom",
           "motion-safe:transition-[width,height] motion-safe:duration-750 motion-safe:ease-spring-wobbly",
           CHARACTER_SIZE[state],
-          idle &&
+          (idle || gloat) &&
             "pointer-events-none [clip-path:inset(-50%_-50%_0_0_round_0_0_0_12px)]",
         )}
       >
@@ -441,12 +488,16 @@ export function BalanceOptionButton({
           className={cn(
             "relative block size-full origin-bottom",
             idle && IDLE_STYLES[option.key].motion,
+            gloat &&
+              (glaring
+                ? GLOAT_STYLES[option.key].gloat
+                : GLOAT_STYLES[option.key].cower),
           )}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={
-              idle
+              idle || glaring
                 ? IDLE_STYLES[option.key].src
                 : CHARACTER_SRC[option.key][state]
             }
@@ -456,7 +507,9 @@ export function BalanceOptionButton({
               changed && CHARACTER_MOTION[state],
             )}
           />
-          {idle ? <BalanceIdleEyes optionKey={option.key} /> : null}
+          {idle || glaring ? (
+            <BalanceIdleEyes optionKey={option.key} glare={glaring} />
+          ) : null}
         </span>
       </span>
 

@@ -25,6 +25,7 @@ export function BalanceRemaining({
   onExpired,
   showIcon = false,
   className,
+  labelClassName = "text-label-m",
 }: {
   endAt: string;
   serverTime: string;
@@ -37,6 +38,8 @@ export function BalanceRemaining({
   onExpired?: () => void;
   showIcon?: boolean;
   className?: string;
+  /** 문구 타이포 — 기본은 label-m(12). 홈 카드의 타이머 칩은 한 단계 키운다. */
+  labelClassName?: string;
 }) {
   const { label, remainMs } = useBalanceCountdown({ endAt, serverTime, onExpired });
   // 상세 배지처럼 초마다 줄 전체가 살짝 부풀었다 돌아온다.
@@ -59,7 +62,7 @@ export function BalanceRemaining({
         내용을 들을 수 없다. 남은 시간은 보조 정보이고, 마감되면 카드가 다음 판으로 교체된다.
       */}
       {/* 숫자는 상세 배지와 같이 자리마다 굴러 올라간다. */}
-      <span className="text-label-m">
+      <span className={labelClassName}>
         <RollingText text={label} />
       </span>
     </span>

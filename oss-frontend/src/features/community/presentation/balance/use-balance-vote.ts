@@ -2,6 +2,7 @@
 
 import { useCallback, useRef } from "react";
 
+import { isDevelopmentRuntime } from "@/config/env";
 import { useAuth } from "@/features/auth/presentation/auth-provider";
 import type {
   BalanceGame,
@@ -65,6 +66,16 @@ function applyVote(
   };
 }
 
+/**
+ * (dev 전용) 체험 투표 — `next dev`에서 주소에 `?sample=1`을 붙이면 로그인 없이 화면에서만 고르고 바꾸고
+ * 취소할 수 있다. 서버에는 보내지 않는다. 투표 뒤 모션·물들임을 직접 눌러 보며 다듬으려고 둔다.
+ * production 빌드에서는 늘 false다.
+ */
+function isSampleVoting(): boolean {
+  if (!isDevelopmentRuntime() || typeof window === "undefined") return false;
+  return new URLSearchParams(window.location.search).get("sample") === "1";
+}
+
 export function useBalanceVote({
   game,
   onVoted,
@@ -93,6 +104,11 @@ export function useBalanceVote({
       // 안내를 띄우는 이유: 사용자는 마감된 줄 모르고 눌렀고, 반응이 없으면 앱이 멈춘 것처럼 보인다.
       if (game.closed) {
         toast.show("마감된 밸런스 게임이에요");
+        return;
+      }
+
+      if (isSampleVoting()) {
+        onVoted(applyVote(game, nextVoteOf(game.myVote, option)));
         return;
       }
 
