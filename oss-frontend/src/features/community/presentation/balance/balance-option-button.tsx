@@ -44,6 +44,20 @@ const CHARACTER_SIZE: Record<BalanceOptionState, string> = {
 };
 
 /**
+ * 상태별 문구 세로 패딩. 고른 쪽만 위아래 6씩 더 준다(12 → 24).
+ *
+ * 문구가 3줄을 넘으면 캐릭터가 아니라 문구가 행 높이를 정해, 캐릭터 크기 차이만으로는
+ * 고른 쪽이 더 커 보이지 않는다(4줄이면 양쪽 다 96). 여백 차이를 두면 줄 수와 상관없이
+ * 고른 쪽 행이 늘 12 이상 크다. 2줄(42) + 24 = 66은 고른 쪽 캐릭터(81.93) 아래라
+ * 1~2줄 높이는 그대로다.
+ */
+const TEXT_PADDING: Record<BalanceOptionState, string> = {
+  default: "py-1.5",
+  selected: "py-3",
+  unselected: "py-1.5",
+};
+
+/**
  * 상태별 캐릭터 아트워크(174×198 = 58×66의 @3x, 알파 있음).
  *
  * 파일명이 색(빨강/파랑)이 아니라 선택지 키(A/B)를 따르는 이유: 어느 쪽이 무슨 색인지는
@@ -422,7 +436,12 @@ export function BalanceOptionButton({
                   CHARACTER_SIZE[state],
                 )}
               />
-              <span className="min-w-0 flex-1 py-1.5 text-body-s break-keep">
+              <span
+                className={cn(
+                  "min-w-0 flex-1 text-body-s break-keep",
+                  TEXT_PADDING[state],
+                )}
+              >
                 {option.text}
               </span>
               <span
@@ -460,11 +479,14 @@ export function BalanceOptionButton({
       {/*
         크기 변화도 스프링이다 — 고른 쪽은 커지며 한 번 넘쳤다 돌아오고, 밀려난 쪽은 작아지며
         출렁인다. 높이가 곧 행 높이라 행도 함께 출렁인다(의도된 쫀득함).
+
+        행 바닥에 붙인다(self-end). 문구가 길어 행이 캐릭터보다 커지면 가운데 정렬로는 잘린
+        밑단이 바닥에서 떠 보인다.
       */}
       <span
         aria-hidden
         className={cn(
-          "relative z-2 shrink-0 origin-bottom",
+          "relative z-2 shrink-0 origin-bottom self-end",
           "motion-safe:transition-[width,height] motion-safe:duration-750 motion-safe:ease-spring-wobbly",
           CHARACTER_SIZE[state],
           (idle || gloat) &&
@@ -519,8 +541,14 @@ export function BalanceOptionButton({
         세로 패딩이 py-2(16)가 아니라 py-1.5(12)인 이유: 2줄(42) + 패딩이 가장 작은 상태의 캐릭터
         높이(54.62)를 넘으면 캐릭터가 아니라 문구가 행 높이를 정해 버려 실측값이 깨진다.
         12이면 54로 아슬하게 아래에 머문다. 3줄부터는 어차피 문구가 행을 늘리므로 그때 여백이 된다.
+        고른 쪽만 더 크다(TEXT_PADDING).
       */}
-      <span className="relative min-w-0 flex-1 py-1.5 text-body-s break-keep">
+      <span
+        className={cn(
+          "relative min-w-0 flex-1 text-body-s break-keep",
+          TEXT_PADDING[state],
+        )}
+      >
         {option.text}
       </span>
 
