@@ -33,6 +33,16 @@ export const COMMENT_REACTION_TEXT =
 export const REACTION_PRESS_MOTION =
   "motion-safe:transition-[scale] motion-safe:duration-500 motion-safe:ease-spring-wobbly motion-safe:active:scale-90 motion-safe:active:duration-100 motion-safe:active:ease-out";
 
+/** 피드 카드 리액션 행 아이콘 크기 — 밸런스 게임 카드의 댓글 링크도 같은 값을 쓴다. */
+export const REACTION_ICON_SIZE = 20;
+
+/**
+ * 리액션 행 버튼의 누르는 영역 — 보이는 높이 32에 위아래 6씩 보이지 않게 넓혀 44를 만든다.
+ * 보이는 간격(본문 → 리액션 6)은 그대로 두고 손가락이 닿는 범위만 키운다.
+ */
+export const REACTION_HIT_AREA =
+  "relative before:absolute before:inset-x-0 before:-inset-y-1.5 before:content-['']";
+
 /** 켜지는 순간(좋아요·저장) 아이콘이 톡 부풀었다 돌아온다 — usePopOnActivate와 함께. */
 export const REACTION_POP_MOTION = "motion-safe:animate-reaction-pop";
 

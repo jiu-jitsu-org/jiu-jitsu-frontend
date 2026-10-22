@@ -8,7 +8,11 @@ import {
 } from "@/features/community/presentation/balance/balance-option-button";
 import { BalanceHeroWash } from "@/features/community/presentation/balance/balance-hero-wash";
 import { BalanceRemaining } from "@/features/community/presentation/balance/balance-remaining";
-import { REACTION_PRESS_MOTION } from "@/features/community/presentation/comment-reaction-styles";
+import {
+  REACTION_HIT_AREA,
+  REACTION_ICON_SIZE,
+  REACTION_PRESS_MOTION,
+} from "@/features/community/presentation/comment-reaction-styles";
 import type {
   BalanceGame,
   BalanceOptionKey,
@@ -133,7 +137,7 @@ export function BalanceGameCard({
       {/* 댓글 링크는 우측 정렬 — 카드를 끝맺는 보조 동선이라 시선 흐름의 끝에 둔다. */}
       <div className="mt-2 flex justify-end">
         {/*
-          피드 카드 리액션 버튼과 같은 규격(높이 28 · 좌우 8 · radius 10 · 간격 4).
+          피드 카드 리액션 버튼과 같은 규격(높이 32 · 아이콘 20 · 누르는 영역 44 · 좌우 8 · radius 10 · 간격 4).
 
           Active(내가 댓글을 남김) 표시는 게시글 피드 카드(FeedCardReactions)와 **같은 규칙**이다
           — 아이콘이 filled로 바뀌고 reaction-bar/active 토큰으로 올라간다. 토글이 아니라 표시
@@ -148,7 +152,8 @@ export function BalanceGameCard({
           onClick={onPressDetail}
           aria-pressed={game.commented}
           className={cn(
-            "group flex h-7 cursor-pointer items-center gap-1 rounded-[10px] px-2",
+            "group flex h-8 cursor-pointer items-center gap-1 rounded-[10px] px-2",
+            REACTION_HIT_AREA,
             game.commented
               ? "text-reaction-bar-active-comment-icon"
               : "text-text-tertiary",
@@ -157,7 +162,7 @@ export function BalanceGameCard({
             REACTION_PRESS_MOTION,
           )}
         >
-          <CommentIcon size={16} filled={game.commented} />
+          <CommentIcon size={REACTION_ICON_SIZE} filled={game.commented} />
           <span
             className={cn(
               "text-body-s",
