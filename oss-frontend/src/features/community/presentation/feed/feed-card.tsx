@@ -24,6 +24,8 @@ import {
   withRetryParam,
 } from "@/features/community/presentation/image-fallback";
 import {
+  REACTION_HIT_AREA,
+  REACTION_ICON_SIZE,
   REACTION_POP_MOTION,
   REACTION_PRESS_MOTION,
 } from "@/features/community/presentation/comment-reaction-styles";
@@ -188,7 +190,7 @@ export function FeedCard({
       {images && images.length > 0 ? (
         <FeedCardImages images={images} className="mt-3" />
       ) : null}
-      {/* 본문행 → 리액션행: 여백 없음. 아이콘(16)을 감싼 버튼(28)의 위쪽 6이 보이는 간격이 된다. */}
+      {/* 본문행 → 리액션행: 여백 없음. 아이콘(20)을 감싼 버튼(32)의 위쪽 6이 보이는 간격이 된다. */}
       <FeedCardReactions
         counts={counts}
         commented={commented}
@@ -258,7 +260,10 @@ export function FeedCardHeader({
   const authorContent = (
     <>
       {/* key=URL: 아바타 URL이 바뀌면 컴포넌트를 재마운트해 폴백 상태(failed)를 초기화한다. */}
-      <FeedCardAvatar key={author.avatarUrl ?? "none"} avatarUrl={author.avatarUrl} />
+      <FeedCardAvatar
+        key={author.avatarUrl ?? "none"}
+        avatarUrl={author.avatarUrl}
+      />
       {/* 아바타→닉네임 8. 닉네임: Body S(Pretendard Medium 14) — 제목(16 SemiBold)보다 한 단계 아래 */}
       <span className="ml-2 text-body-s text-feed-card-header-username-text">
         {author.name}
@@ -603,7 +608,7 @@ export function FeedCardReactions({
   return (
     <div className={cn("flex items-center justify-end", className)}>
       <ReactionButton
-        icon={<CommentIcon size={16} filled={commented} />}
+        icon={<CommentIcon size={REACTION_ICON_SIZE} filled={commented} />}
         count={counts.comments}
         label={`댓글 ${counts.comments}개`}
         active={commented}
@@ -611,7 +616,7 @@ export function FeedCardReactions({
         onClick={onPressComment}
       />
       <ReactionButton
-        icon={<HeartIcon size={16} filled={liked} />}
+        icon={<HeartIcon size={REACTION_ICON_SIZE} filled={liked} />}
         count={counts.likes}
         label={`좋아요 ${counts.likes}개`}
         active={liked}
@@ -620,7 +625,7 @@ export function FeedCardReactions({
         onClick={onToggleLike}
       />
       <ReactionButton
-        icon={<BookmarkIcon size={16} filled={bookmarked} />}
+        icon={<BookmarkIcon size={REACTION_ICON_SIZE} filled={bookmarked} />}
         count={counts.bookmarks}
         label={`북마크 ${counts.bookmarks}개`}
         active={bookmarked}
@@ -647,7 +652,7 @@ export function FeedCardCommentCount({
 }) {
   return (
     <ReactionButton
-      icon={<CommentIcon size={16} filled={commented} />}
+      icon={<CommentIcon size={REACTION_ICON_SIZE} filled={commented} />}
       count={count}
       label={`댓글 ${count}개`}
       active={commented}
@@ -658,8 +663,33 @@ export function FeedCardCommentCount({
 }
 
 /**
- * 리액션 단일 버튼(아이콘 + 카운트). 높이 28 고정, 아이콘 16x16.
- * - 카운트가 0이면 숫자를 숨기고 버튼을 32x28(아이콘 가운데)로 둔다.
+ * 좋아요 수 표시 전용 — 리액션 행의 좋아요 버튼과 같은 모양이되 누를 수 없다(span).
+ *
+ * FeedCardCommentCount와 같은 이유로 내 커뮤니티 활동 '밸런스 게임' 목록이 쓴다. 내가 좋아요를
+ * 눌렀으면 아이콘이 filled + active 색이다(피드 카드와 같은 규칙).
+ */
+export function FeedCardLikeCount({
+  count,
+  liked = false,
+}: {
+  count: number;
+  liked?: boolean;
+}) {
+  return (
+    <ReactionButton
+      icon={<HeartIcon size={REACTION_ICON_SIZE} filled={liked} />}
+      count={count}
+      label={`좋아요 ${count}개`}
+      active={liked}
+      activeColorClass="text-reaction-bar-active-like-icon"
+      displayOnly
+    />
+  );
+}
+
+/**
+ * 리액션 단일 버튼(아이콘 + 카운트). 높이 32 고정, 아이콘 20x20, 누르는 영역 높이 44.
+ * - 카운트가 0이면 숫자를 숨기고 버튼을 36x32(아이콘 가운데)로 둔다.
  * - 카운트가 있으면 폭은 유동: 아이콘 좌측 8 · 아이콘↔숫자 4 · 숫자 우측 8.
  * active 시 토큰 활성 색상으로 전환.
  */
@@ -701,10 +731,10 @@ function ReactionButton({
           })}
       aria-label={label}
       className={cn(
-        "inline-flex h-7 items-center text-reaction-bar-default-icon",
-        showCount ? "gap-1 pl-2 pr-2" : "w-8 justify-center",
+        "inline-flex h-8 items-center text-reaction-bar-default-icon",
+        showCount ? "gap-1 pl-2 pr-2" : "w-9 justify-center",
         active && activeColorClass,
-        !displayOnly && REACTION_PRESS_MOTION,
+        !displayOnly && [REACTION_HIT_AREA, REACTION_PRESS_MOTION],
       )}
     >
       {/* 팝은 아이콘만 — 버튼의 눌림(scale)과 transform이 겹치지 않게 감싼다. 색은 currentColor 상속. */}
