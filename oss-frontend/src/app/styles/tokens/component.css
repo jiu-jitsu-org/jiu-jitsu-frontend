@@ -205,11 +205,12 @@
   --my-profile-header-bg-black: #2d2d2d;
   --feed-card-end-text: var(--text-tertiary);
   --feed-card-header-avatar-bg: var(--surface-secondary);
-  --feed-card-header-username-text: var(--text-primary);
+  --feed-card-header-username-text: var(--text-secondary);
   --feed-card-header-date-text: var(--text-tertiary);
+  --feed-card-header-category-text: var(--text-secondary);
   --feed-card-header-more-icon: var(--icon-subtle);
   --feed-card-body-title-text: var(--text-primary);
-  --feed-card-body-text: var(--text-secondary);
+  --feed-card-body-text: var(--text-secondary-strong);
   --feed-card-body-more-text: var(--text-tertiary);
   --feed-card-image-badge-bg: var(--overlay-scrim-heavy);
   --feed-card-image-badge-text: var(--text-on-overlay);

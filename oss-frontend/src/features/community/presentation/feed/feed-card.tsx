@@ -264,7 +264,8 @@ export function FeedCardHeader({
         key={author.avatarUrl ?? "none"}
         avatarUrl={author.avatarUrl}
       />
-      {/* 아바타→닉네임 8. 닉네임: Body S(Pretendard Medium 14) — 제목(16 SemiBold)보다 한 단계 아래 */}
+      {/* 아바타→닉네임 8. 닉네임: Body S(Pretendard Medium 14), 회색(text-secondary) —
+          진한 색은 제목만 갖는다. 닉네임까지 진하면 시선이 제목과 둘로 갈린다. */}
       <span className="ml-2 text-body-s text-feed-card-header-username-text">
         {author.name}
       </span>
@@ -397,37 +398,44 @@ export function FeedCardBody({
   return (
     // 제목행 → 메타행 4 (gap-1), 메타행 → 본문행 8 (gap-1 + 본문 mt-1)
     <div className={cn("flex flex-col gap-1", className)}>
-      {/* 제목: Pretendard SemiBold 16 — 카드에서 가장 먼저 읽히는 줄 */}
+      {/* 제목: Pretendard SemiBold 16 — 카드에서 가장 먼저 읽히는 줄. 넘치면 2줄까지 보이고 그 뒤는 말줄임. */}
       {trailing ? (
-        // 제목행 높이는 제목(24) 그대로 둔다 — ⋮(28)는 -my-0.5로 위아래 2씩 겹쳐 세로 가운데에 맞춘다.
-        // 제목은 min-w-0 + flex-1이라 ⋮ 앞에서 말줄임되고 그 아래로 파고들지 않는다.
-        <div className="flex items-center">
+        // 제목 첫 줄 높이는 제목(24) 그대로 둔다 — ⋮(28)는 -my-0.5로 위아래 2씩 겹쳐 첫 줄 세로 가운데에 맞춘다.
+        // 제목은 min-w-0 + flex-1이라 ⋮ 앞에서 줄이 바뀌고 그 아래로 파고들지 않는다.
+        <div className="flex items-start">
           <Title
             type={onPress ? "button" : undefined}
             onClick={onPress}
-            className="line-clamp-1 min-w-0 flex-1 text-left text-body-m font-semibold text-feed-card-body-title-text"
+            className="line-clamp-2 min-w-0 flex-1 text-left text-body-m font-semibold text-feed-card-body-title-text"
           >
             {title}
           </Title>
           <div className="-my-0.5 ml-2 shrink-0">{trailing}</div>
         </div>
       ) : (
+        // 오른쪽 32(pr-8)는 바로 위 헤더 ⋮(32) 폭 — 긴 제목이 ⋮ 바로 아래까지 달려 붙지 않고
+        // ⋮ 안쪽 선에서 줄이 바뀐다.
         <Title
           type={onPress ? "button" : undefined}
           onClick={onPress}
           className={cn(
-            "line-clamp-1 text-left text-body-m font-semibold text-feed-card-body-title-text",
+            "line-clamp-2 pr-8 text-left text-body-m font-semibold text-feed-card-body-title-text",
           )}
         >
           {title}
         </Title>
       )}
-      {/* 메타행: 카테고리·날짜. Pretendard Regular 12 — 닉네임(14 Medium)보다 작고 가볍게, 같은 색, 항목 간격 10(gap-2.5) */}
+      {/* 메타행: 카테고리·날짜. Pretendard Regular 12, 항목 간격 10(gap-2.5).
+          카테고리는 한 칸 진하게(category-text), 날짜는 옅게 — "무엇"과 "언제"가 한 단어처럼 읽히지 않게. */}
       <div className="flex items-center gap-2.5 text-label-m font-normal text-feed-card-header-date-text">
-        {categoryName ? <span>{categoryName}</span> : null}
+        {categoryName ? (
+          <span className="text-feed-card-header-category-text">
+            {categoryName}
+          </span>
+        ) : null}
         <RelativeTime iso={createdAt} />
       </div>
-      {/* 본문: Body S Multi-line(14/21), 메타행 아래 8 */}
+      {/* 본문: Body S Multi-line(14/21), 메타행 아래 8. 색은 제목 다음 칸(text-secondary-strong) */}
       <p
         ref={bodyRef}
         className={cn(

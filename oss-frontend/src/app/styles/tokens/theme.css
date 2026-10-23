@@ -8,6 +8,7 @@
   --color-on-error: var(--on-error);
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
+  --color-text-secondary-strong: var(--text-secondary-strong);
   --color-text-tertiary: var(--text-tertiary);
   --color-text-on-overlay: var(--text-on-overlay);
   --color-text-on-primary: var(--text-on-primary);
@@ -294,6 +295,7 @@
   --color-feed-card-header-avatar-bg: var(--feed-card-header-avatar-bg);
   --color-feed-card-header-username-text: var(--feed-card-header-username-text);
   --color-feed-card-header-date-text: var(--feed-card-header-date-text);
+  --color-feed-card-header-category-text: var(--feed-card-header-category-text);
   --color-feed-card-header-more-icon: var(--feed-card-header-more-icon);
   --color-feed-card-body-title-text: var(--feed-card-body-title-text);
   --color-feed-card-body-text: var(--feed-card-body-text);

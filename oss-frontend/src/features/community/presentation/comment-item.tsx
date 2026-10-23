@@ -117,9 +117,9 @@ export function CommentItem({
         {/* 프로필 행: 높이 24(아바타와 동일)로 두고 items-center → 아이콘 기준 수직 가운데.
             닉네임↔날짜 간격 6(gap-1.5). */}
         <div className="flex h-6 items-center gap-1.5">
-          {/* 닉네임: Body M, feed-card/header/username-text */}
+          {/* 닉네임: Body M, text/text-primary — 피드 카드 닉네임(회색)과 달리 댓글에선 이름이 첫 단서라 진하게 둔다 */}
           <MyActivityLink enabled={comment.isOwner} className="flex">
-            <span className="text-body-m text-feed-card-header-username-text">
+            <span className="text-body-m text-text-primary">
               {comment.author.nickname}
             </span>
           </MyActivityLink>

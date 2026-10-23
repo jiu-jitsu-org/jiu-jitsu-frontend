@@ -9,7 +9,7 @@
 export function CommentEmpty() {
   return (
     <div className="flex flex-col items-center gap-3 pb-16 pt-3 text-center motion-safe:animate-rise-in">
-      <p className="text-body-m text-feed-card-header-username-text">
+      <p className="text-body-m text-text-primary">
         댓글이 아직 없습니다.
       </p>
       <p className="text-body-s text-feed-card-body-text">
