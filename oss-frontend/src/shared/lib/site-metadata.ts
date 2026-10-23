@@ -18,7 +18,10 @@ export const SITE_DESCRIPTION = "주짓수 커뮤니티 OSS";
  *
  * 작성자 아바타를 대신 쓰지 않는다 — 글의 내용과 무관한 얼굴이 썸네일로 잡히는 것이 어색하고,
  * 공유받는 사람에게는 서비스 브랜드가 더 유용한 단서다.
- * 앱 아이콘이 바뀌면 public/images/og-default.png · app-icon.png 두 파일만 교체한다.
+ * 앱 아이콘이 바뀌면 public/images/og-default.png · app-icon.png · src/app/favicon.ico 세 파일을 교체한다.
+ * 원본은 iOS 레포 `DesignSystem/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png`(1024, 배경 단색).
+ * og-default는 아이콘 배경색으로 1200×630을 채우고 가운데에 630 크기 아이콘을 얹는다 — 카카오가
+ * 정사각형으로 잘라도 로고가 온전히 남는다.
  */
 export const DEFAULT_OG_IMAGE_PATH = "/images/og-default.png";
 
