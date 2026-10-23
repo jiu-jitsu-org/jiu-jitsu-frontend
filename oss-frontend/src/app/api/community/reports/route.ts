@@ -13,7 +13,8 @@ import type { ApiSuccessResponse } from "@/shared/types/api";
  * POST /api/community/reports — 게시글/댓글 신고(인증 필요).
  *
  * body: { reportType: "BOARD" | "COMMENT", targetId: number, reason: string, detail?: string }
- * 업스트림 POST /reports로 위임. 동일 대상 중복 신고 차단은 업스트림이 담당한다.
+ * 업스트림 POST /reports로 위임. 동일 대상 중복 신고 차단은 업스트림이 담당한다(400 + U0008,
+ * 에러 봉투는 details로 그대로 내려간다).
  */
 const REPORT_TYPES: ReportTargetType[] = ["BOARD", "COMMENT"];
 

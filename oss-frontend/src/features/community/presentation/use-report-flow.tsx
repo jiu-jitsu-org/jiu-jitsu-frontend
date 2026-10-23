@@ -8,6 +8,7 @@ import {
 } from "@/features/community/domain/report";
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
 import { useNativeDialog } from "@/features/community/presentation/use-native-dialog";
+import { ApiErrorCode } from "@/shared/lib/http/api-error";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
 import { useToast } from "@/shared/ui";
@@ -98,9 +99,10 @@ export function useReportFlow() {
         if (response.status === 401) {
           postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
         }
-        // 동일 대상 중복 신고는 서버가 막는다(409). 이미 신고한 상태이므로 호출부는 성공과 동일하게
-        // 후처리(목록에서 감추기)한다 — 계속 보이는 편이 더 어색하다.
-        if (response.status === 409) {
+        // 동일 대상 중복 신고는 서버가 막는다(400 + U0008, BFF가 업스트림 봉투를 details로 전달).
+        // 이미 신고한 상태이므로 호출부는 성공과 동일하게 후처리(목록에서 감추기)한다 — 계속 보이는
+        // 편이 더 어색하다.
+        if (await isAlreadyReported(response)) {
           notifyReported(`이미 신고한 ${noun}이에요`, options?.onReported);
           return true;
         }
@@ -115,4 +117,13 @@ export function useReportFlow() {
   );
 
   return { report, dialog };
+}
+
+/** 중복 신고 응답인지 — 400 + 업스트림 code `U0008`. 상태코드만으론 일반 400과 구분되지 않는다. */
+async function isAlreadyReported(response: Response): Promise<boolean> {
+  if (response.status !== 400) return false;
+  const json = (await response.json().catch(() => null)) as {
+    details?: { code?: unknown };
+  } | null;
+  return json?.details?.code === ApiErrorCode.ALREADY_REPORTED;
 }
