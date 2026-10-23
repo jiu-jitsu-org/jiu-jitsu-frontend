@@ -315,7 +315,7 @@ export function CommunityFeedList({
 
   return (
     // 하단 91: 우하단 플로팅 FAB(작성 버튼)이 마지막 카드 UX를 가리지 않도록 여유를 둔 스펙값.
-    // 카드 사이 간격 32는 각 카드가 mb-8로 갖는다 — 접힐 때 간격도 함께 사라져야 하기 때문
+    // 카드 사이 간격 40은 각 카드가 mb-10으로 갖는다 — 접힐 때 간격도 함께 사라져야 하기 때문
     // (컨테이너 gap은 높이가 0이 돼도 그대로 남아 빈 자리가 생긴다).
     <div
       ref={listRef}
@@ -326,7 +326,7 @@ export function CommunityFeedList({
 
         return (
           // grid-rows 0fr↔1fr + overflow-hidden — 카드 높이가 이미지 유무로 제각각이라
-          // 고정 높이를 쓸 수 없다. 아래 여백(32)도 함께 접어야 빈 자리가 남지 않는다.
+          // 고정 높이를 쓸 수 없다. 아래 여백(40)도 함께 접어야 빈 자리가 남지 않는다.
           // 떠오르는 모션은 overflow-hidden 바깥(이 칸)에 건다 — 안쪽에 걸면 아래 8px이 잘린다.
           <div
             key={post.id}
@@ -345,7 +345,7 @@ export function CommunityFeedList({
               "grid transition-[grid-template-rows,opacity,margin-bottom] duration-200 ease-out",
               collapsedIds.has(post.id)
                 ? "mb-0 grid-rows-[0fr] opacity-0"
-                : "mb-8 grid-rows-[1fr] opacity-100",
+                : "mb-10 grid-rows-[1fr] opacity-100",
               enterIndex !== undefined && "motion-safe:animate-feed-rise-in",
             )}
           >
