@@ -23,6 +23,7 @@ export function SelectSheet({
   message,
   options,
   customTextPlaceholder,
+  customTextMaxLength,
   submitText,
   onDismiss,
   onSubmit,
@@ -32,6 +33,8 @@ export function SelectSheet({
   message?: string;
   options: SelectSheetOption[];
   customTextPlaceholder?: string;
+  /** 자유 입력 최대 글자 수. 넘는 입력·붙여넣기는 브라우저가 잘라낸다(글자 수 표시는 네이티브와 맞춰 두지 않는다). */
+  customTextMaxLength?: number;
   submitText: string;
   onDismiss: () => void;
   onSubmit: (selected: { value: string; customText?: string }) => void;
@@ -136,6 +139,7 @@ export function SelectSheet({
             value={customText}
             onChange={(event) => setCustomText(event.target.value)}
             placeholder={customTextPlaceholder}
+            maxLength={customTextMaxLength}
             className="mt-2 h-20 w-full resize-none rounded-[15px] bg-textfield-mutiline-default-bg px-4 py-3 text-body-s text-textfield-mutiline-filled-text placeholder:text-textfield-mutiline-default-text"
           />
         ) : null}

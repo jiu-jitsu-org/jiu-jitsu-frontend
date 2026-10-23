@@ -135,6 +135,11 @@ export type SelectSheetPayload = {
   options: SelectSheetOption[];
   /** 자유 입력 필드의 placeholder(선택) — 문구를 웹이 소유하기 위해 payload로 넘긴다. */
   customTextPlaceholder?: string;
+  /**
+   * 자유 입력 최대 글자 수(선택, UTF-16 단위). 숫자를 웹이 소유해 앱 배포 없이 바꾼다.
+   * 값이 없으면 네이티브 기본값(200)을 쓴다.
+   */
+  customTextMaxLength?: number;
   submitText: string;
 };
 

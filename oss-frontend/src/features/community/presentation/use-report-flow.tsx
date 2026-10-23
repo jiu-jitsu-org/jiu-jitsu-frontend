@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 
 import {
+  REPORT_DETAIL_MAX_LENGTH,
   REPORT_REASONS,
   type ReportTargetType,
 } from "@/features/community/domain/report";
@@ -72,6 +73,7 @@ export function useReportFlow() {
         message: "신고는 익명으로 처리되며, 검토 후 조치돼요.",
         options: REPORT_REASONS,
         customTextPlaceholder: "신고할 내용을 입력해주세요.",
+        customTextMaxLength: REPORT_DETAIL_MAX_LENGTH,
         submitText: "신고하기",
       });
       if (!outcome.submitted || !outcome.value) return false;

@@ -18,6 +18,14 @@ export type CreateReportInput = {
 };
 
 /**
+ * 「기타」 상세 입력 최대 글자 수(UTF-16 단위 — 웹 maxlength·네이티브 시트와 같은 기준).
+ *
+ * 기획 정책이 아니라 임시 기준이다(신고 사유 2~3문장 수준). QA에서 바뀔 수 있어 여기 한곳에서만 관리한다 —
+ * 웹 시트·네이티브 시트(payload)·BFF 검증이 모두 이 값을 따른다. 서버 저장 한도(255)보다 작아야 한다.
+ */
+export const REPORT_DETAIL_MAX_LENGTH = 200;
+
+/**
  * 신고 사유 코드. 업스트림 `ReportCreateRequest.reason` Enum과 1:1로 맞춘다.
  * 값이 어긋나면 400이 아니라 집계가 조용히 틀어지므로 문자열을 임의로 늘리지 않는다.
  */

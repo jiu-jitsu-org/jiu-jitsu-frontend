@@ -40,6 +40,7 @@ type SelectSheetOptions = {
   message?: string;
   options: SelectSheetOption[];
   customTextPlaceholder?: string;
+  customTextMaxLength?: number;
   submitText: string;
 };
 
@@ -144,6 +145,7 @@ export function useNativeDialog() {
           message={sheetState.options.message}
           options={sheetState.options.options}
           customTextPlaceholder={sheetState.options.customTextPlaceholder}
+          customTextMaxLength={sheetState.options.customTextMaxLength}
           submitText={sheetState.options.submitText}
           onDismiss={() => settleSheet({ submitted: false })}
           onSubmit={(selected) =>
