@@ -398,26 +398,28 @@ export function FeedCardBody({
   return (
     // 제목행 → 메타행 4 (gap-1), 메타행 → 본문행 8 (gap-1 + 본문 mt-1)
     <div className={cn("flex flex-col gap-1", className)}>
-      {/* 제목: Pretendard SemiBold 16 — 카드에서 가장 먼저 읽히는 줄 */}
+      {/* 제목: Pretendard SemiBold 16 — 카드에서 가장 먼저 읽히는 줄. 넘치면 2줄까지 보이고 그 뒤는 말줄임. */}
       {trailing ? (
-        // 제목행 높이는 제목(24) 그대로 둔다 — ⋮(28)는 -my-0.5로 위아래 2씩 겹쳐 세로 가운데에 맞춘다.
-        // 제목은 min-w-0 + flex-1이라 ⋮ 앞에서 말줄임되고 그 아래로 파고들지 않는다.
-        <div className="flex items-center">
+        // 제목 첫 줄 높이는 제목(24) 그대로 둔다 — ⋮(28)는 -my-0.5로 위아래 2씩 겹쳐 첫 줄 세로 가운데에 맞춘다.
+        // 제목은 min-w-0 + flex-1이라 ⋮ 앞에서 줄이 바뀌고 그 아래로 파고들지 않는다.
+        <div className="flex items-start">
           <Title
             type={onPress ? "button" : undefined}
             onClick={onPress}
-            className="line-clamp-1 min-w-0 flex-1 text-left text-body-m font-semibold text-feed-card-body-title-text"
+            className="line-clamp-2 min-w-0 flex-1 text-left text-body-m font-semibold text-feed-card-body-title-text"
           >
             {title}
           </Title>
           <div className="-my-0.5 ml-2 shrink-0">{trailing}</div>
         </div>
       ) : (
+        // 오른쪽 32(pr-8)는 바로 위 헤더 ⋮(32) 폭 — 긴 제목이 ⋮ 바로 아래까지 달려 붙지 않고
+        // ⋮ 안쪽 선에서 줄이 바뀐다.
         <Title
           type={onPress ? "button" : undefined}
           onClick={onPress}
           className={cn(
-            "line-clamp-1 text-left text-body-m font-semibold text-feed-card-body-title-text",
+            "line-clamp-2 pr-8 text-left text-body-m font-semibold text-feed-card-body-title-text",
           )}
         >
           {title}
