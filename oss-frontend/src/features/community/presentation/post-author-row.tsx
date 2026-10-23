@@ -27,7 +27,7 @@ export function PostAuthorRow({
       {/* 프로필 아이콘 24x24 고정, 로드 실패 시 기본 상태 폴백 */}
       <Avatar src={author.avatarUrl} className="size-6" iconSize={16} />
       {/* 닉네임: Body M(Pretendard Medium 16) */}
-      <span className="text-body-m text-feed-card-header-username-text">
+      <span className="text-body-m text-text-primary">
         {author.nickname}
       </span>
     </MyActivityLink>

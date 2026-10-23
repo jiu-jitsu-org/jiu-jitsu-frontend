@@ -264,7 +264,8 @@ export function FeedCardHeader({
         key={author.avatarUrl ?? "none"}
         avatarUrl={author.avatarUrl}
       />
-      {/* 아바타→닉네임 8. 닉네임: Body S(Pretendard Medium 14) — 제목(16 SemiBold)보다 한 단계 아래 */}
+      {/* 아바타→닉네임 8. 닉네임: Body S(Pretendard Medium 14), 회색(text-secondary) —
+          진한 색은 제목만 갖는다. 닉네임까지 진하면 시선이 제목과 둘로 갈린다. */}
       <span className="ml-2 text-body-s text-feed-card-header-username-text">
         {author.name}
       </span>
@@ -427,7 +428,7 @@ export function FeedCardBody({
         {categoryName ? <span>{categoryName}</span> : null}
         <RelativeTime iso={createdAt} />
       </div>
-      {/* 본문: Body S Multi-line(14/21), 메타행 아래 8 */}
+      {/* 본문: Body S Multi-line(14/21), 메타행 아래 8. 색은 제목 다음 칸(text-secondary-strong) */}
       <p
         ref={bodyRef}
         className={cn(

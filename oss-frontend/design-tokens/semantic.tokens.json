@@ -125,6 +125,30 @@
         }
       }
     },
+    "text-secondary-strong": {
+      "$type": "color",
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.3019607961177826,
+          0.30588236451148987,
+          0.3294117748737335
+        ],
+        "alpha": 1,
+        "hex": "#4D4E54"
+      },
+      "$extensions": {
+        "com.figma.scopes": [
+          "ALL_SCOPES"
+        ],
+        "com.figma.aliasData": {
+          "targetVariableId": "VariableID:dd4077e2dac50d3a13f4046f5346547ad7bcc0ac/-1:-1",
+          "targetVariableName": "Color/Cool gray/700",
+          "targetVariableSetId": "VariableCollectionId:7f00cdd25149ef1089b75cf5032c9e3c0007fe95/-1:-1",
+          "targetVariableSetName": "Primitive"
+        }
+      }
+    },
     "text-tertiary": {
       "$type": "color",
       "$value": {

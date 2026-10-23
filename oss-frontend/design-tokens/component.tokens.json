@@ -5224,12 +5224,12 @@
         "$value": {
           "colorSpace": "srgb",
           "components": [
-            0.16078431904315948,
-            0.16470588743686676,
-            0.18039216101169586
+            0.43921568989753723,
+            0.45098039507865906,
+            0.48627451062202454
           ],
           "alpha": 1,
-          "hex": "#292A2E"
+          "hex": "#70737C"
         },
         "$extensions": {
           "com.figma.variableId": "VariableID:2692:13137",
@@ -5237,8 +5237,8 @@
             "ALL_SCOPES"
           ],
           "com.figma.aliasData": {
-            "targetVariableId": "VariableID:680d5bbc84a35636fb3985290d5344daee6ce563/-1:-1",
-            "targetVariableName": "text/text-primary",
+            "targetVariableId": "VariableID:302af235c155b2cae0cd0c8848f50cf2c4e606a8/-1:-1",
+            "targetVariableName": "text/text-secondary",
             "targetVariableSetId": "VariableCollectionId:15186b5b892c3eee2ab46145c4a2b0eff01d46b7/-1:-1",
             "targetVariableSetName": "Semantic"
           }
@@ -5326,12 +5326,12 @@
         "$value": {
           "colorSpace": "srgb",
           "components": [
-            0.43921568989753723,
-            0.45098039507865906,
-            0.48627451062202454
+            0.3019607961177826,
+            0.30588236451148987,
+            0.3294117748737335
           ],
           "alpha": 1,
-          "hex": "#70737C"
+          "hex": "#4D4E54"
         },
         "$extensions": {
           "com.figma.variableId": "VariableID:2692:13141",
@@ -5339,8 +5339,8 @@
             "ALL_SCOPES"
           ],
           "com.figma.aliasData": {
-            "targetVariableId": "VariableID:302af235c155b2cae0cd0c8848f50cf2c4e606a8/-1:-1",
-            "targetVariableName": "text/text-secondary",
+            "targetVariableId": "",
+            "targetVariableName": "text/text-secondary-strong",
             "targetVariableSetId": "VariableCollectionId:15186b5b892c3eee2ab46145c4a2b0eff01d46b7/-1:-1",
             "targetVariableSetName": "Semantic"
           }

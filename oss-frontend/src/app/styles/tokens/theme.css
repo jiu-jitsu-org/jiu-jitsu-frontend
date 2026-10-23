@@ -8,6 +8,7 @@
   --color-on-error: var(--on-error);
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
+  --color-text-secondary-strong: var(--text-secondary-strong);
   --color-text-tertiary: var(--text-tertiary);
   --color-text-on-overlay: var(--text-on-overlay);
   --color-text-on-primary: var(--text-on-primary);
