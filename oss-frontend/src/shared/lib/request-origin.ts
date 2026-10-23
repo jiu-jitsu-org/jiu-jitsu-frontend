@@ -7,7 +7,11 @@ import { headers } from "next/headers";
  * 쓰는 정책이라(shareCurrentPage), 미리보기 이미지도 같은 origin에서 나가야 dev/운영이 각자 맞는다.
  * 별도 설정 없이 배포 환경마다 따라간다.
  *
- * 프록시 뒤에서는 x-forwarded-* 가 실제 외부 주소다. 콤마로 여러 개 오면 맨 앞(최초 진입)을 쓴다.
+ * 프록시 뒤에서는 x-forwarded-host 가 실제 외부 주소다. 콤마로 여러 개 오면 맨 앞(최초 진입)을 쓴다.
+ *
+ * 프로토콜은 x-forwarded-proto를 믿지 않는다 — 배포 환경의 프록시가 TLS를 앞단에서 끊고 `http`를
+ * 넘겨서, og:image가 `http://`로 나갔다(카카오 등은 https 이미지만 안정적으로 보여 준다). 배포
+ * 환경은 전부 https이므로 로컬 개발 주소만 http로 두고 나머지는 https로 고정한다.
  * host가 없는 비정상 요청이면 null — 호출부는 상대 경로 이미지를 빼고 보낸다(잘못된 절대 URL 방지).
  */
 export async function getRequestOrigin(): Promise<URL | null> {
@@ -18,9 +22,7 @@ export async function getRequestOrigin(): Promise<URL | null> {
   );
   if (!host) return null;
 
-  const protocol =
-    firstForwarded(requestHeaders.get("x-forwarded-proto")) ??
-    (isLoopbackHost(host) ? "http" : "https");
+  const protocol = isLoopbackHost(host) ? "http" : "https";
 
   try {
     return new URL(`${protocol}://${host}`);
