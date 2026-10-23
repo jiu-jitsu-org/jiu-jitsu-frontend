@@ -27,14 +27,17 @@ export function PostMetaRow({
   className?: string;
 }) {
   return (
-    // Label M(12, Medium), 색상 feed-card/header/date-text, 항목 간격 10(gap-2.5)
+    // Label M(12, Medium), 색상 feed-card/header/date-text, 항목 간격 10(gap-2.5).
+    // 카테고리만 한 칸 진하게(category-text) — "무엇"과 "언제"가 한 단어처럼 붙어 읽히지 않게.
     <div
       className={cn(
         "flex items-center gap-2.5 text-label-m text-feed-card-header-date-text",
         className,
       )}
     >
-      {categoryName ? <span>{categoryName}</span> : null}
+      {categoryName ? (
+        <span className="text-feed-card-header-category-text">{categoryName}</span>
+      ) : null}
       <span>
         <PostDetailTime createdAt={createdAt} />
         {edited ? " · 수정됨" : null}

@@ -423,9 +423,14 @@ export function FeedCardBody({
           {title}
         </Title>
       )}
-      {/* 메타행: 카테고리·날짜. Pretendard Regular 12 — 닉네임(14 Medium)보다 작고 가볍게, 같은 색, 항목 간격 10(gap-2.5) */}
+      {/* 메타행: 카테고리·날짜. Pretendard Regular 12, 항목 간격 10(gap-2.5).
+          카테고리는 한 칸 진하게(category-text), 날짜는 옅게 — "무엇"과 "언제"가 한 단어처럼 읽히지 않게. */}
       <div className="flex items-center gap-2.5 text-label-m font-normal text-feed-card-header-date-text">
-        {categoryName ? <span>{categoryName}</span> : null}
+        {categoryName ? (
+          <span className="text-feed-card-header-category-text">
+            {categoryName}
+          </span>
+        ) : null}
         <RelativeTime iso={createdAt} />
       </div>
       {/* 본문: Body S Multi-line(14/21), 메타행 아래 8. 색은 제목 다음 칸(text-secondary-strong) */}

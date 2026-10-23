@@ -5269,6 +5269,30 @@
           }
         }
       },
+      "category-text": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.43921568989753723,
+            0.45098039507865906,
+            0.48627451062202454
+          ],
+          "alpha": 1,
+          "hex": "#70737C"
+        },
+        "$extensions": {
+          "com.figma.scopes": [
+            "ALL_SCOPES"
+          ],
+          "com.figma.aliasData": {
+            "targetVariableId": "VariableID:302af235c155b2cae0cd0c8848f50cf2c4e606a8/-1:-1",
+            "targetVariableName": "text/text-secondary",
+            "targetVariableSetId": "VariableCollectionId:15186b5b892c3eee2ab46145c4a2b0eff01d46b7/-1:-1",
+            "targetVariableSetName": "Semantic"
+          }
+        }
+      },
       "more-icon": {
         "$type": "color",
         "$value": {
