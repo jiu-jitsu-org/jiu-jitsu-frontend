@@ -2,23 +2,19 @@
  * 신고 도메인 계약.
  *
  * 신고는 게시글(BOARD)·댓글(COMMENT) 공통 동작이라 post/comment 어느 쪽에도 종속시키지 않고
- * 별도 파일로 둔다. 동일 대상 중복 신고는 서버가 막는다(409 가정).
+ * 별도 파일로 둔다. 동일 대상 중복 신고는 서버가 막는다(400 + `U0008`).
  */
 
 /** 신고 대상 컨텐츠 구분(BOARD=게시글, COMMENT=댓글). */
 export type ReportTargetType = "BOARD" | "COMMENT";
 
-/**
- * 신고 생성 입력(POST /reports).
- *
- * FIXME(계약): "기타" 사유로 사용자가 입력한 상세 내용을 보낼 필드가 요청 스키마에 없다
- * (reportType/targetId/reason 3개뿐). 현재는 reason="OTHER"만 전송되고 입력 내용은 버려진다.
- * 백엔드에 상세 필드(detail 등)가 추가되면 여기에 함께 싣는다.
- */
+/** 신고 생성 입력(POST /reports). */
 export type CreateReportInput = {
   reportType: ReportTargetType;
   targetId: number;
   reason: string;
+  /** "기타" 사유로 입력한 상세 내용. 입력이 없으면 보내지 않는다(입력은 선택 사항). */
+  detail?: string;
 };
 
 /**

@@ -87,8 +87,8 @@ export class ExternalCommunityWriteRepository implements CommunityWriteRepositor
   }
 
   async report(input: CreateReportInput): Promise<void> {
-    // POST /reports — { reportType, targetId, reason }. 응답 본문은 사용하지 않는다.
-    // 동일 대상 중복 신고는 서버가 막는다(409 가정) → HttpError로 상위에 전달.
+    // POST /reports — { reportType, targetId, reason, detail? }. 응답 본문은 사용하지 않는다.
+    // 동일 대상 중복 신고는 서버가 막는다(400 + U0008) → HttpError로 상위에 전달.
     await this.httpClient.post<Envelope<null>>({
       path: REPORT_ENDPOINT_PATH,
       body: input,

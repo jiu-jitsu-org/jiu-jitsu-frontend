@@ -23,6 +23,8 @@ export const ApiErrorCode = {
   IMAGE_FILE_NOT_FOUND: "C0000",
   /** 404 존재하지 않는 게시글. */
   BOARD_NOT_FOUND: "C0002",
+  /** 400 이미 신고한 게시글·댓글. 동일 대상 중복 신고를 서버가 막을 때. */
+  ALREADY_REPORTED: "U0008",
   /** 403 만료된 액세스 토큰. 브라우저는 bffFetch가 네이티브 갱신·재시도로 처리한다. */
   EXPIRED_TOKEN: "A0003",
   /** 500 서버 오류. */

@@ -137,7 +137,7 @@ export function CommentMenu({
   /**
    * 신고: useReportFlow(확인 알럿 → 사유 시트 → POST) → 처리되면 목록을 다시 읽어 placeholder로 전환.
    *
-   * 중복 신고(409)도 훅이 처리 완료로 돌려준다 — 이미 신고한 댓글이라 화면 결과가 같아야 한다.
+   * 중복 신고(400 U0008)도 훅이 처리 완료로 돌려준다 — 이미 신고한 댓글이라 화면 결과가 같아야 한다.
    */
   async function handleReport() {
     const reported = await report({
