@@ -150,7 +150,9 @@ export function FeedCard({
     <article
       onClick={onPress ? handleCardPress : undefined}
       className={cn(
-        "flex flex-col bg-surface-container px-4",
+        // 글은 화면 좌우 16에 그대로 두고, 눌림 면만 글 바깥으로 위아래 12·좌우 8 넓힌다(mx-2 + px-2 + py-3).
+        // 면은 화면 끝에서 8 떨어지고 모서리는 20(안쪽 이미지 16 + 여백 8에 맞춘 값)이다.
+        "mx-2 flex flex-col rounded-[20px] bg-surface-container px-2 py-3",
         // 누르는 동안 바탕이 옅게 어두워지며 98%로 살짝 눌렸다가(100ms) 놓으면 스프링으로 돌아온다(500ms).
         // :active는 눌린 요소의 조상에도 걸려 안쪽 버튼(리액션·⋮·더보기)을 눌러도 카드가 반응한다
         // → 안에 눌린 버튼/링크가 있으면(not-has) 빼서, 카드 자체를 누를 때만 반응하게 한다.

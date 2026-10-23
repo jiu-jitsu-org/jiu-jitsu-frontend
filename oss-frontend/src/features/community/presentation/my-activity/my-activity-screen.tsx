@@ -109,7 +109,7 @@ function renderContent<L>(
  *
  * 쓴 글은 모든 카드가 내 글이라 작성자 행을 감춘다(hideAuthor). 이 화면 안에서는 내 이름을 눌러
  * 같은 화면을 또 쌓지 않도록 작성자 탭을 끈다(authorLink=false).
- * 목록 시작은 탭 아래 16(pt-4), 아래는 FAB이 없어 홈 인디케이터 여백만 둔다.
+ * 목록 시작은 탭 아래 16(pt-1 4 + 카드 눌림 여백 12), 아래는 FAB이 없어 홈 인디케이터 여백만 둔다.
  */
 function MyActivityPanel({ list, tab }: { list: PostList; tab: MyPostTab }) {
   if (list.items.length === 0) return <MyActivityEmptyState tab={tab} />;
@@ -123,7 +123,7 @@ function MyActivityPanel({ list, tab }: { list: PostList; tab: MyPostTab }) {
       listUrl={myPostListUrl(tab)}
       hideAuthor={tab === "posts"}
       authorLink={false}
-      className="pt-4 pb-[env(safe-area-inset-bottom)]"
+      className="pt-1 pb-[env(safe-area-inset-bottom)]"
     />
   );
 }
