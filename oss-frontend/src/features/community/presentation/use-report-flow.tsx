@@ -81,8 +81,8 @@ export function useReportFlow() {
         return true;
       }
 
-      // FIXME(계약): "기타"로 입력한 상세 내용(outcome.customText)을 실을 필드가 요청 스키마에 없다.
-      // 지금은 reason 코드만 전송되고 입력 내용은 버려진다 — 백엔드에 상세 필드 추가 후 함께 싣는다.
+      // customText는 "기타"를 골라 입력했을 때만 채워진다 — 비어 있으면 detail을 싣지 않는다.
+      const detail = outcome.customText?.trim();
       const response = await bffFetch("/api/community/reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -90,6 +90,7 @@ export function useReportFlow() {
           reportType: target.reportType,
           targetId: target.targetId,
           reason: outcome.value,
+          ...(detail ? { detail } : {}),
         }),
       });
 

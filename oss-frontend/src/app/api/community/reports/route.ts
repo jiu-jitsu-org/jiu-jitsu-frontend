@@ -12,7 +12,7 @@ import type { ApiSuccessResponse } from "@/shared/types/api";
 /**
  * POST /api/community/reports — 게시글/댓글 신고(인증 필요).
  *
- * body: { reportType: "BOARD" | "COMMENT", targetId: number, reason: string }
+ * body: { reportType: "BOARD" | "COMMENT", targetId: number, reason: string, detail?: string }
  * 업스트림 POST /reports로 위임. 동일 대상 중복 신고 차단은 업스트림이 담당한다.
  */
 const REPORT_TYPES: ReportTargetType[] = ["BOARD", "COMMENT"];
@@ -24,11 +24,13 @@ export async function POST(request: NextRequest) {
   let reportType = "";
   let targetId = NaN;
   let reason = "";
+  let detail = "";
   try {
     const json = await request.json();
     reportType = String(json?.reportType ?? "");
     targetId = Number(json?.targetId);
     reason = String(json?.reason ?? "").trim();
+    detail = typeof json?.detail === "string" ? json.detail.trim() : "";
   } catch {
     // 파싱 실패는 아래 검증에서 400으로 처리된다.
   }
@@ -48,6 +50,7 @@ export async function POST(request: NextRequest) {
       reportType: reportType as ReportTargetType,
       targetId,
       reason,
+      ...(detail ? { detail } : {}),
     });
 
     return NextResponse.json<ApiSuccessResponse<null>>(

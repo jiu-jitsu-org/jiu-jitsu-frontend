@@ -177,10 +177,8 @@ HStack(spacing: 0) {
 }
 ```
 
-> ⚠️ **`customText`는 현재 서버로 전달되지 않습니다.** `POST /reports` 요청 스키마가
-> `reportType` / `targetId` / `reason` 3개뿐이라 상세 내용을 실을 필드가 없습니다.
-> "기타"를 고르면 `reason: "OTHER"`만 전송되고 입력 내용은 버려집니다. 백엔드에 상세 필드가
-> 추가되면 함께 싣습니다. (`domain/report.ts`의 `FIXME(계약)`)
+> `customText`는 신고 API의 `detail` 필드로 전송됩니다. 비어 있으면 `detail`을 싣지 않습니다
+> (「기타」 입력은 선택 사항).
 
 ### 4-3. 디자인은 왜 두 벌이 안 되나
 
@@ -218,7 +216,7 @@ HStack(spacing: 0) {
 네 → 웹  confirm
 웹 → 네  선택 시트 "어떤 문제인가요?" (사유 6종 + 기타 자유 입력)
 네 → 웹  submit + 선택한 사유 코드
-웹       POST /api/community/reports  { reportType: "BOARD", targetId, reason }
+웹       POST /api/community/reports  { reportType: "BOARD", targetId, reason, detail? }
 웹       성공 → 토스트 + 카드 제거
          409  → "이미 신고한 게시글이에요" + 카드 제거
 ```
