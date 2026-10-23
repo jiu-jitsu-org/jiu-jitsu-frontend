@@ -148,9 +148,13 @@ HStack(spacing: 0) {
     allowsCustomText?: boolean;   // 이 항목을 고르면 자유 입력 필드 노출("기타")
   }[];
   customTextPlaceholder?: string;
+  customTextMaxLength?: number;   // 자유 입력 최대 글자 수(UTF-16). 없으면 네이티브 기본 200
   submitText: string;
 }
 ```
+
+> `customTextMaxLength`는 기획 정책이 아닌 **임시 기준(200)** 이다. QA에서 바뀌면 웹의
+> `REPORT_DETAIL_MAX_LENGTH`(`domain/report.ts`)만 고치면 웹 시트·네이티브 시트·BFF 검증이 함께 바뀐다.
 
 신고 시트 실제 값 (`REPORT_REASONS`, `domain/report.ts`):
 

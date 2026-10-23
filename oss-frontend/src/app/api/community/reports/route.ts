@@ -6,7 +6,10 @@ import {
   toErrorResponse,
 } from "@/app/api/community/_lib/community-route-helpers";
 import { createCreateReportUseCase } from "@/features/community/application/community-use-case-factory";
-import type { ReportTargetType } from "@/features/community/domain/report";
+import {
+  REPORT_DETAIL_MAX_LENGTH,
+  type ReportTargetType,
+} from "@/features/community/domain/report";
 import type { ApiSuccessResponse } from "@/shared/types/api";
 
 /**
@@ -44,6 +47,13 @@ export async function POST(request: NextRequest) {
   }
   if (!reason) {
     return jsonError("신고 사유가 필요합니다.", 400);
+  }
+  // 입력창이 이미 막지만, 구버전 앱(제한 없는 시트)·직접 호출로 넘어오면 서버가 500으로 실패하기 전에 막는다.
+  if (detail.length > REPORT_DETAIL_MAX_LENGTH) {
+    return jsonError(
+      `신고 내용은 ${REPORT_DETAIL_MAX_LENGTH}자 이내로 입력해 주세요.`,
+      400,
+    );
   }
 
   try {
