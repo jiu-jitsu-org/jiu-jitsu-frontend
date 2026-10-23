@@ -130,9 +130,9 @@ function BalanceGameBody({
 
   return (
     <>
-      {/* 카드 위 38 · 아래 32. 구분선 없이 여백으로 나눈다 — 첫 글까지 56(+ 피드 목록 pt-6 24)이
-          글 사이(40)보다 넓어 구역 경계로 읽힌다. */}
-      <div ref={targetRef} className="pt-9.5 pb-8">
+      {/* 카드 위 38 · 아래 32(카드 눌림 여백 12씩 포함). 구분선 없이 여백으로 나눈다 — 첫 글까지 56
+          (+ 피드 목록 24)이 글 사이(40)보다 넓어 구역 경계로 읽힌다. */}
+      <div ref={targetRef} className="pt-6.5 pb-5">
         <BalanceGameCard
           game={game}
           onVote={vote}

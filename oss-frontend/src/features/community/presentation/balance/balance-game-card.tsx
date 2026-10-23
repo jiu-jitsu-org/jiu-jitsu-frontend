@@ -75,11 +75,12 @@ export function BalanceGameCard({
   return (
     <section
       onClick={handleCardPress}
-      // 배경을 두지 않는다 — 피드 배경이 그대로 비쳐야 한다(디자인). 좌우 16만 준다.
+      // 배경을 두지 않는다 — 피드 배경이 그대로 비쳐야 한다(디자인). 글은 화면 좌우 16에 둔다.
       // 눌림은 피드 카드(FeedCard)와 같다 — 바탕이 옅게 깔리며 98%로 눌렸다가 놓으면 스프링으로 돌아온다.
+      // 눌림 면도 같다 — 글 바깥 위아래 12·좌우 8, 화면 끝에서 8, 모서리 20(mx-2 + px-2 + py-3).
       // 안쪽 버튼(선택지·댓글 링크)을 누를 때는 카드가 반응하지 않게 not-has로 뺀다.
       className={cn(
-        "relative isolate flex cursor-pointer flex-col px-4",
+        "relative isolate mx-2 flex cursor-pointer flex-col rounded-[20px] px-2 py-3",
         "active:not-has-[:is(button,a):active]:bg-surface-container-pressed",
         "motion-safe:[transition:scale_500ms_var(--ease-spring-wobbly),background-color_120ms_ease-out]",
         "motion-safe:active:[transition:scale_100ms_ease-out,background-color_120ms_ease-out]",
@@ -89,12 +90,12 @@ export function BalanceGameCard({
     >
       {/*
         맨 위 바탕 — 투표 전에는 대결에서 기세를 잡은 쪽 색, 고르면 고른 색. 카드 위 여백(감싸는 칸의
-        pt-9.5)까지 덮어야 화면 맨 위부터 물든다.
+        pt-6.5)까지 덮어야 화면 맨 위부터 물든다. 카드가 좌우로 8 들어와 있어 -inset-x-2로 화면 끝까지 편다.
       */}
       <BalanceHeroWash
         myVote={game.myVote}
         idle={game.myVote === null && interactive}
-        className="-top-9.5 h-44"
+        className="-inset-x-2 -top-6.5 h-44"
       />
 
       {/* 제목·타이머는 가운데 정렬 — 카드 안에서 선택지 묶음보다 상위 정보라는 것을 위계로 드러낸다. */}
