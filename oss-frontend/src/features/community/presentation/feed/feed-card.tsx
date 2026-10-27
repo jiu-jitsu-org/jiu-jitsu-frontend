@@ -133,6 +133,8 @@ export function FeedCard({
   onPressAuthor,
   className,
 }: FeedCardProps) {
+  const hasImages = images !== undefined && images.length > 0;
+
   // 카드 전체 영역(본문·이미지·여백) 탭으로 상세에 들어간다.
   // 카드를 <button>으로 감싸면 내부 버튼(더보기·리액션·⋮)이 중첩되므로, article에 클릭만 얹고
   // 이벤트 출처가 버튼/링크면 무시한다 — 예외 영역을 호출부가 따로 표시할 필요가 없다.
@@ -189,11 +191,14 @@ export function FeedCard({
           ) : undefined
         }
       />
-      {images && images.length > 0 ? (
+      {hasImages ? (
         <FeedCardImages images={images} className="mt-3" />
       ) : null}
-      {/* 본문행 → 리액션행: 여백 없음. 아이콘(20)을 감싼 버튼(32)의 위쪽 6이 보이는 간격이 된다. */}
+      {/* 본문행 → 리액션행: 여백 없음. 아이콘(20)을 감싼 버튼(32)의 위쪽 6이 보이는 간격이 된다.
+          사진 → 리액션행: 6을 더해(mt-1.5) 보이는 간격 12 — 본문→사진(mt-3)과 같다.
+          사진은 면이 꽉 차 있어 글자보다 경계가 뚜렷하므로, 6만 두면 아이콘이 사진에 붙어 보인다. */}
       <FeedCardReactions
+        className={hasImages ? "mt-1.5" : undefined}
         counts={counts}
         commented={commented}
         liked={liked}
