@@ -41,8 +41,8 @@ function pulseDelay(order: number): CSSProperties {
 }
 
 /**
- * 오늘의 밸런스 게임 자리(BalanceGameSection + BalanceGameCard와 같은 높이 ≈ 337).
- * 위 38 · 아래 24 + 제목(34) · 남은 시간 칩(28) · 선택지 66 × 2(간격 4) · 댓글 링크(28) + 아래 구분선.
+ * 오늘의 밸런스 게임 자리(BalanceGameSection + BalanceGameCard와 같은 높이 ≈ 339).
+ * 위 38 · 아래 24 + 제목(36) · 남은 시간 칩(28) · 선택지 66 × 2(간격 4) · 댓글 링크(28) + 아래 구분선.
  */
 function BalanceGameSkeleton() {
   return (
@@ -51,7 +51,7 @@ function BalanceGameSkeleton() {
       className="border-b border-border-subtle pt-9.5 pb-6 motion-safe:animate-pulse"
     >
       <div className="flex flex-col items-center px-4">
-        <div className="h-[34px] w-52 rounded bg-feed-card-header-avatar-bg" />
+        <div className="h-9 w-60 rounded bg-feed-card-header-avatar-bg" />
         <div className="mt-3 h-7 w-36 rounded-full bg-feed-card-header-avatar-bg" />
         <div className="mt-7 flex w-full flex-col gap-1">
           <div className="h-[66px] rounded-xl bg-feed-card-header-avatar-bg" />

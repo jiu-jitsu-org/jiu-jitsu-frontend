@@ -8,6 +8,7 @@ import {
 } from "@/features/community/presentation/balance/balance-option-button";
 import { BalanceHeroWash } from "@/features/community/presentation/balance/balance-hero-wash";
 import { BalanceRemaining } from "@/features/community/presentation/balance/balance-remaining";
+import { balanceTitleFont } from "@/features/community/presentation/balance/balance-title-font";
 import {
   REACTION_HIT_AREA,
   REACTION_ICON_SIZE,
@@ -98,8 +99,16 @@ export function BalanceGameCard({
         className="-inset-x-2 -top-6.5 h-44"
       />
 
-      {/* 제목·타이머는 가운데 정렬 — 카드 안에서 선택지 묶음보다 상위 정보라는 것을 위계로 드러낸다. */}
-      <h2 className="text-center text-[26px] leading-[34px] font-semibold text-feed-card-body-title-text">
+      {/*
+        제목·타이머는 가운데 정렬 — 카드 안에서 선택지 묶음보다 상위 정보라는 것을 위계로 드러낸다.
+        제목만 딱붙어체 30 / 36 — 홈 첫 화면의 간판. 폰트가 굵기 하나(400)뿐이라 굵기는 지정하지 않는다.
+      */}
+      <h2
+        className={cn(
+          balanceTitleFont.className,
+          "text-center text-[30px] leading-[36px] tracking-[-0.2px] text-feed-card-body-title-text",
+        )}
+      >
         오늘의 밸런스 게임
       </h2>
 
