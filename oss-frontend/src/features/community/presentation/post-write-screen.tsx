@@ -152,7 +152,8 @@ const TAG_INPUT_TEXT_CLASS = "text-text-primary";
  *
  * compose 패턴:
  * - 우측 체크는 필수 입력(카테고리·제목·본문)이 하나라도 비어 있으면 비활성, 한 글자라도 적히면 활성(정책).
- *   최소 글자 수는 탭 시 제목 → 본문 순으로 검사해 첫 미충족 항목만 토스트로 알린다.
+ *   최소 글자 수는 탭 시 제목 → 본문 순으로 검사해 첫 미충족 항목만 토스트로 알리고, 미달인 칸의 글자 수
+ *   카운터는 채워질 때까지 오류 색으로 둔다(#251).
  *   첨부 업로드 중/실패·전송 중에도 잠근다(사진 정책).
  * - 입력 중 뒤로가면 이탈 가드로 실수 유실을 막는다. 알럿 표면은 useNativeDialog가
  *   "네이티브 우선, 없으면 웹"으로 처리한다 — 무엇을 물어볼지·확인 후 무엇을 할지는 여기가 쥔다.
@@ -188,6 +189,9 @@ export function PostWriteScreen({
   const [title, setTitle] = useState(edit?.initial.title ?? "");
   const [body, setBody] = useState(edit?.initial.body ?? "");
   const [submitting, setSubmitting] = useState(false);
+  // 올리기를 눌렀는데 최소 글자 수 미달로 막힌 칸(#251). 그 칸의 카운터를 오류 색으로 바꿔 어느 칸이 문제인지
+  // 보이게 한다 — 처음 쓰는 중에는 회색 그대로이고, 막힌 칸이 조건을 채우면 바로 풀린다(제목·본문 각각).
+  const [shortFields, setShortFields] = useState({ title: false, body: false });
   const { confirm, dialog } = useNativeDialog();
   // 카테고리: 작성은 미선택(null)으로 시작 → 사용자가 칩에서 고르기 전엔 등록 불가. 수정은 기존 값.
   const [categoryId, setCategoryId] = useState<number | null>(
@@ -292,7 +296,18 @@ export function PostWriteScreen({
 
   function handleTitleChange(value: string) {
     // 제목은 여러 줄로 보이되(자동 줄바꿈) 실제 줄바꿈 문자는 받지 않는다 — 붙여넣기의 개행은 공백으로.
-    setTitle(value.replace(/\n/g, " "));
+    const next = value.replace(/\n/g, " ");
+    setTitle(next);
+    if (shortFields.title && !isTitleShort(next)) {
+      setShortFields((prev) => ({ ...prev, title: false }));
+    }
+  }
+
+  function handleBodyChange(value: string) {
+    setBody(value);
+    if (shortFields.body && !isBodyShort(value)) {
+      setShortFields((prev) => ({ ...prev, body: false }));
+    }
   }
 
   function handleTitleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
@@ -645,10 +660,10 @@ export function PostWriteScreen({
    */
   function findValidationMessage(): string | null {
     if (categoryId === null) return "카테고리를 선택해주세요";
-    if (title.trim().length < TITLE_MIN_LENGTH) {
+    if (isTitleShort(title)) {
       return `제목을 ${TITLE_MIN_LENGTH}자 이상 입력해주세요`;
     }
-    if (body.trim().length < BODY_MIN_LENGTH) {
+    if (isBodyShort(body)) {
       return `내용을 ${BODY_MIN_LENGTH}자 이상 입력해주세요`;
     }
     return null;
@@ -677,6 +692,8 @@ export function PostWriteScreen({
     if (validationMessage !== null) {
       // 토스트는 나중 것이 이전 것을 덮는다(ToastProvider.show) — 연타해도 마지막 안내만 보인다.
       toast.show(validationMessage);
+      // 토스트는 첫 미충족 항목만 알리지만, 카운터는 미달인 칸 모두를 빨갛게 한다 — 한 번에 어디를 고칠지 보이게.
+      setShortFields({ title: isTitleShort(title), body: isBodyShort(body) });
       return;
     }
     if (categoryId === null) return;
@@ -886,13 +903,17 @@ export function PostWriteScreen({
             TEXTFIELD_CARET_CLASS,
           )}
         />
-        <CharCounter length={title.length} max={TITLE_MAX_LENGTH} />
+        <CharCounter
+          length={title.length}
+          max={TITLE_MAX_LENGTH}
+          error={shortFields.title}
+        />
 
         {/* 본문: Title 1(22 · 행간 Auto → 32 고정 · 600), 800자. 제목 카운터 아래 24(mt-6). 색·커서는 제목과 동일. */}
         <textarea
           ref={bodyRef}
           value={body}
-          onChange={(event) => setBody(event.target.value)}
+          onChange={(event) => handleBodyChange(event.target.value)}
           onPaste={(event) =>
             notifyIfPasteOverflows(
               event,
@@ -911,7 +932,11 @@ export function PostWriteScreen({
             TEXTFIELD_CARET_CLASS,
           )}
         />
-        <CharCounter length={body.length} max={BODY_MAX_LENGTH} />
+        <CharCounter
+          length={body.length}
+          max={BODY_MAX_LENGTH}
+          error={shortFields.body}
+        />
 
         {/* 태그 입력줄: 본문 아래(사진 스트립은 하단 툴바 위 고정으로 옮김 — 디자인 2026-09-17). 태그가 없어도 줄은 항상
             있고(정책 2026-09-28, #153), 입력칸이 닫혀 있으면 회색 "#" 버튼이 진입점이다. 그 "#"이나 하단 "태그" 버튼으로 열면
@@ -1205,6 +1230,15 @@ export function PostWriteScreen({
   );
 }
 
+/** 최소 글자 수 미달 — 등록 검사(findValidationMessage)와 카운터 오류 색(#251)이 같은 기준을 쓴다. */
+function isTitleShort(title: string): boolean {
+  return title.trim().length < TITLE_MIN_LENGTH;
+}
+
+function isBodyShort(body: string): boolean {
+  return body.trim().length < BODY_MIN_LENGTH;
+}
+
 /**
  * 썸네일 우상단 삭제(✕) 버튼 — 24 원, 모서리에서 8 삐져나옴, 아이콘 16. 작성(첨부)·수정(등록 이미지) 공용.
  * 확인 없이 즉시 삭제(정책).
@@ -1244,13 +1278,22 @@ function ThumbnailRemoveButton({
  * 디자인 Label S(12 · Auto) · textfield_display/counter-text — 코드 스케일의 Label S는 10이라 12 렌더가 같은
  * Label M을 쓴다. 한도에 닿으면 counter-text-limit(error)로 바꿔 "더 못 치는 이유"를 즉시 알린다
  * (maxLength가 조용히 입력을 막는 걸 보완).
+ * error: 최소 글자 수 미달로 등록이 막힌 칸(#251) — 같은 오류 색으로 "이 칸이 짧다"를 알린다.
  */
-function CharCounter({ length, max }: { length: number; max: number }) {
+function CharCounter({
+  length,
+  max,
+  error = false,
+}: {
+  length: number;
+  max: number;
+  error?: boolean;
+}) {
   return (
     <span
       className={cn(
         "mt-0.5 text-right text-label-m tabular-nums",
-        length >= max ? COUNTER_LIMIT_CLASS : COUNTER_TEXT_CLASS,
+        error || length >= max ? COUNTER_LIMIT_CLASS : COUNTER_TEXT_CLASS,
       )}
     >
       {length}/{max}
