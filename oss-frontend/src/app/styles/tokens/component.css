@@ -276,7 +276,7 @@
   --comment-input-bar-text-disabled: var(--text-disabled);
   --comment-input-bar-send-icon-disabled: var(--icon-disabled);
   --comment-input-bar-send-icon-active: var(--interactive-primary);
-  --comment-input-bar-reply-ref-thread-icon: var(--border-subtle);
+  --comment-input-bar-reply-ref-thread-icon: var(--cool-gray-50);
   --comment-input-bar-reply-ref-text: var(--text-tertiary);
   --comment-input-bar-reply-ref-close-icon: var(--icon-secondary);
   --comment-sort-select-default-text: var(--text-primary);
@@ -298,7 +298,7 @@
   --comment-tombstone-text: var(--text-secondary);
   --comment-author-badge-bg: var(--surface-primary-subtle);
   --comment-author-badge-text: var(--interactive-primary);
-  --comment-thread-line-stroke: var(--border-subtle);
+  --comment-thread-line-stroke: var(--cool-gray-50);
   --confirm-dialog-destructive-button-bg: var(--surface-destructive);
   --confirm-dialog-destructive-button-text: var(--text-on-primary);
   --radio-selected-border: var(--interactive-primary);
