@@ -7058,12 +7058,12 @@
         "$value": {
           "colorSpace": "srgb",
           "components": [
-            0.929411768913269,
-            0.9372549057006836,
-            0.9411764740943909
+            0.9009000658988953,
+            0.9054501056671143,
+            0.9100000262260437
           ],
           "alpha": 1,
-          "hex": "#EDEFF0"
+          "hex": "#E6E7E8"
         },
         "$extensions": {
           "com.figma.variableId": "VariableID:5024:3032",
@@ -7071,10 +7071,10 @@
             "ALL_SCOPES"
           ],
           "com.figma.aliasData": {
-            "targetVariableId": "VariableID:b759c08f947dc6b9f33a601d7bbfc638df2108ef/-1:-1",
-            "targetVariableName": "border/border-subtle",
-            "targetVariableSetId": "VariableCollectionId:15186b5b892c3eee2ab46145c4a2b0eff01d46b7/-1:-1",
-            "targetVariableSetName": "Semantic"
+            "targetVariableId": "VariableID:65a72516e7c94c349743a4ac59e04ad4b2718081/-1:-1",
+            "targetVariableName": "Color/Cool gray/50",
+            "targetVariableSetId": "VariableCollectionId:7f00cdd25149ef1089b75cf5032c9e3c0007fe95/-1:-1",
+            "targetVariableSetName": "Primitive"
           }
         }
       },
@@ -7635,12 +7635,12 @@
       "$value": {
         "colorSpace": "srgb",
         "components": [
-          0.929411768913269,
-          0.9372549057006836,
-          0.9411764740943909
+          0.9009000658988953,
+          0.9054501056671143,
+          0.9100000262260437
         ],
         "alpha": 1,
-        "hex": "#EDEFF0"
+        "hex": "#E6E7E8"
       },
       "$extensions": {
         "com.figma.variableId": "VariableID:4747:18889",
@@ -7648,10 +7648,10 @@
           "ALL_SCOPES"
         ],
         "com.figma.aliasData": {
-          "targetVariableId": "VariableID:b759c08f947dc6b9f33a601d7bbfc638df2108ef/-1:-1",
-          "targetVariableName": "border/border-subtle",
-          "targetVariableSetId": "VariableCollectionId:15186b5b892c3eee2ab46145c4a2b0eff01d46b7/-1:-1",
-          "targetVariableSetName": "Semantic"
+          "targetVariableId": "VariableID:65a72516e7c94c349743a4ac59e04ad4b2718081/-1:-1",
+          "targetVariableName": "Color/Cool gray/50",
+          "targetVariableSetId": "VariableCollectionId:7f00cdd25149ef1089b75cf5032c9e3c0007fe95/-1:-1",
+          "targetVariableSetName": "Primitive"
         }
       }
     }
