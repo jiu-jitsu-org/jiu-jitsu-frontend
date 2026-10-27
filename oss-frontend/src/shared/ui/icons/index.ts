@@ -16,6 +16,7 @@ export { ChevronDownIcon } from "./chevron-down-icon";
 export { ChevronLeftIcon } from "./chevron-left-icon";
 export { EditIcon } from "./edit-icon";
 export { ImageIcon } from "./image-icon";
+export { CameraIcon } from "./camera-icon";
 export { HashIcon } from "./hash-icon";
 export { ReplyBranchIcon } from "./reply-branch-icon";
 export { SendIcon } from "./send-icon";

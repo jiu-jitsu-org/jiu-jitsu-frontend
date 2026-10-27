@@ -50,12 +50,14 @@ import {
   WriteRequestError,
 } from "./community-write-client";
 import { PostEditImageViewer } from "./post-edit-image-viewer";
+import { PhotoSourceSheet } from "./photo-source-sheet";
 import { PostImageCropEditor } from "./post-image-crop-editor";
 import { useAutoResizeTextarea } from "./use-auto-resize-textarea";
 import { useLeavingKeys, usePopInKeys } from "./use-presence-motion";
 import {
   isAttachmentOutOfAspect,
   MAX_IMAGES,
+  type PhotoSource,
   useImageAttachments,
 } from "./use-image-attachments";
 
@@ -240,7 +242,9 @@ export function PostWriteScreen({
     isUploadSettled,
     imageFileIdList,
     fileInputRef,
+    cameraInputRef,
     onFileChange,
+    ensureRoom,
     pick,
     retry,
     replaceFile,
@@ -248,6 +252,8 @@ export function PostWriteScreen({
     remove,
     discardAll,
   } = useImageAttachments();
+  // 사진 버튼 → 우리 선택창(앨범에서 선택 / 촬영하기, #250). 시스템 메뉴 대신 이 시트가 뜬다.
+  const [photoSheetOpen, setPhotoSheetOpen] = useState(false);
   // 편집(크롭) 중인 첨부의 localId. 썸네일 탭으로만 열린다(자동 진입 없음 — 정책).
   const [editingId, setEditingId] = useState<string | null>(null);
   const editing =
@@ -574,6 +580,10 @@ export function PostWriteScreen({
    * 이탈 가드에서 "계속 작성"을 고르면 CLOSE_SUBVIEW를 보내지 않아 화면이 유지된다.
    */
   function handleBack() {
+    if (photoSheetOpen) {
+      setPhotoSheetOpen(false);
+      return;
+    }
     if (editingId !== null) {
       setEditingId(null);
       return;
@@ -583,6 +593,24 @@ export function PostWriteScreen({
       return;
     }
     void requestClose();
+  }
+
+  /**
+   * 사진 버튼: 3장이 차 있으면 토스트만(ensureRoom), 아니면 선택창을 띄운다.
+   * 키보드가 떠 있으면 먼저 내린다 — 시트는 화면 바닥에 붙어서 키보드 뒤에 가려진다.
+   */
+  function openPhotoSheet() {
+    if (!ensureRoom()) return;
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    setPhotoSheetOpen(true);
+  }
+
+  /** 선택창 항목 탭 — 같은 탭 안에서 바로 피커를 연다(비동기 뒤면 웹뷰가 피커를 막는다). */
+  function handlePhotoSource(source: PhotoSource) {
+    setPhotoSheetOpen(false);
+    pick(source);
   }
 
   /** 수정 모드 이미지 삭제(스트립 ✕). 상세는 스트립이 딤 뒤에 있어 여기서만 지운다. */
@@ -1098,15 +1126,26 @@ export function PostWriteScreen({
           </>
         ) : null}
         <div className="grid grid-cols-2" style={{ height: TOOLBAR_HEIGHT }}>
-          {/* 숨겨진 표준 file input — 웹뷰가 탭 시 네이티브 사진/카메라 피커를 열고 File을 돌려준다.
-              사진 버튼이 이 input을 click()으로 연다(버튼 탭 = 사용자 제스처).
-              남은 슬롯이 1장이면 단일 선택으로 전환 → 마지막 한 장에서 초과 선택→잘림을 줄인다.
-              (웹 표준상 "최대 N장" 지정은 불가 — 2장 이상 남았을 때의 초과분은 훅이 잘라내고 토스트) */}
+          {/* 숨겨진 표준 file input 둘 — 웹뷰가 네이티브 피커를 열고 File을 돌려준다. 사진 선택창의 항목 탭이
+              click()으로 연다(항목 탭 = 사용자 제스처, #250).
+              앨범: 남은 슬롯이 1장이면 단일 선택으로 전환 → 마지막 한 장에서 초과 선택→잘림을 줄인다.
+              (웹 표준상 "최대 N장" 지정은 불가 — 2장 이상 남았을 때의 초과분은 훅이 잘라내고 토스트)
+              FIXME(#250): capture가 없는 input은 iOS가 시스템 메뉴(보관함/사진 찍기/파일 선택)를 한 번 더 띄울 수 있다.
+              실기기에서 뜨면 네이티브 사진 선택을 부르는 브릿지 메시지로 바꾼다(iOS 이슈로 분리).
+              촬영: capture로 메뉴 없이 바로 카메라. 한 번에 한 장이라 multiple은 두지 않는다. */}
           <input
             ref={fileInputRef}
             type="file"
             accept="image/*"
             multiple={remaining > 1}
+            onChange={onFileChange}
+            className="hidden"
+          />
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
             onChange={onFileChange}
             className="hidden"
           />
@@ -1117,7 +1156,9 @@ export function PostWriteScreen({
           <button
             type="button"
             onClick={
-              isEdit ? () => toast.show(EDIT_PHOTO_UNAVAILABLE_MESSAGE) : pick
+              isEdit
+                ? () => toast.show(EDIT_PHOTO_UNAVAILABLE_MESSAGE)
+                : openPhotoSheet
             }
             aria-disabled={isEdit}
             aria-label={
@@ -1198,6 +1239,13 @@ export function PostWriteScreen({
           onClose={() => setViewerImageId(null)}
         />
       ) : null}
+
+      {/* 사진 선택창 — 앱에서도 웹이 그린다(PhotoSourceSheet 주석 참고). 수정 모드는 사진 추가가 없어 열리지 않는다. */}
+      <PhotoSourceSheet
+        open={photoSheetOpen}
+        onDismiss={() => setPhotoSheetOpen(false)}
+        onSelect={handlePhotoSource}
+      />
 
       {/* 작성 이탈 가드(웹 단독 폴백 전용 — 앱에서는 네이티브가 그린다) */}
       {dialog}

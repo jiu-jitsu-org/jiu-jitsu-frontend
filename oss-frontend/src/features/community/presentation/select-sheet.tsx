@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
+import { BottomSheetFrame } from "@/features/community/presentation/bottom-sheet-frame";
 import { cn } from "@/shared/lib/cn";
 import type { SelectSheetOption } from "@/shared/lib/native-bridge";
 import { PRESS_BOUNCE, SURFACE_PRESS } from "@/shared/ui/press-styles";
-
-const SHEET_FADE_MS = 200;
 
 /**
  * 선택 바텀시트 — **웹 단독 실행용 폴백**.
@@ -16,6 +15,7 @@ const SHEET_FADE_MS = 200;
  * 되도록 디자인(핸들바·라디오·기타 입력·하단 CTA)과 토큰을 그대로 맞춘다.
  *
  * 여는 상태/콜백은 호출부가 소유한다(controlled) — ConfirmDialog와 동일 철학.
+ * 딤·핸들바·제목·올라오는 전환은 BottomSheetFrame이 맡는다.
  */
 export function SelectSheet({
   open,
@@ -39,37 +39,11 @@ export function SelectSheet({
   onDismiss: () => void;
   onSubmit: (selected: { value: string; customText?: string }) => void;
 }) {
-  const [mounted, setMounted] = useState(open);
-  const [visible, setVisible] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [customText, setCustomText] = useState("");
 
-  // 열릴 때 한 프레임 뒤 전환 / 닫힐 때 내려간 뒤 언마운트. 딤은 페이드, 시트는 아래에서 올라온다.
-  useEffect(() => {
-    if (!open) {
-      const raf = requestAnimationFrame(() => setVisible(false));
-      const timer = setTimeout(() => setMounted(false), SHEET_FADE_MS);
-      return () => {
-        cancelAnimationFrame(raf);
-        clearTimeout(timer);
-      };
-    }
-
-    // 선택 상태 초기화는 따로 하지 않는다 — 호출부(useNativeDialog)가 닫힌 뒤 시트를 언마운트하므로
-    // 다시 열릴 때는 항상 새 인스턴스로 시작한다.
-    let raf2 = 0;
-    const raf1 = requestAnimationFrame(() => {
-      setMounted(true);
-      raf2 = requestAnimationFrame(() => setVisible(true));
-    });
-    return () => {
-      cancelAnimationFrame(raf1);
-      cancelAnimationFrame(raf2);
-    };
-  }, [open]);
-
-  if (!mounted) return null;
-
+  // 선택 상태 초기화는 따로 하지 않는다 — 호출부(useNativeDialog)가 닫힌 뒤 시트를 언마운트하므로
+  // 다시 열릴 때는 항상 새 인스턴스로 시작한다.
   const selectedOption = options.find((option) => option.value === selected);
   const needsCustomText = selectedOption?.allowsCustomText === true;
   // 자유 입력은 선택 사항이다 — 「기타」를 고르기만 해도 제출할 수 있다. 사유를 글로 설명하기
@@ -78,99 +52,59 @@ export function SelectSheet({
   const canSubmit = selectedOption !== undefined;
 
   return (
-    <div
-      className={cn(
-        "fixed inset-0 z-50 flex items-end",
-      )}
+    <BottomSheetFrame
+      open={open}
+      title={title}
+      message={message}
+      onDismiss={onDismiss}
     >
-      {/* 딤(바깥 탭 시 닫기) — 웹뷰 영역까지만 덮이는 건 웹 폴백의 한계다(앱에서는 네이티브가 그린다). */}
+      <ul className="mt-4 flex flex-col" role="radiogroup" aria-label={title}>
+        {options.map((option) => (
+          <SheetOption
+            key={option.value}
+            label={option.label}
+            selected={selected === option.value}
+            onSelect={() => setSelected(option.value)}
+          />
+        ))}
+      </ul>
+
+      {needsCustomText ? (
+        <textarea
+          value={customText}
+          onChange={(event) => setCustomText(event.target.value)}
+          placeholder={customTextPlaceholder}
+          maxLength={customTextMaxLength}
+          className="mt-2 h-20 w-full resize-none rounded-[15px] bg-textfield-mutiline-default-bg px-4 py-3 text-body-s text-textfield-mutiline-filled-text placeholder:text-textfield-mutiline-default-text"
+        />
+      ) : null}
+
+      {/* 하단 CTA: 높이 51, radius 15 — 앱 공통 버튼 스펙과 동일.
+          누르는 동안 cta 눌림 색이 깔리고 살짝 눌렸다 출렁인다(고르기 전 비활성일 때는 반응하지 않는다). */}
       <button
         type="button"
-        aria-label="닫기"
-        onClick={onDismiss}
+        disabled={!canSubmit}
+        onClick={() =>
+          selectedOption
+            ? onSubmit({
+                value: selectedOption.value,
+                // 비어 있으면 빈 문자열 대신 아예 싣지 않는다(입력 안 함 == 없음).
+                customText:
+                  needsCustomText && customText.trim()
+                    ? customText.trim()
+                    : undefined,
+              })
+            : undefined
+        }
         className={cn(
-          "absolute inset-0 bg-bottom-sheet-selected-container-scrim transition-opacity duration-200",
-          visible ? "opacity-100" : "opacity-0",
-        )}
-      />
-
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        // 올라올 때 500ms 감속(넘침 없음) / 내려갈 때 200ms 가속(호출부가 200ms 뒤 언마운트한다). 동작 줄이기면 이동 없이 바로 뜬다.
-        className={cn(
-          "relative w-full rounded-t-[20px] bg-bottom-sheet-selected-container-background px-5 pb-5",
-          "motion-safe:transition-[translate]",
-          visible
-            ? "translate-y-0 duration-500 ease-smooth-out"
-            : "translate-y-full duration-200 ease-in",
+          "mt-4 h-[51px] w-full rounded-[15px] bg-cta-primary-bg text-button-m text-cta-primary-text disabled:bg-cta-primary-disabled-bg disabled:text-cta-primary-disabled-text",
+          "enabled:active:bg-cta-primary-pressed-bg",
+          PRESS_BOUNCE,
         )}
       >
-        {/* 핸들바: 상단 여백 8, 폭 40 높이 4 */}
-        <div className="flex justify-center pt-2">
-          <span className="h-1 w-10 rounded-full bg-bottom-sheet-selected-container-handle" />
-        </div>
-
-        {/* 제목: Title2(Semibold 20) */}
-        <h2 className="mt-4 text-left text-title-2 text-bottom-sheet-selected-container-title">
-          {title}
-        </h2>
-        {message ? (
-          // 보조 설명: Body S(14/21)
-          <p className="mt-1 text-left text-body-s text-text-secondary">
-            {message}
-          </p>
-        ) : null}
-
-        <ul className="mt-4 flex flex-col" role="radiogroup" aria-label={title}>
-          {options.map((option) => (
-            <SheetOption
-              key={option.value}
-              label={option.label}
-              selected={selected === option.value}
-              onSelect={() => setSelected(option.value)}
-            />
-          ))}
-        </ul>
-
-        {needsCustomText ? (
-          <textarea
-            value={customText}
-            onChange={(event) => setCustomText(event.target.value)}
-            placeholder={customTextPlaceholder}
-            maxLength={customTextMaxLength}
-            className="mt-2 h-20 w-full resize-none rounded-[15px] bg-textfield-mutiline-default-bg px-4 py-3 text-body-s text-textfield-mutiline-filled-text placeholder:text-textfield-mutiline-default-text"
-          />
-        ) : null}
-
-        {/* 하단 CTA: 높이 51, radius 15 — 앱 공통 버튼 스펙과 동일.
-            누르는 동안 cta 눌림 색이 깔리고 살짝 눌렸다 출렁인다(고르기 전 비활성일 때는 반응하지 않는다). */}
-        <button
-          type="button"
-          disabled={!canSubmit}
-          onClick={() =>
-            selectedOption
-              ? onSubmit({
-                  value: selectedOption.value,
-                  // 비어 있으면 빈 문자열 대신 아예 싣지 않는다(입력 안 함 == 없음).
-                  customText:
-                    needsCustomText && customText.trim()
-                      ? customText.trim()
-                      : undefined,
-                })
-              : undefined
-          }
-          className={cn(
-            "mt-4 h-[51px] w-full rounded-[15px] bg-cta-primary-bg text-button-m text-cta-primary-text disabled:bg-cta-primary-disabled-bg disabled:text-cta-primary-disabled-text",
-            "enabled:active:bg-cta-primary-pressed-bg",
-            PRESS_BOUNCE,
-          )}
-        >
-          {submitText}
-        </button>
-      </div>
-    </div>
+        {submitText}
+      </button>
+    </BottomSheetFrame>
   );
 }
 
