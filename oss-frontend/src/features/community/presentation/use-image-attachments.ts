@@ -14,6 +14,9 @@ export const MAX_IMAGES = 3;
 
 /** 첨부 한도 초과 안내(정책 문구). */
 const MAX_IMAGES_MESSAGE = `사진은 최대 ${MAX_IMAGES}장까지 첨부할 수 있어요`;
+
+/** 사진을 어디서 가져올지 — 글쓰기 사진 선택창(PhotoSourceSheet)의 두 항목. */
+export type PhotoSource = "album" | "camera";
 /** 재시도 반복 실패 안내(정책 문구). 첫 실패는 썸네일의 ↻만으로 알리고, 재시도가 또 실패했을 때만 띄운다. */
 const RETRY_FAILED_MESSAGE = "업로드하지 못했어요. 잠시 후 다시 시도해주세요";
 /**
@@ -76,8 +79,9 @@ export function isAttachmentOutOfAspect(item: Attachment): boolean {
  * - 업로드는 고르는 즉시 장별로 시작한다(정책: 썸네일별 업로드 중/실패/완료 표시). 등록 버튼은
  *   전 장이 done일 때만 열리므로(`isUploadSettled`) 화면은 `imageFileIdList`를 그대로 전송하면 된다.
  *
- * 화면은 `fileInputRef`를 숨겨진 input에 연결하고 `onFileChange`를 그 onChange에 건다.
- * "사진" 버튼은 `pick()`으로 그 input을 연다(탭 = 사용자 제스처라 웹뷰가 피커를 띄움).
+ * 화면은 `fileInputRef`(앨범)·`cameraInputRef`(촬영)를 숨겨진 input 둘에 연결하고 `onFileChange`를
+ * 둘의 onChange에 건다. "사진" 버튼은 `ensureRoom()`으로 장수를 확인한 뒤 우리 선택창을 띄우고,
+ * 선택창 항목 탭이 `pick(source)`로 해당 input을 연다(탭 = 사용자 제스처라 웹뷰가 피커를 띄움, #250).
  *
  * 편집(크롭)은 `replaceFile`로 파일만 갈아 끼우고 다시 올린다. 원본은 `source`에 남겨 다음 편집이
  * 크롭본이 아니라 원본에서 다시 잘라내게 한다(등록 전까지는 몇 번이든 되돌릴 수 있음).
@@ -89,6 +93,7 @@ export function useImageAttachments() {
   const toast = useToast();
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // 언마운트 시 남은 object URL을 모두 회수하기 위한 최신 첨부 미러.
   const attachmentsRef = useRef<Attachment[]>([]);
@@ -232,14 +237,24 @@ export function useImageAttachments() {
     [addFiles],
   );
 
-  /** "사진" 버튼: 이미 3장이면 피커를 열지 않고 토스트(정책 — 버튼은 비활성이 아님), 아니면 피커를 연다. */
-  const pick = useCallback(() => {
+  /** "사진" 버튼: 이미 3장이면 선택창을 열지 않고 토스트(정책 — 버튼은 비활성이 아님). 열 수 있으면 true. */
+  const ensureRoom = useCallback(() => {
     if (attachments.length >= MAX_IMAGES) {
       toast.show(MAX_IMAGES_MESSAGE);
-      return;
+      return false;
     }
-    fileInputRef.current?.click();
+    return true;
   }, [attachments.length, toast]);
+
+  /**
+   * 선택창에서 고른 곳의 피커를 연다 — 앨범은 보관함 input, 촬영은 capture input(바로 카메라).
+   * 반드시 탭 핸들러 안에서 동기로 불러야 한다. 비동기 뒤(await·타이머)면 웹뷰가 사용자 제스처로 보지 않아 피커가 안 뜬다.
+   */
+  const pick = useCallback((source: PhotoSource) => {
+    const input =
+      source === "camera" ? cameraInputRef.current : fileInputRef.current;
+    input?.click();
+  }, []);
 
   /** 실패한 장만 다시 올린다(썸네일 탭). 실패 상태가 아니면 무시. */
   const retry = useCallback(
@@ -318,7 +333,9 @@ export function useImageAttachments() {
     isUploadSettled,
     imageFileIdList,
     fileInputRef: fileInputRef as RefObject<HTMLInputElement>,
+    cameraInputRef: cameraInputRef as RefObject<HTMLInputElement>,
     onFileChange,
+    ensureRoom,
     pick,
     retry,
     replaceFile,
