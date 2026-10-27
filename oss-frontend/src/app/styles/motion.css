@@ -189,6 +189,9 @@
   --animate-menu-slide-out: menu-slide-out 200ms ease-in both;
   /* 알림 켜기 — 종이 꼭대기를 축으로 좌우로 땡그랑 흔들린다. */
   --animate-bell-ring: bell-ring 700ms ease-out both;
+  /* 댓글 빈 상태 — 오스 손이 손목을 축으로 딸랑딸랑 두 번 흔들리고 멈춘다(반복 없음).
+     문구가 떠오르는 rise-in(280ms)이 끝난 뒤 시작한다. */
+  --animate-oss-wave: oss-wave 1000ms ease-out 320ms both;
   /* 알림 끄기 — 종이 움츠렸다 출렁이며 돌아온다. */
   --animate-bell-mute: bell-mute 500ms ease-out both;
   /* 밸런스 게임 고정 바 — 위에서 떨어지듯 내려와 출렁이며 자리 잡는다. */
@@ -354,6 +357,30 @@
     }
     75% {
       transform: rotate(3deg);
+    }
+    100% {
+      transform: rotate(0deg);
+    }
+  }
+
+  @keyframes oss-wave {
+    0% {
+      transform: rotate(0deg);
+    }
+    15% {
+      transform: rotate(-14deg);
+    }
+    30% {
+      transform: rotate(11deg);
+    }
+    45% {
+      transform: rotate(-8deg);
+    }
+    60% {
+      transform: rotate(5deg);
+    }
+    78% {
+      transform: rotate(-2deg);
     }
     100% {
       transform: rotate(0deg);
