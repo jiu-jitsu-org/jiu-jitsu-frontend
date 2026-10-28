@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { SessionHintProvider } from "@/features/auth/presentation/session-hint";
+import { readBeltAvatarSample } from "@/features/community/application/belt-avatar-sample";
 import { getPostShareMetadata } from "@/features/community/application/get-post-share-metadata";
 import { normalizeCommentSort } from "@/features/community/domain/post";
 import { PostDetailScreen } from "@/features/community/presentation/post-detail-screen";
@@ -56,16 +57,18 @@ export async function generateMetadata({
  *
  * Next.js 16: params/searchParams는 Promise이므로 await로 푼다.
  * 라우팅·파라미터 추출만 담당하고 데이터 조회/렌더는 PostDetailScreen(feature)에 위임한다.
+ *
+ * `?belt=sample`은 `next dev` 전용 띠 아바타 예시다(production에선 무시 — belt-avatar-sample).
  */
 export default async function CommunityPostPage({
   params,
   searchParams,
 }: {
   params: PostPageParams;
-  searchParams: Promise<{ sort?: string }>;
+  searchParams: Promise<{ sort?: string; belt?: string | string[] }>;
 }) {
   const { id } = await params;
-  const { sort } = await searchParams;
+  const { sort, belt } = await searchParams;
 
   const postId = parsePostId(id);
   if (postId === null) {
@@ -79,7 +82,11 @@ export default async function CommunityPostPage({
     <SessionHintProvider authenticated={sessionToken !== null}>
       {/* 상대 시간("5분 전")을 서버 시각 기준으로 계산하고 60초마다 갱신한다(#188). */}
       <ServerClockProvider serverNow={readServerNow()}>
-        <PostDetailScreen postId={postId} sort={normalizeCommentSort(sort)} />
+        <PostDetailScreen
+          postId={postId}
+          sort={normalizeCommentSort(sort)}
+          sampleBelts={readBeltAvatarSample(belt)}
+        />
       </ServerClockProvider>
     </SessionHintProvider>
   );
