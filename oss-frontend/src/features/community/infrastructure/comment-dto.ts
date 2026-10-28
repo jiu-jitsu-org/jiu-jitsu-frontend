@@ -1,4 +1,5 @@
 import type { Comment } from "@/features/community/domain/comment";
+import { type AuthorBeltDto, toBelt } from "@/features/community/infrastructure/belt-dto";
 import { toKstIso } from "@/shared/lib/time";
 
 /**
@@ -28,12 +29,12 @@ export type CommentDto = {
    * 작성자. 차단한 회원의 댓글은 서버가 전 필드를 null로 마스킹해 내려준다(backend#105).
    * placeholder만 그리므로 값은 쓰이지 않지만, 타입은 실제 응답을 따라 nullable로 둔다.
    */
-  author: {
+  author: ({
     id: number | null;
     nickname: string | null;
     /** 프로필 이미지(없으면 null). */
     profileImage: { id: number; imageUrl: string } | null;
-  } | null;
+  } & AuthorBeltDto) | null;
   /** 작성 시각(ISO 8601). */
   createdAt: string;
   /** 서버가 계산한 상대 시각. 웹은 쓰지 않는다 — createdAt으로 직접 계산한다(#188). */
@@ -93,6 +94,7 @@ export function toComment(dto: CommentDto): Comment {
       userId: dto.author?.id ?? 0,
       nickname: dto.author?.nickname ?? "",
       avatarUrl: dto.author?.profileImage?.imageUrl ?? null,
+      belt: toBelt(dto.author),
     },
     body: dto.body ?? "",
     createdAt: toKstIso(dto.createdAt),

@@ -5,11 +5,15 @@
  * 프레임워크/인프라에 의존하지 않는 순수 타입만 둔다. (DTO → 이 타입 매핑은 infrastructure가 담당)
  */
 
+import type { Belt } from "@/features/community/domain/belt";
+
 export type PostAuthor = {
   /** 작성자 식별자. 단건 조회 응답에 노출되면 매핑, 없으면 0. */
   userId: number;
   nickname: string;
   avatarUrl?: string | null;
+  /** 띠·그랄(#265). 서버가 아직 주지 않는다 — 없으면 띠 없는 기존 아바타를 그린다. */
+  belt?: Belt | null;
 };
 
 export type PostImage = {

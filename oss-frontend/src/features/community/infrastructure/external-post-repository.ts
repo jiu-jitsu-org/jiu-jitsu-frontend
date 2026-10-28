@@ -19,6 +19,7 @@ import {
   type CommentDto,
   toComment,
 } from "@/features/community/infrastructure/comment-dto";
+import { type AuthorBeltDto, toBelt } from "@/features/community/infrastructure/belt-dto";
 import type { HttpClient } from "@/shared/lib/http";
 import { toKstIso } from "@/shared/lib/time";
 
@@ -106,7 +107,7 @@ type BoardDetailDto = {
     nickname: string;
     /** 프로필 이미지(없으면 null). 객체 형태 { id, imageUrl }. */
     profileImage: { id: number; imageUrl: string } | null;
-  };
+  } & AuthorBeltDto;
   /** 본인 게시글 여부(viewer.isOwner). */
   isAuthor: boolean;
   /** 조회수. */
@@ -157,7 +158,7 @@ type BoardSummaryDto = {
     id: number;
     nickname: string;
     profileImage: { id: number; imageUrl: string } | null;
-  };
+  } & AuthorBeltDto;
   isAuthor: boolean;
 };
 
@@ -180,6 +181,7 @@ function toPostSummary(dto: BoardSummaryDto): PostSummary {
       userId: dto.author.id,
       nickname: dto.author.nickname,
       avatarUrl: dto.author.profileImage?.imageUrl ?? null,
+      belt: toBelt(dto.author),
     },
     title: dto.title,
     body: dto.body,
@@ -222,6 +224,7 @@ function toPostDetail(dto: BoardDetailDto): PostDetail {
       userId: dto.author.id,
       nickname: dto.author.nickname,
       avatarUrl: dto.author.profileImage?.imageUrl ?? null,
+      belt: toBelt(dto.author),
     },
     title: dto.title,
     body: dto.body,
