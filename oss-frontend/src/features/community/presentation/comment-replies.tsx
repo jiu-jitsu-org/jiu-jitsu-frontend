@@ -204,8 +204,9 @@ export function CommentReplies({
   if (items.length === 0 && !hasMore) return null;
 
   return (
-    <div className="mt-3 flex flex-col gap-3">
-      <ul ref={listRef} className="flex flex-col gap-3">
+    // 묶음 안 간격 8 — 목록의 묶음 사이 간격(24)보다 확실히 좁아야 부모 댓글에 붙어 보인다(#258).
+    <div className="mt-2 flex flex-col gap-2">
+      <ul ref={listRef} className="flex flex-col gap-2">
         {items.map((reply) => (
           <CommentItem
             key={reply.id}
