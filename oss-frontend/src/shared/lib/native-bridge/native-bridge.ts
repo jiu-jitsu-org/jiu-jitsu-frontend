@@ -46,6 +46,22 @@ export function isNativeBridgeAvailable(): boolean {
 }
 
 /**
+ * 앱이 이 웹→앱 메시지를 처리할 수 있는지(#264).
+ *
+ * 네이티브는 페이지 스크립트보다 먼저 `window.AppBridgeCapabilities = ["PICK_PHOTOS", ...]`를 주입한다
+ * (iOS WKUserScript atDocumentStart). 보내기 전에 바로 알아야 하는 메시지에 쓴다 — 예: 앨범 선택은
+ * 탭 직후 file input을 열어야 해서 "보내 보고 응답이 없으면 폴백"이 불가능하다.
+ * 목록을 주입하지 않는 구버전 앱·브라우저는 전부 false.
+ */
+export function supportsNativeMessage(type: OutboundMessageType): boolean {
+  if (typeof window === "undefined" || !isNativeBridgeAvailable()) {
+    return false;
+  }
+  const capabilities = window.AppBridgeCapabilities;
+  return Array.isArray(capabilities) && capabilities.includes(type);
+}
+
+/**
  * 웹 → 네이티브 메시지 전송.
  *
  * iOS는 객체를 그대로 받을 수 있고(`postMessage(obj)`), Android JS 인터페이스는

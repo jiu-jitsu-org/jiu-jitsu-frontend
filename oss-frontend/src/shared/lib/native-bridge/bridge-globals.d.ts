@@ -6,6 +6,7 @@ import type { InboundMessage } from "./messages";
  * - `webkit.messageHandlers.AppBridge` : iOS(WKWebView)가 주입하는 수신구
  * - `AppBridge`                        : Android(addJavascriptInterface)가 주입하는 수신구
  * - `WebBridge`                        : 웹(FE)이 정의하고 네이티브가 호출하는 수신구
+ * - `AppBridgeCapabilities`            : 네이티브가 페이지 로드 전에 주입하는, 처리할 수 있는 웹→앱 메시지 type 목록
  *
  * 이 전역들은 네이티브 연동 계약상 불가피한 interop 표면이다. (앱 정책: 전역 변수 지양이나
  * 브릿지 핸들은 플랫폼이 강제하는 예외) 직접 접근은 native-bridge.ts 한 곳으로만 캡슐화한다.
@@ -27,6 +28,7 @@ declare global {
     WebBridge?: {
       receive: (raw: string | InboundMessage) => void;
     };
+    AppBridgeCapabilities?: string[];
   }
 }
 

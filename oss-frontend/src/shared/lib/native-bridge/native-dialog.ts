@@ -5,6 +5,8 @@ import {
   type ConfirmDialogResult,
   type ConfirmDialogResultPayload,
   type InboundMessage,
+  type PickedPhoto,
+  type PickPhotosPayload,
   type SelectSheetPayload,
   type SelectSheetResultPayload,
 } from "./messages";
@@ -15,10 +17,11 @@ import {
 } from "./native-bridge";
 
 /**
- * 네이티브 알럿·선택 시트 코디네이터.
+ * 네이티브 알럿·선택 시트·사진 선택 코디네이터.
  *
  * WHY: 웹뷰는 자기 프레임 밖(GNB·하단 탭바)을 그릴 수 없어 풀스크린 딤이 필요한 표면은
  * 네이티브가 소유해야 한다. 웹은 "이 문구로 물어봐 달라"고 요청하고 결과만 받아 정책(API 호출)을 잇는다.
+ * 사진 선택 화면(#264)도 같은 요청↔응답 모양이라 여기서 함께 짝짓는다.
  *
  * 기존 브릿지 메시지는 전부 단방향이라 요청↔응답을 짝지을 수단이 없었다. 알럿은 "확인이 눌렸는지"를
  * 받아야 하므로 요청마다 requestId를 발급하고, 응답이 오면 해당 대기자만 깨운다.
@@ -57,7 +60,8 @@ function ensureListener(): void {
   unregister = registerWebBridge((message) => {
     if (
       message.type !== InboundMessageType.CONFIRM_DIALOG_RESULT &&
-      message.type !== InboundMessageType.SELECT_SHEET_RESULT
+      message.type !== InboundMessageType.SELECT_SHEET_RESULT &&
+      message.type !== InboundMessageType.PHOTOS_PICKED
     ) {
       return;
     }
@@ -180,6 +184,46 @@ export function requestNativeSelectSheet(
         : { submitted: false };
     },
     { submitted: false },
+  );
+}
+
+/** base64 사진 1장을 File로 되살린다. 디코딩에 실패한 장은 null(나머지 장은 살린다). */
+function toFile(photo: PickedPhoto): File | null {
+  try {
+    const binary = atob(photo.data);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return new File([bytes], photo.name, { type: photo.mimeType });
+  } catch (error) {
+    console.error("[native-bridge] failed to decode picked photo", photo.name, error);
+    return null;
+  }
+}
+
+/**
+ * 네이티브 사진 선택 화면을 열고 고른 사진을 File로 받는다(#264). 취소·무응답이면 빈 배열.
+ *
+ * 앱이 이 메시지를 아는지는 호출부가 `supportsNativeMessage(PICK_PHOTOS)`로 먼저 가른다 —
+ * 모르는 앱이면 응답이 오지 않아 무응답 상한까지 기다리게 된다.
+ *
+ * @throws 네이티브 브릿지가 없으면 거절.
+ */
+export function requestNativePhotos(limit: number): Promise<File[]> {
+  const payload: PickPhotosPayload = {
+    requestId: nextRequestId("photos"),
+    limit,
+  };
+
+  return requestFromNative<File[]>(
+    OutboundMessageType.PICK_PHOTOS,
+    payload,
+    (message) =>
+      message.type === InboundMessageType.PHOTOS_PICKED
+        ? (message.payload.files ?? []).flatMap((photo) => toFile(photo) ?? [])
+        : [],
+    [],
   );
 }
 
