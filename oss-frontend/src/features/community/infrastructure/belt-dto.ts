@@ -38,3 +38,11 @@ export function toBelt(dto: AuthorBeltDto | null | undefined): Belt | null {
     grau: (dto?.beltStripe && BELT_GRAUS[dto.beltStripe]) || 0,
   };
 }
+
+/** toBelt의 반대 — 띠를 서버 값(beltRank "BLUE", beltStripe "STRIPE_2")으로 바꾼다. */
+export function toBeltDto(belt: Belt): { beltRank: string; beltStripe: string } {
+  return {
+    beltRank: belt.rank.toUpperCase(),
+    beltStripe: `STRIPE_${belt.grau}`,
+  };
+}

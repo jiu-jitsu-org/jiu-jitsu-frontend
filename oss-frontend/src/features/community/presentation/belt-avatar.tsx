@@ -5,7 +5,8 @@ import type { Belt, BeltRank } from "@/features/community/domain/belt";
 /** feed: 피드·상세·댓글 작성자 줄(사진 26) · large: 커뮤니티 활동 머리 같은 큰 자리(사진 64). */
 export type BeltAvatarSize = "feed" | "large";
 
-const BELT_COLOR: Record<BeltRank, string> = {
+/** 띠 색(CSS 값). 띠를 고르는 칩의 색 점도 같은 값을 쓴다. */
+export const BELT_COLOR: Record<BeltRank, string> = {
   white: "var(--my-profile-header-bg-white)",
   blue: "var(--my-profile-header-bg-blue)",
   purple: "var(--my-profile-header-bg-purple)",

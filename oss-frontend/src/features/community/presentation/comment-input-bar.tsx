@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
+import { useRequestBeltPrompt } from "@/features/community/presentation/belt-prompt";
 import { useCommentReply } from "@/features/community/presentation/comment-reply-context";
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
@@ -52,6 +53,7 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
   const rect = useViewportRect();
   const { guest, guard } = useLoginGuard();
   const toast = useToast();
+  const requestBeltPrompt = useRequestBeltPrompt();
 
   // 입력에 따라 높이 자동 확장. 최대 5줄(max-h-[125px])은 CSS가 제한하고 초과분은 스크롤.
   useEffect(() => {
@@ -119,6 +121,8 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
       cancelReply();
       // 서버 렌더 목록 재요청 — 새 댓글이 정렬 규칙에 맞게 반영된다.
       router.refresh();
+      // 띠가 없는 회원이면 띠를 묻는다(#275). 노출 규칙은 Provider가 본다.
+      requestBeltPrompt();
     } finally {
       setSubmitting(false);
     }
