@@ -196,6 +196,58 @@ HStack(spacing: 0) {
 
 웹 `ConfirmDialog`는 **앱 밖(브라우저 개발/데모)에서만** 쓰는 폴백으로 남습니다.
 
+### 4-4. 사진 선택 (#264, jiu-jitsu-ios#114)
+
+글쓰기 사진 선택창에서 **앨범에서 선택**을 누르면, 웹뷰의 file input 대신 네이티브가 사진 선택 화면
+(`PHPickerViewController`)을 바로 엽니다. file input은 iOS 시스템 메뉴(사진 보관함 / 사진 찍기 / 파일 선택)를
+한 번 더 띄우고, 이 메뉴는 웹에서 건너뛸 방법이 없기 때문입니다. **촬영하기**는 `capture` input이 이미 카메라로
+바로 가므로 그대로 둡니다.
+
+**지원 여부 — `window.AppBridgeCapabilities`**
+
+앨범 input은 탭 직후 바로 열어야 해서(사용자 제스처), "메시지를 보내 보고 응답이 없으면 input으로 폴백"이
+불가능합니다. 그래서 앱이 **페이지 스크립트보다 먼저** 처리할 수 있는 웹→앱 메시지 목록을 주입합니다.
+
+```swift
+let script = WKUserScript(
+    source: #"window.AppBridgeCapabilities = ["PICK_PHOTOS"];"#,
+    injectionTime: .atDocumentStart,
+    forMainFrameOnly: true
+)
+configuration.userContentController.addUserScript(script)
+```
+
+- 웹은 목록에 `PICK_PHOTOS`가 있을 때만 이 메시지를 보냅니다(`supportsNativeMessage`). 목록이 없는 구버전 앱·브라우저는 지금처럼 file input.
+- 앞으로 "보내기 전에 알아야 하는" 메시지가 생기면 이 목록에 type을 추가합니다.
+
+**웹 → 네이티브 `PICK_PHOTOS`**
+
+```ts
+{
+  requestId: string;  // 웹 발급, 응답 매칭용
+  limit: number;      // 고를 수 있는 최대 장수(남은 첨부 자리, 1~3) → PHPicker selectionLimit
+}
+```
+
+**네이티브 → 웹 `PHOTOS_PICKED`**
+
+```ts
+{
+  requestId: string;
+  files: {            // 고른 순서대로. 취소하면 빈 배열
+    name: string;     // 확장자 포함, 예: "IMG_0012.jpg"
+    mimeType: string; // "image/jpeg"
+    data: string;     // base64 (data: 접두사 없이)
+  }[];
+}
+```
+
+- **크기는 앱이 줄여 보냅니다:** HEIC → JPEG, 긴 변 **2400px** 이내. 원본 그대로면 장당 수 MB의 base64가
+  `evaluateJavaScript`를 지나야 해 느립니다. 2400은 크롭으로 확대해도 업로드 기준(긴 변 1600)을 지키는 여유이고,
+  최종 압축은 웹이 지금처럼 합니다.
+- 받은 사진은 file input으로 고른 것과 같은 흐름(썸네일 → 장별 업로드 → 크롭)을 탑니다.
+- 무응답 상한(5분)이 지나면 웹은 빈 배열로 보고 기다리지 않습니다.
+
 ---
 
 ## 5. 흐름
@@ -310,5 +362,7 @@ HStack(spacing: 0) {
 | iOS | `titleParts` 렌더링 (jiu-jitsu-ios#32) | ✅ |
 | 웹 | 상세 화면 숨기기 (동작 정의 필요) | ⬜ |
 | 웹 | 수정 화면 `/community/{id}/edit` | ⬜ |
+| 웹 | 사진 선택 `PICK_PHOTOS` ↔ `PHOTOS_PICKED` + 지원 목록 확인 (#264) | ✅ |
+| iOS | `AppBridgeCapabilities` 주입 + PHPicker 사진 선택·JPEG 2400 축소 (jiu-jitsu-ios#114) | ⬜ |
 
 한 번 만들어두면 이후 모든 확인창(신고·차단·작성 중 나가기 등)이 같은 길을 씁니다.

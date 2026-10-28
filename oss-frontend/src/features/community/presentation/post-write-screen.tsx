@@ -1151,8 +1151,9 @@ export function PostWriteScreen({
               click()으로 연다(항목 탭 = 사용자 제스처, #250).
               앨범: 남은 슬롯이 1장이면 단일 선택으로 전환 → 마지막 한 장에서 초과 선택→잘림을 줄인다.
               (웹 표준상 "최대 N장" 지정은 불가 — 2장 이상 남았을 때의 초과분은 훅이 잘라내고 토스트)
-              FIXME(#250): capture가 없는 input은 iOS가 시스템 메뉴(보관함/사진 찍기/파일 선택)를 한 번 더 띄울 수 있다.
-              실기기에서 뜨면 네이티브 사진 선택을 부르는 브릿지 메시지로 바꾼다(iOS 이슈로 분리).
+              capture가 없는 input은 iOS가 시스템 메뉴(보관함/사진 찍기/파일 선택)를 한 번 더 띄운다 → 앱이 PICK_PHOTOS를
+              지원하면 앨범 input은 쓰지 않고 네이티브 사진 선택 화면을 연다(#264, use-image-attachments pick).
+              이 input은 브라우저·구버전 앱용 폴백이다.
               촬영: capture로 메뉴 없이 바로 카메라. 한 번에 한 장이라 multiple은 두지 않는다. */}
           <input
             ref={fileInputRef}

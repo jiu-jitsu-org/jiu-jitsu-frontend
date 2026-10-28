@@ -46,6 +46,10 @@ export const OutboundMessageType = {
   // 내 이름은 남에게 보이는 모습이 아니라 고칠 수 있는 내 프로필로 가야 하기 때문이다.
   // 브릿지가 없는 일반 브라우저에서는 보내지 않는다(남은 동작 없음, 나는 /community/me).
   OPEN_USER_PROFILE: "OPEN_USER_PROFILE",
+  // 앨범 사진 선택 요청(#264). 웹뷰의 file input은 iOS 시스템 메뉴(보관함/사진 찍기/파일 선택)를 건너뛸 수
+  // 없어 네이티브가 사진 선택 화면을 직접 연다. 결과(PHOTOS_PICKED)를 받아야 해서 requestId로 짝짓는다.
+  // 구버전 앱은 이 메시지를 모르므로 지원 목록(AppBridgeCapabilities)에 있을 때만 보낸다 — 없으면 file input.
+  PICK_PHOTOS: "PICK_PHOTOS",
 } as const;
 export type OutboundMessageType =
   (typeof OutboundMessageType)[keyof typeof OutboundMessageType];
@@ -62,6 +66,8 @@ export const InboundMessageType = {
   // SHOW_CONFIRM_DIALOG / SHOW_SELECT_SHEET의 결과. requestId로 어느 요청의 답인지 식별한다.
   CONFIRM_DIALOG_RESULT: "CONFIRM_DIALOG_RESULT",
   SELECT_SHEET_RESULT: "SELECT_SHEET_RESULT",
+  // PICK_PHOTOS의 결과. 취소하면 files가 빈 배열이다.
+  PHOTOS_PICKED: "PHOTOS_PICKED",
 } as const;
 export type InboundMessageType =
   (typeof InboundMessageType)[keyof typeof InboundMessageType];
@@ -188,6 +194,35 @@ export type ShareSheetPayload = {
   title?: string;
 };
 
+/** `PICK_PHOTOS` payload — 네이티브가 열 사진 선택 화면. */
+export type PickPhotosPayload = {
+  requestId: string;
+  /** 고를 수 있는 최대 장수(남은 첨부 자리). 네이티브는 이만큼만 고르게 한다(PHPicker selectionLimit). */
+  limit: number;
+};
+
+/**
+ * 네이티브가 고른 사진 1장.
+ *
+ * 네이티브가 HEIC를 JPEG로 바꾸고 긴 변을 2400px 이내로 줄여 보낸다 — 원본을 그대로 실으면 장당 수 MB의
+ * base64가 evaluateJavaScript를 지나야 해서 느리다. 2400은 크롭으로 확대해도 업로드 기준(긴 변 1600)을
+ * 지키는 여유이고, 최종 압축은 웹이 지금처럼 한다(compressImage).
+ */
+export type PickedPhoto = {
+  /** 파일 이름(확장자 포함). 로그·업로드 파일명에 쓴다. */
+  name: string;
+  /** 예: "image/jpeg" */
+  mimeType: string;
+  /** 바이트의 base64 문자열(`data:` 접두사 없이). */
+  data: string;
+};
+
+/** `PHOTOS_PICKED` payload. 고른 순서대로이며, 취소하면 빈 배열이다. */
+export type PhotosPickedPayload = {
+  requestId: string;
+  files: PickedPhoto[];
+};
+
 /** `AUTH_LOGIN_SUCCESS` payload. refreshToken은 네이티브가 보관하고 웹엔 accessToken만 전달. */
 export type AuthLoginSuccessPayload = {
   accessToken: string;
@@ -224,4 +259,8 @@ export type InboundMessage =
   | {
       type: typeof InboundMessageType.SELECT_SHEET_RESULT;
       payload: SelectSheetResultPayload;
+    }
+  | {
+      type: typeof InboundMessageType.PHOTOS_PICKED;
+      payload: PhotosPickedPayload;
     };

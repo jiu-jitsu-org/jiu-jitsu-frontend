@@ -12,6 +12,9 @@ export type {
   LeaveGuardPayload,
   OpenSubviewPayload,
   OpenUserProfilePayload,
+  PhotosPickedPayload,
+  PickedPhoto,
+  PickPhotosPayload,
   SelectSheetOption,
   SelectSheetPayload,
   SelectSheetResult,
@@ -26,12 +29,14 @@ export {
   postToNative,
   registerWebBridge,
   showNativeShareSheet,
+  supportsNativeMessage,
 } from "./native-bridge";
 export type { BridgePlatform } from "./native-bridge";
 export { useNativeLeaveGuard } from "./native-leave-guard";
 export { useIsExternalBrowser } from "./use-external-browser";
 export {
   requestNativeConfirm,
+  requestNativePhotos,
   requestNativeSelectSheet,
 } from "./native-dialog";
 export type { NativeSelectSheetOutcome } from "./native-dialog";

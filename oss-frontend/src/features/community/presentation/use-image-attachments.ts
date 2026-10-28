@@ -4,6 +4,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ChangeEvent, RefObject } from "react";
 
 import { uploadImageAndRegister } from "@/features/community/presentation/community-write-client";
+import {
+  OutboundMessageType,
+  requestNativePhotos,
+  supportsNativeMessage,
+} from "@/shared/lib/native-bridge";
 import { useToast } from "@/shared/ui";
 
 import { isWithinAllowedAspect } from "./image-aspect";
@@ -82,6 +87,8 @@ export function isAttachmentOutOfAspect(item: Attachment): boolean {
  * 화면은 `fileInputRef`(앨범)·`cameraInputRef`(촬영)를 숨겨진 input 둘에 연결하고 `onFileChange`를
  * 둘의 onChange에 건다. "사진" 버튼은 `ensureRoom()`으로 장수를 확인한 뒤 우리 선택창을 띄우고,
  * 선택창 항목 탭이 `pick(source)`로 해당 input을 연다(탭 = 사용자 제스처라 웹뷰가 피커를 띄움, #250).
+ * 단, 앨범은 앱이 `PICK_PHOTOS`를 지원하면 input 대신 네이티브 사진 선택 화면을 연다(#264) — input은
+ * iOS 시스템 메뉴(보관함/사진 찍기/파일 선택)를 한 번 더 띄우기 때문. 받은 사진은 같은 `addFiles`로 들어간다.
  *
  * 편집(크롭)은 `replaceFile`로 파일만 갈아 끼우고 다시 올린다. 원본은 `source`에 남겨 다음 편집이
  * 크롭본이 아니라 원본에서 다시 잘라내게 한다(등록 전까지는 몇 번이든 되돌릴 수 있음).
@@ -94,6 +101,8 @@ export function useImageAttachments() {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  /** 네이티브 사진 선택(#264) 응답을 기다리는 중인지 — 중복 요청 방지. */
+  const nativePickingRef = useRef(false);
 
   // 언마운트 시 남은 object URL을 모두 회수하기 위한 최신 첨부 미러.
   const attachmentsRef = useRef<Attachment[]>([]);
@@ -192,13 +201,16 @@ export function useImageAttachments() {
     [patch],
   );
 
-  /** 고른 파일들을 한도 내에서 첨부에 추가하고 즉시 장별 업로드를 시작한다. */
+  /**
+   * 고른 파일들을 한도 내에서 첨부에 추가하고 즉시 장별 업로드를 시작한다.
+   * 남은 자리는 최신 목록(attachmentsRef)으로 센다 — 네이티브 선택 결과는 피커를 연 시점보다 늦게 도착한다.
+   */
   const addFiles = useCallback(
-    (fileList: FileList | null) => {
+    (fileList: FileList | File[] | null) => {
       const files = Array.from(fileList ?? []);
       if (files.length === 0) return;
 
-      const room = MAX_IMAGES - attachments.length;
+      const room = MAX_IMAGES - attachmentsRef.current.length;
       if (room <= 0) {
         toast.show(MAX_IMAGES_MESSAGE);
         return;
@@ -225,7 +237,7 @@ export function useImageAttachments() {
         void startUpload(item.localId, item.file, item.uploadSeq, false);
       });
     },
-    [attachments.length, measureSource, startUpload, toast],
+    [measureSource, startUpload, toast],
   );
 
   /** 숨겨진 file input의 onChange. 같은 파일 재선택도 발화되도록 value를 비운다. */
@@ -249,12 +261,39 @@ export function useImageAttachments() {
   /**
    * 선택창에서 고른 곳의 피커를 연다 — 앨범은 보관함 input, 촬영은 capture input(바로 카메라).
    * 반드시 탭 핸들러 안에서 동기로 불러야 한다. 비동기 뒤(await·타이머)면 웹뷰가 사용자 제스처로 보지 않아 피커가 안 뜬다.
+   * 앱이 지원하면 앨범은 네이티브 사진 선택 화면(#264) — 남은 장수만큼만 고르게 한다. 취소면 빈 배열이라 아무 일 없음.
    */
-  const pick = useCallback((source: PhotoSource) => {
-    const input =
-      source === "camera" ? cameraInputRef.current : fileInputRef.current;
-    input?.click();
-  }, []);
+  const pick = useCallback(
+    (source: PhotoSource) => {
+      if (
+        source === "album" &&
+        supportsNativeMessage(OutboundMessageType.PICK_PHOTOS)
+      ) {
+        // 선택 화면이 뜨기 전 다시 눌러도 요청은 하나만 — 결과가 겹쳐 들어오면 장수 계산이 어긋난다.
+        if (nativePickingRef.current) return;
+        const limit = MAX_IMAGES - attachmentsRef.current.length;
+        // 0을 보내면 PHPicker는 무제한으로 받는다.
+        if (limit <= 0) {
+          toast.show(MAX_IMAGES_MESSAGE);
+          return;
+        }
+        nativePickingRef.current = true;
+        requestNativePhotos(limit)
+          .then(addFiles)
+          .catch((error) => {
+            console.error("[post-write] 네이티브 사진 선택 실패:", error);
+          })
+          .finally(() => {
+            nativePickingRef.current = false;
+          });
+        return;
+      }
+      const input =
+        source === "camera" ? cameraInputRef.current : fileInputRef.current;
+      input?.click();
+    },
+    [addFiles, toast],
+  );
 
   /** 실패한 장만 다시 올린다(썸네일 탭). 실패 상태가 아니면 무시. */
   const retry = useCallback(
