@@ -9,6 +9,7 @@ export type {
   ConfirmDialogResult,
   ConfirmDialogTitleParts,
   InboundMessage,
+  LeaveGuardPayload,
   OpenSubviewPayload,
   SelectSheetOption,
   SelectSheetPayload,
@@ -25,6 +26,7 @@ export {
   showNativeShareSheet,
 } from "./native-bridge";
 export type { BridgePlatform } from "./native-bridge";
+export { useNativeLeaveGuard } from "./native-leave-guard";
 export { useIsExternalBrowser } from "./use-external-browser";
 export {
   requestNativeConfirm,

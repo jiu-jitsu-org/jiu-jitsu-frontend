@@ -26,6 +26,10 @@ export const OutboundMessageType = {
   // 네비게이션: 풀 웹뷰 서브뷰 푸시/팝 (게시글 상세 등). 범용이라 대상은 payload.url로 전달.
   OPEN_SUBVIEW: "OPEN_SUBVIEW",
   CLOSE_SUBVIEW: "CLOSE_SUBVIEW",
+  // 이탈 가드 토글(#263). 기본은 네이티브가 스와이프 백으로 서브뷰를 바로 닫지만, 이 화면이 지금 닫히면 안 된다고
+  // enabled:true로 알리면 네이티브는 스와이프를 시작하지 않고 BACK_PRESSED를 보낸다. 풀리면 enabled:false.
+  // 글쓰기·수정은 쓰던 내용이 있거나 화면 안 시트·편집 화면이 열려 있는 동안만 true다.
+  SET_LEAVE_GUARD: "SET_LEAVE_GUARD",
   // 확인 알럿·선택 바텀시트 표시 요청. 웹뷰는 자기 프레임 밖(GNB·하단 탭바)을 그릴 수 없어
   // 풀스크린 딤이 필요한 표면은 네이티브가 소유한다. 문구·항목은 웹이 payload로 넘겨
   // 문안 변경이 앱 배포에 묶이지 않게 한다(네이티브는 셸만 소유).
@@ -47,6 +51,9 @@ export const InboundMessageType = {
   AUTH_LOGIN_CANCELLED: "AUTH_LOGIN_CANCELLED",
   AUTH_SESSION_EXPIRED: "AUTH_SESSION_EXPIRED",
   AUTH_LOGOUT: "AUTH_LOGOUT",
+  // 네이티브 뒤로가기(스와이프 백). 가드를 켠(SET_LEAVE_GUARD enabled:true) 화면에만 보낸다. 웹이 한 단계
+  // 위로 처리하고(시트 닫기·이탈 확인 등) 실제로 닫을 때만 스스로 CLOSE_SUBVIEW를 보낸다.
+  BACK_PRESSED: "BACK_PRESSED",
   // SHOW_CONFIRM_DIALOG / SHOW_SELECT_SHEET의 결과. requestId로 어느 요청의 답인지 식별한다.
   CONFIRM_DIALOG_RESULT: "CONFIRM_DIALOG_RESULT",
   SELECT_SHEET_RESULT: "SELECT_SHEET_RESULT",
@@ -57,6 +64,11 @@ export type InboundMessageType =
 /** 로그인 유도(PROMPT/MODAL 공통) payload. 사유(분석/문구용, 선택). */
 export type AuthLoginPayload = {
   reason?: string;
+};
+
+/** `SET_LEAVE_GUARD` payload — 지금 화면을 스와이프 백으로 바로 닫으면 안 되는지. */
+export type LeaveGuardPayload = {
+  enabled: boolean;
 };
 
 /**
@@ -191,6 +203,7 @@ export type InboundMessage =
   | { type: typeof InboundMessageType.AUTH_LOGIN_CANCELLED }
   | { type: typeof InboundMessageType.AUTH_SESSION_EXPIRED }
   | { type: typeof InboundMessageType.AUTH_LOGOUT }
+  | { type: typeof InboundMessageType.BACK_PRESSED }
   | {
       type: typeof InboundMessageType.CONFIRM_DIALOG_RESULT;
       payload: ConfirmDialogResultPayload;
