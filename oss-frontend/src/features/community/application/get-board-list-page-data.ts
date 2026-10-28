@@ -1,8 +1,10 @@
+import { withSampleBelts } from "@/features/community/application/belt-avatar-sample";
 import { createGetPostListUseCase } from "@/features/community/application/community-use-case-factory";
 import type {
   BoardListQuery,
   PostList,
 } from "@/features/community/domain/post-summary";
+import { isDevelopmentRuntime } from "@/config/env";
 import { readSessionToken } from "@/shared/lib/auth";
 import { ApiError, ApiErrorCode, toApiError } from "@/shared/lib/http";
 
@@ -30,14 +32,20 @@ export type BoardListPageDataResult =
  * 토큰을 스스로 갱신할 수 없다. 그렇다고 익명으로 격하하면 네이티브(로그인)와 웹(비로그인)
  * 세션이 어긋나므로, "session-expired"만 알리고 실제 조회는 클라이언트로 위임한다. 클라이언트는
  * bffFetch로 다시 조회하면서 A0003을 네이티브 갱신·재시도로 복구해 인증 상태로 목록을 채운다.
+ *
+ * sampleBelts는 `next dev`에서만 받아들인다 — 작성자에 예시 띠·그랄을 얹는다(belt-avatar-sample).
  */
 export async function getBoardListPageData(
   query: BoardListQuery,
+  sampleBelts = false,
 ): Promise<BoardListPageDataResult> {
   const accessToken = await readSessionToken();
 
   try {
     const list = await createGetPostListUseCase(accessToken).execute(query);
+    if (sampleBelts && isDevelopmentRuntime()) {
+      return { ok: true, data: { list: { ...list, items: withSampleBelts(list.items) } } };
+    }
     return { ok: true, data: { list } };
   } catch (error) {
     const apiError = toApiError(error);

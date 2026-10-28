@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { readBeltAvatarSample } from "@/features/community/application/belt-avatar-sample";
 import { getBalanceGamePageData } from "@/features/community/application/get-balance-game-page-data";
 import { getBoardListPageData } from "@/features/community/application/get-board-list-page-data";
 import { SessionExpiredRecovery } from "@/features/auth/presentation/session-expired-recovery";
@@ -27,10 +28,17 @@ import { Spinner } from "@/shared/ui/spinner";
  * 데이터 조회는 application page data query에 위임하고(page는 라우팅/조립만),
  * 로딩은 같은 라우트의 loading.tsx, 카드 상호작용은 client 컴포넌트가 담당한다.
  * 개발용 진입 허브/playground는 `src/app/_backup/`에 보관돼 있다.
+ *
+ * `?belt=sample`은 `next dev` 전용 띠 아바타 예시다(production에선 무시 — belt-avatar-sample).
  */
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ belt?: string | string[] }>;
+}) {
+  const beltSample = readBeltAvatarSample((await searchParams).belt);
   const [result, balanceGame, sessionToken] = await Promise.all([
-    getBoardListPageData(DEFAULT_BOARD_LIST_QUERY),
+    getBoardListPageData(DEFAULT_BOARD_LIST_QUERY, beltSample),
     getBalanceGamePageData(),
     readSessionToken(),
   ]);
