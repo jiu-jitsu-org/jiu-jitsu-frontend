@@ -19,6 +19,7 @@ import {
   isNativeBridgeAvailable,
   OutboundMessageType,
   postToNative,
+  useNativeLeaveGuard,
 } from "@/shared/lib/native-bridge";
 import { enqueuePendingToast, useToast } from "@/shared/ui";
 import { SURFACE_PRESS } from "@/shared/ui/press-styles";
@@ -603,6 +604,16 @@ export function PostWriteScreen({
     void requestClose();
   }
 
+  // 스와이프 백(#263): 쓰던 내용이 있거나 화면 안 시트·편집·상세가 떠 있으면 네이티브가 바로 닫지 않고
+  // BACK_PRESSED로 넘긴다 → 앱바 뒤로가기와 같은 handleBack. 아무것도 없으면 스와이프로 바로 닫힌다.
+  useNativeLeaveGuard(
+    isDirty ||
+      photoSheetOpen ||
+      editingId !== null ||
+      viewerImageId !== null,
+    handleBack,
+  );
+
   /**
    * 사진 버튼: 3장이 차 있으면 토스트만(ensureRoom), 아니면 선택창을 띄운다.
    * 키보드가 떠 있으면 먼저 내린다 — 시트는 화면 바닥에 붙어서 키보드 뒤에 가려진다.
@@ -797,7 +808,7 @@ export function PostWriteScreen({
           각 요소가 자기 상단 마진을 가진다: 버튼 12(+36 = 48), 타이틀 13(+35 = 48).
           좌 뒤로가기(tint) · 가운데 "글쓰기"(Title 3 · header/text) · 우 등록(filled 체크). 두 아이콘 버튼 모두
           36 정사각 + radius 10 — 이미지 뷰어 닫기 버튼과 같은 tint 어휘.
-          뒤로가기는 웹이 소유한다 — 이탈 가드(requestClose)가 웹 안에서 끝나므로 네이티브 왕복이 없다. */}
+          뒤로가기는 웹이 소유한다 — 이탈 가드(requestClose)는 웹 안에서 끝나고, 스와이프 백도 가드 중엔 handleBack으로 온다. */}
       <AppBarShell
         className="items-start px-4"
         style={{ height: APP_BAR_HEIGHT }}
