@@ -92,6 +92,17 @@ export function closeNativeSubview(): void {
 }
 
 /**
+ * 앱 MY 탭(내 프로필)을 열도록 네이티브에 요청한다(#273).
+ *
+ * 커뮤니티 어느 화면에서든 내 사진(아바타)을 눌렀을 때 호출한다.
+ * payload 없음 — 항상 "나 자신"의 프로필로 이동하기 때문이다.
+ * 네이티브는 현재 웹뷰를 닫지 않고 MY 탭으로 이동한다.
+ */
+export function openNativeMyProfile(): void {
+  postToNative({ type: OutboundMessageType.OPEN_MY_PROFILE });
+}
+
+/**
  * 네이티브 시스템 공유 시트를 띄우도록 요청한다.
  *
  * 결과를 기다리지 않는 단방향 메시지다 — 어디로 공유했든 시트를 닫았든 웹이 이어붙일 후처리가 없어

@@ -3,6 +3,7 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 
 import { Avatar } from "@/features/community/presentation/avatar";
+import { useOpenMyProfile } from "@/features/community/presentation/use-open-my-profile";
 
 /** 펼친 프로필 행 높이 — 위 12 + 아바타 64 + 아래 20. */
 const FULL_ROW = 96;
@@ -30,6 +31,7 @@ export function MyActivityHeader({
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const openMyProfile = useOpenMyProfile();
 
   useEffect(() => {
     const header = ref.current;
@@ -75,15 +77,21 @@ export function MyActivityHeader({
         아바타는 왼쪽 가운데 기준으로 절반이 되고, 닉네임은 그만큼 왼쪽 · 아래로 따라온다.
       */}
       <div className="relative px-4" style={{ height: FULL_ROW }}>
-        <div
-          className="absolute top-3 left-4 origin-left will-change-transform"
+        {/* 아바타: 누르면 내 프로필(앱 MY 탭 또는 웹 폴백)으로 이동한다(#273).
+            transform·origin은 부모(absolute div)가 담당하므로 버튼 자체는 flex 래퍼만 둔다.
+            누르는 동안 배경 없이 불투명도만 낮춰 반응을 알린다(이미지 위에 면을 얹으면 아바타가 가려짐). */}
+        <button
+          type="button"
+          onClick={openMyProfile}
+          aria-label="내 프로필로 이동"
+          className="absolute top-3 left-4 origin-left will-change-transform active:opacity-70"
           style={{
             transform:
               "translateY(calc(var(--p) * 28px)) scale(calc(1 - var(--p) * 0.5))",
           }}
         >
           <Avatar src={profile.avatarUrl} className="size-16" iconSize={40} />
-        </div>
+        </button>
         <p
           className="absolute top-3 right-4 left-[92px] flex h-16 origin-left items-center will-change-transform"
           style={{

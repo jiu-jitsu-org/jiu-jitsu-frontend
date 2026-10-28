@@ -20,6 +20,7 @@ export {
   closeNativeSubview,
   detectPlatform,
   isNativeBridgeAvailable,
+  openNativeMyProfile,
   openNativeSubview,
   postToNative,
   registerWebBridge,
