@@ -10,7 +10,7 @@ import { CommentPlaceholder } from "@/features/community/presentation/comment-pl
 import { CommentReplies } from "@/features/community/presentation/comment-replies";
 import { useCommentReply } from "@/features/community/presentation/comment-reply-context";
 import { useArriveMotion } from "@/features/community/presentation/use-arrive-motion";
-import { MyActivityLink } from "@/features/community/presentation/my-activity-link";
+import { AuthorProfileLink } from "@/features/community/presentation/author-profile-link";
 import { cn } from "@/shared/lib/cn";
 import { ReplyBranchIcon } from "@/shared/ui/icons";
 import { RelativeTime } from "@/shared/ui/relative-time";
@@ -104,25 +104,30 @@ export function CommentItem({
         />
       ) : null}
       {/* 프로필 아이콘 24x24, 로드 실패 시 기본 상태 폴백.
-          내 댓글이면 아바타·닉네임을 눌러 내 커뮤니티 활동을 연다 — 둘이 떨어져 있어 각각 감싸고,
+          아바타·닉네임을 누르면 작성자 프로필을 연다(앱에서 내 댓글은 MY 탭) — 둘이 떨어져 있어 각각 감싸고,
           아바타는 닉네임과 같은 동작이라 탭 순서·스크린리더에서는 뺀다(decorative). */}
-      <MyActivityLink
-        enabled={comment.isOwner}
+      <AuthorProfileLink
+        userId={comment.author.userId}
+        isOwner={comment.isOwner}
         decorative
         className="flex shrink-0 self-start"
       >
         <Avatar src={comment.author.avatarUrl} className="size-6" iconSize={16} />
-      </MyActivityLink>
+      </AuthorProfileLink>
       <div className="flex min-w-0 flex-1 flex-col">
         {/* 프로필 행: 높이 24(아바타와 동일)로 두고 items-center → 아이콘 기준 수직 가운데.
             닉네임↔날짜 간격 6(gap-1.5). */}
         <div className="flex h-6 items-center gap-1.5">
           {/* 닉네임: Body M, text/text-primary — 피드 카드 닉네임(회색)과 달리 댓글에선 이름이 첫 단서라 진하게 둔다 */}
-          <MyActivityLink enabled={comment.isOwner} className="flex">
+          <AuthorProfileLink
+            userId={comment.author.userId}
+            isOwner={comment.isOwner}
+            className="flex"
+          >
             <span className="text-body-m text-text-primary">
               {comment.author.nickname}
             </span>
-          </MyActivityLink>
+          </AuthorProfileLink>
           {comment.isPostAuthor ? (
             // 작성자 배지: comment-author-badge 토큰, radius 4, 패딩 좌우4·상하2, Label M
             <span className="rounded bg-comment-author-badge-bg px-1 py-0.5 text-label-m text-comment-author-badge-text">

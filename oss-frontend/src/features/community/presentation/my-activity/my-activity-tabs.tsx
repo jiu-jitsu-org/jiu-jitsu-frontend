@@ -15,7 +15,7 @@ import {
   MY_ACTIVITY_TABS,
   type MyActivityTab,
 } from "@/features/community/presentation/my-activity/my-activity-tab";
-import { MY_ACTIVITY_PATH } from "@/features/community/presentation/use-open-my-activity";
+import { MY_ACTIVITY_PATH } from "@/features/community/presentation/my-activity-path";
 import { cn } from "@/shared/lib/cn";
 import { Spinner } from "@/shared/ui/spinner";
 

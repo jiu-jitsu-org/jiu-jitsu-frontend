@@ -3,6 +3,7 @@ import {
   type BridgeMessage,
   type InboundMessage,
   type OpenSubviewPayload,
+  type OpenUserProfilePayload,
   type ShareSheetPayload,
 } from "./messages";
 
@@ -89,6 +90,15 @@ export function openNativeSubview(
 /** 현재 서브뷰(풀 웹뷰)를 닫도록 네이티브에 요청한다(pop). 웹 헤더 뒤로가기에서 사용. */
 export function closeNativeSubview(): void {
   postToNative({ type: OutboundMessageType.CLOSE_SUBVIEW });
+}
+
+/**
+ * 작성자 프로필을 열도록 네이티브에 요청한다(#271). 남이면 회원 프로필 화면, 나(isMe)면 MY 탭.
+ *
+ * 프로필 화면은 네이티브 소유라 이 메시지에는 웹 폴백이 없다 — 호출부가 `isNativeBridgeAvailable()`로 가른다.
+ */
+export function openNativeUserProfile(payload: OpenUserProfilePayload): void {
+  postToNative({ type: OutboundMessageType.OPEN_USER_PROFILE, payload });
 }
 
 /**

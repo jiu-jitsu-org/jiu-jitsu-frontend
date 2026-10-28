@@ -10,13 +10,13 @@ import {
 } from "react";
 
 import { useOnLogin } from "@/features/auth/presentation/auth-provider";
+import { useOpenAuthorProfile } from "@/features/community/presentation/use-open-author-profile";
 import { useOpenPostDetail } from "@/features/community/presentation/use-open-post-detail";
 import {
   FEED_LIST_URL,
   useBoardFeed,
 } from "@/features/community/presentation/use-board-feed";
 import { useInfiniteScroll } from "@/features/community/presentation/use-infinite-scroll";
-import { useOpenMyActivity } from "@/features/community/presentation/use-open-my-activity";
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
 import { useFeedRevalidate } from "@/features/community/presentation/use-feed-revalidate";
 import { usePostActions } from "@/features/community/presentation/use-post-actions";
@@ -392,7 +392,7 @@ export function CommunityFeedList({
  * 비로그인(#173): 좋아요·저장은 토글 전에 로그인 알럿으로 막고(상태는 비활성 그대로), ⋮는 감춘다 —
  * 신고 · 숨기기 · 수정 · 삭제 모두 계정이 있어야 성립해 비로그인에게 열어줄 항목이 없다.
  *
- * 내 글이면 아바타·닉네임 탭으로 내 커뮤니티 활동을 연다. 남의 이름은 프로필 API가 없어 아직 누를 수 없다.
+ * 아바타·닉네임을 누르면 작성자 프로필을 연다 — 앱에서 내 글이면 MY 탭, 남의 글이면 그 회원 프로필 화면(#271).
  */
 function FeedCardItem({
   post,
@@ -408,7 +408,7 @@ function FeedCardItem({
   onRestored: () => void;
 }) {
   const openPostDetail = useOpenPostDetail();
-  const openMyActivity = useOpenMyActivity();
+  const openAuthorProfile = useOpenAuthorProfile();
   const { liked, bookmarked, likes, saves, toggleLike, toggleBookmark } =
     usePostActions(post.id, {
       liked: post.viewer.liked,
@@ -440,7 +440,9 @@ function FeedCardItem({
       bookmarked={bookmarked}
       hideAuthor={hideAuthor}
       onPressAuthor={
-        authorLink && post.viewer.isOwner ? openMyActivity : undefined
+        authorLink
+          ? openAuthorProfile(post.author.userId, post.viewer.isOwner)
+          : undefined
       }
       onPress={() => openPostDetail(post.id)}
       onPressComment={() => openPostDetail(post.id)}
