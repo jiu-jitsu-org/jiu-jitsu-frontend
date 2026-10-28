@@ -61,8 +61,10 @@ import {
   useImageAttachments,
 } from "./use-image-attachments";
 
-/** 본문 글자 수 범위(10~800). 최대는 카운터/입력 제한, 최소는 등록 조건의 단일 출처. */
-const BODY_MIN_LENGTH = 10;
+/**
+ * 본문 최대 글자 수(카운터/입력 제한). 최소 글자 수는 두지 않는다(#246) — 질문·한 줄 후기 같은 짧은 글을
+ * 막지 않기 위해서다. 빈 본문(공백만 포함)은 올리기 버튼 비활성(hasRequiredInput)이 막고, 서버도 빈 값만 거른다.
+ */
 const BODY_MAX_LENGTH = 800;
 /** 제목 글자 수 범위(2~45). */
 const TITLE_MIN_LENGTH = 2;
@@ -154,8 +156,8 @@ const TAG_INPUT_TEXT_CLASS = "text-text-primary";
  *
  * compose 패턴:
  * - 우측 체크는 필수 입력(카테고리·제목·본문)이 하나라도 비어 있으면 비활성, 한 글자라도 적히면 활성(정책).
- *   최소 글자 수는 탭 시 제목 → 본문 순으로 검사해 첫 미충족 항목만 토스트로 알리고, 미달인 칸의 글자 수
- *   카운터는 채워질 때까지 오류 색으로 둔다(#251).
+ *   제목 최소 글자 수는 탭 시 검사해 토스트로 알리고, 제목 글자 수 카운터는 채워질 때까지 오류 색으로 둔다(#251).
+ *   본문은 최소 글자 수가 없다(#246).
  *   첨부 업로드 중/실패·전송 중에도 잠근다(사진 정책).
  * - 입력 중 뒤로가면 이탈 가드로 실수 유실을 막는다. 알럿 표면은 useNativeDialog가
  *   "네이티브 우선, 없으면 웹"으로 처리한다 — 무엇을 물어볼지·확인 후 무엇을 할지는 여기가 쥔다.
@@ -191,9 +193,9 @@ export function PostWriteScreen({
   const [title, setTitle] = useState(edit?.initial.title ?? "");
   const [body, setBody] = useState(edit?.initial.body ?? "");
   const [submitting, setSubmitting] = useState(false);
-  // 올리기를 눌렀는데 최소 글자 수 미달로 막힌 칸(#251). 그 칸의 카운터를 오류 색으로 바꿔 어느 칸이 문제인지
-  // 보이게 한다 — 처음 쓰는 중에는 회색 그대로이고, 막힌 칸이 조건을 채우면 바로 풀린다(제목·본문 각각).
-  const [shortFields, setShortFields] = useState({ title: false, body: false });
+  // 올리기를 눌렀는데 제목이 최소 글자 수 미달로 막혔는지(#251). 제목 카운터를 오류 색으로 바꿔 문제인 칸을
+  // 보이게 한다 — 처음 쓰는 중에는 회색 그대로이고, 조건을 채우면 바로 풀린다. 본문은 최소 글자 수가 없다(#246).
+  const [titleShort, setTitleShort] = useState(false);
   const { confirm, dialog } = useNativeDialog();
   // 카테고리: 작성은 미선택(null)으로 시작 → 사용자가 칩에서 고르기 전엔 등록 불가. 수정은 기존 값.
   const [categoryId, setCategoryId] = useState<number | null>(
@@ -291,7 +293,7 @@ export function PostWriteScreen({
       tags.length > 0 ||
       attachments.length > 0;
   // 필수 입력(카테고리·제목·본문)이 하나라도 비어 있으면 등록/완료 비활성(정책). 한 글자라도 적히면 활성이고,
-  // 최소 글자 수(2/10)는 비활성이 아니라 탭 시 토스트로 안내한다 — "비어 있음"과 "짧음"을 구분하는 이유.
+  // 제목 최소 글자 수(2)는 비활성이 아니라 탭 시 토스트로 안내한다 — "비어 있음"과 "짧음"을 구분하는 이유.
   const hasRequiredInput =
     categoryId !== null && title.trim().length > 0 && body.trim().length > 0;
   // 그 외 잠금: 첨부 업로드 중/실패가 남아 있을 때(사진 정책 — 재시도 또는 ✕ 삭제 후 풀림)와 전송 중.
@@ -304,16 +306,7 @@ export function PostWriteScreen({
     // 제목은 여러 줄로 보이되(자동 줄바꿈) 실제 줄바꿈 문자는 받지 않는다 — 붙여넣기의 개행은 공백으로.
     const next = value.replace(/\n/g, " ");
     setTitle(next);
-    if (shortFields.title && !isTitleShort(next)) {
-      setShortFields((prev) => ({ ...prev, title: false }));
-    }
-  }
-
-  function handleBodyChange(value: string) {
-    setBody(value);
-    if (shortFields.body && !isBodyShort(value)) {
-      setShortFields((prev) => ({ ...prev, body: false }));
-    }
+    if (titleShort && !isTitleShort(next)) setTitleShort(false);
   }
 
   function handleTitleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
@@ -682,17 +675,14 @@ export function PostWriteScreen({
   }
 
   /**
-   * 등록 탭 시 검사(정책): 카테고리 → 제목 → 본문 순, 첫 번째 미충족 항목의 안내만 돌려준다.
-   * 카테고리·빈 입력은 버튼 비활성(hasRequiredInput)이 먼저 막으므로 실질적으로는 최소 글자 수만 걸린다 —
+   * 등록 탭 시 검사(정책): 카테고리 → 제목 순, 첫 번째 미충족 항목의 안내만 돌려준다.
+   * 카테고리·빈 입력은 버튼 비활성(hasRequiredInput)이 먼저 막으므로 실질적으로는 제목 최소 글자 수만 걸린다 —
    * 카테고리 검사는 방어용으로 남긴다. 최대(45/800)는 maxLength가 입력 단계에서 막으므로 보지 않는다.
    */
   function findValidationMessage(): string | null {
     if (categoryId === null) return "카테고리를 선택해주세요";
     if (isTitleShort(title)) {
       return `제목을 ${TITLE_MIN_LENGTH}자 이상 입력해주세요`;
-    }
-    if (isBodyShort(body)) {
-      return `내용을 ${BODY_MIN_LENGTH}자 이상 입력해주세요`;
     }
     return null;
   }
@@ -720,8 +710,7 @@ export function PostWriteScreen({
     if (validationMessage !== null) {
       // 토스트는 나중 것이 이전 것을 덮는다(ToastProvider.show) — 연타해도 마지막 안내만 보인다.
       toast.show(validationMessage);
-      // 토스트는 첫 미충족 항목만 알리지만, 카운터는 미달인 칸 모두를 빨갛게 한다 — 한 번에 어디를 고칠지 보이게.
-      setShortFields({ title: isTitleShort(title), body: isBodyShort(body) });
+      setTitleShort(isTitleShort(title));
       return;
     }
     if (categoryId === null) return;
@@ -934,14 +923,14 @@ export function PostWriteScreen({
         <CharCounter
           length={title.length}
           max={TITLE_MAX_LENGTH}
-          error={shortFields.title}
+          error={titleShort}
         />
 
         {/* 본문: Title 1(22 · 행간 Auto → 32 고정 · 600), 800자. 제목 카운터 아래 24(mt-6). 색·커서는 제목과 동일. */}
         <textarea
           ref={bodyRef}
           value={body}
-          onChange={(event) => handleBodyChange(event.target.value)}
+          onChange={(event) => setBody(event.target.value)}
           onPaste={(event) =>
             notifyIfPasteOverflows(
               event,
@@ -960,11 +949,7 @@ export function PostWriteScreen({
             TEXTFIELD_CARET_CLASS,
           )}
         />
-        <CharCounter
-          length={body.length}
-          max={BODY_MAX_LENGTH}
-          error={shortFields.body}
-        />
+        <CharCounter length={body.length} max={BODY_MAX_LENGTH} />
 
         {/* 태그 입력줄: 본문 아래(사진 스트립은 하단 툴바 위 고정으로 옮김 — 디자인 2026-09-17). 태그가 없어도 줄은 항상
             있고(정책 2026-09-28, #153), 입력칸이 닫혀 있으면 회색 "#" 버튼이 진입점이다. 그 "#"이나 하단 "태그" 버튼으로 열면
@@ -1278,13 +1263,9 @@ export function PostWriteScreen({
   );
 }
 
-/** 최소 글자 수 미달 — 등록 검사(findValidationMessage)와 카운터 오류 색(#251)이 같은 기준을 쓴다. */
+/** 제목 최소 글자 수 미달 — 등록 검사(findValidationMessage)와 카운터 오류 색(#251)이 같은 기준을 쓴다. */
 function isTitleShort(title: string): boolean {
   return title.trim().length < TITLE_MIN_LENGTH;
-}
-
-function isBodyShort(body: string): boolean {
-  return body.trim().length < BODY_MIN_LENGTH;
 }
 
 /**
