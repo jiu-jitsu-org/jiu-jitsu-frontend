@@ -101,6 +101,8 @@ export function useImageAttachments() {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  /** 네이티브 사진 선택(#264) 응답을 기다리는 중인지 — 중복 요청 방지. */
+  const nativePickingRef = useRef(false);
 
   // 언마운트 시 남은 object URL을 모두 회수하기 위한 최신 첨부 미러.
   const attachmentsRef = useRef<Attachment[]>([]);
@@ -267,11 +269,22 @@ export function useImageAttachments() {
         source === "album" &&
         supportsNativeMessage(OutboundMessageType.PICK_PHOTOS)
       ) {
+        // 선택 화면이 뜨기 전 다시 눌러도 요청은 하나만 — 결과가 겹쳐 들어오면 장수 계산이 어긋난다.
+        if (nativePickingRef.current) return;
         const limit = MAX_IMAGES - attachmentsRef.current.length;
+        // 0을 보내면 PHPicker는 무제한으로 받는다.
+        if (limit <= 0) {
+          toast.show(MAX_IMAGES_MESSAGE);
+          return;
+        }
+        nativePickingRef.current = true;
         requestNativePhotos(limit)
           .then(addFiles)
           .catch((error) => {
             console.error("[post-write] 네이티브 사진 선택 실패:", error);
+          })
+          .finally(() => {
+            nativePickingRef.current = false;
           });
         return;
       }
@@ -279,7 +292,7 @@ export function useImageAttachments() {
         source === "camera" ? cameraInputRef.current : fileInputRef.current;
       input?.click();
     },
-    [addFiles],
+    [addFiles, toast],
   );
 
   /** 실패한 장만 다시 올린다(썸네일 탭). 실패 상태가 아니면 무시. */

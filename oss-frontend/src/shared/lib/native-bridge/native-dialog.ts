@@ -187,15 +187,25 @@ export function requestNativeSelectSheet(
   );
 }
 
-/** base64 사진 1장을 File로 되살린다. 디코딩에 실패한 장은 null(나머지 장은 살린다). */
+/** base64 사진 1장을 File로 되살린다. 이미지가 아니거나 디코딩에 실패한 장은 null(나머지 장은 살린다). */
 function toFile(photo: PickedPhoto): File | null {
+  if (
+    typeof photo?.data !== "string" ||
+    typeof photo.mimeType !== "string" ||
+    !photo.mimeType.startsWith("image/")
+  ) {
+    console.error("[native-bridge] ignored invalid picked photo", photo?.name);
+    return null;
+  }
   try {
     const binary = atob(photo.data);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i += 1) {
       bytes[i] = binary.charCodeAt(i);
     }
-    return new File([bytes], photo.name, { type: photo.mimeType });
+    return new File([bytes], photo.name || "photo.jpg", {
+      type: photo.mimeType,
+    });
   } catch (error) {
     console.error("[native-bridge] failed to decode picked photo", photo.name, error);
     return null;
@@ -219,10 +229,16 @@ export function requestNativePhotos(limit: number): Promise<File[]> {
   return requestFromNative<File[]>(
     OutboundMessageType.PICK_PHOTOS,
     payload,
-    (message) =>
-      message.type === InboundMessageType.PHOTOS_PICKED
-        ? (message.payload.files ?? []).flatMap((photo) => toFile(photo) ?? [])
-        : [],
+    // files가 배열이 아니어도 던지지 않는다 — 여기서 던지면 대기자가 settle되지 않아 요청이 영영 끝나지 않는다.
+    (message) => {
+      const files =
+        message.type === InboundMessageType.PHOTOS_PICKED
+          ? message.payload?.files
+          : undefined;
+      return Array.isArray(files)
+        ? files.flatMap((photo) => toFile(photo) ?? [])
+        : [];
+    },
     [],
   );
 }
