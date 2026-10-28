@@ -1,11 +1,13 @@
 import { cache } from "react";
 
+import { withSampleDetailBelts } from "@/features/community/application/belt-avatar-sample";
 import {
   createGetCommentsUseCase,
   createGetPostDetailUseCase,
 } from "@/features/community/application/community-use-case-factory";
 import type { Comment, CommentList } from "@/features/community/domain/comment";
 import type { CommentSort, PostDetail } from "@/features/community/domain/post";
+import { isDevelopmentRuntime } from "@/config/env";
 import { readSessionToken } from "@/shared/lib/auth";
 import { ApiErrorCode, toApiError } from "@/shared/lib/http";
 
@@ -60,10 +62,13 @@ function markPostAuthorComments(
  *
  * 세션 토큰이 있으면 함께 넘겨 viewer 상태를 채운다(비로그인도 본문 열람 가능).
  * 에러는 공통 ApiError로 정규화 → 호출부가 code로 분기(예: BOARD_NOT_FOUND → 404).
+ *
+ * sampleBelts는 `next dev`에서만 받아들인다 — 글·댓글 작성자에 예시 띠·그랄을 얹는다(belt-avatar-sample).
  */
 export async function getPostDetailPageData(
   postId: number,
   sort: CommentSort,
+  sampleBelts = false,
 ): Promise<PostDetailPageDataResult> {
   const accessToken = await readSessionToken();
 
@@ -81,6 +86,13 @@ export async function getPostDetailPageData(
       items: markPostAuthorComments(comments.items, post.author.userId),
     };
 
+    if (sampleBelts && isDevelopmentRuntime()) {
+      const sample = withSampleDetailBelts(post, commentsWithAuthor.items);
+      return {
+        ok: true,
+        data: { post: sample.post, comments: { ...commentsWithAuthor, items: sample.comments } },
+      };
+    }
     return { ok: true, data: { post, comments: commentsWithAuthor } };
   } catch (error) {
     const apiError = toApiError(error);
