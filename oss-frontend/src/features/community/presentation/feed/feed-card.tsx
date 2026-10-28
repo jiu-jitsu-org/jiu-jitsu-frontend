@@ -10,6 +10,8 @@ import {
 } from "react";
 import { flushSync } from "react-dom";
 
+import type { Belt } from "@/features/community/domain/belt";
+import { BeltAvatar } from "@/features/community/presentation/belt-avatar";
 import {
   IMAGE_MAX_HEIGHT,
   IMAGE_MIN_HEIGHT,
@@ -47,6 +49,8 @@ export type FeedAuthor = {
   name: string;
   /** 프로필 이미지 URL. 없으면 빈 원 플레이스홀더. */
   avatarUrl?: string;
+  /** 띠·그랄(#265). 있으면 사진 둘레에 띠를 그린다(BeltAvatar). 없으면 지금 아바타 그대로. */
+  belt?: Belt | null;
 };
 
 export type FeedImage = {
@@ -218,7 +222,14 @@ export function FeedCard({
  * SSR로 그려진 <img>는 하이드레이션 전에 error가 나 onError를 놓칠 수 있어, 마운트 시
  * 이미 로드 실패한(complete && naturalWidth===0) 상태를 직접 감지해 폴백 처리한다.
  */
-function FeedCardAvatar({ avatarUrl }: { avatarUrl?: string }) {
+function FeedCardAvatar({
+  avatarUrl,
+  className = "size-6",
+}: {
+  avatarUrl?: string;
+  /** 크기. 띠 아바타 안에서는 사진 칸을 꽉 채운다(size-full). */
+  className?: string;
+}) {
   const [failed, setFailed] = useState(false);
   const [reveal, setReveal] = useState<ImageReveal>(undefined);
 
@@ -233,7 +244,12 @@ function FeedCardAvatar({ avatarUrl }: { avatarUrl?: string }) {
   const showImage = Boolean(avatarUrl) && !failed;
 
   return (
-    <span className="inline-flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-feed-card-header-avatar-bg text-icon-subtle">
+    <span
+      className={cn(
+        "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-feed-card-header-avatar-bg text-icon-subtle",
+        className,
+      )}
+    >
       {showImage ? (
         // 공통 컴포넌트라 호출처 이미지 도메인이 다양 → next/image 설정 의존을 피해 plain img 사용.
         // eslint-disable-next-line @next/next/no-img-element
@@ -266,11 +282,22 @@ export function FeedCardHeader({
 }) {
   const authorContent = (
     <>
-      {/* key=URL: 아바타 URL이 바뀌면 컴포넌트를 재마운트해 폴백 상태(failed)를 초기화한다. */}
-      <FeedCardAvatar
-        key={author.avatarUrl ?? "none"}
-        avatarUrl={author.avatarUrl}
-      />
+      {/* key=URL: 아바타 URL이 바뀌면 컴포넌트를 재마운트해 폴백 상태(failed)를 초기화한다.
+          띠가 있으면 사진을 26으로 키우고 둘레에 띠를 그린다(#265, 사진 26 · 틈 2 · 테두리 3 = 36). */}
+      {author.belt ? (
+        <BeltAvatar belt={author.belt}>
+          <FeedCardAvatar
+            key={author.avatarUrl ?? "none"}
+            avatarUrl={author.avatarUrl}
+            className="size-full"
+          />
+        </BeltAvatar>
+      ) : (
+        <FeedCardAvatar
+          key={author.avatarUrl ?? "none"}
+          avatarUrl={author.avatarUrl}
+        />
+      )}
       {/* 아바타→닉네임 8. 닉네임: Body S(Pretendard Medium 14), 회색(text-secondary) —
           진한 색은 제목만 갖는다. 닉네임까지 진하면 시선이 제목과 둘로 갈린다.
           본문·제목을 키울 때 함께 키우지 않는다 — 본문(15)보다 작아야 "누가"가 "무엇"보다 앞서지 않는다. */}

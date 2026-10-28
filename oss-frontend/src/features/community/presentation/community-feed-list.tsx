@@ -423,6 +423,7 @@ function FeedCardItem({
       author={{
         name: post.author.nickname,
         avatarUrl: post.author.avatarUrl ?? undefined,
+        belt: post.author.belt,
       }}
       createdAt={post.createdAt}
       categoryName={post.categoryName}
