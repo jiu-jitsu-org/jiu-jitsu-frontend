@@ -12,6 +12,7 @@ import { flushSync } from "react-dom";
 
 import type { Belt } from "@/features/community/domain/belt";
 import { BeltAvatar } from "@/features/community/presentation/belt-avatar";
+import { CoachBadge } from "@/features/community/presentation/coach-badge";
 import {
   IMAGE_MAX_HEIGHT,
   IMAGE_MIN_HEIGHT,
@@ -51,6 +52,8 @@ export type FeedAuthor = {
   avatarUrl?: string;
   /** 띠·그랄(#265). 있으면 사진 둘레에 띠를 그린다(BeltAvatar). 없으면 지금 아바타 그대로. */
   belt?: Belt | null;
+  /** 관장·사범 인증(#272). true면 닉네임 뒤에 인증 배지를 붙인다. */
+  isCoach?: boolean;
 };
 
 export type FeedImage = {
@@ -304,6 +307,12 @@ export function FeedCardHeader({
       <span className="ml-2 text-body-s text-feed-card-header-username-text">
         {author.name}
       </span>
+      {/* 관장·사범 배지(#272): 닉네임에 붙여 둔다(간격 2). */}
+      {author.isCoach ? (
+        <span className="ml-0.5 flex">
+          <CoachBadge />
+        </span>
+      ) : null}
     </>
   );
 

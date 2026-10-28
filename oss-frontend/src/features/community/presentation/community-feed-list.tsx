@@ -424,6 +424,7 @@ function FeedCardItem({
         name: post.author.nickname,
         avatarUrl: post.author.avatarUrl ?? undefined,
         belt: post.author.belt,
+        isCoach: post.author.isCoach,
       }}
       createdAt={post.createdAt}
       categoryName={post.categoryName}

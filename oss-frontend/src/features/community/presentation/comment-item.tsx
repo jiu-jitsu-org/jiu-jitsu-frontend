@@ -4,6 +4,7 @@ import type { Comment } from "@/features/community/domain/comment";
 import type { CommentSort } from "@/features/community/domain/post";
 import { Avatar } from "@/features/community/presentation/avatar";
 import { BeltAvatar } from "@/features/community/presentation/belt-avatar";
+import { CoachBadge } from "@/features/community/presentation/coach-badge";
 import { CommentLikeButton } from "@/features/community/presentation/comment-like-button";
 import { CommentReplyButton } from "@/features/community/presentation/comment-reply-button";
 import { CommentMenu } from "@/features/community/presentation/comment-menu";
@@ -132,15 +133,17 @@ export function CommentItem({
         {/* 프로필 행: 높이를 아바타와 같게(24, 띠 아바타면 36) 두고 items-center → 아이콘 기준 수직 가운데.
             닉네임↔날짜 간격 6(gap-1.5). */}
         <div className={cn("flex items-center gap-1.5", belt ? "h-9" : "h-6")}>
-          {/* 닉네임: Body M, text/text-primary — 피드 카드 닉네임(회색)과 달리 댓글에선 이름이 첫 단서라 진하게 둔다 */}
+          {/* 닉네임: Body M, text/text-primary — 피드 카드 닉네임(회색)과 달리 댓글에선 이름이 첫 단서라 진하게 둔다.
+              관장·사범이면 배지를 닉네임에 붙여 둔다(#272, 간격 2) — 작성자 배지와는 기존 간격 6으로 떨어진다. */}
           <AuthorProfileLink
             userId={comment.author.userId}
             isOwner={comment.isOwner}
-            className="flex"
+            className="flex items-center gap-0.5"
           >
             <span className="text-body-m text-text-primary">
               {comment.author.nickname}
             </span>
+            {comment.author.isCoach ? <CoachBadge /> : null}
           </AuthorProfileLink>
           {comment.isPostAuthor ? (
             // 작성자 배지: comment-author-badge 토큰, radius 4, 패딩 좌우4·상하2, Label M

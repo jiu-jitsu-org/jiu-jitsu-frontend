@@ -1,5 +1,6 @@
 import type { Comment } from "@/features/community/domain/comment";
 import { type AuthorBeltDto, toBelt } from "@/features/community/infrastructure/belt-dto";
+import { type AuthorRoleDto, toIsCoach } from "@/features/community/infrastructure/author-role-dto";
 import { toKstIso } from "@/shared/lib/time";
 
 /**
@@ -34,7 +35,8 @@ export type CommentDto = {
     nickname: string | null;
     /** 프로필 이미지(없으면 null). */
     profileImage: { id: number; imageUrl: string } | null;
-  } & AuthorBeltDto) | null;
+  } & AuthorBeltDto &
+    AuthorRoleDto) | null;
   /** 작성 시각(ISO 8601). */
   createdAt: string;
   /** 서버가 계산한 상대 시각. 웹은 쓰지 않는다 — createdAt으로 직접 계산한다(#188). */
@@ -95,6 +97,7 @@ export function toComment(dto: CommentDto): Comment {
       nickname: dto.author?.nickname ?? "",
       avatarUrl: dto.author?.profileImage?.imageUrl ?? null,
       belt: toBelt(dto.author),
+      isCoach: toIsCoach(dto.author),
     },
     body: dto.body ?? "",
     createdAt: toKstIso(dto.createdAt),
