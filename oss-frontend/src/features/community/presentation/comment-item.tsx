@@ -3,6 +3,7 @@
 import type { Comment } from "@/features/community/domain/comment";
 import type { CommentSort } from "@/features/community/domain/post";
 import { Avatar } from "@/features/community/presentation/avatar";
+import { BeltAvatar } from "@/features/community/presentation/belt-avatar";
 import { CommentLikeButton } from "@/features/community/presentation/comment-like-button";
 import { CommentReplyButton } from "@/features/community/presentation/comment-reply-button";
 import { CommentMenu } from "@/features/community/presentation/comment-menu";
@@ -89,6 +90,9 @@ export function CommentItem({
     );
   }
 
+  // 띠가 있으면 피드 카드와 같이 사진 26 + 띠 = 36으로 그린다(#265). 프로필 행·분기 아이콘도 이 높이에 맞춘다.
+  const belt = comment.author.belt;
+
   return (
     // 아바타↔콘텐츠 간격 4(gap-1). 아바타는 프로필 행(닉네임/날짜)과 수직 가운데 정렬.
     // 세로 패딩 없음 — 댓글 사이 간격은 목록(묶음 사이 24)·대댓글 묶음(묶음 안 8)이 담당.
@@ -98,12 +102,16 @@ export function CommentItem({
     <li ref={arriveRef} className={cn("flex gap-1", isReply && "-ml-7")}>
       {isReply ? (
         // 위에서 내려와 오른쪽으로 꺾이는 연결선 — 이 행이 위 댓글의 대댓글임을 나타낸다.
+        // 띠 아바타(36)면 6 내려 꺾이는 끝을 아바타 가운데(18)에 맞춘다.
         <ReplyBranchIcon
           size={24}
-          className="shrink-0 self-start text-comment-thread-line-stroke"
+          className={cn(
+            "shrink-0 self-start text-comment-thread-line-stroke",
+            belt && "mt-1.5",
+          )}
         />
       ) : null}
-      {/* 프로필 아이콘 24x24, 로드 실패 시 기본 상태 폴백.
+      {/* 프로필 아이콘 24x24(띠가 있으면 36), 로드 실패 시 기본 상태 폴백.
           아바타·닉네임을 누르면 작성자 프로필을 연다(앱에서 내 댓글은 MY 탭) — 둘이 떨어져 있어 각각 감싸고,
           아바타는 닉네임과 같은 동작이라 탭 순서·스크린리더에서는 뺀다(decorative). */}
       <AuthorProfileLink
@@ -112,12 +120,18 @@ export function CommentItem({
         decorative
         className="flex shrink-0 self-start"
       >
-        <Avatar src={comment.author.avatarUrl} className="size-6" iconSize={16} />
+        {belt ? (
+          <BeltAvatar belt={belt}>
+            <Avatar src={comment.author.avatarUrl} className="size-full" iconSize={16} />
+          </BeltAvatar>
+        ) : (
+          <Avatar src={comment.author.avatarUrl} className="size-6" iconSize={16} />
+        )}
       </AuthorProfileLink>
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* 프로필 행: 높이 24(아바타와 동일)로 두고 items-center → 아이콘 기준 수직 가운데.
+        {/* 프로필 행: 높이를 아바타와 같게(24, 띠 아바타면 36) 두고 items-center → 아이콘 기준 수직 가운데.
             닉네임↔날짜 간격 6(gap-1.5). */}
-        <div className="flex h-6 items-center gap-1.5">
+        <div className={cn("flex items-center gap-1.5", belt ? "h-9" : "h-6")}>
           {/* 닉네임: Body M, text/text-primary — 피드 카드 닉네임(회색)과 달리 댓글에선 이름이 첫 단서라 진하게 둔다 */}
           <AuthorProfileLink
             userId={comment.author.userId}

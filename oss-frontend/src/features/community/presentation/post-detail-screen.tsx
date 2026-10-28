@@ -18,11 +18,14 @@ import { Spinner } from "@/shared/ui/spinner";
 export async function PostDetailScreen({
   postId,
   sort,
+  sampleBelts = false,
 }: {
   postId: number;
   sort: CommentSort;
+  /** (dev 전용) 작성자에 예시 띠를 얹는다 — belt-avatar-sample. */
+  sampleBelts?: boolean;
 }) {
-  const result = await getPostDetailPageData(postId, sort);
+  const result = await getPostDetailPageData(postId, sort, sampleBelts);
 
   if (!result.ok) {
     // 만료 토큰 → 클라이언트가 네이티브 갱신 후 이 화면을 재실행(router.refresh)해 인증 상태로 복구.
