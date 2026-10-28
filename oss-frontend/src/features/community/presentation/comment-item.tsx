@@ -141,26 +141,32 @@ export function CommentItem({
           {comment.body}
         </p>
 
-        {/* 본문 바로 하단 반응 행(본문과 간격 0): (최상위만) 답글 · 좋아요(+카운트) · ⋮.
-            높이 28 고정, 우측 정렬. 버튼 사이 간격 4(gap-1).
+        {/* 본문 바로 하단 반응 행(본문과 간격 0): (최상위만) 답글 · 좋아요(+카운트) — 왼쪽, ⋮ — 오른쪽 끝.
+            높이 28 고정. 버튼 사이 간격 4(gap-1).
+            답글·좋아요를 본문 바로 아래 왼쪽에 붙여 "이 댓글의 버튼"으로 읽히게 한다(#258) —
+            오른쪽 끝에 몰려 있으면 눈이 반대편까지 가야 하고 다음 댓글에 더 가까워 보인다.
+            -ml-2: 버튼 좌우 패딩(8)만큼 당겨 첫 아이콘 시작을 본문 왼쪽 끝에 맞춘다.
+            ⋮는 자주 쓰지 않는 보조 동작이라 오른쪽 끝에 남긴다.
             색/상태는 comment-reaction-styles가 단일 출처. */}
-        <div className="flex h-7 items-center justify-end gap-1">
-          {/* 답글은 최상위 댓글에만 둔다(#131) — 대댓글에 대댓글이 달리지 않는 구조라
-              대댓글의 답글 버튼은 탭한 대상(대댓글 작성자)이 아니라 최상위 스레드에 붙어
-              가리키는 대상이 어긋났고, replyCount도 자기 자식 수라 항상 0이었다. */}
-          {isReply ? null : (
-            <CommentReplyButton
-              parentId={comment.id}
-              nickname={comment.author.nickname}
-              replyCount={comment.replyCount}
-              replied={comment.replied}
+        <div className="-ml-2 flex h-7 items-center justify-between">
+          <div className="flex items-center gap-1">
+            {/* 답글은 최상위 댓글에만 둔다(#131) — 대댓글에 대댓글이 달리지 않는 구조라
+                대댓글의 답글 버튼은 탭한 대상(대댓글 작성자)이 아니라 최상위 스레드에 붙어
+                가리키는 대상이 어긋났고, replyCount도 자기 자식 수라 항상 0이었다. */}
+            {isReply ? null : (
+              <CommentReplyButton
+                parentId={comment.id}
+                nickname={comment.author.nickname}
+                replyCount={comment.replyCount}
+                replied={comment.replied}
+              />
+            )}
+            <CommentLikeButton
+              commentId={comment.id}
+              initialLiked={comment.liked}
+              initialLikeCount={comment.likeCount}
             />
-          )}
-          <CommentLikeButton
-            commentId={comment.id}
-            initialLiked={comment.liked}
-            initialLikeCount={comment.likeCount}
-          />
+          </div>
           {/* ⋮ 메뉴: 내 댓글=삭제 / 타인 댓글=차단·신고. 차단 시 닉네임으로 확인 알럿 */}
           <CommentMenu
             commentId={comment.id}
