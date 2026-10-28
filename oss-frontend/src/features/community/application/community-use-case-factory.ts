@@ -5,8 +5,10 @@ import { CreateReportUseCase } from "@/features/community/application/create-rep
 import { DeleteCommentUseCase } from "@/features/community/application/delete-comment";
 import { DeletePostUseCase } from "@/features/community/application/delete-post";
 import { GetCommentsUseCase } from "@/features/community/application/get-comments";
+import { GetMyBeltUseCase } from "@/features/community/application/get-my-belt";
 import { GetImageUploadAuthUseCase } from "@/features/community/application/get-image-upload-auth";
 import { GetRepliesUseCase } from "@/features/community/application/get-replies";
+import { SaveMyBeltUseCase } from "@/features/community/application/save-my-belt";
 import { RegisterImageUseCase } from "@/features/community/application/register-image";
 import { GetPostDetailUseCase } from "@/features/community/application/get-post-detail";
 import { GetPostCategoriesUseCase } from "@/features/community/application/get-post-categories";
@@ -28,6 +30,7 @@ import { GetInboxNotificationsUseCase } from "@/features/community/application/g
 import { MarkAllInboxNotificationsReadUseCase } from "@/features/community/application/mark-all-inbox-notifications-read";
 import { MarkInboxNotificationReadUseCase } from "@/features/community/application/mark-inbox-notification-read";
 import { ExternalBalanceGameRepository } from "@/features/community/infrastructure/external-balance-game-repository";
+import { ExternalCommunityProfileRepository } from "@/features/community/infrastructure/external-community-profile-repository";
 import { ExternalInboxNotificationRepository } from "@/features/community/infrastructure/external-inbox-notification-repository";
 import { ExternalCommunityWriteRepository } from "@/features/community/infrastructure/external-community-write-repository";
 import { ExternalPostRepository } from "@/features/community/infrastructure/external-post-repository";
@@ -280,4 +283,22 @@ export function createMarkAllInboxNotificationsReadUseCase(
   return new MarkAllInboxNotificationsReadUseCase(
     createInboxNotificationRepository(accessToken),
   );
+}
+
+function createCommunityProfileRepository(
+  accessToken: string,
+): ExternalCommunityProfileRepository {
+  return new ExternalCommunityProfileRepository(
+    createAuthedServerHttpClient(accessToken),
+  );
+}
+
+export function createGetMyBeltUseCase(accessToken: string): GetMyBeltUseCase {
+  return new GetMyBeltUseCase(createCommunityProfileRepository(accessToken));
+}
+
+export function createSaveMyBeltUseCase(
+  accessToken: string,
+): SaveMyBeltUseCase {
+  return new SaveMyBeltUseCase(createCommunityProfileRepository(accessToken));
 }
