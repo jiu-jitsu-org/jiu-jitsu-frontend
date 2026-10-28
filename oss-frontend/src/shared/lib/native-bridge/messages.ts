@@ -41,6 +41,11 @@ export const OutboundMessageType = {
   // 상시 전송이 아니다: navigator.share는 엔진이 OS 시트를 직접 띄우므로 그게 있으면 웹이 자체 처리하고,
   // 이 메시지는 Web Share API가 없는 웹뷰(Android WebView 등)에서만 나간다.
   SHOW_SHARE_SHEET: "SHOW_SHARE_SHEET",
+  // 작성자 프로필 열기 요청(#271). 커뮤니티 글·댓글의 작성자 사진·닉네임을 누르면 보낸다.
+  // 남이면 네이티브의 다른 회원 프로필 화면(jiu-jitsu-ios#116), 나(isMe)면 앱 MY 탭을 연다 —
+  // 내 이름은 남에게 보이는 모습이 아니라 고칠 수 있는 내 프로필로 가야 하기 때문이다.
+  // 브릿지가 없는 일반 브라우저에서는 보내지 않는다(남은 동작 없음, 나는 /community/me).
+  OPEN_USER_PROFILE: "OPEN_USER_PROFILE",
 } as const;
 export type OutboundMessageType =
   (typeof OutboundMessageType)[keyof typeof OutboundMessageType];
@@ -189,6 +194,14 @@ export type AuthLoginSuccessPayload = {
 };
 
 /** 모든 브릿지 메시지의 공통 봉투(Envelope). */
+/** `OPEN_USER_PROFILE` payload — 프로필을 열 회원. */
+export type OpenUserProfilePayload = {
+  /** 글·댓글 응답의 author.id. */
+  userId: number;
+  /** 내 글·댓글이면 true — 네이티브는 userId 대신 MY 탭을 연다. */
+  isMe: boolean;
+};
+
 export type BridgeMessage<P = unknown> = {
   type: string;
   payload?: P;
