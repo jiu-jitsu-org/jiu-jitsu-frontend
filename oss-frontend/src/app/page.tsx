@@ -10,6 +10,7 @@ import { BalanceGameSection } from "@/features/community/presentation/balance/ba
 import { CommunityFeedList } from "@/features/community/presentation/community-feed-list";
 import { FeedEmptyState } from "@/features/community/presentation/feed-empty-state";
 import { FeedErrorState } from "@/features/community/presentation/feed-error-state";
+import { FeedScrollTopOnReload } from "@/features/community/presentation/feed/feed-scroll-top-on-reload";
 import { PostWriteFab } from "@/features/community/presentation/post-write-fab";
 import { readSessionToken } from "@/shared/lib/auth";
 import { readServerNow } from "@/shared/lib/time";
@@ -40,6 +41,8 @@ export default async function Home() {
       {/* 상대 시간("5분 전")을 서버 시각 기준으로 계산하고 60초마다 갱신한다(#188). */}
       <ServerClockProvider serverNow={readServerNow()}>
         <main className="feed-bounce-scroll min-h-screen bg-[var(--bw-white)]">
+          {/* 새로고침이면 이전 위치 대신 맨 위에서 시작한다(#260). */}
+          <FeedScrollTopOnReload />
           {renderFeed(result, balanceGame)}
 
           {/* 게시글 작성 진입 FAB — 네이티브면 OPEN_SUBVIEW로 풀스크린 서브뷰, 웹 단독이면 라우터 이동. */}
