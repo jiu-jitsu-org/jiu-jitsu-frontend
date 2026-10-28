@@ -9,6 +9,7 @@ import { isDevelopmentRuntime } from "@/config/env";
  * 글 상세 `/community/{id}?belt=sample`.
  *
  * 서버가 글 작성자(author)에 띠·그랄을 아직 주지 않아 화면을 눈으로 확인할 방법이 없어 둔다.
+ * 관장·사범 배지(#272)도 같은 이유로 여기서 함께 붙인다 — 검은띠 예시에만 붙인다.
  * production 빌드에선 readBeltAvatarSample이 늘 false라 쓰이지 않는다.
  * 서버가 값을 주기 시작하면 이 파일과 belt 분기를 지운다.
  */
@@ -32,19 +33,25 @@ function sampleBeltAt(index: number): Belt {
   return SAMPLE_BELTS[index % SAMPLE_BELTS.length];
 }
 
+/** 검은띠 예시만 관장·사범으로 둔다(#272). */
+function isSampleCoach(belt: Belt | null): boolean {
+  return belt?.rank === "black";
+}
+
 export function withSampleBelts(items: PostSummary[]): PostSummary[] {
-  return items.map((post, index) => ({
-    ...post,
-    author: {
-      ...post.author,
-      belt: sampleBeltAt(index),
-    },
-  }));
+  return items.map((post, index) => {
+    const belt = sampleBeltAt(index);
+    return {
+      ...post,
+      author: { ...post.author, belt, isCoach: isSampleCoach(belt) },
+    };
+  });
 }
 
 /**
  * 상세: 글 작성자는 첫 띠, 댓글·대댓글은 그려지는 순서대로 다음 띠부터 돌려 쓴다.
  * 띠 없는 회원 모습도 함께 보도록 네 번째 댓글마다 띠를 비운다.
+ * 글 작성자는 배지 모습을 바로 보도록 관장·사범으로 둔다(#272).
  */
 export function withSampleDetailBelts(
   post: PostDetail,
@@ -57,13 +64,16 @@ export function withSampleDetailBelts(
       const belt = order % 4 === 0 ? null : sampleBeltAt(order);
       return {
         ...comment,
-        author: { ...comment.author, belt },
+        author: { ...comment.author, belt, isCoach: isSampleCoach(belt) },
         replies: mark(comment.replies),
       };
     });
 
   return {
-    post: { ...post, author: { ...post.author, belt: sampleBeltAt(0) } },
+    post: {
+      ...post,
+      author: { ...post.author, belt: sampleBeltAt(0), isCoach: true },
+    },
     comments: mark(comments),
   };
 }

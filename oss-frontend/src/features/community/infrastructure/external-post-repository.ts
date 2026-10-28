@@ -20,6 +20,7 @@ import {
   toComment,
 } from "@/features/community/infrastructure/comment-dto";
 import { type AuthorBeltDto, toBelt } from "@/features/community/infrastructure/belt-dto";
+import { type AuthorRoleDto, toIsCoach } from "@/features/community/infrastructure/author-role-dto";
 import type { HttpClient } from "@/shared/lib/http";
 import { toKstIso } from "@/shared/lib/time";
 
@@ -107,7 +108,8 @@ type BoardDetailDto = {
     nickname: string;
     /** 프로필 이미지(없으면 null). 객체 형태 { id, imageUrl }. */
     profileImage: { id: number; imageUrl: string } | null;
-  } & AuthorBeltDto;
+  } & AuthorBeltDto &
+    AuthorRoleDto;
   /** 본인 게시글 여부(viewer.isOwner). */
   isAuthor: boolean;
   /** 조회수. */
@@ -158,7 +160,8 @@ type BoardSummaryDto = {
     id: number;
     nickname: string;
     profileImage: { id: number; imageUrl: string } | null;
-  } & AuthorBeltDto;
+  } & AuthorBeltDto &
+    AuthorRoleDto;
   isAuthor: boolean;
 };
 
@@ -182,6 +185,7 @@ function toPostSummary(dto: BoardSummaryDto): PostSummary {
       nickname: dto.author.nickname,
       avatarUrl: dto.author.profileImage?.imageUrl ?? null,
       belt: toBelt(dto.author),
+      isCoach: toIsCoach(dto.author),
     },
     title: dto.title,
     body: dto.body,
@@ -225,6 +229,7 @@ function toPostDetail(dto: BoardDetailDto): PostDetail {
       nickname: dto.author.nickname,
       avatarUrl: dto.author.profileImage?.imageUrl ?? null,
       belt: toBelt(dto.author),
+      isCoach: toIsCoach(dto.author),
     },
     title: dto.title,
     body: dto.body,
