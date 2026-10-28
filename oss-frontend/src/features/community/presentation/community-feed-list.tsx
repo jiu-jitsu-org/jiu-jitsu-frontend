@@ -16,7 +16,7 @@ import {
   useBoardFeed,
 } from "@/features/community/presentation/use-board-feed";
 import { useInfiniteScroll } from "@/features/community/presentation/use-infinite-scroll";
-import { useOpenMyProfile } from "@/features/community/presentation/use-open-my-profile";
+import { useOpenMyActivity } from "@/features/community/presentation/use-open-my-activity";
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
 import { useFeedRevalidate } from "@/features/community/presentation/use-feed-revalidate";
 import { usePostActions } from "@/features/community/presentation/use-post-actions";
@@ -408,7 +408,7 @@ function FeedCardItem({
   onRestored: () => void;
 }) {
   const openPostDetail = useOpenPostDetail();
-  const openMyProfile = useOpenMyProfile();
+  const openMyActivity = useOpenMyActivity();
   const { liked, bookmarked, likes, saves, toggleLike, toggleBookmark } =
     usePostActions(post.id, {
       liked: post.viewer.liked,
@@ -440,7 +440,7 @@ function FeedCardItem({
       bookmarked={bookmarked}
       hideAuthor={hideAuthor}
       onPressAuthor={
-        authorLink && post.viewer.isOwner ? openMyProfile : undefined
+        authorLink && post.viewer.isOwner ? openMyActivity : undefined
       }
       onPress={() => openPostDetail(post.id)}
       onPressComment={() => openPostDetail(post.id)}

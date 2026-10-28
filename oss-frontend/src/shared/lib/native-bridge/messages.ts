@@ -41,11 +41,6 @@ export const OutboundMessageType = {
   // 상시 전송이 아니다: navigator.share는 엔진이 OS 시트를 직접 띄우므로 그게 있으면 웹이 자체 처리하고,
   // 이 메시지는 Web Share API가 없는 웹뷰(Android WebView 등)에서만 나간다.
   SHOW_SHARE_SHEET: "SHOW_SHARE_SHEET",
-  // 앱 MY 탭(내 프로필) 이동 요청(#273). payload 없음 — 항상 "나 자신"의 프로필로 이동하기 때문이다.
-  // 커뮤니티 어느 화면에서든 내 사진(아바타)을 누르면 이 메시지를 보낸다. 네이티브는 현재 웹뷰를
-  // 닫지 않고 MY 탭으로 이동한다. 브릿지가 없는 일반 브라우저에서는 이 메시지를 보내지 않고
-  // /community/me 로 이동한다(웹 폴백).
-  OPEN_MY_PROFILE: "OPEN_MY_PROFILE",
 } as const;
 export type OutboundMessageType =
   (typeof OutboundMessageType)[keyof typeof OutboundMessageType];
