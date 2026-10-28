@@ -28,3 +28,15 @@
 | arm-lock.png | 팔 관절기 |
 | leg-lock.png | 하체 관절기 |
 | guard-pass.png | 가드패스 |
+
+## belts-photo — 주짓수 띠 실사 스타일 (약 1460×100)
+
+출처: Gemini 생성 이미지 "OSS_주짓수 띠_실사 스타일" 5장. 회색 배경·그림자·생성 표시를 지우고 띠만 오려냄.
+
+| 파일 | 띠 |
+| --- | --- |
+| white.png | 흰띠 |
+| blue.png | 파란띠 |
+| purple.png | 보라띠 |
+| brown.png | 갈색띠 |
+| black.png | 검은띠 (빨간 바) |
