@@ -44,6 +44,7 @@ import {
   markPostCreated,
   markPostDirty,
 } from "@/features/community/presentation/dirty-posts";
+import { markBeltPromptAfterPost } from "@/features/community/presentation/belt-prompt-policy";
 import { POST_EDITED_ACTION } from "@/features/community/presentation/post-edit-return";
 import {
   createPost,
@@ -762,6 +763,8 @@ export function PostWriteScreen({
       // 목록이 복귀 시 첫 페이지를 다시 읽어 이 글을 앞에 붙이고 최상단으로 올린다(#38).
       // 성공했을 때만 남긴다 — 취소로 닫으면 목록은 아무것도 하지 않는다.
       markPostCreated(created.id);
+      // 띠가 없는 회원이면 상세에서 띠를 묻는다(#275). 같은 웹뷰에서 상세로 바뀌므로 표시만 남긴다.
+      markBeltPromptAfterPost(created.id);
       // 성공일 때만 떠난다(goToDetail이 로컬 미리보기까지 정리). 잠금은 유지 — 위 수정 성공과 같은 이유.
       goToDetail(created.id, SUBMIT_TOAST.createDone);
     } catch (error) {
