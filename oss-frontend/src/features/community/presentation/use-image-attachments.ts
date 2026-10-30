@@ -24,6 +24,9 @@ const MAX_IMAGES_MESSAGE = `사진은 최대 ${MAX_IMAGES}장까지 첨부할 �
 export type PhotoSource = "album" | "camera";
 /** 재시도 반복 실패 안내(정책 문구). 첫 실패는 썸네일의 ↻만으로 알리고, 재시도가 또 실패했을 때만 띄운다. */
 const RETRY_FAILED_MESSAGE = "업로드하지 못했어요. 잠시 후 다시 시도해주세요";
+/** 앱 사진 선택에서 골랐지만 받지 못한 장이 있을 때(#264 후속). */
+const photosNotLoadedMessage = (count: number) =>
+  `사진 ${count}장을 불러오지 못했어요`;
 /**
  * 이만큼 이상 백그라운드에 있다 돌아오면 업로드 중인 장을 실패(↻)로 돌린다. WKWebView는 백그라운드에서
  * 네트워크·타이머가 멈춰 응답도 타임아웃도 안 올 수 있다. 피커 왕복 같은 짧은 전환은 건드리지 않는다.
@@ -279,7 +282,11 @@ export function useImageAttachments() {
         }
         nativePickingRef.current = true;
         requestNativePhotos(limit)
-          .then(addFiles)
+          .then(({ files, failedCount }) => {
+            addFiles(files);
+            if (failedCount > 0)
+              toast.show(photosNotLoadedMessage(failedCount));
+          })
           .catch((error) => {
             console.error("[post-write] 네이티브 사진 선택 실패:", error);
           })

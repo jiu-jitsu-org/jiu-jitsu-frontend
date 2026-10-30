@@ -217,10 +217,15 @@ export type PickedPhoto = {
   data: string;
 };
 
-/** `PHOTOS_PICKED` payload. 고른 순서대로이며, 취소하면 빈 배열이다. */
+/** `PHOTOS_PICKED` payload. 고른 순서대로이며, 취소하면 files가 빈 배열이다. */
 export type PhotosPickedPayload = {
   requestId: string;
   files: PickedPhoto[];
+  /**
+   * 골랐지만 변환에 실패해 files에서 빠진 장수. 없으면 0으로 본다(이 값을 모르는 구버전 앱).
+   * 전부 실패하면 files는 비고 이 값만 남는다 — 취소(files 빈 배열, failedCount 0)와 구분하기 위함.
+   */
+  failedCount?: number;
 };
 
 /** `AUTH_LOGIN_SUCCESS` payload. refreshToken은 네이티브가 보관하고 웹엔 accessToken만 전달. */

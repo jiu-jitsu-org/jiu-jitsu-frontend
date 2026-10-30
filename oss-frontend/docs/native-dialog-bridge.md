@@ -239,6 +239,7 @@ configuration.userContentController.addUserScript(script)
     mimeType: string; // "image/jpeg"
     data: string;     // base64 (data: 접두사 없이)
   }[];
+  failedCount?: number; // 골랐지만 변환에 실패해 files에서 빠진 장수. 없으면 0
 }
 ```
 
@@ -247,6 +248,10 @@ configuration.userContentController.addUserScript(script)
   최종 압축은 웹이 지금처럼 합니다.
 - 받은 사진은 file input으로 고른 것과 같은 흐름(썸네일 → 장별 업로드 → 크롭)을 탑니다.
 - 무응답 상한(5분)이 지나면 웹은 빈 배열로 보고 기다리지 않습니다.
+- **일부 실패는 `failedCount`로 알립니다:** 5장을 골랐는데 1장이 변환에 실패하면 `files` 4장 + `failedCount: 1`.
+  전부 실패하면 `files: []` + `failedCount: 5` — 취소(`files: []`, `failedCount` 없음·0)와 구분됩니다.
+  웹은 받은 장은 그대로 붙이고 "사진 N장을 불러오지 못했어요" 토스트를 띄웁니다(웹이 base64를 되살리지 못한 장도 N에 더함).
+  `failedCount`를 모르는 구버전 앱은 지금처럼 동작합니다.
 
 ---
 
@@ -363,6 +368,8 @@ configuration.userContentController.addUserScript(script)
 | 웹 | 상세 화면 숨기기 (동작 정의 필요) | ⬜ |
 | 웹 | 수정 화면 `/community/{id}/edit` | ⬜ |
 | 웹 | 사진 선택 `PICK_PHOTOS` ↔ `PHOTOS_PICKED` + 지원 목록 확인 (#264) | ✅ |
-| iOS | `AppBridgeCapabilities` 주입 + PHPicker 사진 선택·JPEG 2400 축소 (jiu-jitsu-ios#114) | ⬜ |
+| iOS | `AppBridgeCapabilities` 주입 + PHPicker 사진 선택·JPEG 2400 축소 (jiu-jitsu-ios#114) | ✅ |
+| 웹 | `PHOTOS_PICKED.failedCount` 받아 "사진 N장을 불러오지 못했어요" 토스트 | ✅ |
+| iOS | 변환 실패 장수를 `PHOTOS_PICKED.failedCount`로 보내기 (jiu-jitsu-ios#129 후속) | ⬜ |
 
 한 번 만들어두면 이후 모든 확인창(신고·차단·작성 중 나가기 등)이 같은 길을 씁니다.
