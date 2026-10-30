@@ -93,13 +93,10 @@ export function postToNative(message: BridgeMessage): void {
  * url은 동일 origin 절대경로여야 새 웹뷰가 세션 쿠키를 공유한다.
  * "언제 이걸 쓸지(네이티브 vs 웹 라우터)"는 호출부가 `isNativeBridgeAvailable()`로 판단한다.
  */
-export function openNativeSubview(
-  url: string,
-  options?: Pick<OpenSubviewPayload, "title" | "presentation">,
-): void {
+export function openNativeSubview(url: string): void {
   postToNative({
     type: OutboundMessageType.OPEN_SUBVIEW,
-    payload: { url, ...options },
+    payload: { url } satisfies OpenSubviewPayload,
   });
 }
 
@@ -126,13 +123,10 @@ export function openNativeUserProfile(payload: OpenUserProfilePayload): void {
  * 호출부는 navigator.share가 없을 때만 이걸 쓴다. Web Share API가 있으면 엔진이 OS 공유 시트를
  * 직접 띄우므로(WKWebView 포함) 굳이 브릿지를 태우지 않는 편이 앱 배포와 결합되지 않는다.
  */
-export function showNativeShareSheet(
-  url: string,
-  options?: Pick<ShareSheetPayload, "title">,
-): void {
+export function showNativeShareSheet(url: string): void {
   postToNative({
     type: OutboundMessageType.SHOW_SHARE_SHEET,
-    payload: { url, ...options },
+    payload: { url } satisfies ShareSheetPayload,
   });
 }
 

@@ -83,12 +83,10 @@ export type LeaveGuardPayload = {
 /**
  * `OPEN_SUBVIEW` payload — 네이티브가 풀스크린 웹뷰로 열 대상.
  * url은 동일 origin 절대경로여야 한다(httpOnly 세션 쿠키 공유 → 로그인 상태 유지).
- * title은 네이티브가 웹 헤더 렌더 전 표시할 임시 제목(선택). presentation은 표시 방식 힌트(기본 push).
+ * 표시는 항상 push다. 제목은 웹 앱바가 그리므로 임시 제목도 넘기지 않는다.
  */
 export type OpenSubviewPayload = {
   url: string;
-  title?: string;
-  presentation?: "push" | "modal";
 };
 
 /**
@@ -122,8 +120,6 @@ export type ConfirmDialogPayload = {
   /** 미지정 시 네이티브가 "취소"를 쓴다. */
   cancelText?: string;
   destructive?: boolean;
-  /** 딤 바깥 탭으로 닫을 수 있는지. 미지정 시 true. */
-  dismissOnOutsideTap?: boolean;
 };
 
 /** 알럿 종료 사유. dismiss = 바깥 탭·뒤로가기 등 명시적 취소가 아닌 닫힘. */
@@ -188,8 +184,6 @@ export type SelectSheetResultPayload = {
  */
 export type ShareSheetPayload = {
   url: string;
-  /** 공유 미리보기·메일 제목에 쓸 문구(선택). 문구 소유권을 웹에 두기 위해 payload로 넘긴다. */
-  title?: string;
 };
 
 /** `PICK_PHOTOS` payload — 네이티브가 열 사진 선택 화면. */
