@@ -76,6 +76,9 @@ function toInboxNotification(dto: NoticeListItemDto): InboxNotification {
     title: dto.title ?? "",
     body: dto.body ?? "",
     target: toTarget(dto.actionType, dto.data),
+    // TODO(#187, backend#154): 응답에 삭제 여부가 생기면 여기서 InboxGoneKind로 옮긴다.
+    // 지금 NoticeListResponse에는 삭제를 구분하는 필드가 없다(dev Swagger 2026-10-30 확인).
+    gone: null,
     isRead: dto.isRead ?? false,
     createdAt: toKstIso(dto.createdAt),
   };
