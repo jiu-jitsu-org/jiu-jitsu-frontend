@@ -26,7 +26,8 @@ export function PostDetailBody({
   edited: boolean;
 }) {
   return (
-    <div className="flex flex-col">
+    // 시각 보정: 위 동그란 띠 아바타보다 글줄이 왼쪽으로 튀어 보이지 않게 2 들인다(피드 카드와 같다).
+    <div className="flex flex-col pl-0.5">
       {/* 제목: Body M, 멀티라인 허용 */}
       <h1 className="text-body-m text-feed-card-body-title-text">
         {title}

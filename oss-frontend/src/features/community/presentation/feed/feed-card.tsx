@@ -185,8 +185,10 @@ export function FeedCard({
         />
       )}
       {/* 헤더행 → 제목행: 여백 없음. 헤더 높이는 ⋮(28)가 정해서 아바타(24) 아래 4가 보이는 간격이 된다.
-          작성자 행을 감추면 제목행이 카드 맨 위이고 ⋮가 그 우측에 붙는다. */}
+          작성자 행을 감추면 제목행이 카드 맨 위이고 ⋮가 그 우측에 붙는다.
+          시각 보정: 동그란 띠 아바타는 왼쪽 끝이 한 점이라 같은 x에 둔 글줄이 왼쪽으로 튀어 보인다 → 글줄만 2 들인다. */}
       <FeedCardBody
+        className={hideAuthor ? undefined : "pl-0.5"}
         title={title}
         body={body}
         categoryName={categoryName}
