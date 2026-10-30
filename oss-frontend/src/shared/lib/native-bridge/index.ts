@@ -39,7 +39,10 @@ export {
   requestNativePhotos,
   requestNativeSelectSheet,
 } from "./native-dialog";
-export type { NativeSelectSheetOutcome } from "./native-dialog";
+export type {
+  NativePhotosResult,
+  NativeSelectSheetOutcome,
+} from "./native-dialog";
 export {
   notifySessionRefreshed,
   notifySessionRefreshFailed,

@@ -212,34 +212,54 @@ function toFile(photo: PickedPhoto): File | null {
   }
 }
 
+/** 네이티브 사진 선택 결과. failedCount는 골랐지만 받지 못한 장수(앱 변환 실패 + 웹 디코딩 실패). */
+export type NativePhotosResult = {
+  files: File[];
+  failedCount: number;
+};
+
 /**
- * 네이티브 사진 선택 화면을 열고 고른 사진을 File로 받는다(#264). 취소·무응답이면 빈 배열.
+ * 네이티브 사진 선택 화면을 열고 고른 사진을 File로 받는다(#264). 취소·무응답이면 files가 빈 배열.
  *
  * 앱이 이 메시지를 아는지는 호출부가 `supportsNativeMessage(PICK_PHOTOS)`로 먼저 가른다 —
  * 모르는 앱이면 응답이 오지 않아 무응답 상한까지 기다리게 된다.
  *
  * @throws 네이티브 브릿지가 없으면 거절.
  */
-export function requestNativePhotos(limit: number): Promise<File[]> {
+export function requestNativePhotos(
+  limit: number,
+): Promise<NativePhotosResult> {
   const payload: PickPhotosPayload = {
     requestId: nextRequestId("photos"),
     limit,
   };
 
-  return requestFromNative<File[]>(
+  return requestFromNative<NativePhotosResult>(
     OutboundMessageType.PICK_PHOTOS,
     payload,
     // files가 배열이 아니어도 던지지 않는다 — 여기서 던지면 대기자가 settle되지 않아 요청이 영영 끝나지 않는다.
     (message) => {
-      const files =
+      const picked =
         message.type === InboundMessageType.PHOTOS_PICKED
-          ? message.payload?.files
+          ? message.payload
           : undefined;
-      return Array.isArray(files)
-        ? files.flatMap((photo) => toFile(photo) ?? [])
-        : [];
+      const photos = Array.isArray(picked?.files) ? picked.files : [];
+      const files = photos.flatMap((photo) => toFile(photo) ?? []);
+      // 앱이 못 보낸 장 + 웹이 되살리지 못한 장. 구버전 앱은 failedCount가 없어 0.
+      // 고를 수 있던 장수(limit)를 넘을 수 없으니 그 안으로 자른다 — 잘못된 큰 값이 문구에 그대로 찍히지 않게.
+      const nativeFailed = picked?.failedCount;
+      const failedCount = Math.min(
+        (typeof nativeFailed === "number" &&
+        Number.isSafeInteger(nativeFailed) &&
+        nativeFailed > 0
+          ? nativeFailed
+          : 0) +
+          (photos.length - files.length),
+        limit,
+      );
+      return { files, failedCount };
     },
-    [],
+    { files: [], failedCount: 0 },
   );
 }
 
