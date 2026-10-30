@@ -30,9 +30,10 @@ const NO_BELT_DASH_FILL = 0.5;
 
 // photo: 사진 지름, gap: 사진과 테두리 사이 틈, ring: 테두리 두께, mark: 그랄 줄 굵기
 // dash: 띠 없음 점선 한 칸(선+틈) 길이 — 둘레에 딱 나눠떨어지게 조금 늘거나 준다. 4는 촘촘해 시끄러워 6.
+// grau4: 4그랄 전용 — mark: 줄 굵기, space: 줄 사이, pad: 검은 칸 양 끝 ↔ 바깥 줄 (px, 테두리 중심선 길이)
 const RING_SIZES = {
-  feed: { photo: 26, gap: 2, ring: 3, mark: 1.5, dash: 6 },
-  large: { photo: 64, gap: 3, ring: 5, mark: 2.5, dash: 10 },
+  feed: { photo: 26, gap: 2, ring: 3, mark: 1.5, dash: 6, grau4: { mark: 2, space: 2, pad: 3 } },
+  large: { photo: 64, gap: 3, ring: 5, mark: 2.5, dash: 10, grau4: { mark: 3, space: 3, pad: 5 } },
 } as const;
 /** 띠 끝 검은 칸: 오른쪽 아래(135°) 가운데, 폭 44°. */
 const BAR_CENTER = 135;
@@ -53,7 +54,8 @@ function arcPath(c: number, r: number, from: number, to: number): string {
  * 그 위에 흰 그랄 줄. 피드에서 사진 26 · 틈 2 · 테두리 3 = 36.
  * 띠가 없으면(belt null) 같은 자리에 회색 점선만 그린다 — 띠 있는 회원과 줄이 맞는다.
  *
- * 모양 수치는 시안 스크립트(assets/belt-avatar 브랜치 shot4, mode a)를 그대로 옮겼다.
+ * 모양 수치는 시안 스크립트(assets/belt-avatar 브랜치 shot4, mode a)를 그대로 옮겼다. 다만 4그랄은 44°에
+ * 넣으면 줄이 뭉쳐 안 읽혀서, 줄 굵기·사이를 2·2로 두고 양 끝 줄 바깥에 검은 칸을 3 남기도록 칸을 늘린다.
  * 사진(children)은 사진 칸을 꽉 채우게(size-full) 넘긴다. 틈은 투명이라 어떤 바탕 위에서도 쓸 수 있다.
  */
 export function BeltAvatar({
@@ -67,13 +69,17 @@ export function BeltAvatar({
   /** 사진. 사진 칸을 꽉 채우게(size-full) 넘긴다. */
   children: ReactNode;
 }) {
-  const { photo, gap, ring, mark, dash } = RING_SIZES[size];
+  const { photo, gap, ring, mark, dash, grau4 } = RING_SIZES[size];
   const box = photo + 2 * (gap + ring);
   const c = box / 2;
   const r = photo / 2 + gap + ring / 2; // 테두리 중심선 반지름
   const pxToDeg = (px: number) => (px / (2 * Math.PI * r)) * 360;
-  const markDeg = pxToDeg(mark);
-  const pitchDeg = pxToDeg(mark * 2.4);
+  const wide = belt?.grau === 4;
+  const markDeg = pxToDeg(wide ? grau4.mark : mark);
+  const pitchDeg = pxToDeg(wide ? grau4.mark + grau4.space : mark * 2.4);
+  const barDeg = wide
+    ? pxToDeg(4 * grau4.mark + 3 * grau4.space + 2 * grau4.pad)
+    : BAR_WIDTH;
   const circumference = 2 * Math.PI * r;
   const dashPeriod = circumference / Math.round(circumference / dash);
 
@@ -92,7 +98,7 @@ export function BeltAvatar({
           <>
             <circle cx={c} cy={c} r={r} style={{ stroke: BELT_COLOR[belt.rank] }} />
             <path
-              d={arcPath(c, r, BAR_CENTER - BAR_WIDTH / 2, BAR_CENTER + BAR_WIDTH / 2)}
+              d={arcPath(c, r, BAR_CENTER - barDeg / 2, BAR_CENTER + barDeg / 2)}
               style={{ stroke: belt.rank === "black" ? "var(--red-500)" : "var(--bw-black)" }}
             />
             {Array.from({ length: belt.grau }, (_, i) => {
