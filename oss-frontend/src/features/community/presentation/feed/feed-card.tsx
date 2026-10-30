@@ -50,7 +50,7 @@ export type FeedAuthor = {
   name: string;
   /** 프로필 이미지 URL. 없으면 빈 원 플레이스홀더. */
   avatarUrl?: string;
-  /** 띠·그랄(#265). 있으면 사진 둘레에 띠를 그린다(BeltAvatar). 없으면 지금 아바타 그대로. */
+  /** 띠·그랄(#265). 사진 둘레에 띠를 그린다(BeltAvatar). 없으면 회색 점선. */
   belt?: Belt | null;
   /** 관장·사범 인증(#272). true면 닉네임 뒤에 인증 배지를 붙인다. */
   isCoach?: boolean;
@@ -286,21 +286,14 @@ export function FeedCardHeader({
   const authorContent = (
     <>
       {/* key=URL: 아바타 URL이 바뀌면 컴포넌트를 재마운트해 폴백 상태(failed)를 초기화한다.
-          띠가 있으면 사진을 26으로 키우고 둘레에 띠를 그린다(#265, 사진 26 · 틈 2 · 테두리 3 = 36). */}
-      {author.belt ? (
-        <BeltAvatar belt={author.belt}>
-          <FeedCardAvatar
-            key={author.avatarUrl ?? "none"}
-            avatarUrl={author.avatarUrl}
-            className="size-full"
-          />
-        </BeltAvatar>
-      ) : (
+          사진 둘레에 띠를 그린다(#265, 사진 26 · 틈 2 · 테두리 3 = 36). 띠가 없으면 회색 점선. */}
+      <BeltAvatar belt={author.belt ?? null}>
         <FeedCardAvatar
           key={author.avatarUrl ?? "none"}
           avatarUrl={author.avatarUrl}
+          className="size-full"
         />
-      )}
+      </BeltAvatar>
       {/* 아바타→닉네임 8. 닉네임: Body S(Pretendard Medium 14), 회색(text-secondary) —
           진한 색은 제목만 갖는다. 닉네임까지 진하면 시선이 제목과 둘로 갈린다.
           본문·제목을 키울 때 함께 키우지 않는다 — 본문(15)보다 작아야 "누가"가 "무엇"보다 앞서지 않는다. */}

@@ -63,17 +63,11 @@ export function BeltPromptSheet({
       message="띠가 보이면 답하는 사람이 내 수준에 맞춰 답해 줘요"
       onDismiss={onLater}
     >
-      {/* 미리보기: 띠를 고르기 전엔 테두리 없는 사진(띠 아바타와 같은 80 칸을 차지해 고를 때 흔들리지 않는다). */}
+      {/* 미리보기: 띠를 고르기 전엔 글 옆과 같은 회색 점선. */}
       <div className="mt-5 flex justify-center">
-        {rank ? (
-          <BeltAvatar belt={{ rank, grau }} size="large">
-            {photo}
-          </BeltAvatar>
-        ) : (
-          <span className="inline-flex p-2">
-            <span className="inline-flex size-16">{photo}</span>
-          </span>
-        )}
+        <BeltAvatar belt={rank ? { rank, grau } : null} size="large">
+          {photo}
+        </BeltAvatar>
       </div>
 
       <ChipGroup label="띠">

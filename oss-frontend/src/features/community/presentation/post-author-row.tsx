@@ -19,7 +19,7 @@ export function PostAuthorRow({
   author: PostAuthor;
   isOwner: boolean;
 }) {
-  // row 높이는 아바타가 정한다(기본 24, 띠 아바타 36), 아바타↔닉네임 간격 8(gap-2), 수직 가운데(items-center)
+  // row 높이는 띠 아바타(36)가 정한다, 아바타↔닉네임 간격 8(gap-2), 수직 가운데(items-center)
   // 탭 영역이 행 전체 폭으로 늘어나지 않게 self-start로 내용 폭만 차지한다.
   return (
     <AuthorProfileLink
@@ -27,15 +27,11 @@ export function PostAuthorRow({
       isOwner={isOwner}
       className="flex min-h-6 items-center gap-2 self-start"
     >
-      {/* 프로필 아이콘 24x24 고정, 로드 실패 시 기본 상태 폴백.
-          띠가 있으면 피드 카드와 같이 사진을 26으로 키우고 둘레에 띠를 그린다(#265, 전체 36). */}
-      {author.belt ? (
-        <BeltAvatar belt={author.belt}>
-          <Avatar src={author.avatarUrl} className="size-full" iconSize={16} />
-        </BeltAvatar>
-      ) : (
-        <Avatar src={author.avatarUrl} className="size-6" iconSize={16} />
-      )}
+      {/* 프로필 사진, 로드 실패 시 기본 상태 폴백.
+          피드 카드와 같이 사진 26 둘레에 띠를 그린다(#265, 전체 36). 띠가 없으면 회색 점선. */}
+      <BeltAvatar belt={author.belt ?? null}>
+        <Avatar src={author.avatarUrl} className="size-full" iconSize={16} />
+      </BeltAvatar>
       {/* 닉네임: Body M(Pretendard Medium 16). 관장·사범이면 배지를 붙여 둔다(#272, 간격 2). */}
       <span className="flex items-center gap-0.5">
         <span className="text-body-m text-text-primary">
