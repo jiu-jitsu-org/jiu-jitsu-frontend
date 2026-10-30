@@ -1,15 +1,15 @@
 /**
- * 작성자 응답에 붙을 회원 역할 필드 (#272).
+ * 작성자 응답의 관장·사범 인증 여부 (#272).
  *
- * 서버는 아직 글·댓글 작성자(author)에 이 값을 주지 않는다 — 회원 프로필(GET /api/user/profile)의
- * userRole과 같은 이름·값으로 붙을 것으로 보고 자리만 둔다(backend#163).
- * 값: "USER" | "OWNER"(관장·사범 인증 완료) | "ADMIN". 이름이 다르게 확정되면 여기만 고친다.
+ * 서버는 글·댓글 작성자(author)에 isOwner(boolean)를 준다 — OWNER 역할이면 true, ADMIN은 false
+ * (backend#172). 다른 회원 공개 프로필(GET /community/profile/{userId})도 같은 이름이다.
+ * 차단으로 가려진 댓글은 author 필드가 전부 null로 온다.
  */
 export type AuthorRoleDto = {
-  userRole?: string | null;
+  isOwner?: boolean | null;
 };
 
-/** 관장·사범 인증 회원인지. 값이 없거나 모르는 값이면 false — 화면은 배지를 그리지 않는다. */
+/** 관장·사범 인증 회원인지. 값이 없으면 false — 화면은 배지를 그리지 않는다. */
 export function toIsCoach(dto: AuthorRoleDto | null | undefined): boolean {
-  return dto?.userRole === "OWNER";
+  return dto?.isOwner === true;
 }
