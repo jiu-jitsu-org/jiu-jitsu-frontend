@@ -25,7 +25,7 @@ export function PostAuthorRow({
     <AuthorProfileLink
       userId={author.userId}
       isOwner={isOwner}
-      className="flex min-h-6 items-center gap-2 self-start"
+      className="flex items-center gap-2 self-start"
     >
       {/* 프로필 사진, 로드 실패 시 기본 상태 폴백.
           피드 카드와 같이 사진 26 둘레에 띠를 그린다(#265, 전체 36). 띠가 없으면 회색 점선. */}
