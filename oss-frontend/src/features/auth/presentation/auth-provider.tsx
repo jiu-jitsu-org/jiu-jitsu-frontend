@@ -55,8 +55,6 @@ export type BridgeEvent = {
 export type RequireAuthOptions = {
   /** 로그인 유도 사유(분석/문구용). */
   reason?: string;
-  /** true면 AUTH_LOGIN_MODAL(모달 즉시), 기본 false면 AUTH_LOGIN_PROMPT(안내 알럿). */
-  direct?: boolean;
 };
 
 type AuthContextValue = {
@@ -66,8 +64,7 @@ type AuthContextValue = {
   nativeAvailable: boolean;
   /**
    * 보호된 행위를 실행한다. 로그인 상태면 즉시 실행, 아니면 행위를 보관 후 로그인 유도.
-   * - 기본: AUTH_LOGIN_PROMPT (안내 알럿 → 사용자가 동의해야 모달, 소프트 유도)
-   * - options.direct=true: AUTH_LOGIN_MODAL (모달 즉시, 다이렉트)
+   * 유도는 AUTH_LOGIN_PROMPT(안내 알럿 → 사용자가 동의해야 모달, 소프트 유도)다.
    * 로그인 성공 시 보관한 행위가 자동 복귀된다.
    */
   requireAuth: (action: () => void, options?: RequireAuthOptions) => void;
@@ -83,8 +80,6 @@ type AuthContextValue = {
   loginCount: number;
   /** 서버 세션을 다시 읽어 상태를 갱신한다. */
   refresh: () => Promise<void>;
-  /** 로그아웃: 서버 세션 제거 + 네이티브에 로그아웃 요청 통지. */
-  logout: () => Promise<void>;
   /**
    * (개발용) 네이티브 없이 인바운드 메시지를 주입한다. 실제 수신구를 그대로 통과시켜
    * 운영 경로와 동일하게 동작한다.
@@ -247,7 +242,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [applyState, logEvent]);
 
   const requestLogin = useCallback(
-    (direct: boolean, reason?: string) => {
+    (reason?: string) => {
       // 외부 브라우저에는 로그인 UI를 그릴 네이티브가 없다 — 메시지를 보내봐야 아무 일도 안 생기고
       // 사용자는 "눌렀는데 반응이 없다"로 읽는다. 앱에서 로그인해 이어가라는 안내로 대체한다.
       if (!nativeAvailable) {
@@ -255,9 +250,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const type = direct
-        ? OutboundMessageType.AUTH_LOGIN_MODAL
-        : OutboundMessageType.AUTH_LOGIN_PROMPT;
+      const type = OutboundMessageType.AUTH_LOGIN_PROMPT;
       const payload = reason ? { reason } : undefined;
       logEvent("out", type, payload);
       postToNative({ type, payload });
@@ -272,9 +265,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // 로그인 후 복귀할 행위를 보관하고 네이티브에 로그인 유도(프롬프트/모달)를 요청한다.
+      // 로그인 후 복귀할 행위를 보관하고 네이티브에 로그인 유도를 요청한다.
       pendingActionRef.current = action;
-      requestLogin(options?.direct ?? false, options?.reason);
+      requestLogin(options?.reason);
     },
     [requestLogin, status],
   );
@@ -283,16 +276,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     (options?: RequireAuthOptions) => {
       // 앞서 보관된 행위가 이번 로그인에 딸려 실행되지 않게 비운다.
       pendingActionRef.current = null;
-      requestLogin(options?.direct ?? false, options?.reason);
+      requestLogin(options?.reason);
     },
     [requestLogin],
   );
-
-  const logout = useCallback(async () => {
-    logEvent("out", OutboundMessageType.AUTH_LOGOUT_REQUEST);
-    postToNative({ type: OutboundMessageType.AUTH_LOGOUT_REQUEST });
-    await clearSession();
-  }, [clearSession, logEvent]);
 
   const simulateInbound = useCallback((message: InboundMessage) => {
     if (typeof window === "undefined" || !window.WebBridge) {
@@ -311,7 +298,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     promptLogin,
     loginCount,
     refresh,
-    logout,
     simulateInbound,
   };
 

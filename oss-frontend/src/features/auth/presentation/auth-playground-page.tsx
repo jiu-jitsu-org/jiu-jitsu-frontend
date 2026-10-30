@@ -40,7 +40,6 @@ export function AuthPlaygroundPage() {
     nativeAvailable,
     requireAuth,
     refresh,
-    logout,
     simulateInbound,
   } = useAuth();
 
@@ -77,14 +76,14 @@ export function AuthPlaygroundPage() {
     }
   };
 
-  // direct=false → AUTH_LOGIN_PROMPT(안내 알럿), true → AUTH_LOGIN_MODAL(모달 즉시)
-  const runProtectedAction = (direct: boolean) => {
+  // 비로그인이면 AUTH_LOGIN_PROMPT(안내 알럿)를 보낸다.
+  const runProtectedAction = () => {
     requireAuth(
       () => {
         // 로그인 상태에서 즉시, 비로그인이면 로그인 성공 후 이 콜백이 실행된다.
         setLastActionAt(new Date().toLocaleTimeString());
       },
-      { reason: "harness-demo", direct },
+      { reason: "harness-demo" },
     );
   };
 
@@ -126,17 +125,11 @@ export function AuthPlaygroundPage() {
         </dl>
 
         <div className="mt-5 flex flex-wrap gap-2">
-          <button type="button" onClick={() => runProtectedAction(false)} className={primaryButton}>
+          <button type="button" onClick={runProtectedAction} className={primaryButton}>
             로그인 프롬프트 (안내 알럿)
-          </button>
-          <button type="button" onClick={() => runProtectedAction(true)} className={primaryButton}>
-            로그인 모달 (다이렉트)
           </button>
           <button type="button" onClick={() => void refresh()} className={secondaryButton}>
             상태 새로고침
-          </button>
-          <button type="button" onClick={() => void logout()} className={secondaryButton}>
-            로그아웃
           </button>
         </div>
       </section>
@@ -190,6 +183,14 @@ export function AuthPlaygroundPage() {
             className={secondaryButton}
           >
             AUTH_SESSION_EXPIRED
+          </button>
+          {/* 로그아웃은 앱 설정이 소유한다 — 웹 쪽 동작은 이 수신(세션 정리)뿐이다. */}
+          <button
+            type="button"
+            onClick={() => simulateInbound({ type: InboundMessageType.AUTH_LOGOUT })}
+            className={secondaryButton}
+          >
+            AUTH_LOGOUT
           </button>
         </div>
       </section>

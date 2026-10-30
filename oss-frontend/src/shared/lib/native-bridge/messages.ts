@@ -13,12 +13,10 @@
 /** 웹 → 네이티브 (window.(webkit.messageHandlers.)AppBridge) */
 export const OutboundMessageType = {
   WEBVIEW_READY: "WEBVIEW_READY",
-  // 로그인 유도 2종 (iOS가 단일 AUTH_LOGIN_REQUEST를 분리)
-  //  - PROMPT: 네이티브가 "로그인이 필요해요" 안내 알럿 → 사용자가 동의해야 모달 (소프트 유도)
-  //  - MODAL : 네이티브가 로그인 모달을 즉시 표시 (다이렉트)
+  // 로그인 유도: 네이티브가 "로그인이 필요해요" 안내 알럿 → 사용자가 동의해야 로그인 모달 (소프트 유도).
+  // 모달을 바로 여는 AUTH_LOGIN_MODAL과 웹 주도 로그아웃 AUTH_LOGOUT_REQUEST는 쓰는 화면이 없어 뺐다(#224).
+  // 로그아웃은 앱 설정이 소유하고, 웹은 AUTH_LOGOUT을 받아 세션만 정리한다.
   AUTH_LOGIN_PROMPT: "AUTH_LOGIN_PROMPT",
-  AUTH_LOGIN_MODAL: "AUTH_LOGIN_MODAL",
-  AUTH_LOGOUT_REQUEST: "AUTH_LOGOUT_REQUEST",
   // 토큰 만료 복구: refreshToken은 네이티브만 보유하므로 웹은 스스로 갱신할 수 없다.
   // 만료(백엔드 A0003) 감지 시 네이티브에 갱신을 요청 → 네이티브가 AUTH_LOGIN_SUCCESS(새 토큰)
   // 또는 AUTH_SESSION_EXPIRED로 응답한다.
@@ -72,7 +70,7 @@ export const InboundMessageType = {
 export type InboundMessageType =
   (typeof InboundMessageType)[keyof typeof InboundMessageType];
 
-/** 로그인 유도(PROMPT/MODAL 공통) payload. 사유(분석/문구용, 선택). */
+/** `AUTH_LOGIN_PROMPT` payload. 사유(분석/문구용, 선택). */
 export type AuthLoginPayload = {
   reason?: string;
 };
@@ -85,12 +83,10 @@ export type LeaveGuardPayload = {
 /**
  * `OPEN_SUBVIEW` payload — 네이티브가 풀스크린 웹뷰로 열 대상.
  * url은 동일 origin 절대경로여야 한다(httpOnly 세션 쿠키 공유 → 로그인 상태 유지).
- * title은 네이티브가 웹 헤더 렌더 전 표시할 임시 제목(선택). presentation은 표시 방식 힌트(기본 push).
+ * 표시는 항상 push다. 제목은 웹 앱바가 그리므로 임시 제목도 넘기지 않는다.
  */
 export type OpenSubviewPayload = {
   url: string;
-  title?: string;
-  presentation?: "push" | "modal";
 };
 
 /**
@@ -124,8 +120,6 @@ export type ConfirmDialogPayload = {
   /** 미지정 시 네이티브가 "취소"를 쓴다. */
   cancelText?: string;
   destructive?: boolean;
-  /** 딤 바깥 탭으로 닫을 수 있는지. 미지정 시 true. */
-  dismissOnOutsideTap?: boolean;
 };
 
 /** 알럿 종료 사유. dismiss = 바깥 탭·뒤로가기 등 명시적 취소가 아닌 닫힘. */
@@ -190,8 +184,6 @@ export type SelectSheetResultPayload = {
  */
 export type ShareSheetPayload = {
   url: string;
-  /** 공유 미리보기·메일 제목에 쓸 문구(선택). 문구 소유권을 웹에 두기 위해 payload로 넘긴다. */
-  title?: string;
 };
 
 /** `PICK_PHOTOS` payload — 네이티브가 열 사진 선택 화면. */

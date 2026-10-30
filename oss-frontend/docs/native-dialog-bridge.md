@@ -97,7 +97,6 @@
   confirmText: string;
   cancelText?: string;            // 기본 "취소"
   destructive?: boolean;          // true면 확인 버튼 빨강
-  dismissOnOutsideTap?: boolean;  // 기본 true (바깥 탭 = 취소)
 }
 ```
 
