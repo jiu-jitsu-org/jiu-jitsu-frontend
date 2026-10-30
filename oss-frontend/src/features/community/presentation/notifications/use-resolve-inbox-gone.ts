@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import type {
   InboxGoneKind,
@@ -15,6 +15,9 @@ import { bffFetch } from "@/shared/lib/http/bff-fetch";
  * 늦어져도 상세(PostDetailGone)가 삭제를 다시 걸러 주므로, 탭이 멈춰 있는 것보다 넘어가는 편이 낫다.
  */
 const PROBE_TIMEOUT_MS = 1500;
+
+/** 화면이 사라져 끊었다는 표시 — 시간 초과로 끊은 것과 구분한다(시간 초과는 상세로 보낸다). */
+const UNMOUNTED = "inbox-unmounted";
 
 /**
  * 알림 셀을 탭했을 때 대상이 삭제됐는지 판단한다 (#187).
@@ -35,37 +38,71 @@ const PROBE_TIMEOUT_MS = 1500;
  * 삭제로 판정된 게시글은 이 화면이 살아 있는 동안 기억해, 같은 셀을 다시 탭해도 바로 안내한다.
  * 살아 있다는 판정은 기억하지 않는다 — 다녀온 사이 지워질 수 있다.
  *
+ * 확인 중에 이 화면이 사라지면(뒤로가기 등) 진행 중인 조회를 끊고 "cancelled"를 돌려준다.
+ * 호출부는 이때 이동도 토스트도 하지 않는다 — 기다림이 끝난 뒤 엉뚱한 화면에서 상세가 열리면 안 된다.
+ *
  * TODO(#187, backend#154): 서버 값이 생기면 probePostGone과 goneCache를 지우고 1만 남긴다.
  */
 export function useResolveInboxGone() {
   const goneCache = useRef(new Set<number>());
+  // 화면이 사라질 때 끊을 진행 중 조회. 판단 중 탭은 호출부가 막아 보통 하나뿐이다.
+  const inFlight = useRef(new Set<AbortController>());
+
+  useEffect(() => {
+    const controllers = inFlight.current;
+    return () => {
+      controllers.forEach((controller) => controller.abort(UNMOUNTED));
+      controllers.clear();
+    };
+  }, []);
 
   return useCallback(
-    async (notification: InboxNotification): Promise<InboxGoneKind | null> => {
+    async (
+      notification: InboxNotification,
+    ): Promise<InboxGoneKind | null | "cancelled"> => {
       if (notification.gone) return notification.gone;
 
       const { target } = notification;
       if (target?.kind !== "post") return null;
       if (goneCache.current.has(target.postId)) return "post";
 
-      const gone = await probePostGone(target.postId);
-      if (gone) goneCache.current.add(target.postId);
-      return gone ? "post" : null;
+      const controller = new AbortController();
+      inFlight.current.add(controller);
+      try {
+        const gone = await probePostGone(target.postId, controller);
+        if (controller.signal.aborted && controller.signal.reason === UNMOUNTED) {
+          return "cancelled";
+        }
+        if (gone) goneCache.current.add(target.postId);
+        return gone ? "post" : null;
+      } finally {
+        inFlight.current.delete(controller);
+      }
     },
     [],
   );
 }
 
-/** 게시글 BFF 단건 조회가 404인지. 판단할 수 없으면 false(상세가 다시 거른다). */
-async function probePostGone(postId: number): Promise<boolean> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
+/**
+ * 게시글이 삭제됐는지. BFF가 직접 만든 404(JSON `success: false`)일 때만 삭제로 본다.
+ * 그 밖의 404(라우트가 없는 경우의 HTML 등) · 다른 실패 · 시간 초과는 판단할 수 없으니 false — 상세가 다시 거른다.
+ */
+async function probePostGone(
+  postId: number,
+  controller: AbortController,
+): Promise<boolean> {
+  const timer = setTimeout(() => controller.abort("timeout"), PROBE_TIMEOUT_MS);
 
   try {
     const response = await bffFetch(`/api/community/posts/${postId}`, {
       signal: controller.signal,
     });
-    return response.status === 404;
+    if (response.status !== 404) return false;
+
+    const body = (await response.json().catch(() => null)) as {
+      success?: unknown;
+    } | null;
+    return body?.success === false;
   } catch {
     return false;
   } finally {

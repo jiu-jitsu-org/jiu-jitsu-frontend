@@ -98,6 +98,8 @@ export function InboxView({
       resolving.current = false;
     });
 
+    // 확인 중에 이 화면을 떠났다 — 이동도 안내도 하지 않는다.
+    if (gone === "cancelled") return;
     if (gone) {
       toast.show(inboxGoneMessage(gone));
       return;
