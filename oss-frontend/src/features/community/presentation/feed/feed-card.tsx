@@ -300,7 +300,7 @@ export function FeedCardHeader({
       </BeltAvatar>
       {/* 아바타→닉네임 6. 닉네임: Body S(Pretendard Medium 14), 회색(text-secondary) —
           진한 색은 제목만 갖는다. 닉네임까지 진하면 시선이 제목과 둘로 갈린다.
-          본문·제목을 키울 때 함께 키우지 않는다 — 본문(15)보다 작아야 "누가"가 "무엇"보다 앞서지 않는다. */}
+          본문·제목을 키울 때 함께 키우지 않는다 — 본문(16)보다 작아야 "누가"가 "무엇"보다 앞서지 않는다. */}
       <span className="ml-1.5 text-body-s text-feed-card-header-username-text">
         {author.name}
       </span>
@@ -439,7 +439,7 @@ export function FeedCardBody({
   return (
     // 제목행 → 메타행 4 (gap-1), 메타행 → 본문행 8 (gap-1 + 본문 mt-1)
     <div className={cn("flex flex-col gap-1", className)}>
-      {/* 제목: Pretendard SemiBold 17/24 — 카드에서 가장 먼저 읽히는 줄. 본문(15)을 올리며 함께 한 칸 올려 둘 사이 2를 유지한다.
+      {/* 제목: Pretendard Bold 18/24 — 카드에서 가장 먼저 읽히는 줄. 본문(16 Regular)과 크기·굵기 둘 다로 가른다(당근 SEED t6 단계).
           넘치면 2줄까지 보이고 그 뒤는 말줄임. */}
       {trailing ? (
         // 제목 첫 줄 높이는 제목(24) 그대로 둔다 — ⋮(28)는 -my-0.5로 위아래 2씩 겹쳐 첫 줄 세로 가운데에 맞춘다.
@@ -448,7 +448,7 @@ export function FeedCardBody({
           <Title
             type={onPress ? "button" : undefined}
             onClick={onPress}
-            className="line-clamp-2 min-w-0 flex-1 text-left text-[17px] leading-6 font-semibold text-feed-card-body-title-text"
+            className="line-clamp-2 min-w-0 flex-1 text-left text-[18px] leading-6 font-bold text-feed-card-body-title-text"
           >
             {title}
           </Title>
@@ -461,7 +461,7 @@ export function FeedCardBody({
           type={onPress ? "button" : undefined}
           onClick={onPress}
           className={cn(
-            "line-clamp-2 pr-8 text-left text-[17px] leading-6 font-semibold text-feed-card-body-title-text",
+            "line-clamp-2 pr-8 text-left text-[18px] leading-6 font-bold text-feed-card-body-title-text",
           )}
         >
           {title}
@@ -477,11 +477,12 @@ export function FeedCardBody({
         ) : null}
         <RelativeTime iso={createdAt} />
       </div>
-      {/* 본문: Medium 15/22, 메타행 아래 8. 14는 작게 읽혀 제목(16)과 한 칸 차이로 올렸다. 색은 제목 다음 칸(text-secondary-strong) */}
+      {/* 본문: Regular 16/24, 메타행 아래 8. 글 읽는 커뮤니티라 SEED 글 본문(16/24)에 맞췄다. 위계는 제목의 굵기가 맡는다.
+          색은 제목 다음 칸(text-secondary-strong) */}
       <p
         ref={bodyRef}
         className={cn(
-          "mt-1 whitespace-pre-wrap text-[15px] leading-[22px] font-medium text-feed-card-body-text",
+          "mt-1 whitespace-pre-wrap text-base leading-6 font-normal text-feed-card-body-text",
           !expanded && "line-clamp-3",
         )}
       >
@@ -492,7 +493,7 @@ export function FeedCardBody({
           ref={moreRef}
           type="button"
           onClick={handleExpand}
-          className="self-start text-[15px] leading-[22px] font-medium text-feed-card-body-more-text"
+          className="self-start text-base leading-6 font-normal text-feed-card-body-more-text"
         >
           더보기
         </button>
