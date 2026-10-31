@@ -2,8 +2,11 @@ import type { ReactNode } from "react";
 
 import type { Belt, BeltRank } from "@/features/community/domain/belt";
 
-/** feed: 피드·상세·댓글 작성자 줄(사진 26) · large: 커뮤니티 활동 머리 같은 큰 자리(사진 64). */
-export type BeltAvatarSize = "feed" | "large";
+/**
+ * card: 홈 피드 카드 작성자 줄(사진 24, 전체 32) · feed: 글 상세·댓글 작성자 줄(사진 26, 전체 36)
+ * · large: 커뮤니티 활동 머리 같은 큰 자리(사진 64).
+ */
+export type BeltAvatarSize = "card" | "feed" | "large";
 
 /** 띠 색(CSS 값). 띠를 고르는 칩의 색 점도 같은 값을 쓴다. */
 export const BELT_COLOR: Record<BeltRank, string> = {
@@ -31,7 +34,9 @@ const NO_BELT_DASH_FILL = 0.5;
 // photo: 사진 지름, gap: 사진과 테두리 사이 틈, ring: 테두리 두께, mark: 그랄 줄 굵기
 // dash: 띠 없음 점선 한 칸(선+틈) 길이 — 둘레에 딱 나눠떨어지게 조금 늘거나 준다. 4는 촘촘해 시끄러워 6.
 // grau4: 4그랄 전용 — mark: 줄 굵기, space: 줄 사이, pad: 검은 칸 양 끝 ↔ 바깥 줄 (px, 테두리 중심선 길이)
+// card는 닉네임(14)과 크기 차이가 덜 나게 사진·틈을 줄인다. 테두리 두께는 그랄 줄이 더 작아지지 않게 feed와 같다.
 const RING_SIZES = {
+  card: { photo: 24, gap: 1, ring: 3, mark: 1.5, dash: 6, grau4: { mark: 2, space: 2, pad: 3 } },
   feed: { photo: 26, gap: 2, ring: 3, mark: 1.5, dash: 6, grau4: { mark: 2, space: 2, pad: 3 } },
   large: { photo: 64, gap: 3, ring: 5, mark: 2.5, dash: 10, grau4: { mark: 3, space: 3, pad: 5 } },
 } as const;
