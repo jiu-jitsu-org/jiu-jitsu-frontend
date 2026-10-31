@@ -184,11 +184,12 @@ export function FeedCard({
           menu={menu}
         />
       )}
-      {/* 헤더행 → 제목행: 여백 없음. 헤더 높이는 띠 아바타(36)가 정한다.
+      {/* 헤더행 → 제목행 8(mt-2). 헤더 높이는 띠 아바타(32)가 정한다. 붙여 두면 제목이 작성자 줄에 딸려 보여서,
+          제목→메타(4)보다 넓게 띄워 "누가"와 "무엇"을 가른다.
           작성자 행을 감추면 제목행이 카드 맨 위이고 ⋮가 그 우측에 붙는다.
           시각 보정: 동그란 띠 아바타는 왼쪽 끝이 한 점이라 같은 x에 둔 글줄이 왼쪽으로 튀어 보인다 → 글줄만 2 들인다. */}
       <FeedCardBody
-        className={hideAuthor ? undefined : "pl-0.5"}
+        className={hideAuthor ? undefined : "mt-2 pl-0.5"}
         title={title}
         body={body}
         categoryName={categoryName}
@@ -288,18 +289,19 @@ export function FeedCardHeader({
   const authorContent = (
     <>
       {/* key=URL: 아바타 URL이 바뀌면 컴포넌트를 재마운트해 폴백 상태(failed)를 초기화한다.
-          사진 둘레에 띠를 그린다(#265, 사진 26 · 틈 2 · 테두리 3 = 36). 띠가 없으면 회색 점선. */}
-      <BeltAvatar belt={author.belt ?? null}>
+          사진 둘레에 띠를 그린다(#265, 사진 24 · 틈 1 · 테두리 3 = 32). 띠가 없으면 회색 점선.
+          36은 닉네임(14)보다 너무 커 보여 카드에서만 한 단계 줄였다 — 닉네임이 16인 상세·댓글은 36 그대로. */}
+      <BeltAvatar belt={author.belt ?? null} size="card">
         <FeedCardAvatar
           key={author.avatarUrl ?? "none"}
           avatarUrl={author.avatarUrl}
           className="size-full"
         />
       </BeltAvatar>
-      {/* 아바타→닉네임 8. 닉네임: Body S(Pretendard Medium 14), 회색(text-secondary) —
+      {/* 아바타→닉네임 6. 닉네임: Body S(Pretendard Medium 14), 회색(text-secondary) —
           진한 색은 제목만 갖는다. 닉네임까지 진하면 시선이 제목과 둘로 갈린다.
-          본문·제목을 키울 때 함께 키우지 않는다 — 본문(15)보다 작아야 "누가"가 "무엇"보다 앞서지 않는다. */}
-      <span className="ml-2 text-body-s text-feed-card-header-username-text">
+          본문·제목을 키울 때 함께 키우지 않는다 — 본문(16)보다 작아야 "누가"가 "무엇"보다 앞서지 않는다. */}
+      <span className="ml-1.5 text-body-s text-feed-card-header-username-text">
         {author.name}
       </span>
       {/* 관장·사범 배지(#272): 닉네임에 붙여 둔다(간격 2). */}
@@ -313,7 +315,7 @@ export function FeedCardHeader({
 
   return (
     // 헤더는 items-start: user-header 묶음을 카드 헤더 좌상단에 붙인다.
-    // 띠 아바타(36)가 헤더 높이를 결정하고, 더보기 버튼(28)은 위쪽 정렬로 남는다.
+    // 띠 아바타(32)가 헤더 높이를 결정하고, 더보기 버튼(28)은 위쪽 정렬로 남는다.
     <header className="flex items-start">
       {/* user-header: 아바타·닉네임 묶음. 좌상단 정렬, 묶음 내부는 수직 가운데.
           날짜는 제목 아래 메타행(카테고리·날짜)으로 이동했다(#177).
@@ -437,7 +439,7 @@ export function FeedCardBody({
   return (
     // 제목행 → 메타행 4 (gap-1), 메타행 → 본문행 8 (gap-1 + 본문 mt-1)
     <div className={cn("flex flex-col gap-1", className)}>
-      {/* 제목: Pretendard SemiBold 17/24 — 카드에서 가장 먼저 읽히는 줄. 본문(15)을 올리며 함께 한 칸 올려 둘 사이 2를 유지한다.
+      {/* 제목: Pretendard Bold 18/24 — 카드에서 가장 먼저 읽히는 줄. 본문(16 Regular)과 크기·굵기 둘 다로 가른다(당근 SEED t6 단계).
           넘치면 2줄까지 보이고 그 뒤는 말줄임. */}
       {trailing ? (
         // 제목 첫 줄 높이는 제목(24) 그대로 둔다 — ⋮(28)는 -my-0.5로 위아래 2씩 겹쳐 첫 줄 세로 가운데에 맞춘다.
@@ -446,7 +448,7 @@ export function FeedCardBody({
           <Title
             type={onPress ? "button" : undefined}
             onClick={onPress}
-            className="line-clamp-2 min-w-0 flex-1 text-left text-[17px] leading-6 font-semibold text-feed-card-body-title-text"
+            className="line-clamp-2 min-w-0 flex-1 text-left text-[18px] leading-6 font-bold text-feed-card-body-title-text"
           >
             {title}
           </Title>
@@ -459,7 +461,7 @@ export function FeedCardBody({
           type={onPress ? "button" : undefined}
           onClick={onPress}
           className={cn(
-            "line-clamp-2 pr-8 text-left text-[17px] leading-6 font-semibold text-feed-card-body-title-text",
+            "line-clamp-2 pr-8 text-left text-[18px] leading-6 font-bold text-feed-card-body-title-text",
           )}
         >
           {title}
@@ -475,11 +477,12 @@ export function FeedCardBody({
         ) : null}
         <RelativeTime iso={createdAt} />
       </div>
-      {/* 본문: Medium 15/22, 메타행 아래 8. 14는 작게 읽혀 제목(16)과 한 칸 차이로 올렸다. 색은 제목 다음 칸(text-secondary-strong) */}
+      {/* 본문: Regular 16/24, 메타행 아래 8. 글 읽는 커뮤니티라 SEED 글 본문(16/24)에 맞췄다. 위계는 제목의 굵기가 맡는다.
+          색은 제목 다음 칸(text-secondary-strong) */}
       <p
         ref={bodyRef}
         className={cn(
-          "mt-1 whitespace-pre-wrap text-[15px] leading-[22px] font-medium text-feed-card-body-text",
+          "mt-1 whitespace-pre-wrap text-base leading-6 font-normal text-feed-card-body-text",
           !expanded && "line-clamp-3",
         )}
       >
@@ -490,7 +493,7 @@ export function FeedCardBody({
           ref={moreRef}
           type="button"
           onClick={handleExpand}
-          className="self-start text-[15px] leading-[22px] font-medium text-feed-card-body-more-text"
+          className="self-start text-base leading-6 font-normal text-feed-card-body-more-text"
         >
           더보기
         </button>
