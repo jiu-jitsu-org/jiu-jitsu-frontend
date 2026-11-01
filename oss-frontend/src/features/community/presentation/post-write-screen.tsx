@@ -731,7 +731,7 @@ export function PostWriteScreen({
     const finalTags = tagInput ? addTags([tagInput]) : tags;
     try {
       if (edit) {
-        // 수정: 남긴 이미지 id 전체를 보낸다(서버가 목록을 통째로 교체). tags는 업스트림 수정 계약에 아직 없음.
+        // 수정: 남긴 이미지 id·태그 전체를 보낸다(서버가 목록을 통째로 교체).
         await updatePost(edit.postId, {
           categoryId,
           title: title.trim(),

@@ -80,8 +80,8 @@ export async function DELETE(
  * PUT /api/community/posts/{id} — 게시글 수정(인증 필요).
  *
  * body: { categoryId, title, body, imageFileIdList, tags } — 생성과 같은 형태. 업스트림 PUT /board/{id}로
- * 위임하며 imageFileIdList는 "남길 이미지 전체"(서버가 목록을 통째로 교체). 본인 게시글 권한은 업스트림이
- * 최종 검사한다. tags는 업스트림 수정 계약에 아직 없어 무시되지만, 추가되는 즉시 동작하도록 함께 보낸다.
+ * 위임하며 imageFileIdList·tags는 "남길 전체 목록"(서버가 목록을 통째로 교체). 본인 게시글 권한은 업스트림이
+ * 최종 검사한다.
  */
 export async function PUT(
   request: Request,
