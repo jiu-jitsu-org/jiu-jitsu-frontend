@@ -43,8 +43,8 @@ export type InboxNotification = {
   /**
    * 대상이 삭제됐으면 그 종류, 아니면 null.
    *
-   * 서버가 알려주는 값이다(backend#154). 지금 GET /notice 응답에는 이 값이 없어 항상 null이고,
-   * 그동안은 화면이 셀 탭 시 대상 게시글을 조회해 대신 판단한다.
+   * 서버가 목록을 줄 때 알려주는 값이다(deletedStatus, backend#154). 목록을 받은 뒤에 지워진 것은
+   * 모른다 — 그때는 상세가 다시 거른다.
    */
   gone: InboxGoneKind | null;
   isRead: boolean;

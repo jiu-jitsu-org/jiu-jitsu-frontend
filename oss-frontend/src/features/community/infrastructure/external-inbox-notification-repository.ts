@@ -1,4 +1,5 @@
 import type {
+  InboxGoneKind,
   InboxNotification,
   InboxNotificationTarget,
   InboxNotificationType,
@@ -36,6 +37,8 @@ type NoticeListItemDto = {
   data: string | null;
   isRead: boolean | null;
   createdAt: string;
+  /** 대상 삭제 상태. null = 정상. 게시글이 지워지면 그 아래 댓글 · 대댓글 알림도 BOARD다. */
+  deletedStatus: string | null;
 };
 
 const KNOWN_TYPES: readonly InboxNotificationType[] = [
@@ -76,9 +79,7 @@ function toInboxNotification(dto: NoticeListItemDto): InboxNotification {
     title: dto.title ?? "",
     body: dto.body ?? "",
     target: toTarget(dto.actionType, dto.data),
-    // TODO(#187, backend#154): 응답에 삭제 여부가 생기면 여기서 InboxGoneKind로 옮긴다.
-    // 지금 NoticeListResponse에는 삭제를 구분하는 필드가 없다(dev Swagger 2026-10-30 확인).
-    gone: null,
+    gone: toGone(dto.deletedStatus),
     isRead: dto.isRead ?? false,
     createdAt: toKstIso(dto.createdAt),
   };
@@ -86,6 +87,14 @@ function toInboxNotification(dto: NoticeListItemDto): InboxNotification {
 
 function toType(pushType: string | null): InboxNotificationType | null {
   return KNOWN_TYPES.find((type) => type === pushType) ?? null;
+}
+
+/** deletedStatus → 삭제 종류. 모르는 값은 정상(null)으로 둔다 — 상세로 보내면 상세가 다시 거른다. */
+function toGone(deletedStatus: string | null): InboxGoneKind | null {
+  if (deletedStatus === "BOARD") return "post";
+  if (deletedStatus === "COMMENT") return "comment";
+  if (deletedStatus === "REPLY") return "reply";
+  return null;
 }
 
 /** actionType + data(contentId 문자열) → 이동 대상. 해석할 수 없으면 null(읽음 처리만 하고 이동하지 않는다). */
