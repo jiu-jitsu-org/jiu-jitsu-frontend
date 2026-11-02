@@ -30,8 +30,7 @@ export function inboxTitle(notification: InboxNotification): string {
  * 앱 토스트 말투("~어요")와 상세의 PostDetailGone "삭제된 게시글이에요"에 맞췄다
  * (이슈 초안 "~삭제되었습니다"에서 변경 · 2026-10-30 디자인 결정).
  *
- * 셀 탭에서 대상이 삭제된 것을 알면 이동하지 않고 이 문구를 토스트로 띄운다(inbox-view).
- * 댓글 · 대댓글 문구는 서버가 삭제 종류를 알려줄 때(backend#154)부터 쓰인다 — 지금은 게시글만 판단된다.
+ * 셀 탭에서 대상이 삭제된 것을 알면(서버 deletedStatus) 이동하지 않고 이 문구를 토스트로 띄운다(inbox-view).
  */
 export const POST_GONE_MESSAGE = "삭제된 게시글이에요";
 export const COMMENT_GONE_MESSAGE = "삭제된 댓글이에요";
