@@ -8,8 +8,8 @@ import type { Belt, BeltRank } from "@/features/community/domain/belt";
  */
 export type BeltAvatarSize = "card" | "feed" | "large";
 
-/** 띠 색(CSS 값). 띠를 고르는 칩의 색 점도 같은 값을 쓴다. */
-export const BELT_COLOR: Record<BeltRank, string> = {
+/** 띠 색(CSS 값). */
+const BELT_COLOR: Record<BeltRank, string> = {
   white: "var(--my-profile-header-bg-white)",
   blue: "var(--my-profile-header-bg-blue)",
   purple: "var(--my-profile-header-bg-purple)",
