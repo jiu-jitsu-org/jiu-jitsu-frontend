@@ -135,6 +135,8 @@ const THUMBNAIL_REMOVE_BG_CLASS = "bg-image-delete-button-bg";
 /** 카테고리 칩 테두리 색(chip/default/border · chip/selected/border). */
 const CHIP_BORDER_DEFAULT_CLASS = "border-chip-default-border";
 const CHIP_BORDER_SELECTED_CLASS = "border-chip-selected-border";
+/** 카테고리 미선택으로 등록이 막혔을 때 칩 테두리(border/error, #303). chip 전용 오류 토큰이 없어 semantic을 쓴다. */
+const CHIP_BORDER_ERROR_CLASS = "border-border-error";
 /** 제목·본문 입력칸 색(textfield_display/filled/text · default/placeholder-text · cursor · counter-text · counter-text-limit). */
 const TEXTFIELD_TEXT_CLASS = "text-textfield-display-filled-text";
 const TEXTFIELD_PLACEHOLDER_CLASS = "placeholder:text-textfield-display-default-placeholder-text";
@@ -157,7 +159,8 @@ const TAG_INPUT_TEXT_CLASS = "text-text-primary";
  * 스크롤된다(첨부 썸네일은 본문과 태그 사이). 사진·태그 툴바만 바닥(=키보드 위)에 고정.
  *
  * compose 패턴:
- * - 우측 체크는 필수 입력(카테고리·제목·본문)이 하나라도 비어 있으면 비활성, 한 글자라도 적히면 활성(정책).
+ * - 우측 체크는 필수 입력(카테고리·제목·본문)이 하나라도 비어 있으면 비활성처럼 보이고, 탭하면 빠진 항목을
+ *   토스트로 알린다(카테고리면 칩 테두리도 오류 색, #303). 한 글자라도 적히면 활성(정책).
  *   제목 최소 글자 수는 탭 시 검사해 토스트로 알리고, 제목 글자 수 카운터는 채워질 때까지 오류 색으로 둔다(#251).
  *   본문은 최소 글자 수가 없다(#246).
  *   첨부 업로드 중/실패·전송 중에도 잠근다(사진 정책).
@@ -198,6 +201,9 @@ export function PostWriteScreen({
   // 올리기를 눌렀는데 제목이 최소 글자 수 미달로 막혔는지(#251). 제목 카운터를 오류 색으로 바꿔 문제인 칸을
   // 보이게 한다 — 처음 쓰는 중에는 회색 그대로이고, 조건을 채우면 바로 풀린다. 본문은 최소 글자 수가 없다(#246).
   const [titleShort, setTitleShort] = useState(false);
+  // 올리기를 눌렀는데 카테고리가 비어 막혔는지(#303). 칩 테두리를 오류 색으로 바꿔 어디를 골라야 하는지
+  // 보이게 한다 — 들어왔을 때는 회색 그대로이고, 칩 하나를 고르면 바로 풀린다.
+  const [categoryMissing, setCategoryMissing] = useState(false);
   const { confirm, dialog } = useNativeDialog();
   // 카테고리: 작성은 미선택(null)으로 시작 → 사용자가 칩에서 고르기 전엔 등록 불가. 수정은 기존 값.
   const [categoryId, setCategoryId] = useState<number | null>(
@@ -294,8 +300,9 @@ export function PostWriteScreen({
       body.trim().length > 0 ||
       tags.length > 0 ||
       attachments.length > 0;
-  // 필수 입력(카테고리·제목·본문)이 하나라도 비어 있으면 등록/완료 비활성(정책). 한 글자라도 적히면 활성이고,
-  // 제목 최소 글자 수(2)는 비활성이 아니라 탭 시 토스트로 안내한다 — "비어 있음"과 "짧음"을 구분하는 이유.
+  // 필수 입력(카테고리·제목·본문)이 하나라도 비어 있으면 등록/완료가 비활성처럼 보인다(정책). 한 글자라도 적히면
+  // 활성이고, 제목 최소 글자 수(2)는 비활성이 아니다 — "비어 있음"과 "짧음"을 구분하는 이유.
+  // 비활성처럼 보여도 탭은 받아 빠진 항목을 토스트로 알린다(#303, findValidationError).
   const hasRequiredInput =
     categoryId !== null && title.trim().length > 0 && body.trim().length > 0;
   // 그 외 잠금: 첨부 업로드 중/실패가 남아 있을 때(사진 정책 — 재시도 또는 ✕ 삭제 후 풀림)와 전송 중.
@@ -687,14 +694,27 @@ export function PostWriteScreen({
   }
 
   /**
-   * 등록 탭 시 검사(정책): 카테고리 → 제목 순, 첫 번째 미충족 항목의 안내만 돌려준다.
-   * 카테고리·빈 입력은 버튼 비활성(hasRequiredInput)이 먼저 막으므로 실질적으로는 제목 최소 글자 수만 걸린다 —
-   * 카테고리 검사는 방어용으로 남긴다. 최대(45/800)는 maxLength가 입력 단계에서 막으므로 보지 않는다.
+   * 등록 탭 시 검사(정책): 화면 위에서부터 카테고리 → 제목 → 본문 → 제목 최소 글자 수 순으로, 첫 번째
+   * 미충족 항목의 안내와 그 칸(field)을 돌려준다(#303). 최대(45/800)는 maxLength가 입력 단계에서 막으므로 보지 않는다.
    */
-  function findValidationMessage(): string | null {
-    if (categoryId === null) return "카테고리를 선택해주세요";
+  function findValidationError(): {
+    field: "category" | "title" | "body";
+    message: string;
+  } | null {
+    if (categoryId === null) {
+      return { field: "category", message: "카테고리를 선택해주세요" };
+    }
+    if (title.trim().length === 0) {
+      return { field: "title", message: "제목을 입력해주세요" };
+    }
+    if (body.trim().length === 0) {
+      return { field: "body", message: "내용을 입력해주세요" };
+    }
     if (isTitleShort(title)) {
-      return `제목을 ${TITLE_MIN_LENGTH}자 이상 입력해주세요`;
+      return {
+        field: "title",
+        message: `제목을 ${TITLE_MIN_LENGTH}자 이상 입력해주세요`,
+      };
     }
     return null;
   }
@@ -717,15 +737,19 @@ export function PostWriteScreen({
   }
 
   async function submit() {
-    if (isSubmitLocked) return;
-    const validationMessage = findValidationMessage();
-    if (validationMessage !== null) {
+    if (submitting) return;
+    // 입력 검사는 잠금보다 먼저 — 필수 입력이 비어 잠긴 상태여도 무엇이 빠졌는지는 알려야 한다(#303).
+    const validationError = findValidationError();
+    if (validationError !== null) {
       // 토스트는 나중 것이 이전 것을 덮는다(ToastProvider.show) — 연타해도 마지막 안내만 보인다.
-      toast.show(validationMessage);
-      setTitleShort(isTitleShort(title));
+      toast.show(validationError.message);
+      // 오류 색은 토스트가 말하는 칸에만 — 카테고리 안내인데 제목 카운터까지 빨개지면 어디를 고칠지 흐려진다.
+      setCategoryMissing(validationError.field === "category");
+      setTitleShort(validationError.field === "title");
       return;
     }
-    if (categoryId === null) return;
+    // 입력은 다 됐지만 첨부 업로드 중/실패이거나 수정 내용이 없는 잠금은 지금처럼 조용히 무시한다.
+    if (isSubmitLocked || categoryId === null) return;
     setSubmitting(true);
     // 확정되지 않은 입력 중인 태그는 등록 시 자동 확정(정책). setTags는 비동기라 전송 목록은 확정 결과를 그대로 쓴다.
     const finalTags = tagInput ? addTags([tagInput]) : tags;
@@ -844,7 +868,9 @@ export function PostWriteScreen({
         <button
           type="button"
           onClick={() => void submit()}
-          disabled={isSubmitLocked}
+          // 네이티브 disabled는 onClick 자체가 안 불려 빠진 항목을 안내할 수 없으므로 aria-disabled로 상태만
+          // 전달한다(#303 — 수정 모드 사진 버튼 #154와 같은 방식). 중복 전송은 submit의 submitting 검사가 막는다.
+          aria-disabled={isSubmitLocked}
           aria-label={isEdit ? "완료" : "등록"}
           style={{
             width: APP_BAR_BUTTON_SIZE,
@@ -864,7 +890,7 @@ export function PostWriteScreen({
         </button>
       </AppBarShell>
 
-      {/* 카테고리 선택: 헤더 바로 아래 가로 스크롤 칩(필수값 — 미선택이면 등록 비활성). 목록은 서버(GET
+      {/* 카테고리 선택: 헤더 바로 아래 가로 스크롤 칩(필수값 — 미선택으로 등록을 누르면 테두리가 오류 색, #303). 목록은 서버(GET
           /board/category)에서 라우트가 읽어 넘긴다. 디자인(2026-09-16): 라벨 Button S · chip/default/text,
           비선택 = 투명 배경 + 1px #CECFD1, 선택 = chip/selected/bg(#EDEFF0) + 1px #292A2E, 텍스트는 둘 다
           chip/default/text. 좌우 16(px-4)·좌우 패딩 12(px-3)·칩 간격 8(gap-2), 넘치면 가로 스크롤(스크롤바
@@ -876,7 +902,10 @@ export function PostWriteScreen({
             <button
               key={category.id}
               type="button"
-              onClick={() => setCategoryId(category.id)}
+              onClick={() => {
+                setCategoryId(category.id);
+                setCategoryMissing(false);
+              }}
               aria-pressed={selected}
               className={cn(
                 "inline-flex h-8 shrink-0 items-center rounded-full border px-3 text-button-s text-tag-chip-default-text transition-colors",
@@ -884,7 +913,10 @@ export function PostWriteScreen({
                   ? cn("bg-tag-chip-selected-bg", CHIP_BORDER_SELECTED_CLASS)
                   : cn(
                       "bg-tag-chip-default-bg",
-                      CHIP_BORDER_DEFAULT_CLASS,
+                      // 미선택으로 등록이 막혔으면(#303) 모든 칩 테두리를 오류 색으로 — 고르는 순간 풀린다.
+                      categoryMissing
+                        ? CHIP_BORDER_ERROR_CLASS
+                        : CHIP_BORDER_DEFAULT_CLASS,
                       // 눌림 면은 비선택 칩에만 — 선택 칩은 제 바탕(chip/selected)을 그대로 지킨다.
                       "active:bg-surface-container-pressed",
                     ),
@@ -1278,7 +1310,7 @@ export function PostWriteScreen({
   );
 }
 
-/** 제목 최소 글자 수 미달 — 등록 검사(findValidationMessage)와 카운터 오류 색(#251)이 같은 기준을 쓴다. */
+/** 제목 최소 글자 수 미달 — 등록 검사(findValidationError)와 카운터 오류 색(#251)이 같은 기준을 쓴다. */
 function isTitleShort(title: string): boolean {
   return title.trim().length < TITLE_MIN_LENGTH;
 }
