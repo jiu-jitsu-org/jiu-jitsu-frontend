@@ -1,6 +1,7 @@
 "use client";
 
 import { BalanceSheetHandle } from "@/features/community/presentation/balance/balance-feed-frame";
+import { BalanceClock } from "@/features/community/presentation/balance/balance-hero-parts";
 import { BalanceHeroWash } from "@/features/community/presentation/balance/balance-hero-wash";
 import { BalanceRemaining } from "@/features/community/presentation/balance/balance-remaining";
 import { balanceTitleFont } from "@/features/community/presentation/balance/balance-title-font";
@@ -22,6 +23,8 @@ const TITLE = "오늘의 밸런스 게임";
  * - bar (2-B): 히어로를 얇게 썰어 남긴 바. 히어로와 같은 물들임(대결 중이면 두 색이 오가고, 고르면
  *   고른 색)을 깔아 같은 것이 접혔다는 것을 색으로 잇는다. 위에서 곧게 미끄러져 내려온다.
  *
+ * - board (스코어보드 시안): 전광판을 얇게 썬 남색 바. 제목 옆에 경기 시계가 그대로 남는다.
+ *
  * 어느 쪽이든 바 전체가 버튼 하나다 — 누르면 맨 위로 올라가 게임을 다시 펼친다. 오른쪽 ⌄는
  * "아래로 펼쳐진다"는 단서다. 상세로 바로 가는 길은 펼친 게임(카드·댓글 링크)에 이미 있어서
  * 바에 두 번째 동작을 겹치지 않는다 — 한 줄짜리 바에 누를 곳이 둘이면 손가락이 갈 곳을 고민한다.
@@ -35,7 +38,7 @@ export function BalanceCollapsedBar({
   leaving,
   onPress,
 }: {
-  kind: "sheet" | "bar";
+  kind: "sheet" | "bar" | "board";
   game: BalanceGame;
   /** 사라지는 중 — 상위가 COLLAPSED_BAR_OUT_MS 뒤에 뺀다. 이 동안은 누를 수 없다. */
   leaving: boolean;
@@ -54,7 +57,8 @@ export function BalanceCollapsedBar({
     // 웹 단독으로 열렸을 때만 상태바 인셋이 잡힌다(네이티브에선 0) — sticky 바와 같다.
     <div
       className={cn(
-        "fixed inset-x-0 top-0 z-20 bg-[var(--bw-white)] pt-[env(safe-area-inset-top)]",
+        "fixed inset-x-0 top-0 z-20 pt-[env(safe-area-inset-top)]",
+        kind === "board" ? "bg-[var(--blue-1000)]" : "bg-[var(--bw-white)]",
         leaving && "pointer-events-none",
         kind === "sheet"
           ? leaving
@@ -69,15 +73,36 @@ export function BalanceCollapsedBar({
         type="button"
         onClick={onPress}
         className={cn(
-          "relative isolate flex w-full cursor-pointer overflow-hidden border-b border-border-subtle px-4 text-left",
+          "relative isolate flex w-full cursor-pointer overflow-hidden px-4 text-left",
+          kind === "board" ? "text-text-on-dark" : "border-b border-border-subtle",
           // 눌림은 바 전체가 살짝 옅어진다 — 물들임이 바탕을 덮어 바탕색으로는 눌림이 안 보인다.
           "motion-safe:transition-opacity motion-safe:duration-120 active:opacity-70",
           kind === "sheet"
             ? "flex-col pt-2 pb-3 shadow-[0_8px_16px_-14px_rgba(15,23,42,0.3)]"
-            : "h-12 items-center gap-2",
+            : "h-12 items-center gap-2.5",
         )}
       >
-        {kind === "sheet" ? (
+        {kind === "board" ? (
+          <>
+            <span
+              className={cn(
+                balanceTitleFont.className,
+                "shrink-0 text-[18px] leading-[22px]",
+              )}
+            >
+              {TITLE}
+            </span>
+            <BalanceClock
+              endAt={game.endAt}
+              serverTime={game.serverTime}
+              className="text-body-m font-bold"
+            />
+            <ChevronDownIcon
+              size={20}
+              className="ml-auto shrink-0 text-[var(--opacity-white-60)]"
+            />
+          </>
+        ) : kind === "sheet" ? (
           <>
             <BalanceSheetHandle />
             {/* 제목·남은 시간을 위아래로 묶어 왼쪽에, ⌄는 오른쪽 끝 가운데에. */}

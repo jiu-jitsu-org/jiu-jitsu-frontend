@@ -9,10 +9,22 @@ import { isDevelopmentRuntime } from "@/config/env";
  *   시트가 맨 위에 닿으면 시트 머리에 게임 요약이 남는다
  * - hero-bar (2-B): 게임이 히어로 배경, 지나가면 얇은 고정 바로 접힌다
  *
+ * 히어로 자체의 생김새 시안(모두 2-B처럼 지나가면 얇은 바로 접힌다):
+ * - vs: 대각 맞대결 — 한 판을 대각선으로 갈라 두 진영, 가운데 VS, 고르면 줄다리기
+ * - poster: 질문 포스터 — 두 선택지 문구가 굵은 헤드라인, 고르면 형광펜
+ * - board: 매트 스코어보드 — 남색 전광판, 큰 경기 시계, 홍·청 선수 줄
+ *
  * 2-A·2-B의 접힌 머리는 투표 여부와 상관없이 늘 보인다 — 화면 구조의 일부라서다.
  * 1-A·before의 sticky 바는 "아직 안 한 게임으로 부르는" 장치라 미투표일 때만 뜬다.
  */
-export type BalanceLayout = "before" | "hero-card" | "hero-sheet" | "hero-bar";
+export type BalanceLayout =
+  | "before"
+  | "hero-card"
+  | "hero-sheet"
+  | "hero-bar"
+  | "vs"
+  | "poster"
+  | "board";
 
 /**
  * 기본 배치 — 2-B.
@@ -27,10 +39,13 @@ const LAYOUT_BY_PARAM: Record<string, BalanceLayout> = {
   "1a": "hero-card",
   "2a": "hero-sheet",
   "2b": "hero-bar",
+  vs: "vs",
+  poster: "poster",
+  board: "board",
 };
 
 /**
- * (dev 전용) `/?balance=before|1a|2a|2b`로 배치를 바꿔 본다. production에선 늘 기본 배치다.
+ * (dev 전용) `/?balance=before|1a|2a|2b|vs|poster|board`로 배치를 바꿔 본다. production에선 늘 기본 배치다.
  * 하나로 정해지면 이 스위치와 쓰지 않는 배치를 지운다.
  */
 export function readBalanceLayout(

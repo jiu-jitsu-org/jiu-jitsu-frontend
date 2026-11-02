@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { useOnLogin } from "@/features/auth/presentation/auth-provider";
 import {
@@ -8,6 +14,10 @@ import {
   COLLAPSED_BAR_OUT_MS,
 } from "@/features/community/presentation/balance/balance-collapsed-bar";
 import { BalanceGameCard } from "@/features/community/presentation/balance/balance-game-card";
+import { BalanceHeroBoard } from "@/features/community/presentation/balance/balance-hero-board";
+import type { BalanceHeroProps } from "@/features/community/presentation/balance/balance-hero-parts";
+import { BalanceHeroPoster } from "@/features/community/presentation/balance/balance-hero-poster";
+import { BalanceHeroVersus } from "@/features/community/presentation/balance/balance-hero-versus";
 import { BalanceHeroWash } from "@/features/community/presentation/balance/balance-hero-wash";
 import type { BalanceLayout } from "@/features/community/presentation/balance/balance-layout";
 import {
@@ -104,11 +114,26 @@ export function BalanceGameSection({
 }
 
 /** 배치마다 히어로가 지나간 뒤 남는 접힌 머리 — 없으면(null) 미투표일 때만 sticky 바가 뜬다. */
-const COLLAPSED_KIND: Record<BalanceLayout, "sheet" | "bar" | null> = {
+const COLLAPSED_KIND: Record<
+  BalanceLayout,
+  "sheet" | "bar" | "board" | null
+> = {
   before: null,
   "hero-card": null,
   "hero-sheet": "sheet",
   "hero-bar": "bar",
+  vs: "bar",
+  poster: "bar",
+  board: "board",
+};
+
+/** 히어로 생김새 시안(#305) — 카드 대신 이 히어로를 통째로 그린다. */
+const HERO_VIEW: Partial<
+  Record<BalanceLayout, (props: BalanceHeroProps) => ReactNode>
+> = {
+  vs: BalanceHeroVersus,
+  poster: BalanceHeroPoster,
+  board: BalanceHeroBoard,
 };
 
 /**
@@ -187,6 +212,31 @@ function BalanceGameBody({
       className="inset-y-0"
     />
   );
+
+  const HeroView = HERO_VIEW[layout];
+  if (HeroView && collapsedKind) {
+    return (
+      <>
+        {/* 시안 히어로 — 피드와의 사이는 히어로가 스스로 끝맺는다. 지나가면 얇은 바로 접힌다. */}
+        <div ref={targetRef}>
+          <HeroView
+            game={game}
+            onVote={vote}
+            onPressDetail={() => openDetail(game.contentId)}
+            onExpired={onExpired}
+          />
+        </div>
+        {stickyMounted ? (
+          <BalanceCollapsedBar
+            kind={collapsedKind}
+            game={game}
+            leaving={stickyLeaving}
+            onPress={scrollToTop}
+          />
+        ) : null}
+      </>
+    );
+  }
 
   if (layout === "hero-card") {
     return (
