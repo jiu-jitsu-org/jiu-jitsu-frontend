@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, type KeyboardEvent } from "react";
+import { useId, useLayoutEffect, useRef, type KeyboardEvent } from "react";
 
 import { cn } from "@/shared/lib/cn";
 
@@ -38,6 +38,7 @@ export function WheelPicker<T extends string | number>({
   className?: string;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const idPrefix = useId();
   const selectedIndex = Math.max(0, items.indexOf(value));
 
   // 처음 뜰 때만 value 칸을 가운데로(애니메이션 없이). 이후엔 굴린 위치가 곧 값이라 되감지 않는다.
@@ -55,7 +56,9 @@ export function WheelPicker<T extends string | number>({
   }
 
   function scrollToIndex(index: number) {
-    scrollRef.current?.scrollTo({ top: index * PITCH, behavior: "smooth" });
+    // '동작 줄이기'면 굴러가지 않고 바로 그 칸으로.
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    scrollRef.current?.scrollTo({ top: index * PITCH, behavior: reduce ? "auto" : "smooth" });
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
@@ -70,7 +73,7 @@ export function WheelPicker<T extends string | number>({
       ref={scrollRef}
       role="listbox"
       aria-label={label}
-      aria-activedescendant={`${label}-${String(value)}`}
+      aria-activedescendant={`${idPrefix}-${String(value)}`}
       tabIndex={0}
       onScroll={handleScroll}
       onKeyDown={handleKeyDown}
@@ -90,7 +93,7 @@ export function WheelPicker<T extends string | number>({
           return (
             <div
               key={String(item)}
-              id={`${label}-${String(item)}`}
+              id={`${idPrefix}-${String(item)}`}
               role="option"
               aria-selected={selected}
               onClick={() => scrollToIndex(index)}
