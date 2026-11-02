@@ -45,7 +45,8 @@ const GRAUS_TOP_DOWN = [...BELT_GRAUS].reverse();
  * 띠·그랄은 좌우 휠 두 개로 고른다(#300) — 앱의 같은 시트(벨트 묻기)·MY 벨트 시트와 같은 휠·같은 순서
  * (위가 높은 띠·많은 그랄). 휠은 늘 한 칸을 가리키므로 화이트·무그랄에서 시작하고, 바로 저장할 수 있다(앱과 같다).
  *
- * 여는 상태·저장은 호출부(BeltPromptProvider)가 소유한다.
+ * 여는 상태·저장은 호출부(BeltPromptProvider)가 소유한다. 고른 값은 시트 속(BeltPromptBody)이 갖는다 —
+ * 시트가 닫히면 속이 언마운트되므로, 다시 열 때마다 화이트·무그랄에서 새로 시작한다.
  */
 export function BeltPromptSheet({
   open,
@@ -59,11 +60,6 @@ export function BeltPromptSheet({
   /** '나중에' 버튼과 바깥 탭 모두 여기로 온다. */
   onLater: () => void;
 }) {
-  const [rank, setRank] = useState<BeltRank>("white");
-  const [grau, setGrau] = useState<BeltGrau>(0);
-
-  const photo = <Avatar className="size-full" iconSize={32} />;
-
   return (
     <BottomSheetFrame
       open={open}
@@ -71,6 +67,27 @@ export function BeltPromptSheet({
       message="띠가 보이면 답하는 사람이 내 수준에 맞춰 답해 줘요"
       onDismiss={onLater}
     >
+      <BeltPromptBody saving={saving} onSave={onSave} onLater={onLater} />
+    </BottomSheetFrame>
+  );
+}
+
+function BeltPromptBody({
+  saving,
+  onSave,
+  onLater,
+}: {
+  saving: boolean;
+  onSave: (belt: Belt) => void;
+  onLater: () => void;
+}) {
+  const [rank, setRank] = useState<BeltRank>("white");
+  const [grau, setGrau] = useState<BeltGrau>(0);
+
+  const photo = <Avatar className="size-full" iconSize={32} />;
+
+  return (
+    <>
       {/* 미리보기: 휠이 가리키는 띠·그랄을 굴리는 대로 바로 그린다. */}
       <div className="mt-5 flex justify-center">
         <BeltAvatar belt={{ rank, grau }} size="large">
@@ -121,6 +138,6 @@ export function BeltPromptSheet({
       >
         나중에
       </button>
-    </BottomSheetFrame>
+    </>
   );
 }
