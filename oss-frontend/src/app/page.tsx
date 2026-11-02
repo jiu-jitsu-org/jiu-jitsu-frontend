@@ -7,7 +7,12 @@ import { SessionExpiredRecovery } from "@/features/auth/presentation/session-exp
 import { SessionHintProvider } from "@/features/auth/presentation/session-hint";
 import type { BalanceGame } from "@/features/community/domain/balance-game";
 import { DEFAULT_BOARD_LIST_QUERY } from "@/features/community/domain/post-summary";
+import { BalanceFeedFrame } from "@/features/community/presentation/balance/balance-feed-frame";
 import { BalanceGameSection } from "@/features/community/presentation/balance/balance-game-section";
+import {
+  type BalanceLayout,
+  readBalanceLayout,
+} from "@/features/community/presentation/balance/balance-layout";
 import { CommunityFeedList } from "@/features/community/presentation/community-feed-list";
 import { FeedEmptyState } from "@/features/community/presentation/feed-empty-state";
 import { FeedErrorState } from "@/features/community/presentation/feed-error-state";
@@ -30,13 +35,19 @@ import { Spinner } from "@/shared/ui/spinner";
  * 개발용 진입 허브/playground는 `src/app/_backup/`에 보관돼 있다.
  *
  * `?belt=sample`은 `next dev` 전용 띠 아바타 예시다(production에선 무시 — belt-avatar-sample).
+ * `?balance=before|1a|2a|2b`는 `next dev` 전용 밸런스 게임 영역 배치 비교다(#305 — balance-layout).
  */
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ belt?: string | string[] }>;
+  searchParams: Promise<{
+    belt?: string | string[];
+    balance?: string | string[];
+  }>;
 }) {
-  const beltSample = readBeltAvatarSample((await searchParams).belt);
+  const params = await searchParams;
+  const beltSample = readBeltAvatarSample(params.belt);
+  const balanceLayout = readBalanceLayout(params.balance);
   const [result, balanceGame, sessionToken] = await Promise.all([
     getBoardListPageData(DEFAULT_BOARD_LIST_QUERY, beltSample),
     getBalanceGamePageData(),
@@ -51,7 +62,7 @@ export default async function Home({
         <main className="feed-bounce-scroll min-h-screen bg-[var(--bw-white)]">
           {/* 새로고침이면 이전 위치 대신 맨 위에서 시작한다(#260). */}
           <FeedScrollTopOnReload />
-          {renderFeed(result, balanceGame)}
+          {renderFeed(result, balanceGame, balanceLayout)}
 
           {/* 게시글 작성 진입 FAB — 네이티브면 OPEN_SUBVIEW로 풀스크린 서브뷰, 웹 단독이면 라우터 이동. */}
           <PostWriteFab />
@@ -70,6 +81,7 @@ export default async function Home({
 function renderFeed(
   result: Awaited<ReturnType<typeof getBoardListPageData>>,
   balanceGame: BalanceGame | null,
+  balanceLayout: BalanceLayout,
 ): ReactNode {
   if (!result.ok) {
     if (result.reason === "session-expired") {
@@ -83,27 +95,21 @@ function renderFeed(
   // 밸런스 카드는 피드가 정상일 때만 얹는다 — 에러·복구 화면 위에 얹으면 "무엇이 실패했는지"가
   // 흐려진다. 진행 중인 판이 없거나 조회에 실패했으면(null) 아무것도 그리지 않는다.
   const balance = balanceGame ? (
-    <BalanceGameSection initialGame={balanceGame} />
+    <BalanceGameSection initialGame={balanceGame} layout={balanceLayout} />
   ) : null;
 
-  if (result.data.list.items.length === 0) {
-    return (
-      <>
-        {balance}
-        <FeedEmptyState />
-      </>
-    );
-  }
-
   return (
-    <>
-      {balance}
-      <CommunityFeedList
-        posts={result.data.list.items}
-        page={result.data.list.page}
-        isLast={result.data.list.isLast}
-      />
-    </>
+    <BalanceFeedFrame layout={balanceLayout} balance={balance}>
+      {result.data.list.items.length === 0 ? (
+        <FeedEmptyState />
+      ) : (
+        <CommunityFeedList
+          posts={result.data.list.items}
+          page={result.data.list.page}
+          isLast={result.data.list.isLast}
+        />
+      )}
+    </BalanceFeedFrame>
   );
 }
 

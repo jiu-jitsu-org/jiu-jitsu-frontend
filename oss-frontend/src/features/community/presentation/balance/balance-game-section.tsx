@@ -3,7 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useOnLogin } from "@/features/auth/presentation/auth-provider";
+import {
+  BalanceCollapsedBar,
+  COLLAPSED_BAR_OUT_MS,
+} from "@/features/community/presentation/balance/balance-collapsed-bar";
 import { BalanceGameCard } from "@/features/community/presentation/balance/balance-game-card";
+import { BalanceHeroWash } from "@/features/community/presentation/balance/balance-hero-wash";
+import type { BalanceLayout } from "@/features/community/presentation/balance/balance-layout";
 import {
   BalanceStickyBar,
   STICKY_LIFT_OUT_MS,
@@ -13,6 +19,7 @@ import { useOpenBalanceDetail } from "@/features/community/presentation/balance/
 import { useStickyReveal } from "@/features/community/presentation/balance/use-sticky-reveal";
 import { prefersReducedMotion } from "@/features/community/presentation/use-presence-motion";
 import type { BalanceGame } from "@/features/community/domain/balance-game";
+import { cn } from "@/shared/lib/cn";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 
 /**
@@ -32,8 +39,11 @@ import { bffFetch } from "@/shared/lib/http/bff-fetch";
  */
 export function BalanceGameSection({
   initialGame,
+  layout = "before",
 }: {
   initialGame: BalanceGame;
+  /** 영역 배치(#305) — balance-layout 참조. */
+  layout?: BalanceLayout;
 }) {
   const [game, setGame] = useState<BalanceGame | null>(initialGame);
 
@@ -83,7 +93,33 @@ export function BalanceGameSection({
 
   if (!game) return null;
 
-  return <BalanceGameBody game={game} onChange={setGame} onExpired={reload} />;
+  return (
+    <BalanceGameBody
+      game={game}
+      layout={layout}
+      onChange={setGame}
+      onExpired={reload}
+    />
+  );
+}
+
+/** 배치마다 히어로가 지나간 뒤 남는 접힌 머리 — 없으면(null) 미투표일 때만 sticky 바가 뜬다. */
+const COLLAPSED_KIND: Record<BalanceLayout, "sheet" | "bar" | null> = {
+  before: null,
+  "hero-card": null,
+  "hero-sheet": "sheet",
+  "hero-bar": "bar",
+};
+
+/**
+ * 접힌 머리를 누르면 맨 위로 올라가 게임을 다시 펼친다. 메인 피드는 문서가 스크롤된다.
+ * 움직임 줄이기 설정이면 미끄러지지 않고 바로 옮긴다.
+ */
+function scrollToTop() {
+  window.scrollTo({
+    top: 0,
+    behavior: prefersReducedMotion() ? "auto" : "smooth",
+  });
 }
 
 /**
@@ -94,39 +130,121 @@ export function BalanceGameSection({
  */
 function BalanceGameBody({
   game,
+  layout,
   onChange,
   onExpired,
 }: {
   game: BalanceGame;
+  layout: BalanceLayout;
   onChange: (next: BalanceGame) => void;
   onExpired: () => void;
 }) {
   const vote = useBalanceVote({ game, onVoted: onChange });
   const openDetail = useOpenBalanceDetail();
 
-  // sticky 바는 아직 투표하지 않은 사용자에게만 보인다(비로그인 포함 — 그쪽은 계속 미투표다).
-  // 투표를 마치면 다시 부를 이유가 없으므로 관찰 자체를 끈다. 취소로 미참여에 돌아오면
+  // 2-A·2-B는 히어로가 지나가면 접힌 머리가 늘 남는다(화면 구조의 일부 — balance-layout 참조).
+  // 그 밖의 배치에서 sticky 바는 아직 투표하지 않은 사용자에게만 보인다(비로그인 포함 — 그쪽은 계속
+  // 미투표다). 투표를 마치면 다시 부를 이유가 없으므로 관찰 자체를 끈다. 취소로 미참여에 돌아오면
   // 관찰이 다시 걸려 카드를 지나칠 때 sticky가 또 뜬다.
-  const canReveal = game.myVote === null;
+  const collapsedKind = COLLAPSED_KIND[layout];
+  const canReveal = collapsedKind !== null || game.myVote === null;
   const { targetRef, passed } = useStickyReveal<HTMLDivElement>({
     enabled: canReveal,
   });
 
-  // 바는 보일 조건이 꺼져도 바로 빼지 않고 위로 걷히는 동안(STICKY_LIFT_OUT_MS) 남겨 둔다.
+  // 바는 보일 조건이 꺼져도 바로 빼지 않고 걷히는 동안 남겨 둔다.
   // animationend 대신 타이머인 이유는 useLeavingKeys와 같다 — 끝 이벤트를 못 받으면 영영 남는다.
   // 걷히는 도중 다시 보일 조건이 되면 타이머가 취소되고 바는 그대로 다시 내려온다.
   const showSticky = canReveal && passed;
   const [stickyMounted, setStickyMounted] = useState(showSticky);
   if (showSticky && !stickyMounted) setStickyMounted(true);
   const stickyLeaving = stickyMounted && !showSticky;
+  const leaveMs = collapsedKind ? COLLAPSED_BAR_OUT_MS : STICKY_LIFT_OUT_MS;
 
   useEffect(() => {
     if (!stickyLeaving) return;
     // 움직임 줄이기 설정이면 기다리지 않는다(다음 틱에 바로 뺀다).
-    const delay = prefersReducedMotion() ? 0 : STICKY_LIFT_OUT_MS;
+    const delay = prefersReducedMotion() ? 0 : leaveMs;
     const timer = window.setTimeout(() => setStickyMounted(false), delay);
     return () => window.clearTimeout(timer);
-  }, [stickyLeaving]);
+  }, [stickyLeaving, leaveMs]);
+
+  const card = (surface: "on-hero" | "raised") => (
+    <BalanceGameCard
+      game={game}
+      surface={surface}
+      onVote={vote}
+      onPressDetail={() => openDetail(game.contentId)}
+      onExpired={onExpired}
+    />
+  );
+  const wash = (fade: "end" | "none") => (
+    <BalanceHeroWash
+      myVote={game.myVote}
+      idle={game.myVote === null && !game.closed}
+      fade={fade}
+      base
+      className="inset-y-0"
+    />
+  );
+
+  if (layout === "hero-card") {
+    return (
+      <>
+        {/* 1-A: 물든 배경이 카드 둘레(위 16 · 좌우 12)로 비치다가 카드 아래에서 피드로 녹아든다. */}
+        <div ref={targetRef} className="relative isolate pt-4 pb-6">
+          {wash("end")}
+          {card("raised")}
+        </div>
+        {stickyMounted ? (
+          <BalanceStickyBar
+            endAt={game.endAt}
+            serverTime={game.serverTime}
+            onPress={() => openDetail(game.contentId)}
+            leaving={stickyLeaving}
+          />
+        ) : null}
+      </>
+    );
+  }
+
+  if (collapsedKind) {
+    return (
+      <>
+        {/*
+          2-A: 아래 20은 피드 시트가 덮는다(BalanceFeedFrame -mt-5) — 그만큼 더 비워 두고, 물들임도
+          녹이지 않는다(시트가 경계를 만든다). 관찰은 히어로 끝이 아니라 시트 윗변에 건다 — 시트가
+          화면 맨 위에 닿는 바로 그 순간 머리가 생겨야 시트가 머리를 얻은 것처럼 읽힌다.
+          2-B: 물들임이 끝에서 피드로 녹는다. 히어로가 완전히 지나가면 접힌다.
+        */}
+        <div
+          ref={collapsedKind === "sheet" ? undefined : targetRef}
+          className={cn(
+            "relative isolate pt-5",
+            collapsedKind === "sheet" ? "pb-8" : "pb-5",
+          )}
+        >
+          {wash(collapsedKind === "sheet" ? "none" : "end")}
+          {card("on-hero")}
+          {collapsedKind === "sheet" ? (
+            <div
+              ref={targetRef}
+              aria-hidden
+              className="absolute inset-x-0 bottom-5 h-px"
+            />
+          ) : null}
+        </div>
+        {stickyMounted ? (
+          <BalanceCollapsedBar
+            kind={collapsedKind}
+            game={game}
+            leaving={stickyLeaving}
+            onPress={scrollToTop}
+          />
+        ) : null}
+      </>
+    );
+  }
 
   return (
     <>

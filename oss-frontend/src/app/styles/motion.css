@@ -198,6 +198,12 @@
   --animate-sticky-drop-in: sticky-drop-in 600ms var(--ease-spring-bouncy) both;
   /* 밸런스 게임 고정 바 숨김 — 출렁임 없이 위로 걷히며 사라진다. */
   --animate-sticky-lift-out: sticky-lift-out 260ms ease-in both;
+  /* 밸런스 게임 접힌 바(#305) — 화면 구조의 일부라 출렁이지 않고 위에서 곧게 미끄러져 내려온다. */
+  --animate-bar-slide-in: bar-slide-in 240ms var(--ease-smooth-out) both;
+  /* 접힌 바 숨김 — 위로 곧게 걷힌다. */
+  --animate-bar-slide-out: bar-slide-out 180ms ease-in both;
+  /* 제자리에서 옅게 사라진다(접힌 시트 머리가 다시 시트로 녹아들 때). */
+  --animate-fade-out: fade-out 180ms ease-in both;
 
   /* 추가되는 작은 조각(사진 썸네일·태그 칩) — 작게 시작해 톡 부풀며 자리 잡는다. */
   --animate-pop-in: pop-in 400ms var(--ease-spring-bouncy) both;
@@ -424,6 +430,24 @@
     to {
       opacity: 0;
       transform: translateY(-120%);
+    }
+  }
+
+  @keyframes bar-slide-in {
+    from {
+      transform: translateY(-100%);
+    }
+  }
+
+  @keyframes bar-slide-out {
+    to {
+      transform: translateY(-100%);
+    }
+  }
+
+  @keyframes fade-out {
+    to {
+      opacity: 0;
     }
   }
 

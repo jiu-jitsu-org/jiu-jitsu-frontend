@@ -36,11 +36,19 @@ import { CommentIcon } from "@/shared/ui/icons";
  */
 export function BalanceGameCard({
   game,
+  surface = "inline",
   onVote,
   onPressDetail,
   onExpired,
 }: {
   game: BalanceGame;
+  /**
+   * 카드가 놓이는 바탕(#305).
+   * - inline: 피드 배경 위에 그대로 놓이고 머리 물들임을 스스로 그린다
+   * - on-hero: 이미 물든 히어로 위에 놓인다 — 물들임은 감싸는 쪽이 그린다
+   * - raised: 물든 배경 위에 뜬 흰 카드(1-A) — 물들임은 감싸는 쪽이 그린다
+   */
+  surface?: "inline" | "on-hero" | "raised";
   onVote: (option: BalanceOptionKey) => void;
   onPressDetail: () => void;
   /** 잔여 시간이 0에 닿았을 때(다음 판 재조회 트리거). 카드만 넘긴다 — BalanceRemaining 주석 참조. */
@@ -80,8 +88,13 @@ export function BalanceGameCard({
       // 눌림은 피드 카드(FeedCard)와 같다 — 바탕이 옅게 깔리며 98%로 눌렸다가 놓으면 스프링으로 돌아온다.
       // 눌림 면도 같다 — 글 바깥 위아래 12·좌우 8, 화면 끝에서 8, 모서리 20(mx-2 + px-2 + py-3).
       // 안쪽 버튼(선택지·댓글 링크)을 누를 때는 카드가 반응하지 않게 not-has로 뺀다.
+      // raised(1-A)는 좌우 12 들어온 흰 판 — 물든 배경과 갈리도록 파란 기운의 넓고 옅은 그림자 한 겹과
+      // 바로 밑 얇은 접지 한 겹을 둔다(sticky 바와 같은 짝). 판이 있으니 글 좌우 여백은 판 안에서 12.
       className={cn(
-        "relative isolate mx-2 flex cursor-pointer flex-col rounded-[20px] px-2 py-3",
+        "relative isolate flex cursor-pointer flex-col",
+        surface === "raised"
+          ? "mx-3 rounded-3xl bg-[var(--bw-true-white)] px-3 pt-6 pb-2 shadow-[0_12px_28px_-12px_rgba(37,99,235,0.22),0_1px_3px_rgba(15,23,42,0.06)]"
+          : "mx-2 rounded-[20px] px-2 py-3",
         "active:not-has-[:is(button,a):active]:bg-surface-container-pressed",
         "motion-safe:[transition:scale_500ms_var(--ease-spring-wobbly),background-color_120ms_ease-out]",
         "motion-safe:active:[transition:scale_100ms_ease-out,background-color_120ms_ease-out]",
@@ -93,11 +106,13 @@ export function BalanceGameCard({
         맨 위 바탕 — 투표 전에는 대결에서 기세를 잡은 쪽 색, 고르면 고른 색. 카드 위 여백(감싸는 칸의
         pt-6.5)까지 덮어야 화면 맨 위부터 물든다. 카드가 좌우로 8 들어와 있어 -inset-x-2로 화면 끝까지 편다.
       */}
-      <BalanceHeroWash
-        myVote={game.myVote}
-        idle={game.myVote === null && interactive}
-        className="-inset-x-2 -top-6.5 h-44"
-      />
+      {surface === "inline" ? (
+        <BalanceHeroWash
+          myVote={game.myVote}
+          idle={game.myVote === null && interactive}
+          className="-inset-x-2 -top-6.5 h-44"
+        />
+      ) : null}
 
       {/*
         제목·타이머는 가운데 정렬 — 카드 안에서 선택지 묶음보다 상위 정보라는 것을 위계로 드러낸다.
