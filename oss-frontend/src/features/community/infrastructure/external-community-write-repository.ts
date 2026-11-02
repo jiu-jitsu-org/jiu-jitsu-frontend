@@ -233,9 +233,15 @@ export class ExternalCommunityWriteRepository implements CommunityWriteRepositor
     return typeof response === "boolean" ? response : response.data;
   }
 
+  async unblock(userId: number): Promise<void> {
+    // DELETE /user/block/{id} — 해제 전용. 응답 data는 null이라 쓰지 않는다(성공 여부 = HTTP 상태).
+    await this.httpClient.delete<Envelope<null>>({
+      path: `${USER_ENDPOINT_PATH}/block/${userId}`,
+    });
+  }
+
   async getBlockedMembers(): Promise<BlockedMember[]> {
-    // GET /user/block — 내가 차단한 회원 목록(최신순). 백엔드 요청 중인 제안 계약이다
-    // (docs/blocked-members-plan.md). 토글과 같은 컨트롤러라 봉투 밖 raw 배열도 함께 허용한다.
+    // GET /user/block — 내가 차단한 회원 목록(최신순). 토글과 같은 컨트롤러라 봉투 밖 raw 배열도 함께 허용한다.
     const response = await this.httpClient.get<
       Envelope<BlockedMember[]> | BlockedMember[]
     >({

@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 
 import { RefreshOnLogin } from "@/features/auth/presentation/refresh-on-login";
 import { SessionExpiredRecovery } from "@/features/auth/presentation/session-expired-recovery";
-import type { BlockedMembersSampleMode } from "@/features/community/application/blocked-members-sample";
 import {
   getBlockedMembersPageData,
   type BlockedMembersPageDataResult,
@@ -23,17 +22,13 @@ import { Spinner } from "@/shared/ui";
  * 분기 (알림함과 같은 방식):
  * - guest: 로그인 전용 API를 부르지 않고 안내만. 로그인하면 SSR을 다시 돌린다(RefreshOnLogin).
  * - session-expired: 네이티브 갱신 후 SSR 재실행(SessionExpiredRecovery).
- * - error: 메인 피드 에러 화면(재시도 = router.refresh). 목록 API가 아직 없어 404도 여기로 온다.
+ * - error: 메인 피드 에러 화면(재시도 = router.refresh).
  * 목록이 없는 분기도 앱바는 그린다(뒤로가기가 있어야 빠져나갈 수 있다).
  *
  * 앱에서 서브뷰로 열려 문서 스크롤이 막히므로 SubviewScrollShell이 스크롤한다(#200).
  */
-export async function BlockedMembersScreen({
-  sampleMode,
-}: {
-  sampleMode: BlockedMembersSampleMode | null;
-}) {
-  const result = await getBlockedMembersPageData(sampleMode);
+export async function BlockedMembersScreen() {
+  const result = await getBlockedMembersPageData();
 
   return (
     <SubviewScrollShell className="bg-[var(--bw-white)]">
@@ -44,12 +39,7 @@ export async function BlockedMembersScreen({
 
 function renderContent(result: BlockedMembersPageDataResult): ReactNode {
   if (result.ok) {
-    return (
-      <BlockedMembersView
-        initialMembers={result.members}
-        sample={result.sample}
-      />
-    );
+    return <BlockedMembersView initialMembers={result.members} />;
   }
 
   if (result.reason === "guest") {

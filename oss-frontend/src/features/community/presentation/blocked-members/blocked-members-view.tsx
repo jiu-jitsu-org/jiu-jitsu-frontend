@@ -14,19 +14,16 @@ import { useToast } from "@/shared/ui";
 /**
  * 차단한 회원 화면 본체 (클라이언트) — 목록 · 차단 해제.
  *
- * 해제: 확인 알럿 → 줄을 먼저 지우고(낙관적) POST /api/community/users/{id}/block(차단과 같은 토글).
- *   실패하거나 응답이 blocked:true(토글이 오히려 다시 차단함)면 줄을 원래 자리로 되돌리고 토스트로 알린다.
+ * 해제: 확인 알럿 → 줄을 먼저 지우고(낙관적) DELETE /api/community/users/{id}/block(해제 전용).
+ *   이미 풀려 있던 회원이어도 서버가 성공으로 답한다. 실패(네트워크 · 401 · 5xx)일 때만 줄을 원래 자리로
+ *   되돌리고 토스트로 알린다.
  *   같은 회원의 확인 알럿 · 요청이 끝나기 전에는 다시 받지 않는다(연타 방지 — 버튼은 줄과 함께 사라진다).
  * 지운 줄은 id 집합으로만 기억해 되돌릴 때 순서가 그대로 유지된다.
- *
- * sample(dev 전용 예시 데이터)이면 서버에 보내지 않고 화면에서만 지운다.
  */
 export function BlockedMembersView({
   initialMembers,
-  sample,
 }: {
   initialMembers: BlockedMember[];
-  sample: boolean;
 }) {
   const [removedIds, setRemovedIds] = useState<ReadonlySet<number>>(
     () => new Set(),
@@ -67,20 +64,11 @@ export function BlockedMembersView({
 
       setRemoved(userId, true);
 
-      // (dev 전용) 예시 데이터는 서버에 보내지 않는다.
-      if (sample) {
-        toast.show("차단을 해제했어요");
-        return;
-      }
-
       const response = await bffFetch(`/api/community/users/${userId}/block`, {
-        method: "POST",
+        method: "DELETE",
       }).catch(() => null);
-      const blocked = response?.ok ? await readBlocked(response) : null;
 
-      // blocked가 false여야 해제 성공 — true면 이미 풀려 있던 회원을 토글이 다시 차단한 것이다.
-      // 다시 차단된 경우에도 서버 상태를 추측해 한 번 더 토글하지 않는다 — 줄을 되돌리고 알린다.
-      if (blocked !== false) {
+      if (!response?.ok) {
         setRemoved(userId, false);
         if (response?.status === 401) {
           postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
@@ -116,13 +104,4 @@ export function BlockedMembersView({
       {dialog}
     </>
   );
-}
-
-/** BFF 응답 { success, data: { blocked } }에서 토글 후 차단 여부를 읽는다. 형태가 다르면 null(실패로 본다). */
-async function readBlocked(response: Response): Promise<boolean | null> {
-  const body = (await response.json().catch(() => null)) as {
-    data?: { blocked?: unknown };
-  } | null;
-  const blocked = body?.data?.blocked;
-  return typeof blocked === "boolean" ? blocked : null;
 }
