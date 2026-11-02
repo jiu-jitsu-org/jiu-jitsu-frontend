@@ -290,7 +290,7 @@ export function FeedCardHeader({
     <>
       {/* key=URL: 아바타 URL이 바뀌면 컴포넌트를 재마운트해 폴백 상태(failed)를 초기화한다.
           사진 둘레에 띠를 그린다(#265, 사진 24 · 틈 1 · 테두리 3 = 32). 띠가 없으면 회색 점선.
-          36은 닉네임(14)보다 너무 커 보여 카드에서만 한 단계 줄였다 — 닉네임이 16인 상세·댓글은 36 그대로. */}
+          36은 닉네임(14)보다 너무 커 보여 한 단계 줄였다 — 글 상세·댓글도 같은 32로 맞춘다(#299). */}
       <BeltAvatar belt={author.belt ?? null} size="card">
         <FeedCardAvatar
           key={author.avatarUrl ?? "none"}

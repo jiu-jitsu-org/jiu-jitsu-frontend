@@ -59,20 +59,24 @@ export function PostDetailView({
           footer={<PostDetailFooter inputBar={<CommentInputBar contentId={post.id} />} />}
         >
           <div>
-            {/* 본문 영역: 헤더와 간격 24(pt-6), 좌우 여백 16(px-4), 섹션 간격 16(gap-4: 프로필 row↔제목 row 등) */}
+            {/* 본문 영역: 헤더와 간격 24(pt-6), 좌우 여백 16(px-4), 섹션 간격 16(gap-4: 본문↔이미지 등, 작성자↔제목만 8) */}
             <article className="flex flex-col gap-4 px-4 pt-6">
-              <PostAuthorRow
-                author={post.author}
-                isOwner={post.viewer.isOwner}
-              />
-              <PostDetailBody
-                title={post.title}
-                body={post.body}
-                categoryName={post.categoryName}
-                createdAt={post.createdAt}
-                views={post.views}
-                edited={post.edited}
-              />
+              {/* 작성자 줄↔제목은 8(gap-2) — 홈 피드 카드와 같은 간격으로 붙여 "누가 쓴 이 글"로 묶어 읽히게 한다(#299).
+                  나머지 섹션 사이(본문↔이미지 등)는 article의 16 그대로. */}
+              <div className="flex flex-col gap-2">
+                <PostAuthorRow
+                  author={post.author}
+                  isOwner={post.viewer.isOwner}
+                />
+                <PostDetailBody
+                  title={post.title}
+                  body={post.body}
+                  categoryName={post.categoryName}
+                  createdAt={post.createdAt}
+                  views={post.views}
+                  edited={post.edited}
+                />
+              </div>
               {post.images.length > 0 ? (
                 // 이미지 규격(#121): 허용 비율 4:5~1.91:1, 벗어나면 center crop.
                 // 1장은 폭 고정 + 높이 원본 비율, 여러 장은 높이 고정 + 폭 원본 비율.

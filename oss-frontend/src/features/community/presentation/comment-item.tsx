@@ -100,13 +100,13 @@ export function CommentItem({
     <li ref={arriveRef} className={cn("flex gap-1", isReply && "-ml-7")}>
       {isReply ? (
         // 위에서 내려와 오른쪽으로 꺾이는 연결선 — 이 행이 위 댓글의 대댓글임을 나타낸다.
-        // 띠 아바타(36)라 6 내려 꺾이는 끝을 아바타 가운데(18)에 맞춘다.
+        // 띠 아바타(32)라 4 내려 꺾이는 끝(아이콘 가운데 12)을 아바타 가운데(16)에 맞춘다.
         <ReplyBranchIcon
           size={24}
-          className="mt-1.5 shrink-0 self-start text-comment-thread-line-stroke"
+          className="mt-1 shrink-0 self-start text-comment-thread-line-stroke"
         />
       ) : null}
-      {/* 피드 카드와 같이 사진 26 + 띠 = 36으로 그린다(#265, 띠가 없으면 회색 점선). 프로필 행·분기 아이콘도 이 높이에 맞춘다.
+      {/* 홈 피드 카드와 같이 사진 24 + 띠 = 32로 그린다(#265·#299, 띠가 없으면 회색 점선). 프로필 행·분기 아이콘도 이 높이에 맞춘다.
           로드 실패 시 기본 상태 폴백.
           아바타·닉네임을 누르면 작성자 프로필을 연다(앱에서 내 댓글은 MY 탭) — 둘이 떨어져 있어 각각 감싸고,
           아바타는 닉네임과 같은 동작이라 탭 순서·스크린리더에서는 뺀다(decorative). */}
@@ -116,22 +116,23 @@ export function CommentItem({
         decorative
         className="flex shrink-0 self-start"
       >
-        <BeltAvatar belt={comment.author.belt ?? null}>
+        <BeltAvatar belt={comment.author.belt ?? null} size="card">
           <Avatar src={comment.author.avatarUrl} className="size-full" iconSize={16} />
         </BeltAvatar>
       </AuthorProfileLink>
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* 프로필 행: 높이를 띠 아바타와 같게(36) 두고 items-center → 아이콘 기준 수직 가운데.
+        {/* 프로필 행: 높이를 띠 아바타와 같게(32) 두고 items-center → 아이콘 기준 수직 가운데.
             닉네임↔날짜 간격 6(gap-1.5). */}
-        <div className="flex h-9 items-center gap-1.5">
-          {/* 닉네임: Body M, text/text-primary — 피드 카드 닉네임(회색)과 달리 댓글에선 이름이 첫 단서라 진하게 둔다.
+        <div className="flex h-8 items-center gap-1.5">
+          {/* 닉네임: Body S(14) — 홈 카드 닉네임과 같은 크기(#299), 본문(14)과 같은 크기라도 Medium·진한 색으로 앞선다.
+              text/text-primary — 피드 카드 닉네임(회색)과 달리 댓글에선 이름이 첫 단서라 진하게 둔다.
               관장·사범이면 배지를 닉네임에 붙여 둔다(#272, 간격 2) — 작성자 배지와는 기존 간격 6으로 떨어진다. */}
           <AuthorProfileLink
             userId={comment.author.userId}
             isOwner={comment.isOwner}
             className="flex items-center gap-0.5"
           >
-            <span className="text-body-m text-text-primary">
+            <span className="text-body-s text-text-primary">
               {comment.author.nickname}
             </span>
             {comment.author.isCoach ? <CoachBadge /> : null}
@@ -148,9 +149,11 @@ export function CommentItem({
             className="text-label-m text-feed-card-header-date-text"
           />
         </div>
-        {/* 본문: 프로필 행과 간격 7, 닉네임 좌측 정렬(컬럼 기준), n줄 전부 노출(클램프 없음).
+        {/* 본문: 프로필 행과 간격 2, 닉네임 좌측 정렬(컬럼 기준), n줄 전부 노출(클램프 없음).
+            프로필 행(32) 안에서 닉네임 글줄(21) 아래로 이미 5.5가 비어 있어, 2를 더하면 글줄 사이가 7.5 —
+            프로필 행이 24일 때(간격 7)처럼 닉네임과 본문이 붙어 읽힌다(#299).
             Body S(14/21), feed-card/body/body-text */}
-        <p className="mt-[7px] whitespace-pre-wrap text-body-s text-feed-card-body-text">
+        <p className="mt-0.5 whitespace-pre-wrap text-body-s text-feed-card-body-text">
           {comment.body}
         </p>
 

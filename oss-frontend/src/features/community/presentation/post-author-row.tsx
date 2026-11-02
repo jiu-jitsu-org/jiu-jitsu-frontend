@@ -19,22 +19,24 @@ export function PostAuthorRow({
   author: PostAuthor;
   isOwner: boolean;
 }) {
-  // row 높이는 띠 아바타(36)가 정한다, 아바타↔닉네임 간격 8(gap-2), 수직 가운데(items-center)
+  // 홈 피드 카드 작성자 줄과 같은 모양(#299): row 높이는 띠 아바타(32)가 정한다,
+  // 아바타↔닉네임 간격 6(gap-1.5), 수직 가운데(items-center).
   // 탭 영역이 행 전체 폭으로 늘어나지 않게 self-start로 내용 폭만 차지한다.
   return (
     <AuthorProfileLink
       userId={author.userId}
       isOwner={isOwner}
-      className="flex items-center gap-2 self-start"
+      className="flex items-center gap-1.5 self-start"
     >
       {/* 프로필 사진, 로드 실패 시 기본 상태 폴백.
-          피드 카드와 같이 사진 26 둘레에 띠를 그린다(#265, 전체 36). 띠가 없으면 회색 점선. */}
-      <BeltAvatar belt={author.belt ?? null}>
+          홈 피드 카드와 같이 사진 24 둘레에 띠를 그린다(#265·#299, 전체 32). 띠가 없으면 회색 점선. */}
+      <BeltAvatar belt={author.belt ?? null} size="card">
         <Avatar src={author.avatarUrl} className="size-full" iconSize={16} />
       </BeltAvatar>
-      {/* 닉네임: Body M(Pretendard Medium 16). 관장·사범이면 배지를 붙여 둔다(#272, 간격 2). */}
+      {/* 닉네임: Body S(Pretendard Medium 14) — 홈 카드와 같은 크기. 제목(16)보다 작아 "누가"가 "무엇"보다 앞서지 않는다.
+          관장·사범이면 배지를 붙여 둔다(#272, 간격 2). */}
       <span className="flex items-center gap-0.5">
-        <span className="text-body-m text-text-primary">
+        <span className="text-body-s text-text-primary">
           {author.nickname}
         </span>
         {author.isCoach ? <CoachBadge /> : null}
