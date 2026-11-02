@@ -162,8 +162,12 @@ export interface CommunityWriteRepository {
    */
   toggleBlock(userId: number): Promise<boolean>;
   /**
-   * 내가 차단한 회원 목록(GET /user/block — 백엔드 요청 중). 차단한 시각 최신순.
-   * 읽기인데 쓰기 repository에 있는 이유: 토글(toggleBlock)과 같은 업스트림 컨트롤러이고 서로의 짝이다.
+   * 차단 해제 전용(DELETE /user/block/{id}). 이미 풀려 있어도 성공한다 — 어느 기기에서 눌러도 결과가 같다.
+   */
+  unblock(userId: number): Promise<void>;
+  /**
+   * 내가 차단한 회원 목록(GET /user/block). 차단한 시각 최신순, 탈퇴 회원 제외.
+   * 읽기인데 쓰기 repository에 있는 이유: 차단 · 해제와 같은 업스트림 컨트롤러이고 서로의 짝이다.
    */
   getBlockedMembers(): Promise<BlockedMember[]>;
 }

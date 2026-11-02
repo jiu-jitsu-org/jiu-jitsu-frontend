@@ -7,7 +7,8 @@ import type { CommunityWriteRepository } from "@/features/community/domain/post-
  * 비노출되고, 댓글·대댓글은 placeholder로 바뀐다. 적용 범위는 요청한 사용자 계정뿐이다.
  *
  * 서버 단일 엔드포인트(POST /user/block/{id})가 현재 상태를 뒤집고 결과를 돌려주므로,
- * 토글 후의 차단 여부(true=차단)를 그대로 반환한다. 해제(설정 > 차단 회원 관리)도 같은 호출이다.
+ * 토글 후의 차단 여부(true=차단)를 그대로 반환한다. 해제(설정 > 차단한 회원)는 토글이 아니라
+ * 해제 전용 호출(UnblockUserUseCase)을 쓴다.
  */
 export class BlockUserUseCase {
   constructor(private readonly writeRepository: CommunityWriteRepository) {}
