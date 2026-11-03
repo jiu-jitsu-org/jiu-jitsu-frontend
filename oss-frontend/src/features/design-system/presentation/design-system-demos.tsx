@@ -51,21 +51,38 @@ export function MotionDemo() {
   );
 }
 
+const TOAST_SAMPLES = [
+  { tone: "success", label: "완료", message: "게시글을 삭제했어요" },
+  { tone: "info", label: "안내", message: "이 글의 알림을 받아요" },
+  { tone: "warning", label: "주의", message: "사진은 최대 3장까지 첨부할 수 있어요" },
+  { tone: "error", label: "실패", message: "게시글을 삭제하지 못했어요" },
+] as const;
+
 export function ToastDemo() {
   const toast = useToast();
   return (
     <div className="flex flex-wrap gap-2">
-      <Button variant="neutral" size="m" onClick={() => toast.show("저장했어요")}>
-        토스트 띄우기
-      </Button>
+      {TOAST_SAMPLES.map((sample) => (
+        <Button
+          key={sample.tone}
+          variant="neutral"
+          size="m"
+          onClick={() => toast.show(sample.message, { tone: sample.tone })}
+        >
+          {sample.label}
+        </Button>
+      ))}
       <Button
         variant="neutral"
         size="m"
         onClick={() =>
-          toast.show("글을 삭제했어요", { label: "되돌리기", onAction: () => {} })
+          toast.show("게시글을 숨겼어요", {
+            tone: "success",
+            action: { label: "되돌리기", onAction: () => {} },
+          })
         }
       >
-        버튼 있는 토스트
+        되돌리기 버튼
       </Button>
     </div>
   );
@@ -77,7 +94,7 @@ export function EmptyStateDemo() {
     <EmptyState
       title="아직 글이 없어요"
       description="첫 글을 남겨 보세요"
-      action={{ label: "다시 시도", onClick: () => toast.show("다시 불러왔어요") }}
+      action={{ label: "다시 시도", onClick: () => toast.show("다시 불러왔어요", { tone: "success" }) }}
       className="py-6"
     />
   );
