@@ -263,7 +263,13 @@ function FeedCardAvatar({
           ref={detectSettledImage}
           src={avatarUrl}
           alt=""
-          className={cn("size-full object-cover", imageRevealClassName(reveal))}
+          // 남의 프로필 사진을 꾹 눌러 저장·공유하지 못하게 iOS 기본 메뉴와 끌기를 막는다(#306).
+          draggable={false}
+          onContextMenu={(e) => e.preventDefault()}
+          className={cn(
+            "size-full select-none object-cover [-webkit-touch-callout:none]",
+            imageRevealClassName(reveal),
+          )}
           onLoad={() => setReveal(revealOnLoad)}
           onError={() => setFailed(true)}
         />
