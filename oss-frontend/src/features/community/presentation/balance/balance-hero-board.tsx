@@ -288,6 +288,11 @@ function BoardRow({
   const selected = state === "selected";
   const palette = BOARD_PALETTE;
 
+  // 득표 막대의 진하기 — 마지막으로 받은 득표율의 것을 붙잡아 둔다. 투표를 취소하면 득표율이 사라지며 막대가
+  // 0으로 줄어드는데, 그 1초 동안 옅던 쪽이 진하게 번쩍이지 않게 줄어드는 내내 원래 진하기를 지킨다.
+  const [emphasized, setEmphasized] = useState(result?.emphasized ?? true);
+  if (result && result.emphasized !== emphasized) setEmphasized(result.emphasized);
+
   return (
     <button
       type="button"
@@ -300,7 +305,7 @@ function BoardRow({
         palette.row,
         // 득표율을 읽어야 하는 상세에서는 밀려난 줄을 덜 끈다.
         state === "unselected" && (result ? "opacity-75" : "opacity-50"),
-        "motion-safe:[transition:background-color_300ms_ease,opacity_300ms_ease,min-height_500ms_var(--ease-spring-wobbly),scale_500ms_var(--ease-spring-wobbly)]",
+        "motion-safe:[transition:opacity_300ms_ease,min-height_500ms_var(--ease-spring-wobbly),scale_500ms_var(--ease-spring-wobbly)]",
         "motion-safe:active:scale-[0.98] motion-safe:active:[transition:scale_100ms_ease-out]",
         interactive && "cursor-pointer",
         intro.row?.[key],
@@ -321,7 +326,7 @@ function BoardRow({
           className={cn(
             "absolute inset-y-0 left-0 rounded-2xl motion-safe:transition-[width] motion-safe:duration-1000 motion-safe:ease-smooth-out",
             CORNER[key],
-            result?.emphasized === false ? "opacity-35" : "opacity-90",
+            emphasized ? "opacity-90" : "opacity-35",
           )}
           style={{ width: `${result?.percent ?? 0}%` }}
         />
@@ -332,7 +337,7 @@ function BoardRow({
         (전광판에서 승자 줄이 켜지듯). 취소하면 같은 길로 빠진다. 득표율을 그리는 상세는 위 득표 막대가 맡는다.
         폭 대신 오른쪽을 잘라(clip-path) 둥근 모서리가 찌그러지지 않는다.
       */}
-      {result ? null : (
+      {detail ? null : (
         <span
           aria-hidden
           className={cn(
