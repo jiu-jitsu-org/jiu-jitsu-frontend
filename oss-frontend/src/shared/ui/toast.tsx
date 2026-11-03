@@ -7,20 +7,28 @@ import {
   useEffect,
   useRef,
   useState,
+  type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
 
 import { cn } from "@/shared/lib/cn";
-import { NEUTRAL_BUTTON_PRESS } from "@/shared/ui/press-styles";
 
 /**
  * 공통 토스트.
  *
- * `ToastProvider`를 앱 루트에 두고, 어디서든 `useToast().show("메시지")`로 띄운다.
- * 하단(입력 바 위)에 좌우로 길게(스낵바) 잠깐 떴다 사라지며, 알파(opacity) 페이드 인/아웃 한다.
+ * `ToastProvider`를 앱 루트에 두고, 어디서든 `useToast().show("메시지", { tone })`으로 띄운다.
+ * 하단(입력 바 위)에 좌우로 길게 잠깐 떴다 사라진다. 아래로 밀면 바로 닫힌다.
  *
- * 되돌릴 수 있는 동작(숨기기 등)은 두 번째 인자로 액션을 넘겨 우측 버튼을 함께 띄운다.
+ * 상태(tone)마다 왼쪽 아이콘만 바뀐다 — 모양·움직임은 같다.
+ * - success 완료    요청이 끝났을 때 ("게시글을 삭제했어요")
+ * - info    안내    상태가 바뀌었거나 알려줄 것이 있을 때 ("이 글의 알림을 받아요")
+ * - warning 주의    한도에 닿았거나 지금은 할 수 없을 때 ("사진은 최대 3장까지…")
+ * - error   실패    요청이 실패했을 때 ("게시글을 삭제하지 못했어요")
+ *
+ * 되돌릴 수 있는 동작(숨기기 등)은 action을 넘겨 오른쪽 글자 버튼을 함께 띄운다.
  */
+
+export type ToastTone = "success" | "info" | "warning" | "error";
 
 /** 토스트 우측 버튼. 누르면 토스트가 즉시 닫히고 onAction이 실행된다. */
 export type ToastAction = {
@@ -28,8 +36,14 @@ export type ToastAction = {
   onAction: () => void;
 };
 
+export type ToastOptions = {
+  /** 왼쪽 아이콘. 기본은 info. */
+  tone?: ToastTone;
+  action?: ToastAction;
+};
+
 type ToastContextValue = {
-  show: (message: string, action?: ToastAction) => void;
+  show: (message: string, options?: ToastOptions) => void;
 };
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -40,7 +54,24 @@ const TOAST_VISIBLE_MS = 2000;
  * 되돌리기는 문구를 읽고 누를 시간이 필요해 기본 2초로는 잡기 어렵다.
  */
 const TOAST_WITH_ACTION_VISIBLE_MS = 5000;
-const TOAST_FADE_MS = 200;
+/** 사라지는 시간 — 아래 duration-200과 맞춘다. */
+const TOAST_LEAVE_MS = 200;
+/** 이만큼 아래로 밀고 놓으면 닫는다(px). */
+const SWIPE_DISMISS_PX = 36;
+
+/**
+ * enter: 막 붙은 첫 프레임(아래 16 · 0.96 · 투명) → shown: 떠 있음 → leaving: 내려가며 흐려짐.
+ * 첫 프레임을 먼저 그려야 전환이 돈다.
+ */
+type Phase = "enter" | "shown" | "leaving";
+
+type ToastState = {
+  message: string;
+  tone: ToastTone;
+  action: ToastAction | null;
+  /** 떠 있는 채로 다시 불린 횟수 — 글자 줄의 key라 바뀔 때마다 새 글자가 아래에서 올라온다. */
+  turn: number;
+};
 
 export function useToast(): ToastContextValue {
   const context = useContext(ToastContext);
@@ -51,135 +82,248 @@ export function useToast(): ToastContextValue {
 }
 
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const [message, setMessage] = useState<string | null>(null);
-  const [action, setAction] = useState<ToastAction | null>(null);
-  const [visible, setVisible] = useState(false);
+  const [toast, setToast] = useState<ToastState | null>(null);
+  const [phase, setPhase] = useState<Phase>("enter");
+  // 손가락으로 끄는 중인 세로 거리(px). null이면 끌지 않는 중.
+  const [dragY, setDragY] = useState<number | null>(null);
+  // 손가락이 닿아 있는지 — 끄는 동안은 전환을 꺼서 손끝을 바로 따라오게 한다.
+  const [dragging, setDragging] = useState(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const unmountTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // 지금 떠 있는 문구 — show가 "이미 떠 있는 토스트를 다시 부르는지" 판단하려고 렌더와 별개로 들고 있는다.
-  const messageRef = useRef<string | null>(null);
-  const boxRef = useRef<HTMLDivElement>(null);
-  // 떠 있는 토스트가 다시 불려 톡 다시 튀는 중(animate-toast-repop 스위치).
-  const [repopping, setRepopping] = useState(false);
+  // 지금 떠 있는지 — show가 "떠 있는 토스트를 다시 부르는지" 렌더와 상관없이 판단하려고 둔다.
+  const openRef = useRef(false);
+  const dragStart = useRef<number | null>(null);
+  const hasActionRef = useRef(false);
 
-  const unmount = useCallback(() => {
-    messageRef.current = null;
-    setMessage(null);
-    setAction(null);
-    setRepopping(false);
-  }, []);
+  const clearTimers = () => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    if (unmountTimer.current) clearTimeout(unmountTimer.current);
+  };
 
   const dismiss = useCallback(() => {
-    if (hideTimer.current) clearTimeout(hideTimer.current);
-    setVisible(false); // 페이드 아웃
-    unmountTimer.current = setTimeout(unmount, TOAST_FADE_MS);
-  }, [unmount]);
+    clearTimers();
+    setPhase("leaving");
+    unmountTimer.current = setTimeout(() => {
+      openRef.current = false;
+      setToast(null);
+      setDragY(null);
+    }, TOAST_LEAVE_MS);
+  }, []);
 
-  const show = useCallback(
-    (next: string, nextAction?: ToastAction) => {
+  const scheduleHide = useCallback(
+    (hasAction: boolean) => {
       if (hideTimer.current) clearTimeout(hideTimer.current);
-      if (unmountTimer.current) clearTimeout(unmountTimer.current);
-
-      // 떠 있는 토스트가 다시 불리면(같은 문구든 다른 문구든) 박스가 톡 다시 튄다 — 같은 자리에
-      // 그대로 있으면 새 소식인지, 같은 일이 한 번 더 일어났는지 알 수 없다.
-      // 올라오는 전환(translate·opacity)과는 다른 속성(transform: scale)이라 서로 건드리지 않는다.
-      // 이미 튀는 중이면 클래스를 다시 붙여도 재생되지 않으므로 돌고 있는 애니메이션을 처음으로 되감는다.
-      if (messageRef.current !== null) {
-        const running = boxRef.current
-          ?.getAnimations()
-          .find(
-            (animation) =>
-              animation instanceof CSSAnimation &&
-              animation.animationName === "toast-repop",
-          );
-        if (running) {
-          running.currentTime = 0;
-          running.play();
-        } else {
-          setRepopping(true);
-        }
-        // 사라지는 중(페이드 아웃)에 불렸으면 다시 올린다 — 같은 문구면 아래 페이드 인 효과가
-        // 다시 돌지 않아(message 그대로) 투명한 채 남는다.
-        setVisible(true);
-      }
-      messageRef.current = next;
-
-      setMessage(next);
-      setAction(nextAction ?? null);
       hideTimer.current = setTimeout(
-        () => {
-          setVisible(false); // 페이드 아웃
-          unmountTimer.current = setTimeout(unmount, TOAST_FADE_MS);
-        },
-        nextAction ? TOAST_WITH_ACTION_VISIBLE_MS : TOAST_VISIBLE_MS,
+        dismiss,
+        hasAction ? TOAST_WITH_ACTION_VISIBLE_MS : TOAST_VISIBLE_MS,
       );
     },
-    [unmount],
+    [dismiss],
   );
 
-  // 메시지가 마운트되면 다음 프레임에 알파 0→1로 페이드 인(초기 opacity-0 프레임을 먼저 그린 뒤 전환).
+  const show = useCallback(
+    (message: string, options?: ToastOptions) => {
+      clearTimers();
+      const tone = options?.tone ?? "info";
+      const action = options?.action ?? null;
+      hasActionRef.current = action !== null;
+
+      if (openRef.current) {
+        // 떠 있는 토스트가 다시 불리면 상자는 그대로 두고 글자(아이콘 포함)만 새로 올라온다 —
+        // 같은 자리에 같은 모양이면 새 소식인지, 같은 일이 한 번 더 일어났는지 알 수 없다.
+        // 사라지는 중이었으면 다시 올린다.
+        setToast((prev) => ({
+          message,
+          tone,
+          action,
+          turn: (prev?.turn ?? 0) + 1,
+        }));
+        setPhase("shown");
+        setDragY(null);
+      } else {
+        openRef.current = true;
+        setToast({ message, tone, action, turn: 0 });
+        setPhase("enter");
+      }
+      scheduleHide(action !== null);
+    },
+    [scheduleHide],
+  );
+
+  // 첫 프레임(enter)을 그린 다음 프레임에 shown으로 바꿔 떠오르는 전환을 튼다.
   useEffect(() => {
-    if (message === null) return;
+    if (phase !== "enter" || toast === null) return;
     let raf2 = 0;
     const raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => setVisible(true));
+      raf2 = requestAnimationFrame(() => setPhase("shown"));
     });
     return () => {
       cancelAnimationFrame(raf1);
       cancelAnimationFrame(raf2);
     };
-  }, [message]);
+  }, [phase, toast]);
+
+  useEffect(() => clearTimers, []);
+
+  // ── 아래로 밀어 닫기 ──────────────────────────────────
+  const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if ((event.target as HTMLElement).closest("button")) return;
+    dragStart.current = event.clientY;
+    setDragging(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
+    if (hideTimer.current) clearTimeout(hideTimer.current); // 끄는 동안은 저절로 닫히지 않는다.
+  };
+  const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (dragStart.current === null) return;
+    const dy = event.clientY - dragStart.current;
+    // 위로 끌면 무겁게(1/4만) 따라온다 — 위로는 닫히지 않는다는 걸 손끝으로 알린다.
+    setDragY(dy > 0 ? dy : dy / 4);
+  };
+  const onPointerEnd = () => {
+    if (dragStart.current === null) return;
+    dragStart.current = null;
+    setDragging(false);
+    if ((dragY ?? 0) > SWIPE_DISMISS_PX) {
+      dismiss();
+      return;
+    }
+    setDragY(null); // 제자리로 스프링처럼 돌아온다(아래 전환).
+    scheduleHide(hasActionRef.current);
+  };
 
   return (
     <ToastContext.Provider value={{ show }}>
       {children}
-      {message !== null ? (
+      {toast !== null ? (
         // 하단 여백은 화면이 정한다(globals.css의 --toast-bottom-inset):
         // 기본 16, 댓글 입력 바가 있는 상세는 바 위(85). z는 최상단 —
         // 우하단 플로팅 버튼(FAB, z auto)과 시트·알럿(z-50)보다 위에 와야 한다.
-        <div className="pointer-events-none fixed inset-x-6 bottom-[calc(var(--toast-bottom-inset)_+_env(safe-area-inset-bottom))] z-[60]">
-          {/* 최소 높이 58(멀티라인 가변), 라운드 15, 좌우 16/상하 8, toast/default 토큰, Body S(Medium 14/21). 아래에서 올라온다. */}
-          {/* 본문↔버튼 간격 16. 버튼 우측 여백 16은 컨테이너 px-4가 담당한다. */}
+        <div className="pointer-events-none fixed inset-x-4 bottom-[calc(var(--toast-bottom-inset)_+_env(safe-area-inset-bottom))] z-[60]">
+          {/* 최소 높이 58(여러 줄이면 늘어남) · 모서리 20 · 짙은 바탕 + 옅은 그림자 · Body S.
+              아이콘↔글자 12, 글자↔버튼 8. */}
           <div
-            ref={boxRef}
-            role="status"
-            aria-live="polite"
-            onAnimationEnd={(event) => {
-              if (event.animationName === "toast-repop") setRepopping(false);
-            }}
+            role={toast.tone === "error" ? "alert" : "status"}
+            aria-live={toast.tone === "error" ? "assertive" : "polite"}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerEnd}
+            onPointerCancel={onPointerEnd}
+            style={
+              dragY !== null
+                ? {
+                    translate: `0 ${phase === "leaving" ? dragY + 24 : dragY}px`,
+                    opacity:
+                      phase === "leaving"
+                        ? 0
+                        : Math.max(0.3, 1 - Math.max(0, dragY) / 120),
+                  }
+                : undefined
+            }
             className={cn(
-              "flex min-h-[58px] w-full items-center gap-4 rounded-15 bg-toast-default-background px-4 py-2 text-body-s text-toast-default-text",
-              // 나타날 때 아래에서 500ms 감속하며 올라오고, 사라질 때 200ms에 내려가며 흐려진다.
-              "transition-opacity motion-safe:transition-[opacity,translate]",
-              visible
-                ? "translate-y-0 opacity-100 duration-500 ease-smooth-out"
-                : "translate-y-full opacity-0 duration-200 ease-in",
-              repopping && "motion-safe:animate-toast-repop",
+              "pointer-events-auto flex min-h-[58px] w-full touch-none select-none items-center gap-3 rounded-20 bg-toast-strong-background py-2 pl-4 pr-3 text-body-s text-toast-default-text shadow-[0_10px_28px_rgb(13_13_13/0.22)]",
+              // 나타날 때 16 아래·0.96에서 500ms 스프링으로 떠오르고, 사라질 때 200ms에 8 내려가며 흐려진다.
+              // 동작 줄이기 설정이면 옅게 나타나고 사라지기만 한다.
+              dragging
+                ? "transition-none"
+                : "transition-opacity motion-safe:transition-[opacity,translate,scale]",
+              phase === "enter" &&
+                "opacity-0 motion-safe:translate-y-4 motion-safe:scale-96",
+              phase === "shown" &&
+                "translate-y-0 scale-100 opacity-100 duration-500 ease-spring-gentle",
+              phase === "leaving" &&
+                "opacity-0 duration-200 ease-in motion-safe:translate-y-2",
             )}
           >
-            <span className="flex-1">{message}</span>
-            {action ? (
-              // 래퍼가 pointer-events-none이라 버튼에서만 다시 켠다(토스트 뒤 화면 조작을 막지 않기 위함).
-              // 토스트 전용 --toast-button-* 대신 공용 button/neutral 토큰을 쓴다 — 다른 화면의
-              // neutral 버튼(재시도·글쓰기 등)과 같은 계열로 묶어 라운드·색이 따로 놀지 않게 한다.
+            <span
+              key={toast.turn}
+              className={cn(
+                "flex min-w-0 flex-1 items-center gap-3",
+                toast.turn > 0 && "motion-safe:animate-toast-text-in",
+              )}
+            >
+              <ToastIcon tone={toast.tone} />
+              <span className="min-w-0 flex-1">{toast.message}</span>
+            </span>
+            {toast.action ? (
+              // 면 없는 하늘색 글자 버튼 — 상자 하나에 색 면은 짙은 바탕 하나만 둔다.
               <button
                 type="button"
                 onClick={() => {
+                  const { onAction } = toast.action!;
                   dismiss();
-                  action.onAction();
+                  onAction();
                 }}
-                // 눌림도 neutral 버튼 짝(button/neutral/pressed)을 따른다 — 버튼이 제 바탕을 가져 어두운 토스트 위에서도 보인다.
-                className={cn(
-                  "text-button-s pointer-events-auto inline-flex min-h-[30px] shrink-0 items-center justify-center rounded-10 bg-button-neutral-default-bg px-4 py-2 text-button-neutral-default-text",
-                  NEUTRAL_BUTTON_PRESS,
-                )}
+                className="shrink-0 rounded-10 px-2 py-2 text-button-s text-toast-action-text motion-safe:transition-colors motion-safe:duration-120 active:bg-toast-action-pressed-bg"
               >
-                {action.label}
+                {toast.action.label}
               </button>
             ) : null}
           </div>
         </div>
       ) : null}
     </ToastContext.Provider>
+  );
+}
+
+/**
+ * 상태 아이콘 20 — 색 면 위에 짙은 기호(실패만 흰 기호).
+ * 짙은 토스트 바탕 위에서 보이도록 칠한 모양이라 공용 선 아이콘(icons/)과 따로 둔다.
+ */
+function ToastIcon({ tone }: { tone: ToastTone }) {
+  const mark = "stroke-toast-icon-mark";
+  return (
+    <svg
+      width={20}
+      height={20}
+      viewBox="0 0 20 20"
+      fill="none"
+      aria-hidden
+      className="shrink-0"
+    >
+      {tone === "warning" ? (
+        <>
+          <path
+            d="M8.6 2.6a1.6 1.6 0 0 1 2.8 0l7.2 12.6a1.6 1.6 0 0 1-1.4 2.4H2.8a1.6 1.6 0 0 1-1.4-2.4z"
+            className="fill-toast-icon-warning"
+          />
+          <path d="M10 7.2v4.4" className={mark} strokeWidth={1.8} strokeLinecap="round" />
+          <circle cx={10} cy={14.3} r={1.1} className="fill-toast-icon-mark" />
+        </>
+      ) : (
+        <circle
+          cx={10}
+          cy={10}
+          r={9}
+          className={cn(
+            tone === "success" && "fill-toast-icon-success",
+            tone === "info" && "fill-toast-icon-info",
+            tone === "error" && "fill-toast-icon-error",
+          )}
+        />
+      )}
+      {tone === "success" ? (
+        <path
+          d="M6 10.3l2.6 2.5L14 7.6"
+          className={mark}
+          strokeWidth={1.8}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      ) : null}
+      {tone === "info" ? (
+        <>
+          <path d="M10 9v5" className={mark} strokeWidth={1.8} strokeLinecap="round" />
+          <circle cx={10} cy={6.2} r={1.1} className="fill-toast-icon-mark" />
+        </>
+      ) : null}
+      {tone === "error" ? (
+        <path
+          d="M7.2 7.2l5.6 5.6M12.8 7.2l-5.6 5.6"
+          className="stroke-toast-default-text"
+          strokeWidth={1.8}
+          strokeLinecap="round"
+        />
+      ) : null}
+    </svg>
   );
 }

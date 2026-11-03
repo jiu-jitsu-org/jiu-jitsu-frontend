@@ -220,8 +220,8 @@
   --animate-image-in: fade-in 350ms ease-out both;
   /* 확인 창(다이얼로그) 상자 — 살짝 작게(0.92) 시작해 한 번 톡 넘치며 자리 잡는다. */
   --animate-dialog-in: dialog-in 450ms var(--ease-spring-bouncy) both;
-  /* 떠 있는 토스트가 다시 불릴 때(같은 문구든 다른 문구든) — 살짝 움츠렸다(0.94) 출렁이며 돌아온다. */
-  --animate-toast-repop: toast-repop 400ms var(--ease-spring-bouncy) both;
+  /* 떠 있는 토스트가 다시 불릴 때 — 상자는 그대로, 아이콘과 글자만 8 아래에서 올라오며 바뀐다. */
+  --animate-toast-text-in: toast-text-in 300ms var(--ease-smooth-out) both;
 
   @keyframes dialog-in {
     from {
@@ -234,12 +234,14 @@
     }
   }
 
-  @keyframes toast-repop {
+  @keyframes toast-text-in {
     from {
-      transform: scale(0.94);
+      opacity: 0;
+      transform: translateY(8px);
     }
     to {
-      transform: scale(1);
+      opacity: 1;
+      transform: translateY(0);
     }
   }
 
