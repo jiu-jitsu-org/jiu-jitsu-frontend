@@ -241,6 +241,7 @@ export function BalanceHeroBoard({
           state={optionStateOf(game, "A")}
           interactive={interactive}
           intro={parts}
+          detail={detail}
           result={detail ? readOptionResult(game, "A") : null}
           onPress={() => onVote("A")}
         />
@@ -249,6 +250,7 @@ export function BalanceHeroBoard({
           state={optionStateOf(game, "B")}
           interactive={interactive}
           intro={parts}
+          detail={detail}
           result={detail ? readOptionResult(game, "B") : null}
           onPress={() => onVote("B")}
         />
@@ -268,6 +270,7 @@ function BoardRow({
   state,
   interactive,
   intro,
+  detail,
   result,
   onPress,
 }: {
@@ -275,6 +278,8 @@ function BoardRow({
   state: BalanceOptionState;
   interactive: boolean;
   intro: IntroParts;
+  /** 상세 판인지 — 득표 막대 자리를 늘 깔아 둔다(아래 득표 막대 참조). */
+  detail: boolean;
   /** 득표율(상세만) — 있으면 줄이 통째로 켜지는 대신 득표율만큼 진영 색이 차고 점수 자리에 %가 뜬다. */
   result: BalanceOptionResult | null;
   onPress: () => void;
@@ -305,15 +310,20 @@ function BoardRow({
         득표 막대(상세) — 줄 바탕이 득표율만큼 진영 색으로 찬다. 내가 고른 쪽은 진하게, 다른 쪽은 옅게
         (마감되면 양쪽 다 옅게 — readOptionResult의 emphasized). 진영 블록이 그 위에 덮여 왼쪽 끝은 늘 블록이다.
       */}
-      {result ? (
+      {/*
+        투표 전에도 폭 0으로 깔아 둔다(#310) — 고르는 순간 새로 그리면 다 찬 채로 툭 나타난다. 0에서 득표율까지
+        홈의 차오름과 같은 시간·곡선(1초, 부드럽게 멈춤)으로 차오른다. 출렁이는 곡선은 막대가 득표율을 넘쳤다
+        돌아와 띠용 하고 튀어 보여 뺐다.
+      */}
+      {detail ? (
         <span
           aria-hidden
           className={cn(
-            "absolute inset-y-0 left-0 rounded-2xl motion-safe:transition-[width] motion-safe:duration-1000 motion-safe:ease-spring-wobbly",
+            "absolute inset-y-0 left-0 rounded-2xl motion-safe:transition-[width] motion-safe:duration-1000 motion-safe:ease-smooth-out",
             CORNER[key],
-            result.emphasized ? "opacity-90" : "opacity-35",
+            result?.emphasized === false ? "opacity-35" : "opacity-90",
           )}
-          style={{ width: `${result.percent}%` }}
+          style={{ width: `${result?.percent ?? 0}%` }}
         />
       ) : null}
 
