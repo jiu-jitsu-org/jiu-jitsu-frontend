@@ -17,7 +17,7 @@
 
 /** 버튼 공통: 높이 28, 좌우 8, 아이콘↔텍스트 4. radius는 상세 리액션바(10)와 맞춘다. */
 export const COMMENT_REACTION_BUTTON =
-  "group inline-flex h-7 items-center gap-1 rounded-[10px] px-2 active:bg-reaction-bar-pressed-bg active:text-reaction-bar-pressed-icon";
+  "group inline-flex h-7 items-center gap-1 rounded-10 px-2 active:bg-reaction-bar-pressed-bg active:text-reaction-bar-pressed-icon";
 
 /** 아이콘 기본색 — 버튼에 걸어 아이콘이 currentColor로 상속받게 한다. */
 export const COMMENT_REACTION_ICON = "text-reaction-bar-default-icon";

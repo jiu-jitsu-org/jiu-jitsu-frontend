@@ -69,7 +69,7 @@ export default async function Home({
     <SessionHintProvider authenticated={sessionToken !== null}>
       {/* 상대 시간("5분 전")을 서버 시각 기준으로 계산하고 60초마다 갱신한다(#188). */}
       <ServerClockProvider serverNow={readServerNow()}>
-        <main className="feed-bounce-scroll min-h-screen bg-[var(--bw-white)]">
+        <main className="feed-bounce-scroll min-h-screen bg-surface-container">
           {/* 새로고침이면 이전 위치 대신 맨 위에서 시작한다(#260). */}
           <FeedScrollTopOnReload />
           {renderFeed(result, balanceGame, balanceIntro)}

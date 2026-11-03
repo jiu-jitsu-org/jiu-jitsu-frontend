@@ -50,7 +50,7 @@ export function CommentSortSelect({ sort }: { sort: CommentSort }) {
         onClick={() => setOpen((value) => !value)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="inline-flex h-8 items-center gap-0.5 rounded-[10px] pl-2 pr-1 text-button-s text-comment-sort-select-default-text active:bg-comment-sort-select-pressed-bg active:text-comment-sort-select-pressed-text"
+        className="inline-flex h-8 items-center gap-0.5 rounded-10 pl-2 pr-1 text-button-s text-comment-sort-select-default-text active:bg-comment-sort-select-pressed-bg active:text-comment-sort-select-pressed-text"
       >
         {current.label}
         {/* 메뉴가 열려 있는 동안 위를 향한다 — 살짝 넘쳤다 돌아오는 스프링으로 돌려 열림/닫힘을 손에 느끼게. */}

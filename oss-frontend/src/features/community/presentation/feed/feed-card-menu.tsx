@@ -144,7 +144,7 @@ export function FeedCardMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="게시물 메뉴 열기"
-        className="inline-flex h-7 w-8 items-center justify-center rounded-[10px] text-feed-card-header-more-icon active:bg-reaction-bar-pressed-bg active:text-reaction-bar-pressed-icon"
+        className="inline-flex h-7 w-8 items-center justify-center rounded-10 text-feed-card-header-more-icon active:bg-reaction-bar-pressed-bg active:text-reaction-bar-pressed-icon"
       >
         <MoreVerticalIcon size={16} />
       </button>

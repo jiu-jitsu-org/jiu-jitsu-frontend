@@ -135,7 +135,7 @@ export function BalanceHeroCommentLink({
       onClick={onPress}
       aria-pressed={game.commented}
       className={cn(
-        "group flex h-8 cursor-pointer items-center gap-1 rounded-[10px] px-2",
+        "group flex h-8 cursor-pointer items-center gap-1 rounded-10 px-2",
         REACTION_HIT_AREA,
         "text-[var(--opacity-white-80)] active:bg-[var(--opacity-white-20)]",
         REACTION_PRESS_MOTION,

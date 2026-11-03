@@ -56,7 +56,7 @@ export function ReactionBarButton({
       aria-pressed={pressable ? active : undefined}
       className={cn(
         // group: :active는 눌린 요소와 조상에만 매칭돼 자식 span이 안 걸린다 → group-active로 전달.
-        "group inline-flex h-7 items-center rounded-[10px] px-2",
+        "group inline-flex h-7 items-center rounded-10 px-2",
         // Active는 배경을 Default 그대로 두고, 눌린 동안에만 pressed 배경으로 바뀐다.
         "bg-reaction-bar-detail-default-bg active:bg-reaction-bar-detail-pressed-bg",
         text !== null && "gap-1",

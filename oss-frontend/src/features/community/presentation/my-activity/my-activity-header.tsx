@@ -61,7 +61,7 @@ export function MyActivityHeader({
     <div
       ref={ref}
       // 앱바(z-30, 44 + safe-area) 바로 아래에서 접히는 거리만큼 위로 붙는다. 바탕은 화면과 같은 색.
-      className="sticky z-20 bg-[var(--bw-white)]"
+      className="sticky z-20 bg-surface-container"
       style={
         {
           "--p": 0,
