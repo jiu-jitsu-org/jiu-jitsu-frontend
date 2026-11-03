@@ -1,4 +1,4 @@
-import { EmptyState } from "@/features/community/presentation/empty-state";
+import { EmptyState } from "@/shared/ui/empty-state";
 
 /**
  * 차단한 회원이 없을 때 — 공용 EmptyState(제목 + 설명).

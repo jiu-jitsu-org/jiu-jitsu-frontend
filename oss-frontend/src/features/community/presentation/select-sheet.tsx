@@ -5,7 +5,8 @@ import { useState } from "react";
 import { BottomSheetFrame } from "@/features/community/presentation/bottom-sheet-frame";
 import { cn } from "@/shared/lib/cn";
 import type { SelectSheetOption } from "@/shared/lib/native-bridge";
-import { PRESS_BOUNCE, SURFACE_PRESS } from "@/shared/ui/press-styles";
+import { Button } from "@/shared/ui/button";
+import { SURFACE_PRESS } from "@/shared/ui/press-styles";
 
 /**
  * 선택 바텀시트 — **웹 단독 실행용 폴백**.
@@ -75,14 +76,15 @@ export function SelectSheet({
           onChange={(event) => setCustomText(event.target.value)}
           placeholder={customTextPlaceholder}
           maxLength={customTextMaxLength}
-          className="mt-2 h-20 w-full resize-none rounded-[15px] bg-textfield-mutiline-default-bg px-4 py-3 text-body-s text-textfield-mutiline-filled-text placeholder:text-textfield-mutiline-default-text"
+          className="mt-2 h-20 w-full resize-none rounded-15 bg-textfield-mutiline-default-bg px-4 py-3 text-body-s text-textfield-mutiline-filled-text placeholder:text-textfield-mutiline-default-text"
         />
       ) : null}
 
       {/* 하단 CTA: 높이 51, radius 15 — 앱 공통 버튼 스펙과 동일.
           누르는 동안 cta 눌림 색이 깔리고 살짝 눌렸다 출렁인다(고르기 전 비활성일 때는 반응하지 않는다). */}
-      <button
-        type="button"
+      <Button
+        variant="cta"
+        size="l"
         disabled={!canSubmit}
         onClick={() =>
           selectedOption
@@ -96,14 +98,10 @@ export function SelectSheet({
               })
             : undefined
         }
-        className={cn(
-          "mt-4 h-[51px] w-full rounded-[15px] bg-cta-primary-bg text-button-m text-cta-primary-text disabled:bg-cta-primary-disabled-bg disabled:text-cta-primary-disabled-text",
-          "enabled:active:bg-cta-primary-pressed-bg",
-          PRESS_BOUNCE,
-        )}
+        className="mt-4 w-full"
       >
         {submitText}
-      </button>
+      </Button>
     </BottomSheetFrame>
   );
 }

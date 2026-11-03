@@ -2,13 +2,12 @@ import type { CSSProperties } from "react";
 
 import { MyActivityAppBar } from "@/features/community/presentation/my-activity/my-activity-app-bar";
 import { SubviewScrollShell } from "@/features/community/presentation/subview-scroll-shell";
+import { Skeleton } from "@/shared/ui/skeleton";
 
 /** 덩어리마다 150ms씩 늦춰 위에서 아래로 물결치게 깜빡인다(메인 피드 스켈레톤과 같은 방식). */
 function pulseDelay(order: number): CSSProperties {
   return { animationDelay: `${order * 150}ms` };
 }
-
-const BLOCK = "rounded bg-feed-card-header-avatar-bg";
 
 /**
  * 내 커뮤니티 활동 로딩 스켈레톤 — 라우트 loading.tsx가 그린다.
@@ -19,7 +18,7 @@ const BLOCK = "rounded bg-feed-card-header-avatar-bg";
  */
 export function MyActivitySkeleton() {
   return (
-    <SubviewScrollShell className="bg-[var(--bw-white)]">
+    <SubviewScrollShell className="bg-surface-container">
       <MyActivityAppBar />
 
       <div aria-hidden>
@@ -28,8 +27,8 @@ export function MyActivitySkeleton() {
           style={pulseDelay(0)}
           className="flex items-center gap-3 px-4 pt-3 pb-5 motion-safe:animate-pulse"
         >
-          <div className="size-16 shrink-0 rounded-full bg-feed-card-header-avatar-bg" />
-          <div className={`h-6 w-28 ${BLOCK}`} />
+          <Skeleton className="size-16 shrink-0 rounded-full" />
+          <Skeleton className="h-6 w-28" />
         </div>
 
         {/* 탭: 높이 44, 두 칸 가운데에 라벨 자리 */}
@@ -38,10 +37,10 @@ export function MyActivitySkeleton() {
           className="flex px-4 motion-safe:animate-pulse"
         >
           <div className="flex h-11 flex-1 items-center justify-center">
-            <div className={`h-4 w-14 ${BLOCK}`} />
+            <Skeleton className="h-4 w-14" />
           </div>
           <div className="flex h-11 flex-1 items-center justify-center">
-            <div className={`h-4 w-14 ${BLOCK}`} />
+            <Skeleton className="h-4 w-14" />
           </div>
         </div>
 
@@ -53,9 +52,9 @@ export function MyActivitySkeleton() {
               style={pulseDelay(index + 2)}
               className="flex flex-col gap-3 px-4 py-4 motion-safe:animate-pulse"
             >
-              <div className={`h-4 w-2/3 ${BLOCK}`} />
-              <div className={`h-3 w-full ${BLOCK}`} />
-              <div className={`h-3 w-5/6 ${BLOCK}`} />
+              <Skeleton className="h-4 w-2/3" />
+              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-3 w-5/6" />
             </div>
           ))}
         </div>

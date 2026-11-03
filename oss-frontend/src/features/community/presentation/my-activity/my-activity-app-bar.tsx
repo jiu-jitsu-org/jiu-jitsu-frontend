@@ -2,9 +2,8 @@
 
 import { AppBarShell } from "@/features/community/presentation/app-bar-shell";
 import { closeDetail } from "@/features/community/presentation/close-detail";
+import { IconButton } from "@/shared/ui/icon-button";
 import { BackArrowIcon } from "@/shared/ui/icons";
-import { ICON_BUTTON_PRESS } from "@/shared/ui/press-styles";
-import { cn } from "@/shared/lib/cn";
 
 /**
  * 내 커뮤니티 활동 앱바 (클라이언트 leaf).
@@ -16,19 +15,11 @@ import { cn } from "@/shared/lib/cn";
 export function MyActivityAppBar() {
   return (
     // 배경은 화면 바탕(--bw-white, 피드와 같은 색)에 맞춘다 — 셸 기본(true white)이면 앱바 아래로 옅은 띠가 생긴다.
-    <AppBarShell className="bg-[var(--bw-white)]">
+    <AppBarShell className="bg-surface-container">
       {/* 좌측 뒤로가기 — 40x40, 아이콘 24, 배경 없음(누르는 동안만 둥근 옅은 면). 좌 8·세로 중앙은 셸이 담당. */}
-      <button
-        type="button"
-        onClick={closeDetail}
-        aria-label="뒤로 가기"
-        className={cn(
-          "inline-flex size-10 items-center justify-center text-icon-primary",
-          ICON_BUTTON_PRESS,
-        )}
-      >
+      <IconButton onClick={closeDetail} aria-label="뒤로 가기">
         <BackArrowIcon size={24} />
-      </button>
+      </IconButton>
 
       {/* 제목: Body M · semibold, 바(44) 기준 가로·세로 가운데. 셸의 safe-area 패딩 아래 바에 맞추려고
           bottom-0 + h-11로 놓는다. 뒤로가기 탭을 가리지 않게 pointer-events-none. */}

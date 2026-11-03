@@ -8,7 +8,7 @@ import {
 } from "@/features/community/application/get-blocked-members-page-data";
 import { BlockedMembersAppBar } from "@/features/community/presentation/blocked-members/blocked-members-app-bar";
 import { BlockedMembersView } from "@/features/community/presentation/blocked-members/blocked-members-view";
-import { EmptyState } from "@/features/community/presentation/empty-state";
+import { EmptyState } from "@/shared/ui/empty-state";
 import { FeedErrorState } from "@/features/community/presentation/feed-error-state";
 import { SubviewScrollShell } from "@/features/community/presentation/subview-scroll-shell";
 import { Spinner } from "@/shared/ui";
@@ -31,7 +31,7 @@ export async function BlockedMembersScreen() {
   const result = await getBlockedMembersPageData();
 
   return (
-    <SubviewScrollShell className="bg-[var(--bw-white)]">
+    <SubviewScrollShell className="bg-surface-container">
       {renderContent(result)}
     </SubviewScrollShell>
   );

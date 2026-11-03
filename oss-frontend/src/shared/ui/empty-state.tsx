@@ -1,9 +1,10 @@
 import { cn } from "@/shared/lib/cn";
+import { Button } from "@/shared/ui/button";
 
 /**
  * 빈 상태 공통 표현 — 제목 + (설명) + (버튼).
  *
- * 메인 피드(FeedEmptyState)와 내 커뮤니티 활동이 같은 모양을 쓴다. 세로 위치는 화면마다 달라
+ * 메인 피드·내 커뮤니티 활동·차단한 회원이 같은 모양을 쓴다. 세로 위치는 화면마다 달라
  * (피드는 뷰포트 35%, 활동 화면은 탭 아래 96) 호출부가 className으로 정한다.
  * 버튼 동작(onClick)을 넘기는 호출부는 클라이언트 컴포넌트여야 한다 — 이 컴포넌트는 상태가 없어
  * 서버 · 클라이언트 어디서든 그릴 수 있다.
@@ -39,13 +40,14 @@ export function EmptyState({
       {action ? (
         // 버튼: 재시도 버튼과 동일한 neutral 규격(38/rounded 10/px16), 부제목과 간격 13.
         // 누르는 동안 neutral 눌림 색으로 짙어진다(재시도 버튼과 같은 눌림).
-        <button
-          type="button"
+        <Button
+          variant="neutral"
+          size="m"
           onClick={action.onClick}
-          className="mt-[13px] h-[38px] rounded-[10px] bg-button-neutral-default-bg px-4 text-button-m text-button-neutral-default-text motion-safe:transition-colors motion-safe:duration-120 active:bg-button-neutral-pressed-bg"
+          className="mt-[13px]"
         >
           {action.label}
-        </button>
+        </Button>
       ) : null}
     </div>
   );

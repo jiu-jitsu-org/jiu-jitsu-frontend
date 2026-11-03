@@ -21,6 +21,7 @@ import { useLoginGuard } from "@/features/community/presentation/use-login-guard
 import { useReportFlow } from "@/features/community/presentation/use-report-flow";
 import { REACTION_PRESS_MOTION } from "@/features/community/presentation/comment-reaction-styles";
 import { cn } from "@/shared/lib/cn";
+import { IconButton } from "@/shared/ui/icon-button";
 import {
   BackArrowIcon,
   BellIcon,
@@ -228,14 +229,9 @@ export function PostDetailAppBar({
     <AppBarShell>
       {/* 좌측 뒤로가기 — 우측 종·⋮와 같은 규격(40x40, 아이콘 24, 평소 배경 없음). 좌 8·세로 중앙은 셸이 담당.
           누르는 동안만 아이콘 뒤에 둥근 옅은 면이 깔려 눌렸다는 걸 알린다 — 앱바 아이콘 버튼 공통. */}
-      <button
-        type="button"
-        onClick={closeDetail}
-        aria-label="뒤로 가기"
-        className="inline-flex size-10 items-center justify-center rounded-full motion-safe:transition-colors motion-safe:duration-120 active:bg-surface-container-pressed text-icon-primary"
-      >
+      <IconButton onClick={closeDetail} aria-label="뒤로 가기">
         <BackArrowIcon size={24} />
-      </button>
+      </IconButton>
 
       {/* 우측 그룹: 알림종 + ⋮ 를 간격 0으로 붙여 우측 정렬. 비로그인은 통째로 없다. */}
       {guest ? null : (
@@ -269,16 +265,14 @@ export function PostDetailAppBar({
           </button>
 
           <div className="relative">
-            <button
-              type="button"
+            <IconButton
               onClick={() => setMenuOpen((value) => !value)}
               aria-haspopup="menu"
               aria-expanded={menuOpen}
               aria-label="게시물 메뉴 열기"
-              className="inline-flex size-10 items-center justify-center rounded-full motion-safe:transition-colors motion-safe:duration-120 active:bg-surface-container-pressed text-icon-primary"
             >
               <MoreVerticalIcon size={24} />
-            </button>
+            </IconButton>
 
             {menuOpen ? (
               <MenuBox

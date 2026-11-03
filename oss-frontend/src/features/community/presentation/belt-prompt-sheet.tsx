@@ -13,8 +13,7 @@ import { Avatar } from "@/features/community/presentation/avatar";
 import { BeltAvatar } from "@/features/community/presentation/belt-avatar";
 import { BottomSheetFrame } from "@/features/community/presentation/bottom-sheet-frame";
 import { WheelPicker } from "@/features/community/presentation/wheel-picker";
-import { cn } from "@/shared/lib/cn";
-import { PRESS_BOUNCE } from "@/shared/ui/press-styles";
+import { Button } from "@/shared/ui/button";
 
 const RANK_LABEL: Record<BeltRank, string> = {
   white: "화이트",
@@ -114,30 +113,24 @@ function BeltPromptBody({
       </div>
 
       {/* 하단 CTA: SelectSheet와 같은 높이 51 · radius 15. */}
-      <button
-        type="button"
+      <Button
+        variant="cta"
+        size="l"
         disabled={saving}
         onClick={() => onSave({ rank, grau })}
-        className={cn(
-          "mt-6 h-[51px] w-full rounded-[15px] bg-cta-primary-bg text-button-m text-cta-primary-text disabled:bg-cta-primary-disabled-bg disabled:text-cta-primary-disabled-text",
-          "enabled:active:bg-cta-primary-pressed-bg",
-          PRESS_BOUNCE,
-        )}
+        className="mt-6 w-full"
       >
         저장
-      </button>
-      <button
-        type="button"
+      </Button>
+      <Button
+        variant="cta-ghost"
+        size="l"
         disabled={saving}
         onClick={onLater}
-        className={cn(
-          "mt-2 h-[51px] w-full rounded-[15px] bg-cta-transparent-text-bg text-button-m text-cta-transparent-text-text disabled:text-cta-transparent-text-disabled-text",
-          "enabled:active:bg-cta-transparent-text-pressed-bg",
-          PRESS_BOUNCE,
-        )}
+        className="mt-2 w-full"
       >
         나중에
-      </button>
+      </Button>
     </>
   );
 }

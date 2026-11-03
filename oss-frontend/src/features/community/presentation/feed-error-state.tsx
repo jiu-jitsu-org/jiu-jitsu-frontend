@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 
 import { cn } from "@/shared/lib/cn";
+import { Button } from "@/shared/ui/button";
 
 /**
  * 메인 피드 조회 실패 상태 — 안내 문구 + 재시도 버튼(화면 중앙).
@@ -30,15 +31,15 @@ export function FeedErrorState({ className }: { className?: string }) {
       <p className="text-body-m text-feed-card-body-text">
         잠시 문제가 생겼어요
       </p>
-      <button
-        type="button"
+      {/* 누르는 동안 neutral 눌림 색으로 짙어진다(빈 상태 글쓰기 버튼과 같은 규격·같은 눌림). */}
+      <Button
+        variant="neutral"
+        size="m"
         disabled={pending}
         onClick={() => startTransition(() => router.refresh())}
-        // 누르는 동안 neutral 눌림 색으로 짙어진다(빈 상태 글쓰기 버튼과 같은 규격·같은 눌림).
-        className="h-[38px] rounded-[10px] bg-button-neutral-default-bg px-4 text-button-m text-button-neutral-default-text motion-safe:transition-colors motion-safe:duration-120 enabled:active:bg-button-neutral-pressed-bg disabled:bg-button-neutral-disabled-bg disabled:text-button-neutral-disabled-text"
       >
         재시도
-      </button>
+      </Button>
     </div>
   );
 }

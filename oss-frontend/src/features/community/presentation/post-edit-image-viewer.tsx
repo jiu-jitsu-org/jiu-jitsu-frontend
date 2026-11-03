@@ -1,12 +1,10 @@
 "use client";
 
+import { IconButton } from "@/shared/ui/icon-button";
 import { CloseIcon } from "@/shared/ui/icons";
 
 import type { PostImage } from "@/features/community/domain/post";
 import { IMAGE_WIDTH } from "./image-aspect";
-
-/** 하단 닫기(✕) 버튼 한 변(px) — 이미지 뷰어 닫기와 같은 44. */
-const CLOSE_BUTTON_SIZE = 44;
 
 /**
  * 게시글 수정 화면의 이미지 상세 — 탭한 이미지 한 장을 등록된 그대로 보여주는 모달.
@@ -46,15 +44,14 @@ export function PostEditImageViewer({
 
       {/* 하단: 닫기(✕ tint)만 가운데. 완료 없음. 홈 인디케이터 위까지 여백. */}
       <div className="flex shrink-0 justify-center pb-[calc(env(safe-area-inset-bottom)+12px)] pt-4">
-        <button
-          type="button"
+        <IconButton
+          variant="tint"
+          size="l"
           onClick={onClose}
           aria-label="이미지 상세 닫기"
-          style={{ width: CLOSE_BUTTON_SIZE, height: CLOSE_BUTTON_SIZE }}
-          className="inline-flex items-center justify-center rounded-[10px] bg-button-tint-default-bg text-button-tint-default-text active:bg-button-tint-pressed-bg"
         >
           <CloseIcon size={24} />
-        </button>
+        </IconButton>
       </div>
     </div>
   );

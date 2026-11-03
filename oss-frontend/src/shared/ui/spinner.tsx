@@ -1,3 +1,5 @@
+import { cn } from "@/shared/lib/cn";
+
 /**
  * 불러오는 중 스피너 — 2px 테두리 원에서 위쪽만 비운 고리가 돈다.
  *
@@ -8,7 +10,7 @@
  */
 export function Spinner({
   label = "불러오는 중",
-  className = "",
+  className,
 }: {
   /** 스크린리더가 읽는 이름. */
   label?: string;
@@ -22,7 +24,10 @@ export function Spinner({
       className="inline-flex motion-safe:animate-spinner-in"
     >
       <span
-        className={`size-6 rounded-full border-2 border-feed-card-header-avatar-bg border-t-transparent motion-safe:animate-spin motion-reduce:animate-pulse ${className}`}
+        className={cn(
+          "size-6 rounded-full border-2 border-feed-card-header-avatar-bg border-t-transparent motion-safe:animate-spin motion-reduce:animate-pulse",
+          className,
+        )}
       />
     </span>
   );

@@ -2,13 +2,12 @@ import type { CSSProperties } from "react";
 
 import { BlockedMembersAppBar } from "@/features/community/presentation/blocked-members/blocked-members-app-bar";
 import { SubviewScrollShell } from "@/features/community/presentation/subview-scroll-shell";
+import { Skeleton } from "@/shared/ui/skeleton";
 
 /** 줄마다 150ms씩 늦춰 위에서 아래로 물결치게 깜빡인다(내 커뮤니티 활동 스켈레톤과 같은 방식). */
 function pulseDelay(order: number): CSSProperties {
   return { animationDelay: `${order * 150}ms` };
 }
-
-const BLOCK = "rounded bg-feed-card-header-avatar-bg";
 
 /**
  * 차단한 회원 로딩 스켈레톤 — 라우트 loading.tsx가 그린다.
@@ -18,7 +17,7 @@ const BLOCK = "rounded bg-feed-card-header-avatar-bg";
  */
 export function BlockedMembersSkeleton() {
   return (
-    <SubviewScrollShell className="bg-[var(--bw-white)]">
+    <SubviewScrollShell className="bg-surface-container">
       <BlockedMembersAppBar />
 
       <ul aria-hidden className="pt-2">
@@ -28,9 +27,9 @@ export function BlockedMembersSkeleton() {
             style={pulseDelay(index)}
             className="flex items-center gap-3 px-4 py-2.5 motion-safe:animate-pulse"
           >
-            <div className="size-10 shrink-0 rounded-full bg-feed-card-header-avatar-bg" />
-            <div className={`h-4 w-28 ${BLOCK}`} />
-            <div className={`ml-auto h-8 w-[66px] rounded-[8px] ${BLOCK}`} />
+            <Skeleton className="size-10 shrink-0 rounded-full" />
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="ml-auto h-8 w-[66px] rounded-lg" />
           </li>
         ))}
       </ul>
