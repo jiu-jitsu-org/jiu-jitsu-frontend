@@ -18,19 +18,22 @@ import { cn } from "@/shared/lib/cn";
 import { CommentIcon } from "@/shared/ui/icons";
 
 /*
- * 홈 히어로 시안(#305) 셋이 함께 쓰는 조각. 시안이 하나로 정해지면 남는 쪽으로 합친다.
+ * 스코어보드(#305) 조각 — 홈 히어로·상세 판(BalanceHeroBoard)과 접힌 바(BalanceCollapsedBar)가 함께 쓴다.
  */
 
-/** 히어로 공통 입력 — BalanceGameCard와 같다. 조회·투표·카운트다운은 상위가 소유한다. */
+/** 스코어보드 입력. 조회·투표·카운트다운은 상위가 소유한다. */
 export type BalanceHeroProps = {
   game: BalanceGame;
   onVote: (option: BalanceOptionKey) => void;
   onPressDetail: () => void;
   /** 잔여 시간이 0에 닿았을 때(다음 판 재조회). 히어로만 넘긴다 — BalanceRemaining 주석 참조. */
   onExpired?: () => void;
+  /** 그날 게임을 처음 볼 때 한 번 도는 등장 동작(#305). 아니면 바로 그린다. */
+  intro?: boolean;
 };
 
-/** 선택지 표시 상태 — BalanceGameCard와 같은 규칙(투표 전 default · 고른 쪽 selected · 밀려난 쪽 unselected). */
+
+/** 선택지 표시 상태 — 선택지 행과 같은 규칙(투표 전 default · 고른 쪽 selected · 밀려난 쪽 unselected). */
 export function optionStateOf(
   game: BalanceGame,
   option: BalanceOptionKey,
@@ -40,7 +43,7 @@ export function optionStateOf(
 }
 
 /**
- * 버튼·링크 밖을 누르면 상세로 — 카드와 같은 방식(안쪽 버튼이 중첩되지 않게 section에 클릭만 얹는다).
+ * 버튼·링크 밖을 누르면 상세로 — 안쪽 버튼이 중첩되지 않게 section에 클릭만 얹는다.
  */
 export function pressOutsideControls(onPressDetail: () => void) {
   return (event: MouseEvent<HTMLElement>) => {
@@ -88,17 +91,14 @@ export function BalanceClock({
 }
 
 /**
- * 댓글 링크 — 카드의 것과 같은 규격(리액션 버튼 높이 32 · 아이콘 20 · 누르는 영역 44).
- * 어두운 바탕(스코어보드) 위에서는 흰 글자로 바뀐다.
+ * 댓글 링크 — 리액션 버튼과 같은 규격(높이 32 · 아이콘 20 · 누르는 영역 44). 먹색 판 위라 흰 글자다.
  */
 export function BalanceHeroCommentLink({
   game,
   onPress,
-  onDark = false,
 }: {
   game: BalanceGame;
   onPress: () => void;
-  onDark?: boolean;
 }) {
   return (
     <button
@@ -108,14 +108,7 @@ export function BalanceHeroCommentLink({
       className={cn(
         "group flex h-8 cursor-pointer items-center gap-1 rounded-[10px] px-2",
         REACTION_HIT_AREA,
-        onDark
-          ? "text-[var(--opacity-white-80)] active:bg-[var(--opacity-white-20)]"
-          : [
-              game.commented
-                ? "text-reaction-bar-active-comment-icon"
-                : "text-text-tertiary",
-              "active:bg-reaction-bar-pressed-bg active:text-reaction-bar-pressed-icon",
-            ],
+        "text-[var(--opacity-white-80)] active:bg-[var(--opacity-white-20)]",
         REACTION_PRESS_MOTION,
       )}
     >
