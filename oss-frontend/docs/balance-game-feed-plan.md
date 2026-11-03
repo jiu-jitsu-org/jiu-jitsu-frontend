@@ -1,5 +1,7 @@
 # 밸런스 게임 — 커뮤니티 피드(리스트) 개발 계획
 
+> **바뀐 점(#305):** 홈 맨 위의 카드(`balance-game-card.tsx`)와 sticky 바(`balance-sticky-bar.tsx`)는 매트 스코어보드 히어로(`balance-hero-board.tsx`)와 접힌 바(`balance-collapsed-bar.tsx`)로 바뀌어 지워졌다. 상세 맨 위도 같은 판을 쓴다. 아래는 #32 당시의 계획 기록이다.
+
 관련 이슈: [jiu-jitsu-frontend#32](https://github.com/jiu-jitsu-org/jiu-jitsu-frontend/issues/32) (FE) · [jiu-jitsu-backend#91](https://github.com/jiu-jitsu-org/jiu-jitsu-backend/issues/91) (BE)
 
 **이번 범위: 커뮤니티 피드 최상단 밸런스 게임 카드 + sticky 바.** 상세 화면(`balance_detail`)은 다음 이슈이며, 여기서는 **진입 경로(라우트 스텁)까지만** 만든다.
