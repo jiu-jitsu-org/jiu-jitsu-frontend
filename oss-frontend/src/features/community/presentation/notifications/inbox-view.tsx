@@ -79,7 +79,7 @@ export function InboxView({
 
     if (!response?.ok) {
       setReadState(ids, false);
-      toast.show("알림을 읽음 처리하지 못했어요");
+      toast.show("알림을 읽음 처리하지 못했어요", { tone: "error" });
     }
   }
 
@@ -91,7 +91,7 @@ export function InboxView({
 
     const balanceGone = target.kind === "balance" && gone === "post";
     if (gone && !balanceGone) {
-      toast.show(inboxGoneMessage(gone));
+      toast.show(inboxGoneMessage(gone), { tone: "info" });
       return;
     }
     if (target.kind === "post") openPostDetail(target.postId);

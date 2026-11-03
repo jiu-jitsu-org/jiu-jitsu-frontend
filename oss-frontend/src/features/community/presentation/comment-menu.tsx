@@ -77,7 +77,7 @@ export function CommentMenu({
 
     // 예시(데모)에선 네트워크 없이 토스트만(목록 갱신/삭제 없음).
     if (demo) {
-      toast.show("댓글을 삭제했어요");
+      toast.show("댓글을 삭제했어요", { tone: "success" });
       return;
     }
 
@@ -89,11 +89,11 @@ export function CommentMenu({
       if (response.status === 401) {
         postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
       }
-      toast.show("댓글을 삭제하지 못했어요");
+      toast.show("댓글을 삭제하지 못했어요", { tone: "error" });
       return;
     }
 
-    toast.show("댓글을 삭제했어요");
+    toast.show("댓글을 삭제했어요", { tone: "success" });
     // 서버 렌더 목록 재요청 — 삭제된 댓글이 빠진다.
     router.refresh();
   }
@@ -113,7 +113,7 @@ export function CommentMenu({
 
     // 예시(데모)에선 네트워크 없이 토스트만(실제 차단/목록 갱신 없음).
     if (demo) {
-      toast.show("유저를 차단했어요");
+      toast.show("유저를 차단했어요", { tone: "success" });
       return;
     }
 
@@ -125,11 +125,11 @@ export function CommentMenu({
       if (response.status === 401) {
         postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
       }
-      toast.show("유저를 차단하지 못했어요");
+      toast.show("유저를 차단하지 못했어요", { tone: "error" });
       return;
     }
 
-    toast.show("유저를 차단했어요");
+    toast.show("유저를 차단했어요", { tone: "success" });
     // 서버 렌더 목록 재요청 — 차단된 회원의 댓글은 placeholder로, 게시글은 목록에서 빠진다.
     router.refresh();
   }

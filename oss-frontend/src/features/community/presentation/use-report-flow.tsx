@@ -38,7 +38,7 @@ export function useReportFlow() {
   const notifyReported = useCallback(
     (message: string, onReported?: (message: string) => void) => {
       if (onReported) onReported(message);
-      else toast.show(message);
+      else toast.show(message, { tone: "success" });
     },
     [toast],
   );
@@ -108,7 +108,7 @@ export function useReportFlow() {
           notifyReported(`이미 신고한 ${noun}이에요`, options?.onReported);
           return true;
         }
-        toast.show(`${noun}을 신고하지 못했어요`);
+        toast.show(`${noun}을 신고하지 못했어요`, { tone: "error" });
         return false;
       }
 

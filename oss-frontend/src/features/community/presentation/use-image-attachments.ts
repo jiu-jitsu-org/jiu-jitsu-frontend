@@ -159,7 +159,7 @@ export function useImageAttachments() {
         console.error("[post-write] 이미지 업로드 실패:", file.name, error);
         if (!isCurrent()) return;
         patch(localId, { status: "failed", imageId: undefined });
-        if (isRetry) toast.show(RETRY_FAILED_MESSAGE);
+        if (isRetry) toast.show(RETRY_FAILED_MESSAGE, { tone: "error" });
       }
     },
     [patch, toast],
@@ -215,12 +215,12 @@ export function useImageAttachments() {
 
       const room = MAX_IMAGES - attachmentsRef.current.length;
       if (room <= 0) {
-        toast.show(MAX_IMAGES_MESSAGE);
+        toast.show(MAX_IMAGES_MESSAGE, { tone: "warning" });
         return;
       }
       // 초과분은 앞에서부터 room장만 담고 나머지는 무시(정책) + 안내.
       if (files.length > room) {
-        toast.show(MAX_IMAGES_MESSAGE);
+        toast.show(MAX_IMAGES_MESSAGE, { tone: "warning" });
       }
 
       const next: Attachment[] = files.slice(0, room).map((file) => ({
@@ -255,7 +255,7 @@ export function useImageAttachments() {
   /** "사진" 버튼: 이미 3장이면 선택창을 열지 않고 토스트(정책 — 버튼은 비활성이 아님). 열 수 있으면 true. */
   const ensureRoom = useCallback(() => {
     if (attachments.length >= MAX_IMAGES) {
-      toast.show(MAX_IMAGES_MESSAGE);
+      toast.show(MAX_IMAGES_MESSAGE, { tone: "warning" });
       return false;
     }
     return true;
@@ -277,7 +277,7 @@ export function useImageAttachments() {
         const limit = MAX_IMAGES - attachmentsRef.current.length;
         // 0을 보내면 PHPicker는 무제한으로 받는다.
         if (limit <= 0) {
-          toast.show(MAX_IMAGES_MESSAGE);
+          toast.show(MAX_IMAGES_MESSAGE, { tone: "warning" });
           return;
         }
         nativePickingRef.current = true;
@@ -285,7 +285,7 @@ export function useImageAttachments() {
           .then(({ files, failedCount }) => {
             addFiles(files);
             if (failedCount > 0)
-              toast.show(photosNotLoadedMessage(failedCount));
+              toast.show(photosNotLoadedMessage(failedCount), { tone: "error" });
           })
           .catch((error) => {
             console.error("[post-write] 네이티브 사진 선택 실패:", error);

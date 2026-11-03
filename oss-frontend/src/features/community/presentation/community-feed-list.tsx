@@ -204,7 +204,7 @@ export function CommunityFeedList({
       void (async () => {
         const restored = await toggleHidePost(postId);
         if (!restored) {
-          toast.show(HIDE_TOAST.undoFailed);
+          toast.show(HIDE_TOAST.undoFailed, { tone: "error" });
           return;
         }
 

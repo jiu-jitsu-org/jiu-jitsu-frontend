@@ -96,16 +96,16 @@ export function BeltPromptProvider({
       });
       if (!response.ok) {
         // 시트는 열어 둔다 — 고른 띠를 그대로 두고 다시 누를 수 있게.
-        toast.show("띠를 저장하지 못했어요");
+        toast.show("띠를 저장하지 못했어요", { tone: "error" });
         return;
       }
       setOpen(false);
-      toast.show("내 띠를 저장했어요");
+      toast.show("내 띠를 저장했어요", { tone: "success" });
       // 작성자 줄의 띠를 서버 값으로 다시 그린다.
       router.refresh();
     } catch (error) {
       console.error("[belt-prompt] 띠 저장 실패:", error);
-      toast.show("띠를 저장하지 못했어요");
+      toast.show("띠를 저장하지 못했어요", { tone: "error" });
     } finally {
       setSaving(false);
     }

@@ -86,16 +86,19 @@ export function useBalanceCloseTransition({
       const hasNextGame = nextGame !== null && nextGame.contentId !== contentId;
 
       if (!hasNextGame) {
-        toast.show(CLOSED_TOAST);
+        toast.show(CLOSED_TOAST, { tone: "info" });
         return;
       }
 
       toast.show(CLOSED_TOAST, {
-        label: OPEN_NEW_GAME_LABEL,
-        onAction: () => {
-          // push가 아니라 replace다 — 마감된 판은 뒤로가기로 돌아갈 곳이 아니다.
-          // 뒤로가면 들어온 곳(피드)으로 나가는 편이 자연스럽다.
-          router.replace(`/community/balance/${nextGame.contentId}`);
+        tone: "info",
+        action: {
+          label: OPEN_NEW_GAME_LABEL,
+          onAction: () => {
+            // push가 아니라 replace다 — 마감된 판은 뒤로가기로 돌아갈 곳이 아니다.
+            // 뒤로가면 들어온 곳(피드)으로 나가는 편이 자연스럽다.
+            router.replace(`/community/balance/${nextGame.contentId}`);
+          },
         },
       });
     })();

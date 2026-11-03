@@ -64,7 +64,7 @@ export function FeedCardMenu({
 
     // 예시(데모)에선 네트워크 없이 토스트만(실제 삭제 없음).
     if (demo) {
-      toast.show("게시글을 삭제했어요");
+      toast.show("게시글을 삭제했어요", { tone: "success" });
       return;
     }
 
@@ -76,11 +76,11 @@ export function FeedCardMenu({
       if (response.status === 401) {
         postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
       }
-      toast.show("게시글을 삭제하지 못했어요");
+      toast.show("게시글을 삭제하지 못했어요", { tone: "error" });
       return;
     }
 
-    toast.show("게시글을 삭제했어요");
+    toast.show("게시글을 삭제했어요", { tone: "success" });
     onDeleted();
   }
 
@@ -104,22 +104,25 @@ export function FeedCardMenu({
     if (demo) {
       onDeleted();
       toast.show(HIDE_TOAST.done, {
-        label: HIDE_TOAST.undoLabel,
-        onAction: onRestored,
+        tone: "success",
+        action: { label: HIDE_TOAST.undoLabel, onAction: onRestored },
       });
       return;
     }
 
     const hidden = await toggleHidePost(postId);
     if (!hidden) {
-      toast.show(HIDE_TOAST.failed);
+      toast.show(HIDE_TOAST.failed, { tone: "error" });
       return;
     }
 
     onDeleted();
     toast.show(HIDE_TOAST.done, {
-      label: HIDE_TOAST.undoLabel,
-      onAction: () => void handleUndoHide(),
+      tone: "success",
+      action: {
+        label: HIDE_TOAST.undoLabel,
+        onAction: () => void handleUndoHide(),
+      },
     });
   }
 
@@ -127,7 +130,7 @@ export function FeedCardMenu({
   async function handleUndoHide() {
     const restored = await toggleHidePost(postId);
     if (!restored) {
-      toast.show(HIDE_TOAST.undoFailed);
+      toast.show(HIDE_TOAST.undoFailed, { tone: "error" });
       return;
     }
 

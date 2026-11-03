@@ -98,7 +98,7 @@ export function PostDetailAppBar({
 
     // 예시(데모)에선 네트워크 없이 토스트만(저장·롤백 없음).
     if (demo) {
-      toast.show(alarmToast(next));
+      toast.show(alarmToast(next), { tone: "info" });
       return;
     }
 
@@ -125,10 +125,10 @@ export function PostDetailAppBar({
         typeof body?.data?.enabled === "boolean" ? body.data.enabled : next;
 
       setAlarmOn(enabled);
-      toast.show(alarmToast(enabled));
+      toast.show(alarmToast(enabled), { tone: "info" });
     } catch {
       setAlarmOn(previous);
-      toast.show("알림을 설정하지 못했어요");
+      toast.show("알림을 설정하지 못했어요", { tone: "error" });
     } finally {
       setAlarmPending(false);
     }
@@ -146,7 +146,7 @@ export function PostDetailAppBar({
 
     // 예시(데모)에선 네트워크 없이 토스트만(실제 삭제/화면 닫기 없음).
     if (demo) {
-      toast.show("게시글을 삭제했어요");
+      toast.show("게시글을 삭제했어요", { tone: "success" });
       return;
     }
 
@@ -158,12 +158,12 @@ export function PostDetailAppBar({
       if (response.status === 401) {
         postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
       }
-      toast.show("게시글을 삭제하지 못했어요");
+      toast.show("게시글을 삭제하지 못했어요", { tone: "error" });
       return;
     }
 
     // 닫히는 화면에 띄우면 토스트도 웹뷰와 함께 사라진다 → 문구만 넘기고 목록이 띄운다.
-    enqueuePendingToast("게시글을 삭제했어요");
+    enqueuePendingToast("게시글을 삭제했어요", { tone: "success" });
     // 카드 제거는 복귀 시 단건 재조회(404)가 처리한다(#73).
     closeDetail();
   }
@@ -188,20 +188,23 @@ export function PostDetailAppBar({
   async function handleHide() {
     // 예시(데모)에선 네트워크 없이 안내만(화면도 닫지 않는다).
     if (demo) {
-      toast.show(HIDE_TOAST.done);
+      toast.show(HIDE_TOAST.done, { tone: "success" });
       return;
     }
 
     const hidden = await toggleHidePost(postId);
     if (!hidden) {
-      toast.show(HIDE_TOAST.failed);
+      toast.show(HIDE_TOAST.failed, { tone: "error" });
       return;
     }
 
     enqueuePendingToast(HIDE_TOAST.done, {
-      label: HIDE_TOAST.undoLabel,
-      type: POST_HIDDEN_ACTION,
-      postId,
+      tone: "success",
+      action: {
+        label: HIDE_TOAST.undoLabel,
+        type: POST_HIDDEN_ACTION,
+        postId,
+      },
     });
     closeDetail();
   }
@@ -213,12 +216,12 @@ export function PostDetailAppBar({
         onReported: (message) => {
           // 예시(데모)에선 화면을 닫지 않으므로 이 화면에서 바로 띄운다.
           if (demo) {
-            toast.show(message);
+            toast.show(message, { tone: "success" });
             return;
           }
 
           // 닫히는 화면에 띄우면 토스트도 함께 사라진다 → 문구만 넘기고 목록이 띄운다.
-          enqueuePendingToast(message);
+          enqueuePendingToast(message, { tone: "success" });
           closeDetail();
         },
       },
