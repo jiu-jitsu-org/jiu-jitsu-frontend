@@ -291,9 +291,8 @@ function BoardRow({
       className={cn(
         "relative flex w-full items-stretch rounded-2xl text-left",
         ROW_SIZE[state],
-        // 고른 줄은 진영 색으로 통째로 켜지고, 밀려난 줄은 꺼진다(전광판에서 승자 줄이 켜지듯).
-        // 꺼진 줄은 판 위에 한 단 뜬 면(흰 9%).
-        selected && !result ? [CORNER[key], "text-text-on-dark"] : palette.row,
+        // 바탕은 늘 판 위에 한 단 뜬 면(흰 9%). 고르면 그 위로 진영 색이 왼쪽부터 차오른다(아래 차오름 면).
+        palette.row,
         // 득표율을 읽어야 하는 상세에서는 밀려난 줄을 덜 끈다.
         state === "unselected" && (result ? "opacity-75" : "opacity-50"),
         "motion-safe:[transition:background-color_300ms_ease,opacity_300ms_ease,min-height_500ms_var(--ease-spring-wobbly),scale_500ms_var(--ease-spring-wobbly)]",
@@ -317,6 +316,24 @@ function BoardRow({
           style={{ width: `${result.percent}%` }}
         />
       ) : null}
+
+      {/*
+        고른 줄 차오름(홈) — 고르면 진영 블록에서 시작해 줄 끝까지 진영 색이 차올라 줄이 통째로 켜진다
+        (전광판에서 승자 줄이 켜지듯). 취소하면 같은 길로 빠진다. 득표율을 그리는 상세는 위 득표 막대가 맡는다.
+        폭 대신 오른쪽을 잘라(clip-path) 둥근 모서리가 찌그러지지 않는다.
+      */}
+      {result ? null : (
+        <span
+          aria-hidden
+          className={cn(
+            "absolute inset-0 rounded-2xl motion-safe:transition-[clip-path] motion-safe:duration-1000 motion-safe:ease-smooth-out",
+            CORNER[key],
+            selected
+              ? "[clip-path:inset(0_0_0_0_round_16px)]"
+              : "[clip-path:inset(0_100%_0_0_round_16px)]",
+          )}
+        />
+      )}
 
       {/*
         진영 블록 — 색 면은 기운 변으로 잘리고, 캐릭터는 그 위에 따로 서서 머리가 줄 위로 삐져나온다.
