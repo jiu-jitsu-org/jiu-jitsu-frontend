@@ -92,6 +92,20 @@
   --radius-20: 20px;
 }
 
+/* 토스트 — Figma에 아직 없는 색(임시). Figma 변수에 추가해 내보내면 이 블록을 지우고
+   생성된 토큰을 쓴다. 이름은 Figma에 그대로 옮길 수 있게 toast/… 규칙을 따른다.
+   주의(warning) 노랑은 기본 팔레트에도 없어 값을 직접 적었다 — Figma에 primitive부터 만들어야 한다. */
+@theme inline {
+  --color-toast-strong-background: var(--cool-gray-900);
+  --color-toast-action-text: var(--blue-300);
+  --color-toast-action-pressed-bg: var(--surface-on-dark-pressed-bg);
+  --color-toast-icon-success: var(--blue-300);
+  --color-toast-icon-info: var(--icon-subtle);
+  --color-toast-icon-warning: #ffc233;
+  --color-toast-icon-error: var(--error);
+  --color-toast-icon-mark: var(--icon-primary);
+}
+
 html {
   /* 좌우/상하 오버스크롤 바운스·인디케이터 차단 */
   overscroll-behavior: none;

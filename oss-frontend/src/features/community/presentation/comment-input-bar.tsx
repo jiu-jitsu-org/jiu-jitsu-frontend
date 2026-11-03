@@ -103,7 +103,7 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
         if (response.status === 401) {
           postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
         } else {
-          toast.show("댓글을 등록하지 못했어요");
+          toast.show("댓글을 등록하지 못했어요", { tone: "error" });
         }
         return;
       }

@@ -70,7 +70,7 @@ export function BalanceDetailAppBar({
 
     // 예시(데모)에선 네트워크 없이 토스트만(저장·롤백 없음).
     if (demo) {
-      toast.show(alarmToast(next));
+      toast.show(alarmToast(next), { tone: "info" });
       return;
     }
 
@@ -97,10 +97,10 @@ export function BalanceDetailAppBar({
         typeof body?.data?.enabled === "boolean" ? body.data.enabled : next;
 
       setAlarmOn(enabled);
-      toast.show(alarmToast(enabled));
+      toast.show(alarmToast(enabled), { tone: "info" });
     } catch {
       setAlarmOn(previous);
-      toast.show("알림을 설정하지 못했어요");
+      toast.show("알림을 설정하지 못했어요", { tone: "error" });
     } finally {
       setAlarmPending(false);
     }

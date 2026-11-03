@@ -344,7 +344,7 @@ export function PostWriteScreen({
   /** 하단 "태그" 버튼 · 닫힌 상태의 회색 "#": 빈 입력칸을 연다. 최대 개수면 열지 않고 안내(사진 버튼과 같은 규칙). */
   function focusTagInput() {
     if (isTagFull) {
-      toast.show(tagLimitMessage);
+      toast.show(tagLimitMessage, { tone: "warning" });
       return;
     }
     openTagInput("");
@@ -408,7 +408,7 @@ export function PostWriteScreen({
       next = [...next.slice(0, insertAt), name, ...next.slice(insertAt)];
       insertAt += 1;
     }
-    if (message) toast.show(message);
+    if (message) toast.show(message, { tone: "warning" });
     if (next !== tags) setTags(next);
     if (editingTagIndex !== null) setEditingTagIndex(insertAt);
     setTagInput("");
@@ -432,7 +432,7 @@ export function PostWriteScreen({
   function sanitizeTagInput(value: string): string {
     const allowed = value.replace(TAG_DISALLOWED_PATTERN, "");
     if (allowed.length > MAX_TAG_LENGTH) {
-      toast.show(`태그는 ${MAX_TAG_LENGTH}자까지 입력할 수 있어요`);
+      toast.show(`태그는 ${MAX_TAG_LENGTH}자까지 입력할 수 있어요`, { tone: "warning" });
       return allowed.slice(0, MAX_TAG_LENGTH);
     }
     return allowed;
@@ -546,7 +546,7 @@ export function PostWriteScreen({
    */
   function goToDetail(postId: number, toastMessage: string) {
     discardAll();
-    toast.show(toastMessage);
+    toast.show(toastMessage, { tone: "success" });
     router.replace(`/community/${postId}`);
   }
 
@@ -556,8 +556,8 @@ export function PostWriteScreen({
    */
   function returnToDetail(postId: number) {
     enqueuePendingToast(SUBMIT_TOAST.editDone, {
-      type: POST_EDITED_ACTION,
-      postId,
+      tone: "success",
+      action: { type: POST_EDITED_ACTION, postId },
     });
     closeScreen();
   }
@@ -733,7 +733,7 @@ export function PostWriteScreen({
     const pasted = event.clipboardData.getData("text");
     const selected = field.selectionEnd - field.selectionStart;
     if (field.value.length - selected + pasted.length > max) {
-      toast.show(message);
+      toast.show(message, { tone: "warning" });
     }
   }
 
@@ -743,7 +743,7 @@ export function PostWriteScreen({
     const validationError = findValidationError();
     if (validationError !== null) {
       // 토스트는 나중 것이 이전 것을 덮는다(ToastProvider.show) — 연타해도 마지막 안내만 보인다.
-      toast.show(validationError.message);
+      toast.show(validationError.message, { tone: "warning" });
       // 오류 색은 토스트가 말하는 칸에만 — 카테고리 안내인데 제목 카운터까지 빨개지면 어디를 고칠지 흐려진다.
       setCategoryMissing(validationError.field === "category");
       setTitleShort(validationError.field === "title");
@@ -809,10 +809,10 @@ export function PostWriteScreen({
         error.code === ApiErrorCode.IMAGE_FILE_NOT_FOUND
       ) {
         expireUploaded();
-        toast.show(SUBMIT_TOAST.createImageExpired);
+        toast.show(SUBMIT_TOAST.createImageExpired, { tone: "error" });
         return;
       }
-      toast.show(isEdit ? SUBMIT_TOAST.editFailed : SUBMIT_TOAST.createFailed);
+      toast.show(isEdit ? SUBMIT_TOAST.editFailed : SUBMIT_TOAST.createFailed, { tone: "error" });
     }
   }
 
@@ -1211,7 +1211,7 @@ export function PostWriteScreen({
             type="button"
             onClick={
               isEdit
-                ? () => toast.show(EDIT_PHOTO_UNAVAILABLE_MESSAGE)
+                ? () => toast.show(EDIT_PHOTO_UNAVAILABLE_MESSAGE, { tone: "warning" })
                 : openPhotoSheet
             }
             aria-disabled={isEdit}

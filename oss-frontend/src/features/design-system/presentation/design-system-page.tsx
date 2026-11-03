@@ -360,7 +360,7 @@ export function DesignSystemPage() {
             <p className="text-body-s text-text-secondary">댓글</p>
           </Demo>
 
-          <Demo title="Toast" note="useToast().show()">
+          <Demo title="Toast" note="useToast().show(문구, { tone, action }) · 아래로 밀면 닫힘">
             <ToastDemo />
           </Demo>
         </Section>

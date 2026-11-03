@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-import { useToast } from "@/shared/ui/toast";
+import { useToast, type ToastTone } from "@/shared/ui/toast";
 
 /**
  * 화면을 떠나면서 남기는 토스트 — "다음에 전면에 오는 화면"이 대신 띄운다.
@@ -42,6 +42,7 @@ export type PendingToastAction = {
 
 type PendingToast = {
   message: string;
+  tone?: ToastTone;
   action?: PendingToastAction;
   /** 발행 시각(ms) — TTL 판정용. */
   at: number;
@@ -50,15 +51,21 @@ type PendingToast = {
 /**
  * 화면을 닫기 직전에 호출한다. 다음에 usePendingToast를 쓰는 화면이 이 문구를 띄운다.
  * action을 함께 넘기면 그 화면이 액션 버튼까지 그린다(해석은 그쪽 몫).
+ * tone은 토스트 왼쪽 아이콘(완료·안내·주의·실패) — 기본은 안내.
  */
 export function enqueuePendingToast(
   message: string,
-  action?: PendingToastAction,
+  options?: { tone?: ToastTone; action?: PendingToastAction },
 ): void {
   if (typeof window === "undefined") return;
 
   try {
-    const entry: PendingToast = { message, action, at: Date.now() };
+    const entry: PendingToast = {
+      message,
+      tone: options?.tone,
+      action: options?.action,
+      at: Date.now(),
+    };
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(entry));
   } catch {
     // 사파리 프라이빗 모드 등 스토리지 차단 환경. 토스트는 부가 안내이므로 조용히 포기한다.
@@ -80,7 +87,12 @@ function dequeuePendingToast(): PendingToast | null {
     }
     if (Date.now() - entry.at > TTL_MS) return null;
 
-    return { message: entry.message, action: entry.action, at: entry.at };
+    return {
+      message: entry.message,
+      tone: entry.tone,
+      action: entry.action,
+      at: entry.at,
+    };
   } catch {
     return null;
   }
@@ -119,13 +131,13 @@ export function usePendingToast(
 
       if (action?.label && onAction) {
         toast.show(entry.message, {
-          label: action.label,
-          onAction: () => onAction(action),
+          tone: entry.tone,
+          action: { label: action.label, onAction: () => onAction(action) },
         });
         return;
       }
 
-      toast.show(entry.message);
+      toast.show(entry.message, { tone: entry.tone });
     }
 
     consume();

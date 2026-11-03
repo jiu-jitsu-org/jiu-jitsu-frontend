@@ -31,7 +31,7 @@ export function BalanceDetailGone() {
   useEffect(() => {
     if (!isNativeBridgeAvailable()) return;
 
-    enqueuePendingToast(GONE_MESSAGE);
+    enqueuePendingToast(GONE_MESSAGE, { tone: "info" });
     closeNativeSubview();
   }, []);
 
