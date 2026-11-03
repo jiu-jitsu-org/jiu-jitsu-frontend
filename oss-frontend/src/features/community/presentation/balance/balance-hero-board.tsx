@@ -186,6 +186,7 @@ export function BalanceHeroBoard({
         "relative flex flex-col overflow-hidden px-4 pt-5",
         detail ? "rounded-[24px] pb-5" : "cursor-pointer rounded-b-[28px] pb-3",
         palette.bg,
+        palette.shadow,
         palette.text,
       )}
       aria-label="오늘의 밸런스 게임"
@@ -194,17 +195,28 @@ export function BalanceHeroBoard({
         <h2 className={cn(balanceTitleFont.className, "text-[22px] leading-7")}>
           오늘의 밸런스 게임
         </h2>
-        {/* 경기 중 표시 — 마감되면 "종료"로. 점은 숨 쉬듯 깜빡인다(동작 줄이기면 멈춘다). */}
-        <span className={cn("flex items-center gap-1.5 text-label-m", palette.muted)}>
-          <span
-            aria-hidden
-            className={cn(
-              "size-2 rounded-full",
-              game.closed
-                ? "bg-current opacity-60"
-                : "bg-interactive-poll-a motion-safe:animate-pulse",
+        {/*
+          경기 중 표시 — 중계 화면의 "생중계" 알약. 선수 줄과 같은 옅은 면에 홍 점을 두고, 점 둘레로 물결이
+          번진다(동작 줄이기면 멈춘다). 마감되면 점이 회색으로 꺼지고 "종료"로 바뀐다.
+        */}
+        <span
+          className={cn(
+            "flex h-7 items-center gap-1.5 rounded-full pr-3 pl-2.5 text-label-m font-semibold",
+            palette.row,
+            game.closed && palette.muted,
+          )}
+        >
+          <span aria-hidden className="relative flex size-2">
+            {game.closed ? null : (
+              <span className="absolute inset-0 rounded-full bg-interactive-poll-a motion-safe:animate-ping motion-safe:[animation-duration:1.6s]" />
             )}
-          />
+            <span
+              className={cn(
+                "relative size-2 rounded-full",
+                game.closed ? "bg-current opacity-60" : "bg-interactive-poll-a",
+              )}
+            />
+          </span>
           {game.closed ? "종료" : "진행 중"}
         </span>
       </header>
