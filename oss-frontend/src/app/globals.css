@@ -82,6 +82,14 @@
   --text-button-s: 0.75rem;
   --text-button-s--line-height: 0.875rem;
   --text-button-s--font-weight: 600;
+
+  /* 모서리 — Figma에서 쓰는 숫자를 그대로 이름으로 쓴다(`rounded-10` = 10px).
+     Tailwind 기본(rounded-lg 8 · xl 12 · 2xl 16)과 값이 달라 화면마다 `rounded-[10px]`처럼
+     직접 적던 값을 모았다. 10: 작은·중간 버튼, 틴트 아이콘 버튼 / 15: 큰 버튼·입력칸·토스트 /
+     20: 대화상자·아래에서 올라오는 시트. */
+  --radius-10: 10px;
+  --radius-15: 15px;
+  --radius-20: 20px;
 }
 
 html {
