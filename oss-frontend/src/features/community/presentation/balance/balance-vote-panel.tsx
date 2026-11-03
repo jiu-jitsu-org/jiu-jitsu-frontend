@@ -2,19 +2,13 @@
 
 import { useCallback, useState } from "react";
 
-import type {
-  BalanceGame,
-  BalanceOptionKey,
-} from "@/features/community/domain/balance-game";
-import {
-  BalanceOptionButton,
-  type BalanceOptionState,
-} from "@/features/community/presentation/balance/balance-option-button";
-import { BalanceHeroWash } from "@/features/community/presentation/balance/balance-hero-wash";
-import { BalanceDetailCountdown } from "@/features/community/presentation/balance/balance-detail-countdown";
-import { readOptionResult } from "@/features/community/presentation/balance/balance-result";
+import type { BalanceGame } from "@/features/community/domain/balance-game";
 import { useBalanceCloseTransition } from "@/features/community/presentation/balance/use-balance-close-transition";
 import { useBalanceVote } from "@/features/community/presentation/balance/use-balance-vote";
+import { BalanceHeroBoard } from "@/features/community/presentation/balance/balance-hero-board";
+
+/** 상세 판은 이미 상세라 "판을 누르면 상세로"가 없다. */
+const NOOP = () => {};
 
 /**
  * 상세의 투표 영역 — 타이머와 선택지, 그리고 게임 상태를 소유한다.
@@ -59,69 +53,16 @@ export function BalanceVotePanel({
     onClosed: handleClosed,
   });
 
-  /**
-   * 눌러서 상태가 바뀔 수 있는지 — 커서 표현에만 쓴다(리스트 카드와 같은 규칙).
-   *
-   * 마감 전에는 어느 선택지든 바뀐다(미참여 → 투표, 고른 것 → 취소, 다른 것 → 변경).
-   */
-  const interactive = !game.closed;
-
-  /**
-   * 선택지 표시 상태.
-   *
-   * 마감 여부를 보지 않는 것이 의도적이다 — 마감 후 배경 강조는 사라지지만(readOptionResult가
-   * emphasized: false를 준다) 캐릭터는 내가 고른 그대로 남는다. 배경 색이 빠져도 무엇을
-   * 골랐는지는 읽을 수 있어야 한다는 판단이고, 크기가 유지되므로 전환 시 행 높이도 그대로다.
-   */
-  const optionState = (option: BalanceOptionKey): BalanceOptionState => {
-    if (game.myVote === null) return "default";
-    return game.myVote === option ? "selected" : "unselected";
-  };
-
+  // 홈과 같은 스코어보드 판(#305). 투표했거나 마감되면 득표율을 줄이 보여 준다(variant="detail").
   return (
-    <>
-      {/*
-        머리 바탕 — 홈 카드와 같다(투표 전엔 대결 박자로 빨강↔파랑, 고르면 고른 색). 본문 영역(section)
-        맨 위부터 깔린다. 상태를 이 패널이 가져서 여기서 그린다.
-      */}
-      <BalanceHeroWash
-        myVote={game.myVote}
-        idle={game.myVote === null && interactive}
-        className="top-0 h-44"
-      />
-
-      {/*
-        타이머 배지 — 조회수 행 아래 24. 배지 자체가 자기 폭만 차지하는 inline-flex라
-        가운데 정렬을 위해 한 겹 감싼다.
-      */}
-      <div className="mt-6 flex justify-center">
-        <BalanceDetailCountdown
-          endAt={game.endAt}
-          serverTime={game.serverTime}
-          closed={game.closed}
-          // 이미 마감된 판으로 들어왔으면(지난 게임 · 내 활동 목록) 마감 안내를 띄우지 않는다 —
-          // 보는 중에 0에 닿은 경우만 알린다.
-          onExpired={game.closed ? undefined : handleExpired}
-        />
-      </div>
-
-      {/* 타이머 아래 16, 선택지 사이 4 */}
-      <div className="mt-4 flex flex-col gap-1">
-        <BalanceOptionButton
-          option={game.optionA}
-          state={optionState("A")}
-          interactive={interactive}
-          result={readOptionResult(game, "A")}
-          onPress={() => vote("A")}
-        />
-        <BalanceOptionButton
-          option={game.optionB}
-          state={optionState("B")}
-          interactive={interactive}
-          result={readOptionResult(game, "B")}
-          onPress={() => vote("B")}
-        />
-      </div>
-    </>
+    <BalanceHeroBoard
+      game={game}
+      onVote={vote}
+      onPressDetail={NOOP}
+      // 이미 마감된 판으로 들어왔으면(지난 게임 · 내 활동 목록) 마감 안내를 띄우지 않는다 —
+      // 보는 중에 0에 닿은 경우만 알린다.
+      onExpired={game.closed ? undefined : handleExpired}
+      variant="detail"
+    />
   );
 }

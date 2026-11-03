@@ -64,26 +64,23 @@ export function BalanceDetailView({
         >
           <div>
             {/*
-              본문 영역: 헤더와 간격 24, 좌우 16 — 게시글 상세와 같은 규격.
-              relative·isolate는 투표 패널이 까는 머리 바탕(BalanceHeroWash)의 기준이다.
+              본문 영역: 헤더와 간격 20, 좌우 16. 맨 위는 홈과 같은 스코어보드 판(#305) — 판이 제목·남은
+              시간·선택지를 다 품으므로 원래 제목은 화면 낭독용으로만 남기고(sr-only), 조회수·날짜는 판 아래로 내린다.
             */}
-            <section className="relative isolate flex flex-col px-4 pt-6">
-              {/* 제목: Body M · 왼쪽 정렬(디자인 가이드). 게시글 상세와 같은 타이포지만 별개 지정이다. */}
-              <h1 className="text-body-m text-feed-card-body-title-text">
-                오늘의 밸런스 게임
-              </h1>
+            <section className="flex flex-col px-4 pt-5">
+              <h1 className="sr-only">오늘의 밸런스 게임</h1>
 
-              {/* 제목 아래 6 */}
+              <BalanceVotePanel initialGame={game} />
+
+              {/* 판 아래 12 */}
               <BalanceDetailMetaRow
                 views={game.views}
                 gameDate={game.gameDate}
-                className="mt-1.5"
+                className="mt-3 px-1"
               />
-
-              <BalanceVotePanel initialGame={game} />
             </section>
 
-            {/* 액션바: 선택지 아래 40, 디바이더 없음, 우측 정렬 (게시글 상세는 13 — 별개 지정이다) */}
+            {/* 액션바: 조회수 줄 아래 40, 디바이더 없음, 우측 정렬 (게시글 상세는 13 — 별개 지정이다) */}
             <BalanceDetailActionBar
               className="mt-10"
               contentId={game.contentId}

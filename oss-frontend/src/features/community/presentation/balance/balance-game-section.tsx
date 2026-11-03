@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useOnLogin } from "@/features/auth/presentation/auth-provider";
-import { BalanceGameCard } from "@/features/community/presentation/balance/balance-game-card";
 import {
-  BalanceStickyBar,
-  STICKY_LIFT_OUT_MS,
-} from "@/features/community/presentation/balance/balance-sticky-bar";
+  BalanceCollapsedBar,
+  COLLAPSED_BAR_OUT_MS,
+} from "@/features/community/presentation/balance/balance-collapsed-bar";
+import { BalanceHeroBoard } from "@/features/community/presentation/balance/balance-hero-board";
 import { useBalanceVote } from "@/features/community/presentation/balance/use-balance-vote";
 import { useOpenBalanceDetail } from "@/features/community/presentation/balance/use-open-balance-detail";
 import { useStickyReveal } from "@/features/community/presentation/balance/use-sticky-reveal";
@@ -32,8 +32,11 @@ import { bffFetch } from "@/shared/lib/http/bff-fetch";
  */
 export function BalanceGameSection({
   initialGame,
+  intro = false,
 }: {
   initialGame: BalanceGame;
+  /** 그날 게임을 처음 볼 때 히어로 인트로를 돌린다(#305 — balance-intro). */
+  intro?: boolean;
 }) {
   const [game, setGame] = useState<BalanceGame | null>(initialGame);
 
@@ -83,77 +86,83 @@ export function BalanceGameSection({
 
   if (!game) return null;
 
-  return <BalanceGameBody game={game} onChange={setGame} onExpired={reload} />;
+  return (
+    <BalanceGameBody
+      game={game}
+      intro={intro}
+      onChange={setGame}
+      onExpired={reload}
+    />
+  );
 }
 
 /**
- * 카드 본체 — 게임이 있을 때만 마운트된다.
+ * 접힌 바를 누르면 맨 위로 올라가 게임을 다시 펼친다. 메인 피드는 문서가 스크롤된다.
+ * 움직임 줄이기 설정이면 미끄러지지 않고 바로 옮긴다.
+ */
+function scrollToTop() {
+  window.scrollTo({
+    top: 0,
+    behavior: prefersReducedMotion() ? "auto" : "smooth",
+  });
+}
+
+/**
+ * 히어로 본체 — 게임이 있을 때만 마운트된다.
  *
  * 투표 훅이 game을 non-null로 받도록 한 겹 나눈다. 섹션에서 바로 부르면 게임이 없을 때도
  * 훅이 돌아야 해서(훅은 조건부 호출 불가) game 전체가 옵셔널로 오염된다.
+ *
+ * 홈 맨 위는 매트 스코어보드 히어로(#305)다. 히어로가 화면 위로 지나가면 전광판을 얇게 썬 접힌 바가
+ * 늘 남는다 — 투표 여부와 상관없는 화면 구조의 일부라, 바를 누르면 맨 위로 올라가 판을 다시 펼친다.
  */
 function BalanceGameBody({
   game,
+  intro,
   onChange,
   onExpired,
 }: {
   game: BalanceGame;
+  intro: boolean;
   onChange: (next: BalanceGame) => void;
   onExpired: () => void;
 }) {
   const vote = useBalanceVote({ game, onVoted: onChange });
   const openDetail = useOpenBalanceDetail();
+  const { targetRef, passed } = useStickyReveal<HTMLDivElement>();
 
-  // sticky 바는 아직 투표하지 않은 사용자에게만 보인다(비로그인 포함 — 그쪽은 계속 미투표다).
-  // 투표를 마치면 다시 부를 이유가 없으므로 관찰 자체를 끈다. 취소로 미참여에 돌아오면
-  // 관찰이 다시 걸려 카드를 지나칠 때 sticky가 또 뜬다.
-  const canReveal = game.myVote === null;
-  const { targetRef, passed } = useStickyReveal<HTMLDivElement>({
-    enabled: canReveal,
-  });
-
-  // 바는 보일 조건이 꺼져도 바로 빼지 않고 위로 걷히는 동안(STICKY_LIFT_OUT_MS) 남겨 둔다.
+  // 바는 보일 조건이 꺼져도 바로 빼지 않고 걷히는 동안 남겨 둔다.
   // animationend 대신 타이머인 이유는 useLeavingKeys와 같다 — 끝 이벤트를 못 받으면 영영 남는다.
   // 걷히는 도중 다시 보일 조건이 되면 타이머가 취소되고 바는 그대로 다시 내려온다.
-  const showSticky = canReveal && passed;
-  const [stickyMounted, setStickyMounted] = useState(showSticky);
-  if (showSticky && !stickyMounted) setStickyMounted(true);
-  const stickyLeaving = stickyMounted && !showSticky;
+  const [barMounted, setBarMounted] = useState(passed);
+  if (passed && !barMounted) setBarMounted(true);
+  const barLeaving = barMounted && !passed;
 
   useEffect(() => {
-    if (!stickyLeaving) return;
+    if (!barLeaving) return;
     // 움직임 줄이기 설정이면 기다리지 않는다(다음 틱에 바로 뺀다).
-    const delay = prefersReducedMotion() ? 0 : STICKY_LIFT_OUT_MS;
-    const timer = window.setTimeout(() => setStickyMounted(false), delay);
+    const delay = prefersReducedMotion() ? 0 : COLLAPSED_BAR_OUT_MS;
+    const timer = window.setTimeout(() => setBarMounted(false), delay);
     return () => window.clearTimeout(timer);
-  }, [stickyLeaving]);
+  }, [barLeaving]);
 
   return (
     <>
-      {/* 카드 위 38 · 아래 32(카드 눌림 여백 12씩 포함). 구분선 없이 여백으로 나눈다 — 첫 글까지 56
-          (+ 피드 목록 24)이 글 사이(40)보다 넓어 구역 경계로 읽힌다. */}
-      <div ref={targetRef} className="pt-6.5 pb-5">
-        <BalanceGameCard
+      {/* 히어로가 피드와의 사이를 스스로 끝맺는다(아래 모서리만 둥근 판). */}
+      <div ref={targetRef}>
+        <BalanceHeroBoard
           game={game}
           onVote={vote}
           onPressDetail={() => openDetail(game.contentId)}
           onExpired={onExpired}
+          intro={intro}
         />
       </div>
-
-      {/*
-        카드가 화면 위로 완전히 지나간 뒤에만 뜬다. 카드가 조금이라도 보이는 동안 띄우면
-        같은 내용이 두 번 보이고, 무엇보다 sticky가 카드의 선택지를 가린다.
-
-        만료 통지(onExpired)는 넘기지 않는다 — 카드와 동시에 마운트돼 있어 양쪽이 알리면
-        재조회가 두 번 걸린다(BalanceRemaining 주석 참조).
-      */}
-      {stickyMounted ? (
-        <BalanceStickyBar
-          endAt={game.endAt}
-          serverTime={game.serverTime}
-          onPress={() => openDetail(game.contentId)}
-          leaving={stickyLeaving}
+      {barMounted ? (
+        <BalanceCollapsedBar
+          game={game}
+          leaving={barLeaving}
+          onPress={scrollToTop}
         />
       ) : null}
     </>

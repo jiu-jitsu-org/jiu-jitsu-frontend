@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import type { ReactNode } from "react";
 
 import { readBeltAvatarSample } from "@/features/community/application/belt-avatar-sample";
@@ -8,6 +9,11 @@ import { SessionHintProvider } from "@/features/auth/presentation/session-hint";
 import type { BalanceGame } from "@/features/community/domain/balance-game";
 import { DEFAULT_BOARD_LIST_QUERY } from "@/features/community/domain/post-summary";
 import { BalanceGameSection } from "@/features/community/presentation/balance/balance-game-section";
+import {
+  BALANCE_INTRO_COOKIE,
+  readBalanceIntroForced,
+  shouldPlayBalanceIntro,
+} from "@/features/community/presentation/balance/balance-intro";
 import { CommunityFeedList } from "@/features/community/presentation/community-feed-list";
 import { FeedEmptyState } from "@/features/community/presentation/feed-empty-state";
 import { FeedErrorState } from "@/features/community/presentation/feed-error-state";
@@ -30,18 +36,33 @@ import { Spinner } from "@/shared/ui/spinner";
  * 개발용 진입 허브/playground는 `src/app/_backup/`에 보관돼 있다.
  *
  * `?belt=sample`은 `next dev` 전용 띠 아바타 예시다(production에선 무시 — belt-avatar-sample).
+ * `?intro=1`은 `next dev` 전용으로, 이미 본 게임이어도 밸런스 게임 인트로를 다시 돌린다(#305 — balance-intro).
  */
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ belt?: string | string[] }>;
+  searchParams: Promise<{
+    belt?: string | string[];
+    intro?: string | string[];
+  }>;
 }) {
-  const beltSample = readBeltAvatarSample((await searchParams).belt);
-  const [result, balanceGame, sessionToken] = await Promise.all([
+  const params = await searchParams;
+  const beltSample = readBeltAvatarSample(params.belt);
+  const balanceIntroForced = readBalanceIntroForced(params.intro);
+  const [result, balanceGame, sessionToken, cookieStore] = await Promise.all([
     getBoardListPageData(DEFAULT_BOARD_LIST_QUERY, beltSample),
     getBalanceGamePageData(),
     readSessionToken(),
+    cookies(),
   ]);
+  // 그날 게임을 처음 볼 때만 히어로 인트로를 돌린다(balance-intro의 BALANCE_INTRO_COOKIE).
+  const balanceIntro =
+    balanceGame !== null &&
+    shouldPlayBalanceIntro({
+      contentId: balanceGame.contentId,
+      seenContentId: cookieStore.get(BALANCE_INTRO_COOKIE)?.value,
+      forced: balanceIntroForced,
+    });
 
   return (
     // 카드 ⋮가 로그인 여부로 갈린다 — 세션 판정 전에도 맞게 그리도록 힌트를 깐다(#173).
@@ -51,7 +72,7 @@ export default async function Home({
         <main className="feed-bounce-scroll min-h-screen bg-[var(--bw-white)]">
           {/* 새로고침이면 이전 위치 대신 맨 위에서 시작한다(#260). */}
           <FeedScrollTopOnReload />
-          {renderFeed(result, balanceGame)}
+          {renderFeed(result, balanceGame, balanceIntro)}
 
           {/* 게시글 작성 진입 FAB — 네이티브면 OPEN_SUBVIEW로 풀스크린 서브뷰, 웹 단독이면 라우터 이동. */}
           <PostWriteFab />
@@ -70,6 +91,7 @@ export default async function Home({
 function renderFeed(
   result: Awaited<ReturnType<typeof getBoardListPageData>>,
   balanceGame: BalanceGame | null,
+  balanceIntro: boolean,
 ): ReactNode {
   if (!result.ok) {
     if (result.reason === "session-expired") {
@@ -83,26 +105,21 @@ function renderFeed(
   // 밸런스 카드는 피드가 정상일 때만 얹는다 — 에러·복구 화면 위에 얹으면 "무엇이 실패했는지"가
   // 흐려진다. 진행 중인 판이 없거나 조회에 실패했으면(null) 아무것도 그리지 않는다.
   const balance = balanceGame ? (
-    <BalanceGameSection initialGame={balanceGame} />
+    <BalanceGameSection initialGame={balanceGame} intro={balanceIntro} />
   ) : null;
-
-  if (result.data.list.items.length === 0) {
-    return (
-      <>
-        {balance}
-        <FeedEmptyState />
-      </>
-    );
-  }
 
   return (
     <>
       {balance}
-      <CommunityFeedList
-        posts={result.data.list.items}
-        page={result.data.list.page}
-        isLast={result.data.list.isLast}
-      />
+      {result.data.list.items.length === 0 ? (
+        <FeedEmptyState />
+      ) : (
+        <CommunityFeedList
+          posts={result.data.list.items}
+          page={result.data.list.page}
+          isLast={result.data.list.isLast}
+        />
+      )}
     </>
   );
 }

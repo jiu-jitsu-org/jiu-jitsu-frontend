@@ -156,9 +156,6 @@
   --animate-balance-gloat-b: balance-gloat-b 3200ms ease-in-out 800ms infinite;
   --animate-balance-cower-a: balance-cower-a 3200ms ease-in-out 800ms infinite;
   --animate-balance-cower-b: balance-cower-b 3200ms ease-in-out 800ms infinite;
-  /* 같은 8초 박자의 머리 바탕 — 기세를 잡은 쪽 색이 깔리고, 맞붙는 동안 다음 색으로 스며든다. */
-  --animate-balance-hero-a: balance-hero-a 8000ms ease-in-out infinite;
-  --animate-balance-hero-b: balance-hero-b 8000ms ease-in-out infinite;
   /* 밸런스 게임 진행률 fill — 처음 나타날 때 0에서 부드럽게 차오른다(이후 변경은 transition). */
   --animate-balance-fill-in: balance-fill-in 1000ms var(--ease-spring-gentle);
   --animate-balance-fill-in-content: balance-fill-in-content 1000ms
@@ -194,10 +191,10 @@
   --animate-oss-wave: oss-wave 1000ms ease-out 320ms both;
   /* 알림 끄기 — 종이 움츠렸다 출렁이며 돌아온다. */
   --animate-bell-mute: bell-mute 500ms ease-out both;
-  /* 밸런스 게임 고정 바 — 위에서 떨어지듯 내려와 출렁이며 자리 잡는다. */
-  --animate-sticky-drop-in: sticky-drop-in 600ms var(--ease-spring-bouncy) both;
-  /* 밸런스 게임 고정 바 숨김 — 출렁임 없이 위로 걷히며 사라진다. */
-  --animate-sticky-lift-out: sticky-lift-out 260ms ease-in both;
+  /* 밸런스 게임 접힌 바(#305) — 화면 구조의 일부라 출렁이지 않고 위에서 곧게 미끄러져 내려온다. */
+  --animate-bar-slide-in: bar-slide-in 240ms var(--ease-smooth-out) both;
+  /* 접힌 바 숨김 — 위로 곧게 걷힌다. */
+  --animate-bar-slide-out: bar-slide-out 180ms ease-in both;
 
   /* 추가되는 작은 조각(사진 썸네일·태그 칩) — 작게 시작해 톡 부풀며 자리 잡는다. */
   --animate-pop-in: pop-in 400ms var(--ease-spring-bouncy) both;
@@ -405,25 +402,15 @@
     }
   }
 
-  @keyframes sticky-drop-in {
+  @keyframes bar-slide-in {
     from {
-      opacity: 0;
-      transform: translateY(-120%);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
+      transform: translateY(-100%);
     }
   }
 
-  @keyframes sticky-lift-out {
-    from {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  @keyframes bar-slide-out {
     to {
-      opacity: 0;
-      transform: translateY(-120%);
+      transform: translateY(-100%);
     }
   }
 
@@ -1291,77 +1278,6 @@
     }
   }
 
-  /*
-    머리 바탕(balance-hero-wash) — 띠 물들기와 같은 흐름을 바탕 전체로 옮긴다. 띠와 달리 둘이 동시에 짙지
-    않다: 맞붙는 1.6~2.4초에 빨강이 파랑으로, 반격하는 5.7~6.2초에 파랑이 빨강으로 넘어간다(0.5~0.8초).
-    쉬는 3.8~4.3초와 7.6~0.4초(다음 바퀴 처음)에만 비워 둔다.
-  */
-  @keyframes balance-hero-a {
-    0% {
-      opacity: 0;
-    }
-    5% {
-      opacity: 0;
-    }
-    11% {
-      opacity: 1;
-    }
-    20% {
-      opacity: 1;
-    }
-    30% {
-      opacity: 0;
-    }
-    71% {
-      opacity: 0;
-    }
-    77% {
-      opacity: 1;
-    }
-    89% {
-      opacity: 1;
-    }
-    95% {
-      opacity: 0;
-    }
-    100% {
-      opacity: 0;
-    }
-  }
-
-  @keyframes balance-hero-b {
-    0% {
-      opacity: 0;
-    }
-    20% {
-      opacity: 0;
-    }
-    30% {
-      opacity: 1;
-    }
-    40% {
-      opacity: 1;
-    }
-    47% {
-      opacity: 0;
-    }
-    54% {
-      opacity: 0;
-    }
-    60% {
-      opacity: 1;
-    }
-    71% {
-      opacity: 1;
-    }
-    77% {
-      opacity: 0;
-    }
-    100% {
-      opacity: 0;
-    }
-  }
-
   /* fill의 창(폭 200%)과 그 안의 글자 겹 — 같은 곡선으로 서로 상쇄된다(balance-option-button). */
   @keyframes balance-fill-in {
     from {
@@ -1372,6 +1288,129 @@
   @keyframes balance-fill-in-content {
     from {
       translate: 100% 0;
+    }
+  }
+
+  /* ─── 밸런스 히어로 인트로(#305) — 홈에서 히어로를 처음 볼 때 한 번 도는 짧은 등장. ───
+     전부 backwards로 채운다: 시작 전(지연 중)엔 첫 프레임에 머물고, 끝나면 원래 모습으로 돌아가
+     클래스가 남아 있어도 이후 동작(투표 반응)에 간섭하지 않는다. 동작 줄이기면 motion-safe로 아예 안 돈다. */
+  --animate-balance-intro-title: balance-intro-title 420ms var(--ease-smooth-out) backwards;
+  --animate-balance-intro-punch: balance-intro-punch 520ms ease-out backwards;
+  --animate-balance-intro-wipe: balance-intro-wipe 420ms var(--ease-smooth-out) backwards;
+  --animate-balance-intro-sheen: balance-intro-sheen 520ms ease-in-out backwards;
+  --animate-balance-intro-jump: balance-intro-jump 620ms ease-out backwards;
+  --animate-balance-intro-stamp: balance-intro-stamp 420ms ease-out backwards;
+  --animate-balance-intro-fill-retract: balance-intro-fill-retract 940ms linear backwards;
+
+  /* 제목 — 기울어진 채 왼쪽에서 미끄러져 들어와 바로 선다. */
+  @keyframes balance-intro-title {
+    from {
+      opacity: 0;
+      transform: translateX(-28px) skewX(-14deg);
+    }
+  }
+
+  /* 경기 시계 — 크게 흐릿하게 들어와 살짝 눌렸다 제자리에 박힌다. */
+  @keyframes balance-intro-punch {
+    0% {
+      opacity: 0;
+      scale: 1.6;
+      filter: blur(8px);
+    }
+    55% {
+      opacity: 1;
+      scale: 0.94;
+      filter: blur(0);
+    }
+    78% {
+      scale: 1.03;
+    }
+    100% {
+      scale: 1;
+    }
+  }
+
+  /* 선수 줄 — 중계 그래픽 이름표처럼 왼쪽에서 쓸려 들어온다. */
+  @keyframes balance-intro-wipe {
+    from {
+      clip-path: inset(0 100% 0 0 round 16px);
+      translate: -16px 0;
+    }
+    to {
+      clip-path: inset(0 0 0 0 round 16px);
+      translate: 0 0;
+    }
+  }
+
+  /* 줄 위를 한 번 스치는 빛 — 이름표가 다 들어왔다는 마침표. */
+  @keyframes balance-intro-sheen {
+    from {
+      translate: -120% 0;
+    }
+    to {
+      translate: 420% 0;
+    }
+  }
+
+  /* 캐릭터 — 줄 바닥에서 튀어 올라 길게 늘었다가 납작하게 착지하고 출렁이며 선다. */
+  @keyframes balance-intro-jump {
+    0% {
+      translate: 0 105%;
+      scale: 1 1;
+    }
+    42% {
+      translate: 0 -14%;
+      scale: 0.9 1.12;
+    }
+    60% {
+      translate: 0 0;
+      scale: 1.14 0.86;
+    }
+    76% {
+      scale: 0.97 1.04;
+    }
+    100% {
+      translate: 0 0;
+      scale: 1 1;
+    }
+  }
+
+  /* A·B 글자 — 도장처럼 기울어 크게 찍혔다 바로 선다. */
+  @keyframes balance-intro-stamp {
+    0% {
+      opacity: 0;
+      scale: 2.4;
+      rotate: -14deg;
+    }
+    58% {
+      opacity: 1;
+      scale: 0.88;
+      rotate: 4deg;
+    }
+    80% {
+      scale: 1.06;
+      rotate: -2deg;
+    }
+    100% {
+      scale: 1;
+      rotate: 0deg;
+    }
+  }
+
+  /* 꽉 찬 색 → 지금 모양 — 줄이 쓸려 들어오는 동안(0~45%, 420ms) 진영 색으로 꽉 차 있다가, 잠깐 머문 뒤
+     (45~58%) 색 판의 기운 오른쪽 변이 진영 블록 자리(줄이 넘긴 --corner-w, 바닥은 그보다 14px 안)까지 밀려 들어가 멈춘다(58~100%).
+     끝 모양이 블록과 똑같아 판이 사라지는 순간이 보이지 않는다. 색 판은 평소엔 보이지 않는다(opacity 0) —
+     backwards 채움으로 시작 전·도중에만 첫 프레임의 opacity 1을 얻는다. */
+  @keyframes balance-intro-fill-retract {
+    0%,
+    58% {
+      opacity: 1;
+      clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
+      animation-timing-function: cubic-bezier(0.7, 0, 0.2, 1);
+    }
+    100% {
+      opacity: 1;
+      clip-path: polygon(0 0, var(--corner-w, 100px) 0, calc(var(--corner-w, 100px) - 14px) 100%, 0 100%);
     }
   }
 }
