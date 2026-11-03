@@ -1,6 +1,6 @@
 "use client";
 
-import type { MouseEvent, ReactNode } from "react";
+import { Fragment, type MouseEvent, type ReactNode } from "react";
 
 import type { BalanceOptionState } from "@/features/community/presentation/balance/balance-option-button";
 import { RollingText } from "@/features/community/presentation/balance/rolling-text";
@@ -94,13 +94,29 @@ export function BalanceClock({
       */}
       <span role="timer" className={cn("tabular-nums", className)}>
         <span aria-hidden>
-          <RollingText text={toClock(remainMs)} />
+          <ClockDigits clock={toClock(remainMs)} />
         </span>
         <span className="sr-only">남은 시간 {toClock(remainMs)}</span>
       </span>
       {below?.(remainMs)}
     </>
   );
+}
+
+/**
+ * 시·분·초 숫자 묶음 사이의 `:` 양옆에 숨 쉴 자리를 둔다(#310) — 숫자끼리는 자간을 좁혀 한 덩어리로 묶고,
+ * `:`만 띄워 세 묶음이 갈려 읽힌다. 글자 크기를 따라가게 em으로 잡는다(접힌 바의 작은 시계도 같은 비율).
+ * 카니트의 `:`는 숫자 높이 가운데보다 낮게 앉아 살짝 올린다.
+ */
+function ClockDigits({ clock }: { clock: string }) {
+  return clock.split(":").map((part, index) => (
+    <Fragment key={index}>
+      {index > 0 ? (
+        <span className="relative -top-[0.06em] mx-[0.12em] inline-block">:</span>
+      ) : null}
+      <RollingText text={part} />
+    </Fragment>
+  ));
 }
 
 /**

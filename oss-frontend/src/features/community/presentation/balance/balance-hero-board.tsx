@@ -21,13 +21,12 @@ import {
   type BalanceOptionResult,
   readOptionResult,
 } from "@/features/community/presentation/balance/balance-result";
-import { TickingTimerIcon } from "@/features/community/presentation/balance/ticking-timer-icon";
 import type {
   BalanceGameOption,
   BalanceOptionKey,
 } from "@/features/community/domain/balance-game";
 import { cn } from "@/shared/lib/cn";
-import { CheckIcon } from "@/shared/ui/icons";
+import { CheckIcon, TimerIcon } from "@/shared/ui/icons";
 
 /**
  * 매트 스코어보드(#305) — 홈 맨 위 히어로이자 상세 맨 위 판(variant).
@@ -232,9 +231,7 @@ export function BalanceHeroBoard({
             balanceNumeralFont.className,
             "inline-block text-[60px] leading-[64px] tracking-[-1px]",
           )}
-          below={(remainMs) => (
-            <BoardClockLabel remainMs={remainMs} closed={game.closed} />
-          )}
+          below={() => <BoardClockLabel closed={game.closed} />}
         />
       </div>
 
@@ -428,18 +425,12 @@ function BoardRow({
 }
 
 /**
- * 시계 밑 "남은 시간" 이름표 — 다른 화면의 남은 시간 표기와 같은 째깍 시계 아이콘을 앞에 둔다.
+ * 시계 밑 "남은 시간" 이름표 — 다른 화면의 남은 시간 표기와 같은 시계 아이콘을 앞에 둔다.
  * 선수 줄과 같은 옅은 면의 알약에 담아 시계 숫자 밑에 조용히 붙인다(아이콘만 앱 파랑).
- * 시계와 같은 틱을 받는다(BalanceClock의 below) — 아이콘이 숫자와 같은 순간에 째깍인다. 낭독기에는 숨긴다
- * (시계가 이미 "남은 시간 …"으로 읽힌다).
+ * 아이콘은 째깍이지 않는다(#310) — 바로 위 큰 숫자가 이미 매초 움직여, 아이콘까지 흔들면 시선이 둘로 갈린다.
+ * 시계가 그려질 때만 함께 그린다(BalanceClock의 below). 낭독기에는 숨긴다(시계가 이미 "남은 시간 …"으로 읽힌다).
  */
-function BoardClockLabel({
-  remainMs,
-  closed,
-}: {
-  remainMs: number;
-  closed: boolean;
-}) {
+function BoardClockLabel({ closed }: { closed: boolean }) {
   const palette = BOARD_PALETTE;
 
   return (
@@ -451,11 +442,7 @@ function BoardClockLabel({
         palette.muted,
       )}
     >
-      <TickingTimerIcon
-        remainMs={closed ? null : remainMs}
-        size={14}
-        className="text-interactive-primary"
-      />
+      <TimerIcon size={14} className="text-interactive-primary" />
       {closed ? "투표 종료" : "남은 시간"}
     </span>
   );
