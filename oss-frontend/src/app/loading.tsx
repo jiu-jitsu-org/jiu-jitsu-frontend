@@ -1,5 +1,7 @@
 import type { CSSProperties } from "react";
 
+import { BalanceBoardSkeleton } from "@/features/community/presentation/balance/balance-board-skeleton";
+
 /**
  * 메인 피드 로딩 스켈레톤.
  *
@@ -40,25 +42,7 @@ function pulseDelay(order: number): CSSProperties {
   return { animationDelay: `${order * 150}ms` };
 }
 
-/**
- * 오늘의 밸런스 게임 자리(BalanceGameSection + BalanceGameCard와 같은 높이 ≈ 339).
- * 위 38 · 아래 24 + 제목(36) · 남은 시간 칩(28) · 선택지 66 × 2(간격 4) · 댓글 링크(28) + 아래 구분선.
- */
+/** 오늘의 밸런스 게임 자리 — 홈 맨 위 스코어보드 판과 같은 먹색 뼈대(#305). */
 function BalanceGameSkeleton() {
-  return (
-    <div
-      style={pulseDelay(0)}
-      className="border-b border-border-subtle pt-9.5 pb-6 motion-safe:animate-pulse"
-    >
-      <div className="flex flex-col items-center px-4">
-        <div className="h-9 w-60 rounded bg-feed-card-header-avatar-bg" />
-        <div className="mt-3 h-7 w-36 rounded-full bg-feed-card-header-avatar-bg" />
-        <div className="mt-7 flex w-full flex-col gap-1">
-          <div className="h-[66px] rounded-xl bg-feed-card-header-avatar-bg" />
-          <div className="h-[66px] rounded-xl bg-feed-card-header-avatar-bg" />
-        </div>
-        <div className="mt-2 h-7 w-24 self-end rounded-[10px] bg-feed-card-header-avatar-bg" />
-      </div>
-    </div>
-  );
+  return <BalanceBoardSkeleton variant="hero" style={pulseDelay(0)} />;
 }

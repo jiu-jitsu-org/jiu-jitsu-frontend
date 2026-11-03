@@ -3,6 +3,7 @@
 import type { CSSProperties } from "react";
 
 import { AppBarShell } from "@/features/community/presentation/app-bar-shell";
+import { BalanceBoardSkeleton } from "@/features/community/presentation/balance/balance-board-skeleton";
 import { closeDetail } from "@/features/community/presentation/close-detail";
 import { BackArrowIcon } from "@/shared/ui/icons";
 import { ICON_BUTTON_PRESS } from "@/shared/ui/press-styles";
@@ -86,29 +87,16 @@ function PostBodySkeleton() {
   );
 }
 
-/** 밸런스 게임: 제목 · 메타 · 타이머 배지(위 24) · 선택지 66 × 2(위 16, 간격 4). */
+/** 밸런스 게임: 스코어보드 판(위 20) · 조회수 줄(판 아래 12) — 실제 상세(BalanceDetailView)와 같은 간격. */
 function BalanceBodySkeleton() {
   return (
-    <div className="flex flex-col px-4 pt-6">
-      <div
-        style={pulseDelay(0)}
-        className="flex flex-col motion-safe:animate-pulse"
-      >
-        <div className={`h-5 w-36 ${BLOCK}`} />
-        <div className={`mt-2 h-3 w-32 ${BLOCK}`} />
-      </div>
+    <div className="flex flex-col px-4 pt-5">
+      <BalanceBoardSkeleton variant="detail" style={pulseDelay(0)} />
       <div
         style={pulseDelay(1)}
-        className="mt-6 flex justify-center motion-safe:animate-pulse"
+        className="mt-3 px-1 motion-safe:animate-pulse"
       >
-        <div className="h-8 w-28 rounded-full bg-feed-card-header-avatar-bg" />
-      </div>
-      <div
-        style={pulseDelay(2)}
-        className="mt-4 flex flex-col gap-1 motion-safe:animate-pulse"
-      >
-        <div className="h-[66px] rounded-xl bg-feed-card-header-avatar-bg" />
-        <div className="h-[66px] rounded-xl bg-feed-card-header-avatar-bg" />
+        <div className={`h-3 w-32 ${BLOCK}`} />
       </div>
     </div>
   );
