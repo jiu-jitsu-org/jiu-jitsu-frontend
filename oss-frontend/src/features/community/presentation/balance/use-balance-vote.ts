@@ -103,7 +103,7 @@ export function useBalanceVote({
       // 서버도 C0007로 막지만 굳이 왕복해서 실패를 받을 이유가 없다.
       // 안내를 띄우는 이유: 사용자는 마감된 줄 모르고 눌렀고, 반응이 없으면 앱이 멈춘 것처럼 보인다.
       if (game.closed) {
-        toast.show("마감된 밸런스 게임이에요", { tone: "info" });
+        toast.show("마감된 밸런스 게임이에요", { tone: "warning" });
         return;
       }
 

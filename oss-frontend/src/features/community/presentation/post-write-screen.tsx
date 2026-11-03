@@ -809,7 +809,7 @@ export function PostWriteScreen({
         error.code === ApiErrorCode.IMAGE_FILE_NOT_FOUND
       ) {
         expireUploaded();
-        toast.show(SUBMIT_TOAST.createImageExpired, { tone: "warning" });
+        toast.show(SUBMIT_TOAST.createImageExpired, { tone: "error" });
         return;
       }
       toast.show(isEdit ? SUBMIT_TOAST.editFailed : SUBMIT_TOAST.createFailed, { tone: "error" });
