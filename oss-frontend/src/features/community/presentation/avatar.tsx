@@ -60,8 +60,14 @@ export function Avatar({
           ref={detectSettledImage}
           src={src ?? undefined}
           alt=""
+          // 남의 프로필 사진을 꾹 눌러 저장·공유하지 못하게 iOS 기본 메뉴와 끌기를 막는다(#306).
+          draggable={false}
+          onContextMenu={(e) => e.preventDefault()}
           // 다 불러오기 전에는 동그라미 바탕만 보이고, 불러오면 옅게 나타난다.
-          className={cn("size-full object-cover", imageRevealClassName(reveal))}
+          className={cn(
+            "size-full select-none object-cover [-webkit-touch-callout:none]",
+            imageRevealClassName(reveal),
+          )}
           onLoad={() => setReveal(revealOnLoad)}
           onError={() => setFailedSrc(src ?? null)}
         />
