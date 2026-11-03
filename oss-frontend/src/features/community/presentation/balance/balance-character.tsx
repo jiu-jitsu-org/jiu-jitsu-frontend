@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import type { BalanceOptionKey } from "@/features/community/domain/balance-game";
 import type { BalanceOptionState } from "@/features/community/presentation/balance/balance-option-button";
@@ -186,6 +186,14 @@ export function BalanceCharacter({
   const gloat = state !== "default" && interactive;
   const glaring = gloat && state === "selected";
 
+  // 상태가 바뀔 때 그림이 비지 않게 세 그림을 미리 받아 둔다(#310) — 처음 고를 때 밀려난 쪽 그림을
+  // 그제야 받으면, 받는 동안 몸통이 사라졌다가 툭 나타난다.
+  useEffect(() => {
+    for (const src of [IDLE_STYLES[optionKey].src, ...Object.values(CHARACTER_SRC[optionKey])]) {
+      new Image().src = src;
+    }
+  }, [optionKey]);
+
   const [lastState, setLastState] = useState(state);
   const [changed, setChanged] = useState(false);
   if (lastState !== state) {
@@ -206,22 +214,30 @@ export function BalanceCharacter({
         className,
       )}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={
-          idle || glaring
-            ? IDLE_STYLES[optionKey].src
-            : CHARACTER_SRC[optionKey][state]
-        }
-        alt=""
+      {/*
+        고르는 순간의 보잉·시무룩은 몸통과 눈을 한 겹으로 묶어 함께 움직인다(#310). 몸통 그림에만 걸면
+        몸통이 웅크렸다 솟는 동안 눈은 제자리에 떠 있어, 눈만 남았다가 몸통이 튀어나오는 것처럼 보였다.
+      */}
+      <span
         className={cn(
-          "size-full origin-bottom object-contain",
+          "relative block size-full origin-bottom",
           changed && CHARACTER_MOTION[state],
         )}
-      />
-      {idle || glaring ? (
-        <BalanceIdleEyes optionKey={optionKey} glare={glaring} />
-      ) : null}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={
+            idle || glaring
+              ? IDLE_STYLES[optionKey].src
+              : CHARACTER_SRC[optionKey][state]
+          }
+          alt=""
+          className="size-full object-contain"
+        />
+        {idle || glaring ? (
+          <BalanceIdleEyes optionKey={optionKey} glare={glaring} />
+        ) : null}
+      </span>
     </span>
   );
 }
