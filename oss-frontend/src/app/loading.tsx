@@ -14,7 +14,7 @@ import { BalanceBoardSkeleton } from "@/features/community/presentation/balance/
  */
 export default function Loading() {
   return (
-    <main className="min-h-screen bg-[var(--bw-white)]" aria-hidden>
+    <main className="min-h-screen bg-surface-container" aria-hidden>
       <BalanceGameSkeleton />
       <div className="flex flex-col gap-4 pt-6">
         {Array.from({ length: 4 }).map((_, index) => (

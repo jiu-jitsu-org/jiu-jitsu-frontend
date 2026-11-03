@@ -22,6 +22,7 @@ import {
   useNativeLeaveGuard,
 } from "@/shared/lib/native-bridge";
 import { enqueuePendingToast, useToast } from "@/shared/ui";
+import { IconButton } from "@/shared/ui/icon-button";
 import { SURFACE_PRESS } from "@/shared/ui/press-styles";
 import { AppBarShell } from "@/features/community/presentation/app-bar-shell";
 import { useNativeDialog } from "@/features/community/presentation/use-native-dialog";
@@ -840,19 +841,15 @@ export function PostWriteScreen({
         className="items-start px-4"
         style={{ height: APP_BAR_HEIGHT }}
       >
-        <button
-          type="button"
+        <IconButton
+          variant="tint"
+          size="s"
           onClick={handleBack}
           aria-label="뒤로 가기"
-          style={{
-            width: APP_BAR_BUTTON_SIZE,
-            height: APP_BAR_BUTTON_SIZE,
-            marginTop: APP_BAR_BUTTON_TOP,
-          }}
-          className="inline-flex items-center justify-center rounded-[10px] bg-button-tint-default-bg text-button-tint-default-text active:bg-button-tint-pressed-bg"
+          style={{ marginTop: APP_BAR_BUTTON_TOP }}
         >
           <BackArrowIcon size={24} />
-        </button>
+        </IconButton>
 
         {/* absolute의 top은 셸 패딩(safe-area) 안쪽이 아니라 셸 상단 기준이라 인셋을 더해야 상태바 아래로 온다. */}
         <h1
@@ -878,7 +875,7 @@ export function PostWriteScreen({
             marginTop: APP_BAR_BUTTON_TOP,
           }}
           className={cn(
-            "ml-auto inline-flex items-center justify-center rounded-[10px] transition-colors",
+            "ml-auto inline-flex items-center justify-center rounded-10 transition-colors",
             // 필수 입력이 모두 채워지면 브랜드 채움(button/filled) — 글자 수 미달은 탭 시 토스트.
             // 필수 입력 비어 있음·첨부 업로드 중/실패·전송 중이면 비활성 채움 + 비활성 아이콘.
             isSubmitLocked

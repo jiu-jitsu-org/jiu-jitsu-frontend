@@ -6,7 +6,7 @@ import {
   getInboxPageData,
   type InboxPageDataResult,
 } from "@/features/community/application/get-inbox-page-data";
-import { EmptyState } from "@/features/community/presentation/empty-state";
+import { EmptyState } from "@/shared/ui/empty-state";
 import { FeedErrorState } from "@/features/community/presentation/feed-error-state";
 import { InboxAppBar } from "@/features/community/presentation/notifications/inbox-app-bar";
 import { InboxView } from "@/features/community/presentation/notifications/inbox-view";

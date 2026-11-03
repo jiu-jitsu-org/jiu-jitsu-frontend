@@ -13,7 +13,7 @@ import { useViewportRect } from "@/features/community/presentation/use-viewport-
 import { CloseIcon, LoadingIcon, ReplyBranchIcon, SendIcon } from "@/shared/ui/icons";
 import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
 import { useToast } from "@/shared/ui";
-import { ICON_BUTTON_PRESS } from "@/shared/ui/press-styles";
+import { IconButton } from "@/shared/ui/icon-button";
 
 import { REACTION_PRESS_MOTION } from "./comment-reaction-styles";
 
@@ -163,19 +163,15 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
               <span className="min-w-0 flex-1 truncate text-body-s text-comment-input-bar-reply-ref-text">
                 {shownTarget.nickname}님에게 답장
               </span>
-              <button
-                type="button"
+              {/* 버튼 영역 40x40(size-10) = 아이콘 24 + 사방 여백 8. 우측 16은 이 버튼 바깥 기준.
+                  누르는 동안 아이콘 뒤에 둥근 옅은 면이 깔린다(앱바 아이콘 버튼과 같은 눌림). */}
+              <IconButton
                 onClick={cancelReply}
                 aria-label="답장 취소"
-                // 버튼 영역 40x40(size-10) = 아이콘 24 + 사방 여백 8. 우측 16은 이 버튼 바깥 기준.
-                // 누르는 동안 아이콘 뒤에 둥근 옅은 면이 깔린다(앱바 아이콘 버튼과 같은 눌림).
-                className={cn(
-                  "inline-flex size-10 shrink-0 items-center justify-center text-comment-input-bar-reply-ref-close-icon",
-                  ICON_BUTTON_PRESS,
-                )}
+                className="text-comment-input-bar-reply-ref-close-icon"
               >
                 <CloseIcon size={24} />
-              </button>
+              </IconButton>
             </div>
           ) : null}
         </div>

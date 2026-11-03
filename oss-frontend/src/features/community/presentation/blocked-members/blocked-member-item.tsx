@@ -2,8 +2,7 @@
 
 import type { BlockedMember } from "@/features/community/domain/blocked-member";
 import { Avatar } from "@/features/community/presentation/avatar";
-import { cn } from "@/shared/lib/cn";
-import { NEUTRAL_BUTTON_PRESS } from "@/shared/ui/press-styles";
+import { Button } from "@/shared/ui/button";
 
 /**
  * 차단한 회원 한 줄 — 아바타(40) + 닉네임 + "차단 해제" 버튼.
@@ -28,16 +27,14 @@ export function BlockedMemberItem({
       <span className="min-w-0 flex-1 truncate text-body-m text-text-primary">
         {member.nickname}
       </span>
-      <button
-        type="button"
+      <Button
+        variant="neutral"
+        size="s"
         onClick={() => onUnblock(member)}
-        className={cn(
-          "inline-flex h-8 shrink-0 items-center justify-center rounded-[8px] bg-button-neutral-default-bg px-3 text-button-s text-button-neutral-default-text",
-          NEUTRAL_BUTTON_PRESS,
-        )}
+        className="rounded-lg"
       >
         차단 해제
-      </button>
+      </Button>
     </li>
   );
 }

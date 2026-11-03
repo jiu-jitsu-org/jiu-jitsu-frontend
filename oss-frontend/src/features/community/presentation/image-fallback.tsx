@@ -3,7 +3,7 @@
 import type { CSSProperties } from "react";
 
 import { cn } from "@/shared/lib/cn";
-import { NEUTRAL_BUTTON_PRESS } from "@/shared/ui/press-styles";
+import { Button } from "@/shared/ui/button";
 
 /**
  * 이미지 로드 실패 폴백 · 재시도 공용 조각 (#104).
@@ -120,16 +120,14 @@ export function ImageLoadError({
         </p>
         {/* 재시도: 64(hug) x 32, radius 10 — 라벨이 길어지면 가로로만 늘어난다.
             누르는 동안 neutral 눌림 색으로 짙어진다(피드 재시도 버튼과 같은 눌림). */}
-        <button
-          type="button"
+        <Button
+          variant="neutral"
+          size="s"
           onClick={onRetry}
-          className={cn(
-            "text-body-s mt-2 inline-flex h-8 min-w-16 items-center justify-center rounded-[10px] bg-button-neutral-default-bg px-2 text-button-neutral-default-text",
-            NEUTRAL_BUTTON_PRESS,
-          )}
+          className="mt-2 min-w-16 px-2 text-body-s"
         >
           재시도
-        </button>
+        </Button>
       </div>
     </div>
   );

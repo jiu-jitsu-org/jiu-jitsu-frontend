@@ -13,9 +13,9 @@ import {
 import { scheduleAppStoreFallback } from "@/shared/lib/app-link";
 import { cn } from "@/shared/lib/cn";
 import { useOpenInAppHref } from "@/shared/lib/use-open-in-app-href";
+import { Button } from "@/shared/ui/button";
 import {
   FILLED_BUTTON_PRESSED_BG,
-  NEUTRAL_BUTTON_PRESSED_BG,
   PRESS_BOUNCE,
 } from "@/shared/ui/press-styles";
 
@@ -146,7 +146,7 @@ function OpenInAppDialog({
         role="dialog"
         aria-modal="true"
         // 상자만 살짝 작게 시작해 톡 넘치며 자리 잡는다(ConfirmDialog와 같은 dialog-in).
-        className="relative w-full max-w-[320px] rounded-[20px] bg-dialog-container-bg px-5 pb-5 pt-5 motion-safe:animate-dialog-in"
+        className="relative w-full max-w-[320px] rounded-20 bg-dialog-container-bg px-5 pb-5 pt-5 motion-safe:animate-dialog-in"
       >
         <h2 className="text-left text-title-2 text-dialog-title-text">
           앱에서 계속할 수 있어요
@@ -156,18 +156,15 @@ function OpenInAppDialog({
         </p>
 
         <div className="mt-4 flex gap-2">
-          <button
-            type="button"
+          {/* 누르는 동안 눌림 색이 깔리고 살짝 눌렸다 출렁인다(ConfirmDialog 버튼과 같은 눌림). */}
+          <Button
+            variant="neutral"
+            size="l"
             onClick={onClose}
-            // 누르는 동안 눌림 색이 깔리고 살짝 눌렸다 출렁인다(ConfirmDialog 버튼과 같은 눌림).
-            className={cn(
-              "h-[51px] flex-1 rounded-[15px] bg-button-neutral-default-bg text-button-m text-button-neutral-default-text",
-              NEUTRAL_BUTTON_PRESSED_BG,
-              PRESS_BOUNCE,
-            )}
+            className="flex-1"
           >
             닫기
-          </button>
+          </Button>
           {/* 앱 스킴 링크 — 탭 뒤 앱으로 넘어가지 않으면 App Store로 보낸다. 다이얼로그는 곧바로
               닫는다: 앱이 뜨면 이 페이지는 백그라운드라 의미가 없고, 돌아왔을 때 알럿이 남아
               있으면 같은 안내를 두 번 읽게 된다. */}
@@ -178,7 +175,7 @@ function OpenInAppDialog({
               onClose();
             }}
             className={cn(
-              "inline-flex h-[51px] flex-1 items-center justify-center rounded-[15px] bg-button-filled-default-bg text-button-m text-button-filled-default-text",
+              "inline-flex h-[51px] flex-1 items-center justify-center rounded-15 bg-button-filled-default-bg text-button-m text-button-filled-default-text",
               FILLED_BUTTON_PRESSED_BG,
               PRESS_BOUNCE,
             )}

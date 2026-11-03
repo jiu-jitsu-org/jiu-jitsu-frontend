@@ -15,6 +15,9 @@ const TYPOGRAPHY_SCALE = [
   "button-s",
 ];
 
+/** globals.css `@theme`의 모서리 토큰 이름(= `rounded-*` 접미사). 숫자라 기본 설정이 모서리로 알아보지 못한다. */
+const RADIUS_SCALE = ["10", "15", "20"];
+
 /**
  * tailwind-merge는 `text-*`의 접미사가 t셔츠 사이즈(sm·lg…)나 길이값이 아니면 크기가 아닌
  * **색상**으로 분류한다. 스케일 이름은 둘 다 아니라서, 기본 설정 그대로 두면
@@ -26,6 +29,9 @@ const TYPOGRAPHY_SCALE = [
  */
 const twMerge = extendTailwindMerge({
   extend: {
+    theme: {
+      radius: RADIUS_SCALE,
+    },
     classGroups: {
       "font-size": [{ text: TYPOGRAPHY_SCALE }],
     },

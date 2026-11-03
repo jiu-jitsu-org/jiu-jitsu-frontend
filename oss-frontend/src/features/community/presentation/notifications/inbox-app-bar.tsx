@@ -2,6 +2,7 @@
 
 import { AppBarShell } from "@/features/community/presentation/app-bar-shell";
 import { closeDetail } from "@/features/community/presentation/close-detail";
+import { IconButton } from "@/shared/ui/icon-button";
 import { ChevronLeftIcon } from "@/shared/ui/icons";
 
 /**
@@ -25,14 +26,14 @@ export function InboxAppBar({
   return (
     <AppBarShell className="h-10 items-start px-4 pt-[calc(env(safe-area-inset-top)+12px)]">
       {/* 좌측 뒤로가기 — 터치 영역 = 둥근 사각(36). */}
-      <button
-        type="button"
+      <IconButton
+        variant="tint"
+        size="s"
         onClick={closeDetail}
         aria-label="뒤로 가기"
-        className="inline-flex size-9 items-center justify-center rounded-[10px] bg-button-tint-default-bg text-button-tint-default-text"
       >
         <ChevronLeftIcon size={20} />
-      </button>
+      </IconButton>
 
       {/* 제목: 바(40) 위 1 여백 + 글자 영역 35. 좌우 버튼 탭을 가리지 않게 pointer-events-none. */}
       <h1 className="pointer-events-none absolute inset-x-0 bottom-0 flex h-10 justify-center pt-px">

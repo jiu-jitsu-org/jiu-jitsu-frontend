@@ -75,7 +75,7 @@ export function BottomSheetFrame({
         // 올라올 때 500ms 감속(넘침 없음) / 내려갈 때 200ms 가속(호출부가 200ms 뒤 언마운트한다). 동작 줄이기면 이동 없이 바로 뜬다.
         // 아래 여백 20은 홈 인디케이터 위에서 센다 — 브라우저에서는 inset이 0이라 20 그대로다.
         className={cn(
-          "relative w-full rounded-t-[20px] bg-bottom-sheet-selected-container-background px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]",
+          "relative w-full rounded-t-20 bg-bottom-sheet-selected-container-background px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]",
           "motion-safe:transition-[translate]",
           visible
             ? "translate-y-0 duration-500 ease-smooth-out"

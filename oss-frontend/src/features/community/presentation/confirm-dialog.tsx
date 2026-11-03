@@ -4,11 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { cn } from "@/shared/lib/cn";
 import type { ConfirmDialogTitleParts } from "@/shared/lib/native-bridge";
-import {
-  FILLED_BUTTON_PRESSED_BG,
-  NEUTRAL_BUTTON_PRESSED_BG,
-  PRESS_BOUNCE,
-} from "@/shared/ui/press-styles";
+import { Button } from "@/shared/ui/button";
 
 const DIALOG_FADE_MS = 200;
 
@@ -90,7 +86,7 @@ export function ConfirmDialog({
         // 폭 = min(320, 화면폭 − 좌우 27.5). 375pt에서 정확히 320, 작은 기기는 여백 유지하며 축소,
         // 큰 기기는 320에서 상한(시스템 알럿처럼 안 커짐). 높이는 콘텐츠 가변. radius 20, 내부 여백 20.
         // 상자만 살짝 작게 시작해 톡 넘치며 자리 잡는다(dialog-in). 닫힐 때는 바깥 페이드만 돈다.
-        className="relative w-full max-w-[320px] rounded-[20px] bg-dialog-container-bg px-5 pb-5 pt-5 motion-safe:animate-dialog-in"
+        className="relative w-full max-w-[320px] rounded-20 bg-dialog-container-bg px-5 pb-5 pt-5 motion-safe:animate-dialog-in"
       >
         {/* 제목: Title2(Pretendard Semibold 20), 색 dialog/title-text, 좌측 정렬 */}
         {titleParts ? (
@@ -116,30 +112,22 @@ export function ConfirmDialog({
             취소=neutral / 확인=filled(위험 시 #E52012). 누르는 동안 눌림 색이 깔리고 살짝 눌렸다 출렁인다.
             위험 버튼은 눌림 색 토큰이 없어 밝기만 낮춘다. */}
         <div className="mt-4 flex gap-2">
-          <button
-            type="button"
+          <Button
+            variant="neutral"
+            size="l"
             onClick={onCancel}
-            className={cn(
-              "h-[51px] flex-1 rounded-[15px] bg-button-neutral-default-bg text-button-m text-button-neutral-default-text",
-              NEUTRAL_BUTTON_PRESSED_BG,
-              PRESS_BOUNCE,
-            )}
+            className="flex-1"
           >
             {cancelText}
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant={destructive ? "destructive" : "filled"}
+            size="l"
             onClick={onConfirm}
-            className={cn(
-              "h-[51px] flex-1 rounded-[15px] text-button-m text-button-filled-default-text",
-              destructive
-                ? "bg-confirm-dialog-destructive-button-bg active:brightness-90"
-                : cn("bg-button-filled-default-bg", FILLED_BUTTON_PRESSED_BG),
-              PRESS_BOUNCE,
-            )}
+            className="flex-1"
           >
             {confirmText}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

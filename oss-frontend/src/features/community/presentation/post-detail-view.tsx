@@ -15,6 +15,7 @@ import { PostDetailImages } from "@/features/community/presentation/post-detail-
 import { PostDetailReturnListener } from "@/features/community/presentation/post-detail-return-listener";
 import { PostTags } from "@/features/community/presentation/post-tags";
 import { KeyboardAwareShell } from "@/features/community/presentation/keyboard-aware-shell";
+import { Divider } from "@/shared/ui/divider";
 
 /**
  * 상세 화면 레이아웃 (순수 표현 서버 컴포넌트).
@@ -100,7 +101,7 @@ export function PostDetailView({
             />
 
             {/* 액션바 아래 디바이더: 간격 24, 풀폭(좌우 여백 없음), 높이 4 */}
-            <div className="mt-6 h-1 bg-divider-bg" />
+            <Divider className="mt-6" />
 
             {/* 댓글 섹션 */}
             <CommentSection

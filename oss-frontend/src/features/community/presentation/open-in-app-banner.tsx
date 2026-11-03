@@ -50,7 +50,7 @@ export function OpenInAppBanner() {
           href={openInAppHref}
           onClick={() => scheduleAppStoreFallback()}
           className={cn(
-            "text-button-s inline-flex h-8 shrink-0 items-center justify-center rounded-[10px] bg-button-filled-default-bg px-3 text-button-filled-default-text",
+            "text-button-s inline-flex h-8 shrink-0 items-center justify-center rounded-10 bg-button-filled-default-bg px-3 text-button-filled-default-text",
             FILLED_BUTTON_PRESS,
           )}
         >

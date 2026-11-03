@@ -5,15 +5,15 @@ import type { CSSProperties } from "react";
 import { AppBarShell } from "@/features/community/presentation/app-bar-shell";
 import { BalanceBoardSkeleton } from "@/features/community/presentation/balance/balance-board-skeleton";
 import { closeDetail } from "@/features/community/presentation/close-detail";
+import { Divider } from "@/shared/ui/divider";
+import { IconButton } from "@/shared/ui/icon-button";
 import { BackArrowIcon } from "@/shared/ui/icons";
-import { ICON_BUTTON_PRESS } from "@/shared/ui/press-styles";
+import { Skeleton } from "@/shared/ui/skeleton";
 
 /** 덩어리마다 150ms씩 늦춰 위에서 아래로 물결치게 깜빡인다(메인 피드 스켈레톤과 같은 방식). */
 function pulseDelay(order: number): CSSProperties {
   return { animationDelay: `${order * 150}ms` };
 }
-
-const BLOCK = "rounded bg-feed-card-header-avatar-bg";
 
 /**
  * 상세(게시글 · 밸런스 게임) 로딩 스켈레톤 — 라우트 loading.tsx가 그린다.
@@ -27,14 +27,9 @@ export function DetailSkeleton({ variant }: { variant: "post" | "balance" }) {
   return (
     <div className="min-h-dvh bg-[var(--bw-true-white)]">
       <AppBarShell>
-        <button
-          type="button"
-          onClick={closeDetail}
-          aria-label="뒤로 가기"
-          className={`inline-flex size-10 items-center justify-center text-icon-primary ${ICON_BUTTON_PRESS}`}
-        >
+        <IconButton onClick={closeDetail} aria-label="뒤로 가기">
           <BackArrowIcon size={24} />
-        </button>
+        </IconButton>
       </AppBarShell>
 
       <div aria-hidden>
@@ -45,13 +40,13 @@ export function DetailSkeleton({ variant }: { variant: "post" | "balance" }) {
           style={pulseDelay(3)}
           className={`flex justify-end gap-2 px-4 motion-safe:animate-pulse ${variant === "post" ? "mt-[13px]" : "mt-10"}`}
         >
-          <div className={`h-7 w-12 ${BLOCK}`} />
-          <div className={`h-7 w-12 ${BLOCK}`} />
-          <div className={`h-7 w-12 ${BLOCK}`} />
+          <Skeleton className="h-7 w-12" />
+          <Skeleton className="h-7 w-12" />
+          <Skeleton className="h-7 w-12" />
         </div>
 
         {/* 액션바 아래 디바이더: 간격 24, 풀폭, 높이 4 — 실제 상세와 같은 면 */}
-        <div className="mt-6 h-1 bg-divider-bg" />
+        <Divider className="mt-6" />
       </div>
     </div>
   );
@@ -65,23 +60,23 @@ function PostBodySkeleton() {
         style={pulseDelay(0)}
         className="flex h-6 items-center gap-2 motion-safe:animate-pulse"
       >
-        <div className="size-6 rounded-full bg-feed-card-header-avatar-bg" />
-        <div className={`h-4 w-20 ${BLOCK}`} />
+        <Skeleton className="size-6 rounded-full" />
+        <Skeleton className="h-4 w-20" />
       </div>
       <div
         style={pulseDelay(1)}
         className="flex flex-col motion-safe:animate-pulse"
       >
-        <div className={`h-5 w-2/3 ${BLOCK}`} />
-        <div className={`mt-2 h-3 w-32 ${BLOCK}`} />
+        <Skeleton className="h-5 w-2/3" />
+        <Skeleton className="mt-2 h-3 w-32" />
       </div>
       <div
         style={pulseDelay(2)}
         className="flex flex-col gap-2 motion-safe:animate-pulse"
       >
-        <div className={`h-3.5 w-full ${BLOCK}`} />
-        <div className={`h-3.5 w-full ${BLOCK}`} />
-        <div className={`h-3.5 w-4/5 ${BLOCK}`} />
+        <Skeleton className="h-3.5 w-full" />
+        <Skeleton className="h-3.5 w-full" />
+        <Skeleton className="h-3.5 w-4/5" />
       </div>
     </div>
   );
@@ -96,7 +91,7 @@ function BalanceBodySkeleton() {
         style={pulseDelay(1)}
         className="mt-3 px-1 motion-safe:animate-pulse"
       >
-        <div className={`h-3 w-32 ${BLOCK}`} />
+        <Skeleton className="h-3 w-32" />
       </div>
     </div>
   );

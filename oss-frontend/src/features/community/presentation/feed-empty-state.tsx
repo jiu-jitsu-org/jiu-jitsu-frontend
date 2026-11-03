@@ -1,6 +1,6 @@
 "use client";
 
-import { EmptyState } from "@/features/community/presentation/empty-state";
+import { EmptyState } from "@/shared/ui/empty-state";
 import { useOpenPostWrite } from "@/features/community/presentation/use-open-post-write";
 
 /**

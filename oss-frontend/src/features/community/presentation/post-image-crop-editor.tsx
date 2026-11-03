@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { cn } from "@/shared/lib/cn";
+import { Button } from "@/shared/ui/button";
 import {
   CloseIcon,
   CropRatio11Icon,
@@ -447,18 +448,19 @@ export function PostImageCropEditor({
           disabled={saving}
           aria-label="편집 취소"
           style={{ width: CANCEL_BUTTON_SIZE, height: CANCEL_BUTTON_SIZE }}
-          className="inline-flex items-center justify-center rounded-[10px] bg-button-tint-default-bg text-button-tint-default-text active:bg-button-tint-pressed-bg"
+          className="inline-flex items-center justify-center rounded-10 bg-button-tint-default-bg text-button-tint-default-text active:bg-button-tint-pressed-bg"
         >
           <CloseIcon size={24} />
         </button>
-        <button
-          type="button"
+        <Button
+          variant="filled"
+          size="m"
           onClick={() => void finish()}
           disabled={saving}
-          className="h-[38px] rounded-[10px] bg-button-filled-default-bg px-5 text-button-m text-button-filled-default-text active:bg-button-filled-pressed-bg disabled:bg-button-filled-disabled-bg disabled:text-button-filled-disabled-text"
+          className="px-5"
         >
           완료
-        </button>
+        </Button>
       </div>
     </div>
   );

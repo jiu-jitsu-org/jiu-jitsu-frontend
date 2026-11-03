@@ -9,7 +9,7 @@ import {
 } from "@/features/community/application/get-my-activity-page-data";
 import type { PostList } from "@/features/community/domain/post-summary";
 import { CommunityFeedList } from "@/features/community/presentation/community-feed-list";
-import { EmptyState } from "@/features/community/presentation/empty-state";
+import { EmptyState } from "@/shared/ui/empty-state";
 import { FeedErrorState } from "@/features/community/presentation/feed-error-state";
 import { MyActivityAppBar } from "@/features/community/presentation/my-activity/my-activity-app-bar";
 import { MyActivityEmptyState } from "@/features/community/presentation/my-activity/my-activity-empty-state";
@@ -61,7 +61,7 @@ export async function MyActivityScreen({ tab }: { tab: MyActivityTab }) {
 
   return (
     // 목록 카드(surface-container)가 메인 피드와 같아 보이도록 바탕도 피드와 같은 색을 쓴다.
-    <SubviewScrollShell className="bg-[var(--bw-white)]">
+    <SubviewScrollShell className="bg-surface-container">
       <MyActivityAppBar />
       {content}
     </SubviewScrollShell>

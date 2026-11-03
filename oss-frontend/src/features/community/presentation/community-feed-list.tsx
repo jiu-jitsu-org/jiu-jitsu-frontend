@@ -507,7 +507,7 @@ export function FeedLoadMoreError({
         onClick={onRetry}
         // 글자 버튼이라 평소엔 면이 없고, 누르는 동안만 앱바 아이콘과 같은 옅은 면이 깔린다.
         // 면 여백(px-2·py-0.5)은 음수 마진으로 상쇄해 줄 높이·문구 위치를 그대로 둔다.
-        className="-mx-2 -my-0.5 rounded-[6px] px-2 py-0.5 text-sm font-semibold text-feed-card-body-text underline motion-safe:transition-colors motion-safe:duration-120 active:bg-surface-container-pressed"
+        className="-mx-2 -my-0.5 rounded-md px-2 py-0.5 text-sm font-semibold text-feed-card-body-text underline motion-safe:transition-colors motion-safe:duration-120 active:bg-surface-container-pressed"
       >
         다시 시도
       </button>

@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { peekRevalidateTarget } from "@/features/community/presentation/dirty-posts";
-import { EmptyState } from "@/features/community/presentation/empty-state";
+import { EmptyState } from "@/shared/ui/empty-state";
 import type { MyActivityTab } from "@/features/community/presentation/my-activity/my-activity-tab";
 import { useOpenPostWrite } from "@/features/community/presentation/use-open-post-write";
 import {

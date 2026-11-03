@@ -10,6 +10,7 @@ import {
 } from "@/features/community/presentation/image-fallback";
 import { useImageViewerGestures } from "@/features/community/presentation/use-image-viewer-gestures";
 import { cn } from "@/shared/lib/cn";
+import { IconButton } from "@/shared/ui/icon-button";
 import { CloseIcon } from "@/shared/ui/icons";
 
 /**
@@ -35,8 +36,6 @@ import { CloseIcon } from "@/shared/ui/icons";
 
 /** 진입·닫기 페이드 시간 — 0.2초는 빠르다는 피드백으로 0.35초(overlay-in 토큰과 같은 값). 아래 duration-350과 맞춘다. */
 const FADE_MS = 350;
-/** 닫기 버튼 44x44, radius 10 — 디자인 스펙. */
-const CLOSE_BUTTON_SIZE = 44;
 /** 스크롤 위치 → 현재 장 판정 시 소수점 좌표 보정. */
 const INDEX_EPSILON = 0.5;
 const DIM_CLASS = "bg-image-viewer-dim-overlay";
@@ -190,15 +189,15 @@ export function PostImageViewer({
             {current + 1}/{images.length}
           </span>
         ) : null}
-        <button
-          type="button"
+        <IconButton
+          variant="tint"
+          size="l"
           onClick={requestClose}
           aria-label="닫기"
-          style={{ width: CLOSE_BUTTON_SIZE, height: CLOSE_BUTTON_SIZE }}
-          className="pointer-events-auto flex items-center justify-center rounded-[10px] bg-button-tint-default-bg text-button-tint-default-text"
+          className="pointer-events-auto"
         >
           <CloseIcon size={24} />
-        </button>
+        </IconButton>
       </div>
     </div>
   );

@@ -13,6 +13,7 @@ import { CommentSection } from "@/features/community/presentation/comment-sectio
 import { KeyboardAwareShell } from "@/features/community/presentation/keyboard-aware-shell";
 import { PostDetailFooter } from "@/features/community/presentation/post-detail-footer";
 import { PostDetailHeader } from "@/features/community/presentation/post-detail-header";
+import { Divider } from "@/shared/ui/divider";
 
 /**
  * 밸런스 게임 상세 레이아웃 (순수 표현 서버 컴포넌트).
@@ -91,7 +92,7 @@ export function BalanceDetailView({
             />
 
             {/* 디바이더: 풀폭(좌우 여백 없음), 높이 4 — 게시글 상세와 같은 규격 */}
-            <div className="mt-6 h-1 bg-divider-bg" />
+            <Divider className="mt-6" />
 
             <CommentSection comments={comments} sort={sort} />
           </div>

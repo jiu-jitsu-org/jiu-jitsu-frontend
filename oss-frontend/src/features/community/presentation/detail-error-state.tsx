@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 
-import { NEUTRAL_BUTTON_PRESS } from "@/shared/ui/press-styles";
+import { Button } from "@/shared/ui/button";
 
 /**
  * 상세(게시글 · 밸런스 게임) 조회 실패 상태 — 안내 문구 + 재시도 버튼(화면 중앙).
@@ -23,15 +23,15 @@ export function DetailErrorState({ title }: { title: string }) {
     // 뷰포트 전체 기준 가운데 정렬. 빈 화면에서 툭 튀지 않게 옅게 나타난다(피드 실패와 같은 fade-in).
     <div className="flex min-h-dvh flex-col items-center justify-center gap-[13px] px-4 text-center motion-safe:animate-fade-in">
       <p className="text-body-m text-feed-card-body-text">{title}</p>
-      <button
-        type="button"
+      {/* 피드 재시도 버튼과 같은 규격 · 같은 눌림(neutral 눌림 색). */}
+      <Button
+        variant="neutral"
+        size="m"
         disabled={pending}
         onClick={() => startTransition(() => router.refresh())}
-        // 피드 재시도 버튼과 같은 규격 · 같은 눌림(neutral 눌림 색).
-        className={`h-[38px] rounded-[10px] bg-button-neutral-default-bg px-4 text-button-m text-button-neutral-default-text disabled:bg-button-neutral-disabled-bg disabled:text-button-neutral-disabled-text ${NEUTRAL_BUTTON_PRESS}`}
       >
         재시도
-      </button>
+      </Button>
     </div>
   );
 }

@@ -3,16 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
-import { cn } from "@/shared/lib/cn";
 import {
   OutboundMessageType,
   postToNative,
   refreshSessionViaBridge,
 } from "@/shared/lib/native-bridge";
-import {
-  FILLED_BUTTON_PRESS,
-  NEUTRAL_BUTTON_PRESS,
-} from "@/shared/ui/press-styles";
+import { Button } from "@/shared/ui/button";
 
 /**
  * 만료 세션 복구 경계(서버 → 클라이언트 위임).
@@ -121,29 +117,19 @@ function SessionExpiredFallback({ onRetry }: { onRetry: () => void }) {
       </p>
 
       <div className="mt-1 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={onRetry}
-          // 누르는 동안 각자 눌림 색으로 짙어진다(피드 재시도 버튼과 같은 눌림).
-          className={cn(
-            "h-[38px] rounded-[10px] bg-button-neutral-default-bg px-4 text-button-m text-button-neutral-default-text",
-            NEUTRAL_BUTTON_PRESS,
-          )}
-        >
+        {/* 누르는 동안 각자 눌림 색으로 짙어진다(피드 재시도 버튼과 같은 눌림). */}
+        <Button variant="neutral" size="m" onClick={onRetry}>
           재시도
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant="filled"
+          size="m"
           onClick={() =>
             postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT })
           }
-          className={cn(
-            "h-[38px] rounded-[10px] bg-button-filled-default-bg px-4 text-button-m text-button-filled-default-text",
-            FILLED_BUTTON_PRESS,
-          )}
         >
           로그인
-        </button>
+        </Button>
       </div>
     </div>
   );

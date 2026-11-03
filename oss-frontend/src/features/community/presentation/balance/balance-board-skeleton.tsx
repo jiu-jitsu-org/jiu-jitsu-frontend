@@ -51,7 +51,7 @@ export function BalanceBoardSkeleton({
       {/* 댓글 링크(32) — 홈만 */}
       {detail ? null : (
         <div className="mt-2 flex justify-end">
-          <div className={cn("h-8 w-28 rounded-[10px]", BLOCK)} />
+          <div className={cn("h-8 w-28 rounded-10", BLOCK)} />
         </div>
       )}
     </div>

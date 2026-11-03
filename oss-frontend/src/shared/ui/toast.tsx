@@ -148,7 +148,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               if (event.animationName === "toast-repop") setRepopping(false);
             }}
             className={cn(
-              "flex min-h-[58px] w-full items-center gap-4 rounded-[15px] bg-toast-default-background px-4 py-2 text-body-s text-toast-default-text",
+              "flex min-h-[58px] w-full items-center gap-4 rounded-15 bg-toast-default-background px-4 py-2 text-body-s text-toast-default-text",
               // 나타날 때 아래에서 500ms 감속하며 올라오고, 사라질 때 200ms에 내려가며 흐려진다.
               "transition-opacity motion-safe:transition-[opacity,translate]",
               visible
@@ -170,7 +170,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 }}
                 // 눌림도 neutral 버튼 짝(button/neutral/pressed)을 따른다 — 버튼이 제 바탕을 가져 어두운 토스트 위에서도 보인다.
                 className={cn(
-                  "text-button-s pointer-events-auto inline-flex min-h-[30px] shrink-0 items-center justify-center rounded-[10px] bg-button-neutral-default-bg px-4 py-2 text-button-neutral-default-text",
+                  "text-button-s pointer-events-auto inline-flex min-h-[30px] shrink-0 items-center justify-center rounded-10 bg-button-neutral-default-bg px-4 py-2 text-button-neutral-default-text",
                   NEUTRAL_BUTTON_PRESS,
                 )}
               >

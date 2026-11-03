@@ -13,6 +13,7 @@
  *          src/app/styles/tokens/semantic.css
  *          src/app/styles/tokens/component.css
  *          src/app/styles/tokens/theme.css       (Tailwind 연결용)
+ *          src/app/styles/tokens/manifest.ts     (/ds 페이지용 토큰 목록)
  *
  * Figma에서 색을 수정한 뒤 JSON 3개를 다시 내보내 design-tokens/ 에
  * 덮어쓰고 이 스크립트를 실행하면 위 CSS가 전부 자동 갱신됩니다.
@@ -186,12 +187,56 @@ function buildThemeCss(semanticTokens, componentTokens) {
   ].join("\n");
 }
 
+// 세 층의 토큰 → /ds 페이지가 읽는 목록(TypeScript).
+// 이름·참조(alias)·최종 색값을 함께 담아, 화면이 CSS를 파싱하지 않고도 표를 그릴 수 있게 한다.
+function buildManifestTs(layers) {
+  const raw = new Map();
+  for (const { tokens } of layers) {
+    for (const { path, token } of tokens) {
+      raw.set(toVarName(path), tokenToCssValue(token));
+    }
+  }
+  const resolve = (value, depth = 0) => {
+    const m = /^var\(--([a-z0-9-]+)\)$/.exec(value);
+    if (!m || depth > 10) return value;
+    return resolve(raw.get(m[1]) ?? value, depth + 1);
+  };
+  const entries = {};
+  for (const { key, tokens } of layers) {
+    entries[key] = tokens.map(({ path, token }) => {
+      const name = toVarName(path);
+      const value = tokenToCssValue(token);
+      const alias = /^var\(--([a-z0-9-]+)\)$/.exec(value)?.[1] ?? null;
+      return { name, alias, hex: resolve(value) };
+    });
+  }
+  return [
+    `// /ds 페이지용 토큰 목록`,
+    `// 이 파일은 scripts/build-tokens.mjs 가 자동 생성합니다. 직접 수정하지 마세요.`,
+    ``,
+    `export type TokenEntry = {`,
+    `  /** CSS 변수 이름(앞의 -- 제외). Tailwind 클래스는 bg-<name> · text-<name> · border-<name>. */`,
+    `  name: string;`,
+    `  /** 참조하는 아래층 토큰 이름. 원시 색이면 null. */`,
+    `  alias: string | null;`,
+    `  /** 끝까지 따라간 최종 색값(hex). */`,
+    `  hex: string;`,
+    `};`,
+    ``,
+    ...Object.entries(entries).map(
+      ([key, list]) =>
+        `export const ${key}Tokens: TokenEntry[] = [\n${list.map((e) => `  ${JSON.stringify(e)},`).join("\n")}\n];\n`,
+    ),
+  ].join("\n");
+}
+
 // ────────────────────────────────────────────────────────────────
 // 실행
 // ────────────────────────────────────────────────────────────────
 function main() {
   mkdirSync(OUT_DIR, { recursive: true });
 
+  const layers = [];
   let semanticTokens = [];
   let componentTokens = [];
   let total = 0;
@@ -211,6 +256,7 @@ function main() {
     writeFileSync(join(OUT_DIR, `${key}.css`), buildLayerCss(tokens, title));
     console.log(`  ✅ ${key}.css — 토큰 ${tokens.length}개`);
     total += tokens.length;
+    layers.push({ key, tokens });
 
     if (key === "semantic") semanticTokens = tokens;
     if (key === "component") componentTokens = tokens;
@@ -223,6 +269,9 @@ function main() {
   console.log(
     `  ✅ theme.css — Tailwind 연결 ${semanticTokens.length + componentTokens.length}개`,
   );
+
+  writeFileSync(join(OUT_DIR, "manifest.ts"), buildManifestTs(layers));
+  console.log(`  ✅ manifest.ts — /ds 페이지용 목록`);
 
   console.log(`\n  토큰 ${total}개를 CSS로 변환했습니다.`);
 

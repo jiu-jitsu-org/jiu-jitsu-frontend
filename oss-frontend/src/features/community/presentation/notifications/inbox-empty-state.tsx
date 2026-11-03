@@ -12,7 +12,7 @@ import { BellIcon } from "@/shared/ui/icons";
 export function InboxEmptyState() {
   return (
     <div className="flex flex-col items-center px-4 pt-[30vh] text-center">
-      <span className="inline-flex size-16 items-center justify-center rounded-[20px] bg-[#E5F4FF] text-interactive-primary">
+      <span className="inline-flex size-16 items-center justify-center rounded-20 bg-[#E5F4FF] text-interactive-primary">
         <BellIcon size={32} />
       </span>
       <p className="mt-5 text-title-3 font-semibold text-text-primary">

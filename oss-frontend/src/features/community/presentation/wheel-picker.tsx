@@ -80,7 +80,7 @@ export function WheelPicker<T extends string | number>({
       // 위아래 여백 = 한 칸(45+8)이라 첫 칸·끝 칸도 가운데까지 굴러온다. 스크롤바는 숨긴다.
       // overscroll-contain: 휠 끝에서 더 굴려도 시트·뒤 화면이 따라 움직이지 않게.
       className={cn(
-        "w-[130px] snap-y snap-mandatory overflow-y-auto overscroll-contain rounded-[10px] outline-none",
+        "w-[130px] snap-y snap-mandatory overflow-y-auto overscroll-contain rounded-10 outline-none",
         "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
         "focus-visible:ring-2 focus-visible:ring-chip-selected-border",
         className,
@@ -98,7 +98,7 @@ export function WheelPicker<T extends string | number>({
               aria-selected={selected}
               onClick={() => scrollToIndex(index)}
               className={cn(
-                "flex shrink-0 cursor-pointer snap-center items-center justify-center rounded-[10px] font-medium",
+                "flex shrink-0 cursor-pointer snap-center items-center justify-center rounded-10 font-medium",
                 "transition-[background-color,color,font-size] duration-150 ease-out",
                 selected
                   ? "bg-picker-item-selected-bg text-[24px] text-picker-item-selected-text"
