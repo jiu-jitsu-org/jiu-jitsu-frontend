@@ -29,13 +29,14 @@ export function BalanceBoardSkeleton({
       className={cn(
         "flex flex-col px-4 pt-5 motion-safe:animate-pulse",
         BOARD_PALETTE.bg,
+        BOARD_PALETTE.shadow,
         detail ? "rounded-[24px] pb-5" : "rounded-b-[28px] pb-3",
       )}
     >
       {/* 제목 · 진행 중(28) */}
       <div className="flex h-7 items-center justify-between px-1">
         <div className={cn("h-5 w-40 rounded", BLOCK)} />
-        <div className={cn("h-3 w-12 rounded", BLOCK)} />
+        <div className={cn("h-7 w-[70px] rounded-full", BLOCK)} />
       </div>
       {/* 경기 시계(64) · 남은 시간 알약(24) — 위 16 */}
       <div className="mt-4 flex h-[94px] flex-col items-center">

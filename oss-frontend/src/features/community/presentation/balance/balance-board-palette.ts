@@ -13,4 +13,6 @@ export const BOARD_PALETTE = {
   muted: "text-[var(--opacity-white-60)]",
   /** 꺼진 선수 줄·남은 시간 알약 — 판 위에 한 단 떠 보이는 면 */
   row: "bg-[color-mix(in_srgb,var(--bw-white)_9%,transparent)]",
+  /** 판 그림자 — 밝은 피드 위에서 먹색 판이 살짝 떠 보이게(#310). 판 색과 같은 먹색을 옅게 아래로 깐다. */
+  shadow: "shadow-[0_6px_20px_-4px_rgba(24,24,27,0.28)]",
 } as const;

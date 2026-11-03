@@ -21,13 +21,12 @@ import {
   type BalanceOptionResult,
   readOptionResult,
 } from "@/features/community/presentation/balance/balance-result";
-import { TickingTimerIcon } from "@/features/community/presentation/balance/ticking-timer-icon";
 import type {
   BalanceGameOption,
   BalanceOptionKey,
 } from "@/features/community/domain/balance-game";
 import { cn } from "@/shared/lib/cn";
-import { CheckIcon } from "@/shared/ui/icons";
+import { CheckIcon, TimerIcon } from "@/shared/ui/icons";
 
 /**
  * 매트 스코어보드(#305) — 홈 맨 위 히어로이자 상세 맨 위 판(variant).
@@ -186,6 +185,7 @@ export function BalanceHeroBoard({
         "relative flex flex-col overflow-hidden px-4 pt-5",
         detail ? "rounded-[24px] pb-5" : "cursor-pointer rounded-b-[28px] pb-3",
         palette.bg,
+        palette.shadow,
         palette.text,
       )}
       aria-label="오늘의 밸런스 게임"
@@ -194,17 +194,28 @@ export function BalanceHeroBoard({
         <h2 className={cn(balanceTitleFont.className, "text-[22px] leading-7")}>
           오늘의 밸런스 게임
         </h2>
-        {/* 경기 중 표시 — 마감되면 "종료"로. 점은 숨 쉬듯 깜빡인다(동작 줄이기면 멈춘다). */}
-        <span className={cn("flex items-center gap-1.5 text-label-m", palette.muted)}>
-          <span
-            aria-hidden
-            className={cn(
-              "size-2 rounded-full",
-              game.closed
-                ? "bg-current opacity-60"
-                : "bg-interactive-poll-a motion-safe:animate-pulse",
+        {/*
+          경기 중 표시 — 중계 화면의 "생중계" 알약. 선수 줄과 같은 옅은 면에 홍 점을 두고, 점 둘레로 물결이
+          번진다(동작 줄이기면 멈춘다). 마감되면 점이 회색으로 꺼지고 "종료"로 바뀐다.
+        */}
+        <span
+          className={cn(
+            "flex h-7 items-center gap-1.5 rounded-full pr-3 pl-2.5 text-label-m font-semibold",
+            palette.row,
+            game.closed && palette.muted,
+          )}
+        >
+          <span aria-hidden className="relative flex size-2">
+            {game.closed ? null : (
+              <span className="absolute inset-0 rounded-full bg-interactive-poll-a motion-safe:animate-ping motion-safe:[animation-duration:1.6s]" />
             )}
-          />
+            <span
+              className={cn(
+                "relative size-2 rounded-full",
+                game.closed ? "bg-current opacity-60" : "bg-interactive-poll-a",
+              )}
+            />
+          </span>
           {game.closed ? "종료" : "진행 중"}
         </span>
       </header>
@@ -220,9 +231,7 @@ export function BalanceHeroBoard({
             balanceNumeralFont.className,
             "inline-block text-[60px] leading-[64px] tracking-[-1px]",
           )}
-          below={(remainMs) => (
-            <BoardClockLabel remainMs={remainMs} closed={game.closed} />
-          )}
+          below={() => <BoardClockLabel closed={game.closed} />}
         />
       </div>
 
@@ -232,6 +241,7 @@ export function BalanceHeroBoard({
           state={optionStateOf(game, "A")}
           interactive={interactive}
           intro={parts}
+          detail={detail}
           result={detail ? readOptionResult(game, "A") : null}
           onPress={() => onVote("A")}
         />
@@ -240,6 +250,7 @@ export function BalanceHeroBoard({
           state={optionStateOf(game, "B")}
           interactive={interactive}
           intro={parts}
+          detail={detail}
           result={detail ? readOptionResult(game, "B") : null}
           onPress={() => onVote("B")}
         />
@@ -259,6 +270,7 @@ function BoardRow({
   state,
   interactive,
   intro,
+  detail,
   result,
   onPress,
 }: {
@@ -266,6 +278,8 @@ function BoardRow({
   state: BalanceOptionState;
   interactive: boolean;
   intro: IntroParts;
+  /** 상세 판인지 — 득표 막대 자리를 늘 깔아 둔다(아래 득표 막대 참조). */
+  detail: boolean;
   /** 득표율(상세만) — 있으면 줄이 통째로 켜지는 대신 득표율만큼 진영 색이 차고 점수 자리에 %가 뜬다. */
   result: BalanceOptionResult | null;
   onPress: () => void;
@@ -273,6 +287,11 @@ function BoardRow({
   const key = option.key;
   const selected = state === "selected";
   const palette = BOARD_PALETTE;
+
+  // 득표 막대의 진하기 — 마지막으로 받은 득표율의 것을 붙잡아 둔다. 투표를 취소하면 득표율이 사라지며 막대가
+  // 0으로 줄어드는데, 그 1초 동안 옅던 쪽이 진하게 번쩍이지 않게 줄어드는 내내 원래 진하기를 지킨다.
+  const [emphasized, setEmphasized] = useState(result?.emphasized ?? true);
+  if (result && result.emphasized !== emphasized) setEmphasized(result.emphasized);
 
   return (
     <button
@@ -282,12 +301,11 @@ function BoardRow({
       className={cn(
         "relative flex w-full items-stretch rounded-2xl text-left",
         ROW_SIZE[state],
-        // 고른 줄은 진영 색으로 통째로 켜지고, 밀려난 줄은 꺼진다(전광판에서 승자 줄이 켜지듯).
-        // 꺼진 줄은 판 위에 한 단 뜬 면(흰 9%).
-        selected && !result ? [CORNER[key], "text-text-on-dark"] : palette.row,
+        // 바탕은 늘 판 위에 한 단 뜬 면(흰 9%). 고르면 그 위로 진영 색이 왼쪽부터 차오른다(아래 차오름 면).
+        palette.row,
         // 득표율을 읽어야 하는 상세에서는 밀려난 줄을 덜 끈다.
         state === "unselected" && (result ? "opacity-75" : "opacity-50"),
-        "motion-safe:[transition:background-color_300ms_ease,opacity_300ms_ease,min-height_500ms_var(--ease-spring-wobbly),scale_500ms_var(--ease-spring-wobbly)]",
+        "motion-safe:[transition:opacity_300ms_ease,min-height_500ms_var(--ease-spring-wobbly),scale_500ms_var(--ease-spring-wobbly)]",
         "motion-safe:active:scale-[0.98] motion-safe:active:[transition:scale_100ms_ease-out]",
         interactive && "cursor-pointer",
         intro.row?.[key],
@@ -297,17 +315,40 @@ function BoardRow({
         득표 막대(상세) — 줄 바탕이 득표율만큼 진영 색으로 찬다. 내가 고른 쪽은 진하게, 다른 쪽은 옅게
         (마감되면 양쪽 다 옅게 — readOptionResult의 emphasized). 진영 블록이 그 위에 덮여 왼쪽 끝은 늘 블록이다.
       */}
-      {result ? (
+      {/*
+        투표 전에도 폭 0으로 깔아 둔다(#310) — 고르는 순간 새로 그리면 다 찬 채로 툭 나타난다. 0에서 득표율까지
+        홈의 차오름과 같은 시간·곡선(1초, 부드럽게 멈춤)으로 차오른다. 출렁이는 곡선은 막대가 득표율을 넘쳤다
+        돌아와 띠용 하고 튀어 보여 뺐다.
+      */}
+      {detail ? (
         <span
           aria-hidden
           className={cn(
-            "absolute inset-y-0 left-0 rounded-2xl motion-safe:transition-[width] motion-safe:duration-1000 motion-safe:ease-spring-wobbly",
+            "absolute inset-y-0 left-0 rounded-2xl motion-safe:transition-[width] motion-safe:duration-1000 motion-safe:ease-smooth-out",
             CORNER[key],
-            result.emphasized ? "opacity-90" : "opacity-35",
+            emphasized ? "opacity-90" : "opacity-35",
           )}
-          style={{ width: `${result.percent}%` }}
+          style={{ width: `${result?.percent ?? 0}%` }}
         />
       ) : null}
+
+      {/*
+        고른 줄 차오름(홈) — 고르면 진영 블록에서 시작해 줄 끝까지 진영 색이 차올라 줄이 통째로 켜진다
+        (전광판에서 승자 줄이 켜지듯). 취소하면 같은 길로 빠진다. 득표율을 그리는 상세는 위 득표 막대가 맡는다.
+        폭 대신 오른쪽을 잘라(clip-path) 둥근 모서리가 찌그러지지 않는다.
+      */}
+      {detail ? null : (
+        <span
+          aria-hidden
+          className={cn(
+            "absolute inset-0 rounded-2xl motion-safe:transition-[clip-path] motion-safe:duration-1000 motion-safe:ease-smooth-out",
+            CORNER[key],
+            selected
+              ? "[clip-path:inset(0_0_0_0_round_16px)]"
+              : "[clip-path:inset(0_100%_0_0_round_16px)]",
+          )}
+        />
+      )}
 
       {/*
         진영 블록 — 색 면은 기운 변으로 잘리고, 캐릭터는 그 위에 따로 서서 머리가 줄 위로 삐져나온다.
@@ -416,18 +457,12 @@ function BoardRow({
 }
 
 /**
- * 시계 밑 "남은 시간" 이름표 — 다른 화면의 남은 시간 표기와 같은 째깍 시계 아이콘을 앞에 둔다.
+ * 시계 밑 "남은 시간" 이름표 — 다른 화면의 남은 시간 표기와 같은 시계 아이콘을 앞에 둔다.
  * 선수 줄과 같은 옅은 면의 알약에 담아 시계 숫자 밑에 조용히 붙인다(아이콘만 앱 파랑).
- * 시계와 같은 틱을 받는다(BalanceClock의 below) — 아이콘이 숫자와 같은 순간에 째깍인다. 낭독기에는 숨긴다
- * (시계가 이미 "남은 시간 …"으로 읽힌다).
+ * 아이콘은 째깍이지 않는다(#310) — 바로 위 큰 숫자가 이미 매초 움직여, 아이콘까지 흔들면 시선이 둘로 갈린다.
+ * 시계가 그려질 때만 함께 그린다(BalanceClock의 below). 낭독기에는 숨긴다(시계가 이미 "남은 시간 …"으로 읽힌다).
  */
-function BoardClockLabel({
-  remainMs,
-  closed,
-}: {
-  remainMs: number;
-  closed: boolean;
-}) {
+function BoardClockLabel({ closed }: { closed: boolean }) {
   const palette = BOARD_PALETTE;
 
   return (
@@ -439,11 +474,7 @@ function BoardClockLabel({
         palette.muted,
       )}
     >
-      <TickingTimerIcon
-        remainMs={closed ? null : remainMs}
-        size={14}
-        className="text-interactive-primary"
-      />
+      <TimerIcon size={14} className="text-interactive-primary" />
       {closed ? "투표 종료" : "남은 시간"}
     </span>
   );
