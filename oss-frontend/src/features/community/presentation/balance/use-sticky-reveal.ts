@@ -13,9 +13,9 @@ import { useEffect, useRef, useState } from "react";
  * 빈 피드에서 레이아웃이 짧을 때)까지 true가 되면 아직 지나가지도 않은 카드의 sticky가 뜬다.
  * boundingClientRect.top이 음수일 때만 "위로 지나갔다"고 판정한다.
  *
- * enabled=false면 관찰 자체를 걸지 않는다 — 이미 투표한 사용자에게는 sticky가 없으므로
- * 스크롤 내내 관찰할 이유가 없다. 이때 반환값도 항상 false다(관찰을 멈춘 시점의 옛 값이
- * 남지 않도록 state가 아니라 파생값으로 낸다).
+ * enabled=false면 관찰 자체를 걸지 않는다 — 접힌 머리를 띄울 일이 없는 화면에서 스크롤 내내 관찰하지
+ * 않기 위한 스위치다(지금 홈 스코어보드는 투표 여부와 상관없이 늘 켠다). 이때 반환값도 항상 false다
+ * (관찰을 멈춘 시점의 옛 값이 남지 않도록 state가 아니라 파생값으로 낸다).
  */
 export function useStickyReveal<T extends Element = HTMLDivElement>({
   enabled = true,

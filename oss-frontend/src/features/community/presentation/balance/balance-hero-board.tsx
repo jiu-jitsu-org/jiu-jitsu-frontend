@@ -22,7 +22,6 @@ import {
   readOptionResult,
 } from "@/features/community/presentation/balance/balance-result";
 import { TickingTimerIcon } from "@/features/community/presentation/balance/ticking-timer-icon";
-import { useBalanceCountdown } from "@/features/community/presentation/balance/use-balance-countdown";
 import type {
   BalanceGameOption,
   BalanceOptionKey,
@@ -63,18 +62,12 @@ const CORNER_CLIP = "[clip-path:polygon(0_0,100%_0,calc(100%-14px)_100%,0_100%)]
  */
 /**
  * 투표 뒤 줄 크기 — 고른 줄은 살짝 커지고, 밀려난 줄은 높이·진영 블록·글자가 함께 줄어 한눈에 뒤로 물러난다.
- * 진영 블록 너비는 --corner-w로도 넘겨 인트로 색 판(fill-retract)이 같은 자리에서 멈추게 한다.
+ * 진영 블록 너비는 --corner-w 하나로 정한다 — 블록과 인트로 색 판(fill-retract)이 같은 값을 읽는다.
  */
 const ROW_SIZE: Record<BalanceOptionState, string> = {
   default: "min-h-[76px] [--corner-w:100px]",
   selected: "min-h-[84px] [--corner-w:100px]",
   unselected: "min-h-[56px] [--corner-w:80px]",
-};
-
-const CORNER_WIDTH: Record<BalanceOptionState, string> = {
-  default: "w-[100px]",
-  selected: "w-[100px]",
-  unselected: "w-[80px]",
 };
 
 const OPTION_TEXT: Record<BalanceOptionState, string> = {
@@ -173,15 +166,18 @@ export function BalanceHeroBoard({
   const palette = BOARD_PALETTE;
 
   // 첫 렌더에서 한 번 정한다. 서버 렌더에서도 집합은 비어 있어 서버·클라이언트 판단이 같다(하이드레이션 일치).
-  const [play] = useState(() => intro && !introPlayed.has(game.contentId));
+  // 인트로를 돌린 게임은 마운트 때 한 번 정한다. 마감으로 다음 판이 들어와도 판은 다시 마운트되지 않아
+  // 인트로가 다시 돌지 않으므로, 기록도 처음 판 번호로만 남긴다(새 판을 "본 것"으로 적지 않게).
+  const [introGameId] = useState(game.contentId);
+  const [play] = useState(() => intro && !introPlayed.has(introGameId));
   const parts: IntroParts = play ? INTRO : {};
 
   // 돌린 게임을 기록한다 — 다음 방문엔 서버가 쿠키를 보고 인트로 없이 그린다.
   useEffect(() => {
     if (!play) return;
-    introPlayed.add(game.contentId);
-    document.cookie = `${BALANCE_INTRO_COOKIE}=${game.contentId}; path=/; max-age=${INTRO_COOKIE_MAX_AGE}; samesite=lax`;
-  }, [play, game.contentId]);
+    introPlayed.add(introGameId);
+    document.cookie = `${BALANCE_INTRO_COOKIE}=${introGameId}; path=/; max-age=${INTRO_COOKIE_MAX_AGE}; samesite=lax`;
+  }, [play, introGameId]);
 
   return (
     <section
@@ -224,11 +220,9 @@ export function BalanceHeroBoard({
             balanceNumeralFont.className,
             "inline-block text-[60px] leading-[64px] tracking-[-1px]",
           )}
-        />
-        <BoardClockLabel
-          endAt={game.endAt}
-          serverTime={game.serverTime}
-          closed={game.closed}
+          below={(remainMs) => (
+            <BoardClockLabel remainMs={remainMs} closed={game.closed} />
+          )}
         />
       </div>
 
@@ -289,7 +283,7 @@ function BoardRow({
         "relative flex w-full items-stretch rounded-2xl text-left",
         ROW_SIZE[state],
         // 고른 줄은 진영 색으로 통째로 켜지고, 밀려난 줄은 꺼진다(전광판에서 승자 줄이 켜지듯).
-        // 꺼진 줄은 판 위에 한 단 뜬 면(먹색 판은 흰 9%, 매트 판은 흰 면).
+        // 꺼진 줄은 판 위에 한 단 뜬 면(흰 9%).
         selected && !result ? [CORNER[key], "text-text-on-dark"] : palette.row,
         // 득표율을 읽어야 하는 상세에서는 밀려난 줄을 덜 끈다.
         state === "unselected" && (result ? "opacity-75" : "opacity-50"),
@@ -319,11 +313,16 @@ function BoardRow({
         진영 블록 — 색 면은 기운 변으로 잘리고, 캐릭터는 그 위에 따로 서서 머리가 줄 위로 삐져나온다.
         줄이 통째로 켜지면 블록과 줄이 한 색이라 기운 변이 사라진다 — 그대로 둬도 된다.
       */}
+      {/*
+        탭은 받지 않는다(pointer-events-none) — 줄 위로 삐져나온 캐릭터 머리가 이웃 줄이나 판의 탭을 가로채지
+        않게. 블록 안을 누르면 아래의 줄(버튼)이 그대로 받는다.
+      */}
       <span
         aria-hidden
         className={cn(
-          "relative shrink-0 motion-safe:transition-[width] motion-safe:duration-500 motion-safe:ease-spring-wobbly",
-          CORNER_WIDTH[state],
+          "pointer-events-none relative shrink-0 motion-safe:transition-[width] motion-safe:duration-500 motion-safe:ease-spring-wobbly",
+          // 너비는 ROW_SIZE의 --corner-w 하나로 정한다 — 인트로 색 판도 같은 값에서 멈춘다.
+          "w-[var(--corner-w)]",
         )}
       >
         <span className={cn("absolute inset-0 rounded-l-2xl", CORNER[key], CORNER_CLIP)} />
@@ -347,6 +346,8 @@ function BoardRow({
         )}
       >
         {option.text}
+        {/* 점수 자리는 낭독기에서 숨겨 두었으므로 득표율은 여기서 읽힌다. */}
+        {result ? <span className="sr-only">, {result.percent}%</span> : null}
       </span>
 
       {/* 인트로 색 판 — 줄을 진영 색으로 꽉 채웠다가 빠진다. 평소엔 보이지 않는다(opacity 0). */}
@@ -417,22 +418,21 @@ function BoardRow({
 /**
  * 시계 밑 "남은 시간" 이름표 — 다른 화면의 남은 시간 표기와 같은 째깍 시계 아이콘을 앞에 둔다.
  * 선수 줄과 같은 옅은 면의 알약에 담아 시계 숫자 밑에 조용히 붙인다(아이콘만 앱 파랑).
- * 매초 째깍이려고 카운트다운을 따로 구독한다(BalanceRemaining과 같은 말단 리렌더).
+ * 시계와 같은 틱을 받는다(BalanceClock의 below) — 아이콘이 숫자와 같은 순간에 째깍인다. 낭독기에는 숨긴다
+ * (시계가 이미 "남은 시간 …"으로 읽힌다).
  */
 function BoardClockLabel({
-  endAt,
-  serverTime,
+  remainMs,
   closed,
 }: {
-  endAt: string;
-  serverTime: string;
+  remainMs: number;
   closed: boolean;
 }) {
-  const { remainMs } = useBalanceCountdown({ endAt, serverTime });
   const palette = BOARD_PALETTE;
 
   return (
     <span
+      aria-hidden
       className={cn(
         "mt-1.5 inline-flex h-6 items-center gap-1 rounded-full pr-2.5 pl-2 text-label-m tracking-[0.5px]",
         palette.row,

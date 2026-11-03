@@ -7,7 +7,7 @@ import type { BalanceOptionState } from "@/features/community/presentation/balan
 import { cn } from "@/shared/lib/cn";
 
 /*
- * 밸런스 게임 캐릭터(#305) — 선택지 행(BalanceOptionButton)과 홈 히어로 시안들이 함께 쓴다.
+ * 밸런스 게임 캐릭터(#305) — 선택지 행(BalanceOptionButton)과 스코어보드(BalanceHeroBoard)가 함께 쓴다.
  * 그림·눈·대결/맞물림 동작은 선택지 행에 있던 것을 그대로 옮겼다. 크기와 자르기는 놓이는 쪽이 정한다.
  */
 

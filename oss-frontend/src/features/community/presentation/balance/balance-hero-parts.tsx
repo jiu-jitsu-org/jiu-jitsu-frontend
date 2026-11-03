@@ -1,6 +1,6 @@
 "use client";
 
-import type { MouseEvent } from "react";
+import type { MouseEvent, ReactNode } from "react";
 
 import type { BalanceOptionState } from "@/features/community/presentation/balance/balance-option-button";
 import { RollingText } from "@/features/community/presentation/balance/rolling-text";
@@ -71,22 +71,35 @@ export function BalanceClock({
   serverTime,
   onExpired,
   className,
+  below,
 }: {
   endAt: string;
   serverTime: string;
   onExpired?: () => void;
   className?: string;
+  /**
+   * 시계 바로 아래에 붙일 것 — 같은 틱(remainMs)을 받는다. 남은 시간 이름표의 째깍 아이콘이 숫자와 같은
+   * 순간에 움직이게, 카운트다운을 따로 구독하지 않고 여기서 함께 그린다(타이머가 둘이면 박자가 어긋난다).
+   */
+  below?: (remainMs: number) => ReactNode;
 }) {
   const { remainMs } = useBalanceCountdown({ endAt, serverTime, onExpired });
   if (remainMs === null) return null;
 
   return (
-    // 매초 바뀌어 aria-live를 두지 않는다. 읽을 때는 "남은 시간 11:54:36"으로 읽힌다.
-    <span className={cn("tabular-nums", className)} aria-label={`남은 시간 ${toClock(remainMs)}`}>
-      <span aria-hidden>
-        <RollingText text={toClock(remainMs)} />
+    <>
+      {/*
+        매초 바뀌어 aria-live를 두지 않는다(role="timer"는 기본이 off). 굴러가는 숫자는 낭독기에서 숨기고,
+        읽을 때는 "남은 시간 11:54:36" 한 덩어리로 읽힌다 — aria-label은 일반 span에서 무시되므로 숨은 글자로 둔다.
+      */}
+      <span role="timer" className={cn("tabular-nums", className)}>
+        <span aria-hidden>
+          <RollingText text={toClock(remainMs)} />
+        </span>
+        <span className="sr-only">남은 시간 {toClock(remainMs)}</span>
       </span>
-    </span>
+      {below?.(remainMs)}
+    </>
   );
 }
 

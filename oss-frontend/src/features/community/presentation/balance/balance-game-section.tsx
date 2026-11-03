@@ -129,9 +129,7 @@ function BalanceGameBody({
 }) {
   const vote = useBalanceVote({ game, onVoted: onChange });
   const openDetail = useOpenBalanceDetail();
-  const { targetRef, passed } = useStickyReveal<HTMLDivElement>({
-    enabled: true,
-  });
+  const { targetRef, passed } = useStickyReveal<HTMLDivElement>();
 
   // 바는 보일 조건이 꺼져도 바로 빼지 않고 걷히는 동안 남겨 둔다.
   // animationend 대신 타이머인 이유는 useLeavingKeys와 같다 — 끝 이벤트를 못 받으면 영영 남는다.
