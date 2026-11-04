@@ -542,11 +542,14 @@ export function PostWriteScreen({
    *
    * 같은 웹뷰에서 replace하는 이유: 앱에서도 이 서브뷰가 그대로 상세가 되므로 상세 뒤로가기(closeDetail →
    * CLOSE_SUBVIEW)가 진입 화면으로 돌아가고, 브릿지 계약(서브뷰 교체)을 늘리지 않는다. 웹 단독도 히스토리
-   * 한 칸을 교체해 같은 결과가 된다. 웹뷰가 살아 있으니 토스트도 그대로 보인다.
+   * 한 칸을 교체해 같은 결과가 된다.
+   *
+   * 토스트는 상세가 뜬 뒤 상세가 띄운다(#325). 여기서 바로 띄우면 글쓰기 화면에서 한 박자 먼저 보이고,
+   * 상세로 넘어가는 동안 아래 여백(댓글 입력 바)이 바뀌어 자리가 튄다.
    */
   function goToDetail(postId: number, toastMessage: string) {
     discardAll();
-    toast.show(toastMessage, { tone: "success" });
+    enqueuePendingToast(toastMessage, { tone: "success" });
     router.replace(`/community/${postId}`);
   }
 

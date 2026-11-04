@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import { isDevelopmentRuntime } from "@/config/env";
 import { useAuth } from "@/features/auth/presentation/auth-provider";
@@ -76,6 +76,14 @@ function isSampleVoting(): boolean {
   return new URLSearchParams(window.location.search).get("sample") === "1";
 }
 
+/** 서버와 맞추는 중인 투표 상태. */
+type VoteSync = {
+  /** 서버가 마지막으로 확정한 판 — 실패하면 여기로 되돌린다. */
+  confirmed: BalanceGame;
+  /** 사용자가 마지막으로 누른 결과. */
+  desired: BalanceOptionKey | null;
+};
+
 export function useBalanceVote({
   game,
   onVoted,
@@ -87,10 +95,29 @@ export function useBalanceVote({
   const { status, promptLogin } = useAuth();
   const toast = useToast();
 
-  // 요청이 끝나기 전 재탭을 막는다. 이건 UX 개선이 아니라 기능 요구사항이다 —
-  // 같은 선택지가 두 번 도착하면 업스트림이 두 번째를 "취소"로 처리해 투표가 풀리고,
-  // A→B 연타는 낙관적 값과 응답 도착 순서가 엇갈려 화면이 서버와 다른 선택지에 멈출 수 있다.
-  const votingRef = useRef(false);
+  // 서버와 맞추는 중인 투표(#324). 탭은 막지 않는다 — 누를 때마다 화면은 바로 바뀌고, 요청은 한 번에
+  // 하나씩만 보내 마지막 상태로 맞춘다. 동시에 보내면 업스트림이 같은 선택지 두 번째를 "취소"로 처리하고,
+  // 응답 도착 순서가 엇갈려 화면이 서버와 다른 선택지에 멈출 수 있다.
+  const syncRef = useRef<VoteSync | null>(null);
+
+  // 지금 화면의 판(화면을 떠났으면 null). 요청을 기다리는 사이 다음 판으로 바뀌었거나 마감됐으면
+  // 늦게 온 결과로 덮지 않는다 — 옛 판이 되살아나거나 마감 판이 다시 열린다.
+  const currentGameRef = useRef<BalanceGame | null>(game);
+  useEffect(() => {
+    currentGameRef.current = game;
+    return () => {
+      currentGameRef.current = null;
+    };
+  }, [game]);
+
+  const applySettled = useCallback(
+    (settled: BalanceGame) => {
+      const current = currentGameRef.current;
+      if (current?.contentId !== settled.contentId || current.closed) return;
+      onVoted(settled);
+    },
+    [onVoted],
+  );
 
   return useCallback(
     (option: BalanceOptionKey) => {
@@ -118,46 +145,77 @@ export function useBalanceVote({
         return;
       }
 
-      if (votingRef.current) return;
-      votingRef.current = true;
+      // 이전 판의 요청이 끝나기 전에 다음 판으로 바뀐 경우 — 두 판의 상태가 섞이지 않게 끝날 때까지 기다린다.
+      const running = syncRef.current;
+      if (running && running.confirmed.contentId !== game.contentId) return;
 
       // 낙관적 반영 — 탭과 색 반전 사이에 왕복 시간이 끼면 눌린 것 같지 않다.
-      // 같은 선택지를 다시 누른 경우는 취소라 null이 된다(업스트림 규약과 같은 규칙이라
-      // 낙관적 값이 곧 서버 확정값과 일치한다).
-      const previous = game;
-      onVoted(applyVote(game, nextVoteOf(game.myVote, option)));
+      // 같은 선택지를 다시 누른 경우는 취소라 null이 된다.
+      const next = nextVoteOf(game.myVote, option);
+      onVoted(applyVote(game, next));
+
+      if (running) {
+        // 보내고 있는 요청이 끝나면 아래 반복문이 이 상태로 맞춘다.
+        running.desired = next;
+        return;
+      }
+
+      const sync: VoteSync = { confirmed: game, desired: next };
+      syncRef.current = sync;
 
       void (async () => {
         try {
-          const response = await bffFetch(
-            `/api/community/balance-game/${game.contentId}/vote`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ option }),
-            },
+          let sent: BalanceOptionKey | null;
+          do {
+            sent = sync.desired;
+            // 업스트림 규약: 같은 선택지 = 취소, 다른 선택지 = 변경. 취소하려면 지금 서버의 선택지를 보낸다.
+            const voteOption = sent ?? sync.confirmed.myVote;
+            if (voteOption === null) break; // 고르고 바로 취소해 서버와 이미 같다.
+
+            const response = await bffFetch(
+              `/api/community/balance-game/${sync.confirmed.contentId}/vote`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ option: voteOption }),
+              },
+            );
+
+            if (!response.ok) {
+              applySettled(sync.confirmed);
+              return;
+            }
+
+            const body = (await response.json().catch(() => null)) as
+              | { data?: BalanceGame }
+              | null;
+
+            // 본문을 못 읽어도 투표 자체는 성공했으므로 규약대로 바뀐 것으로 본다.
+            sync.confirmed =
+              body?.data ??
+              applyVote(
+                sync.confirmed,
+                nextVoteOf(sync.confirmed.myVote, voteOption),
+              );
+
+            // 응답을 기다리는 사이 또 눌렸으면 그 상태로 다시 보낸다. 안 눌렸으면 서버 응답을 그대로 믿고 끝낸다
+            // (다시 보내면 응답이 뜻밖일 때 끝없이 반복한다).
+          } while (
+            sync.desired !== sent &&
+            sync.desired !== sync.confirmed.myVote
           );
 
-          if (!response.ok) {
-            onVoted(previous);
-            return;
-          }
-
-          const body = (await response.json().catch(() => null)) as
-            | { data?: BalanceGame }
-            | null;
-
-          // 서버 확정값으로 덮어쓴다 — 그 사이 다른 사용자의 투표까지 반영된 최신 상태다.
-          // 본문을 못 읽어도 투표 자체는 성공했으므로 낙관적 상태를 유지한다.
-          if (body?.data) onVoted(body.data);
+          // 맞추는 동안에는 응답을 화면에 넣지 않는다 — 누르는 도중 줄이 되돌아갔다 다시 켜진다.
+          // 끝났을 때 한 번만 서버 확정값(다른 사용자의 투표까지 반영된 최신 상태)으로 덮어쓴다.
+          applySettled(sync.confirmed);
         } catch {
-          onVoted(previous);
+          applySettled(sync.confirmed);
         } finally {
-          votingRef.current = false;
+          syncRef.current = null;
         }
       })();
     },
     // 실패 문구는 아직 정해지지 않았다 → 롤백만 하고 아무것도 띄우지 않는다(정책: 동작 안 함).
-    [game, onVoted, promptLogin, status, toast],
+    [applySettled, game, onVoted, promptLogin, status, toast],
   );
 }
