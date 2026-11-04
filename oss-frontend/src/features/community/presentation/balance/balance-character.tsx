@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { Component, type ReactNode, createRef, useEffect, useId, useState } from "react";
 
 import type { BalanceOptionKey } from "@/features/community/domain/balance-game";
 import type { BalanceOptionState } from "@/features/community/presentation/balance/balance-option-button";
@@ -49,7 +49,7 @@ const CHARACTER_SRC: Record<
  *
  * - selected = 웅크렸다 쭉 늘며 솟았다가 납작하게 착지
  * - unselected = 따로 동작이 없다 — 흔들면 줄어드는 움직임과 겹쳐 요란하다. 크기만 조용히 줄어든다
- * - default(취소로 돌아옴)도 따로 동작이 없다 — 크기 스프링만으로 돌아간다
+ * - default(취소로 돌아옴)도 따로 동작이 없다 — 크기만 부드럽게 돌아간다
  *
  * 클래스가 붙는 순간 재생되므로 상태가 바뀌면 자동으로 다시 돈다.
  */
@@ -138,10 +138,13 @@ const EYE_BOX = `scale(${1 / 174} ${1 / 198})`;
 function BalanceIdleEyes({
   optionKey,
   glare = false,
+  delayed = false,
 }: {
   optionKey: BalanceOptionKey;
   /** 고른 뒤 — 눈동자를 굴리지 않고 상대 쪽에 박아 둔다(GLOAT_STYLES). */
   glare?: boolean;
+  /** 취소로 돌아온 직후 — 몸통과 같은 박자로 대결을 늦게 시작한다(IDLE_RESUME_DELAY). */
+  delayed?: boolean;
 }) {
   const id = useId();
   const lid = `${id}-lid`;
@@ -180,6 +183,7 @@ function BalanceIdleEyes({
           className={cn(
             "absolute inset-0 size-full",
             glare ? GLARE_PUPIL[optionKey] : IDLE_STYLES[optionKey].pupil,
+            !glare && delayed && IDLE_RESUME_DELAY,
           )}
         >
           <circle cx="70" cy="98" r="4.8" fill="#111" />
@@ -188,6 +192,64 @@ function BalanceIdleEyes({
       </span>
     </>
   );
+}
+
+/** 크기·자세가 바뀌는 시간과 곡선(500ms, --ease-smooth-out) — 줄 높이와 캐릭터 자세가 같이 쓴다. */
+export const SETTLE_TIMING = { duration: 500, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" };
+
+/** 취소로 돌아온 뒤 대결을 다시 시작하는 시점 — 제자리로 돌아오는 동안(SETTLE_TIMING) 겹치지 않게 기다린다. */
+const IDLE_RESUME_DELAY = "motion-safe:[animation-delay:500ms]";
+
+type CharacterPose = Pick<CSSStyleDeclaration, "scale" | "rotate" | "translate">;
+
+/**
+ * 대결·맞물림 동작을 하는 겹. 반복 동작은 클래스가 바뀌는 순간 끊겨, 크게 부풀어 있던 캐릭터가 한 프레임에
+ * 원래 크기로 튄다. 그래서 바뀌기 직전의 자세를 읽어(getSnapshotBeforeUpdate — 이 시점을 잡으려고 클래스로 둔다)
+ * 그 자세에서 제자리까지 이어 준다. 동작 줄이기에서는 반복 동작이 없어 읽을 자세도 없다.
+ */
+class CharacterMotionLayer extends Component<{
+  motion: string | false;
+  children: ReactNode;
+}> {
+  private readonly layer = createRef<HTMLSpanElement>();
+
+  getSnapshotBeforeUpdate(prev: { motion: string | false }): CharacterPose | null {
+    const el = this.layer.current;
+    if (!el || prev.motion === this.props.motion) return null;
+    const { scale, rotate, translate } = getComputedStyle(el);
+    if (scale === "none" && rotate === "none" && translate === "none") return null;
+    return { scale, rotate, translate };
+  }
+
+  componentDidUpdate(
+    _prev: unknown,
+    _state: unknown,
+    pose: CharacterPose | null,
+  ) {
+    if (!pose) return;
+    this.layer.current?.animate(
+      [
+        {
+          scale: pose.scale === "none" ? "1" : pose.scale,
+          rotate: pose.rotate === "none" ? "0deg" : pose.rotate,
+          translate: pose.translate === "none" ? "0px" : pose.translate,
+        },
+        { scale: "1", rotate: "0deg", translate: "0px" },
+      ],
+      SETTLE_TIMING,
+    );
+  }
+
+  render() {
+    return (
+      <span
+        ref={this.layer}
+        className={cn("relative block size-full origin-bottom", this.props.motion)}
+      >
+        {this.props.children}
+      </span>
+    );
+  }
 }
 
 /**
@@ -227,19 +289,19 @@ export function BalanceCharacter({
     setChanged(true);
   }
 
+  const motion = cn(
+    idle && IDLE_STYLES[optionKey].motion,
+    idle && changed && IDLE_RESUME_DELAY,
+    gloat &&
+      (glaring
+        ? GLOAT_STYLES[optionKey].gloat
+        : GLOAT_STYLES[optionKey].cower),
+    className,
+  );
+
   return (
     // 대결 동작은 이 겹이 한다 — 바깥 칸은 가만히 밑단만 자르고, 그림과 색 겹이 함께 커지고 기운다.
-    <span
-      className={cn(
-        "relative block size-full origin-bottom",
-        idle && IDLE_STYLES[optionKey].motion,
-        gloat &&
-          (glaring
-            ? GLOAT_STYLES[optionKey].gloat
-            : GLOAT_STYLES[optionKey].cower),
-        className,
-      )}
-    >
+    <CharacterMotionLayer motion={motion}>
       {/*
         고르는 순간의 보잉은 몸통과 눈을 한 겹으로 묶어 함께 움직인다(#310). 몸통 그림에만 걸면
         몸통이 웅크렸다 솟는 동안 눈은 제자리에 떠 있어, 눈만 남았다가 몸통이 튀어나오는 것처럼 보였다.
@@ -261,9 +323,9 @@ export function BalanceCharacter({
           className="size-full object-contain"
         />
         {idle || glaring ? (
-          <BalanceIdleEyes optionKey={optionKey} glare={glaring} />
+          <BalanceIdleEyes optionKey={optionKey} glare={glaring} delayed={changed} />
         ) : null}
       </span>
-    </span>
+    </CharacterMotionLayer>
   );
 }
