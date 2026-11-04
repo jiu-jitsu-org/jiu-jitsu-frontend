@@ -328,7 +328,7 @@ function BoardRow({
         바깥 겹이 줄 모양으로 잘라, 면의 오른쪽 둥근 끝만 줄 안에서 움직인다.
       */}
       {detail ? (
-        <span aria-hidden className="absolute inset-0 overflow-hidden rounded-2xl">
+        <span aria-hidden className="absolute inset-0 isolate overflow-hidden rounded-2xl">
           <span
             className={cn(
               "absolute inset-0 rounded-2xl motion-safe:transition-transform motion-safe:duration-1000 motion-safe:ease-smooth-out",
@@ -346,7 +346,7 @@ function BoardRow({
         상세 득표 막대와 같은 방식으로 줄 크기의 면을 밀어 넣는다(#317) — 둥근 모서리가 찌그러지지 않고 다시 그리지도 않는다.
       */}
       {detail ? null : (
-        <span aria-hidden className="absolute inset-0 overflow-hidden rounded-2xl">
+        <span aria-hidden className="absolute inset-0 isolate overflow-hidden rounded-2xl">
           <span
             className={cn(
               "absolute inset-0 rounded-2xl motion-safe:transition-transform motion-safe:duration-1000 motion-safe:ease-smooth-out",
