@@ -923,100 +923,101 @@
   }
 
   /* 눈동자(BalanceIdleEyes) — +가 아래. A는 노려볼 때 아래(B), B는 위(A)에 박힌다.
+     값은 그림 높이(198)에 대한 % — 그림 좌표로 6 = 3.0303%, 5 = 2.5253%, 3 = 1.5152%. SVG 통째로 움직여서 칸 크기를 따라간다(#317).
      당하는 쪽은 굴러다니지 않고 상대 쪽으로 천천히 옮겨 가만히 본다 — 시선은 노려보는 쪽에 모여야 한다. */
   @keyframes balance-pupil-a {
     0% {
-      transform: translateY(0px);
+      transform: translateY(0);
     }
     5% {
-      transform: translateY(6px);
+      transform: translateY(3.0303%);
     }
     6.5% {
-      transform: translateY(5px);
+      transform: translateY(2.5253%);
     }
     40% {
-      transform: translateY(5px);
+      transform: translateY(2.5253%);
     }
     43.75% {
-      transform: translateY(0px);
+      transform: translateY(0);
     }
     48.75% {
-      transform: translateY(3px);
+      transform: translateY(1.5152%);
     }
     52.5% {
-      transform: translateY(0px);
+      transform: translateY(0);
     }
     58.75% {
-      transform: translateY(3px);
+      transform: translateY(1.5152%);
     }
     71.25% {
-      transform: translateY(3px);
+      transform: translateY(1.5152%);
     }
     73.75% {
-      transform: translateY(6px);
+      transform: translateY(3.0303%);
     }
     75.62% {
-      transform: translateY(5px);
+      transform: translateY(2.5253%);
     }
     88.75% {
-      transform: translateY(5px);
+      transform: translateY(2.5253%);
     }
     92.5% {
-      transform: translateY(0px);
+      transform: translateY(0);
     }
     100% {
-      transform: translateY(0px);
+      transform: translateY(0);
     }
   }
 
   @keyframes balance-pupil-b {
     0% {
-      transform: translateY(0px);
+      transform: translateY(0);
     }
     8.75% {
-      transform: translateY(-3px);
+      transform: translateY(-1.5152%);
     }
     16.25% {
-      transform: translateY(-3px);
+      transform: translateY(-1.5152%);
     }
     17.5% {
-      transform: translateY(-6px);
+      transform: translateY(-3.0303%);
     }
     19.38% {
-      transform: translateY(-5px);
+      transform: translateY(-2.5253%);
     }
     37.5% {
-      transform: translateY(-5px);
+      transform: translateY(-2.5253%);
     }
     40% {
-      transform: translateY(0px);
+      transform: translateY(0);
     }
     49.38% {
-      transform: translateY(-3px);
+      transform: translateY(-1.5152%);
     }
     52.5% {
-      transform: translateY(0px);
+      transform: translateY(0);
     }
     57.5% {
-      transform: translateY(-6px);
+      transform: translateY(-3.0303%);
     }
     59.38% {
-      transform: translateY(-5px);
+      transform: translateY(-2.5253%);
     }
     74.38% {
-      transform: translateY(-5px);
+      transform: translateY(-2.5253%);
     }
     78.75% {
-      transform: translateY(-3px);
+      transform: translateY(-1.5152%);
     }
     87.5% {
-      transform: translateY(-3px);
+      transform: translateY(-1.5152%);
     }
     91.25% {
-      transform: translateY(0px);
+      transform: translateY(0);
     }
     100% {
-      transform: translateY(0px);
+      transform: translateY(0);
     }
   }
 

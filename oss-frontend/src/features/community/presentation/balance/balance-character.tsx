@@ -111,11 +111,17 @@ const GLOAT_STYLES = {
   },
 } as const;
 
-/** 노려보는 눈동자 자리 — 대결에서 상대를 노려볼 때와 같은 값(balance-pupil-a/b의 5px). */
+/** 노려보는 눈동자 자리 — 대결에서 상대를 노려볼 때와 같은 값(그림 좌표 5, 198의 2.5253%. balance-pupil-a/b). */
 const GLARE_PUPIL: Record<BalanceOptionKey, string> = {
-  A: "translate-y-[5px]",
-  B: "-translate-y-[5px]",
+  A: "translate-y-[2.5253%]",
+  B: "-translate-y-[2.5253%]",
 };
+
+/** 눈꺼풀 선 — 그림 좌표(174×198). 흰자와 눈동자 창이 같은 선으로 잘린다. */
+const EYE_LID_POINTS = "40,88 80,94 84,94 126,86 126,124 40,124";
+
+/** 그림 좌표(174×198)를 칸 전체 = 1인 단위로 옮긴다(BalanceIdleEyes의 눈동자 창). */
+const EYE_BOX = `scale(${1 / 174} ${1 / 198})`;
 
 /**
  * 투표 전 캐릭터의 눈 — 몸통 그림(174×198)과 같은 좌표계의 SVG라 그림과 함께 커지고 기운다.
@@ -123,6 +129,11 @@ const GLARE_PUPIL: Record<BalanceOptionKey, string> = {
  * 흰자 위를 비스듬한 눈꺼풀 선으로 잘라 미간 쪽이 낮은 "노려보는" 눈을 만든다.
  * 눈동자는 흰자 안에서만 보이고(clipPath) 위아래로만 움직인다 — 위로 가면 눈꺼풀에 반쯤 묻힌다.
  * clipPath id는 카드가 여러 장이어도 겹치지 않게 useId로 만든다.
+ *
+ * 눈동자는 흰자와 다른 SVG에 그린다(#317). SVG 안쪽 요소를 움직이면 그 SVG 전체를 매 프레임 다시 그리지만,
+ * SVG 자체를 움직이면 이미 그려 둔 그림을 옮기기만 한다. 그래서 움직이는 쪽을 눈동자 SVG 통째로 두고,
+ * 눈 모양으로 잘라 주는 창은 가만히 있는 바깥 겹이 맡는다. 창은 HTML 요소에 걸려 칸 크기를 따라가야 하므로
+ * objectBoundingBox(칸 전체 = 1) 단위이고, EYE_BOX로 그림 좌표를 그 단위로 옮긴다.
  */
 function BalanceIdleEyes({
   optionKey,
@@ -134,33 +145,48 @@ function BalanceIdleEyes({
 }) {
   const id = useId();
   const lid = `${id}-lid`;
-  const whites = `${id}-whites`;
+  const lidBox = `${id}-lid-box`;
+  const pupilWindow = `${id}-pupil-window`;
   return (
-    <svg viewBox="0 0 174 198" className="absolute inset-0 size-full">
-      <defs>
-        <clipPath id={lid}>
-          <polygon points="40,88 80,94 84,94 126,86 126,124 40,124" />
-        </clipPath>
-        <clipPath id={whites}>
-          <ellipse cx="66" cy="96" rx="11" ry="12" />
-          <ellipse cx="101" cy="95" rx="16" ry="13" />
-        </clipPath>
-      </defs>
-      <g clipPath={`url(#${lid})`}>
-        <ellipse cx="66" cy="96" rx="11" ry="12" fill="white" />
-        <ellipse cx="101" cy="95" rx="16" ry="13" fill="white" />
-        <g clipPath={`url(#${whites})`}>
-          <g
-            className={
-              glare ? GLARE_PUPIL[optionKey] : IDLE_STYLES[optionKey].pupil
-            }
+    <>
+      <svg viewBox="0 0 174 198" className="absolute inset-0 size-full">
+        <defs>
+          <clipPath id={lid}>
+            <polygon points={EYE_LID_POINTS} />
+          </clipPath>
+          <clipPath id={lidBox} clipPathUnits="objectBoundingBox">
+            <polygon points={EYE_LID_POINTS} transform={EYE_BOX} />
+          </clipPath>
+          <clipPath
+            id={pupilWindow}
+            clipPathUnits="objectBoundingBox"
+            clipPath={`url(#${lidBox})`}
           >
-            <circle cx="70" cy="98" r="4.8" fill="#111" />
-            <circle cx="108" cy="97" r="5.8" fill="#111" />
-          </g>
+            <ellipse cx="66" cy="96" rx="11" ry="12" transform={EYE_BOX} />
+            <ellipse cx="101" cy="95" rx="16" ry="13" transform={EYE_BOX} />
+          </clipPath>
+        </defs>
+        <g clipPath={`url(#${lid})`}>
+          <ellipse cx="66" cy="96" rx="11" ry="12" fill="white" />
+          <ellipse cx="101" cy="95" rx="16" ry="13" fill="white" />
         </g>
-      </g>
-    </svg>
+      </svg>
+      <span
+        className="absolute inset-0"
+        style={{ clipPath: `url(#${pupilWindow})` }}
+      >
+        <svg
+          viewBox="0 0 174 198"
+          className={cn(
+            "absolute inset-0 size-full",
+            glare ? GLARE_PUPIL[optionKey] : IDLE_STYLES[optionKey].pupil,
+          )}
+        >
+          <circle cx="70" cy="98" r="4.8" fill="#111" />
+          <circle cx="108" cy="97" r="5.8" fill="#111" />
+        </svg>
+      </span>
+    </>
   );
 }
 
