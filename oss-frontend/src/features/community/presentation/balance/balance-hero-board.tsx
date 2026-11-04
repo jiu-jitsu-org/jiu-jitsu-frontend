@@ -70,8 +70,12 @@ const ROW_SIZE: Record<BalanceOptionState, string> = {
   unselected: "min-h-[56px] [--corner-w:80px]",
 };
 
+/**
+ * 글자 크기·여백은 바로 바뀐다. 투표 전 2줄(28×2 + 20)을 줄 최소 높이(76)에 맞춰 둬야, 밀려나는 순간 줄이
+ * 튀지 않고 최소 높이 전환을 따라 줄어든다. 고른 줄은 최소 높이(84)가 더 커서 2줄까지 여백의 영향이 없다.
+ */
 const OPTION_TEXT: Record<BalanceOptionState, string> = {
-  default: "py-3 text-title-3",
+  default: "py-2.5 text-title-3",
   selected: "py-3 text-title-3",
   unselected: "py-2 text-body-m",
 };
@@ -440,8 +444,17 @@ function BoardRow({
           OPTION_TEXT[state],
         )}
       >
-        {/* shrink-0: 스프링이 블록을 잠깐 넓혀도 문구 폭이 눌려 다시 끊기지 않는다. */}
-        <span className={cn("block shrink-0 origin-left", TEXT_WRAP_WIDTH[state], textMotion)}>
+        {/*
+          shrink-0: 스프링이 블록을 잠깐 넓혀도 문구 폭이 눌려 다시 끊기지 않는다. 줄 폭 단위(cqw)를 못 읽는
+          브라우저에서는 폭 지정이 통째로 무시되므로, 넘치지 않게 칸에 맞춰 줄바꿈하도록 그때만 shrink-0을 뺀다.
+        */}
+        <span
+          className={cn(
+            "block min-w-0 origin-left supports-[width:1cqw]:shrink-0",
+            TEXT_WRAP_WIDTH[state],
+            textMotion,
+          )}
+        >
           {option.text}
         </span>
         {/* 점수 자리는 낭독기에서 숨겨 두었으므로 득표율은 여기서 읽힌다. */}
