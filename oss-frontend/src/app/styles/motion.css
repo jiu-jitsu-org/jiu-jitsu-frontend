@@ -139,9 +139,12 @@
   --animate-balance-boing: balance-boing 800ms ease-out both;
   /* 밸런스 게임 선택지 — 밀려난 캐릭터: 시무룩하게 좌우로 흔들리다 멈춘다. */
   --animate-balance-sulk: balance-sulk 800ms ease-out both;
-  /* 밸런스 게임 선택지 — 투표 전 대기: A·B가 8초 동안 맞붙는다(솟기·움찔·맞붙어 떨기·연타·반격). */
-  --animate-balance-idle-a: balance-idle-a 8000ms ease-out infinite;
-  --animate-balance-idle-b: balance-idle-b 8000ms ease-out infinite;
+  /*
+    밸런스 게임 선택지 — 투표 전 대기: A·B가 8초 동안 맞붙는다(솟기·움찔·맞붙어 떨기·연타·반격).
+    곡선은 칸마다 따로 걸린다. ease-out은 칸이 시작될 때마다 속도가 툭 튀어 프레임이 멀쩡해도 끊겨 보인다(#317).
+  */
+  --animate-balance-idle-a: balance-idle-a 8000ms ease-in-out infinite;
+  --animate-balance-idle-b: balance-idle-b 8000ms ease-in-out infinite;
   /* 같은 8초 박자의 눈동자 — 노려볼 때는 상대 쪽에 박히고, 밀릴 때는 위아래로 굴러다닌다. */
   --animate-balance-pupil-a: balance-pupil-a 8000ms ease-in-out infinite;
   --animate-balance-pupil-b: balance-pupil-b 8000ms ease-in-out infinite;
