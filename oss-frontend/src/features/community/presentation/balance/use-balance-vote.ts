@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import { isDevelopmentRuntime } from "@/config/env";
 import { useAuth } from "@/features/auth/presentation/auth-provider";
@@ -100,6 +100,25 @@ export function useBalanceVote({
   // 응답 도착 순서가 엇갈려 화면이 서버와 다른 선택지에 멈출 수 있다.
   const syncRef = useRef<VoteSync | null>(null);
 
+  // 지금 화면의 판(화면을 떠났으면 null). 요청을 기다리는 사이 다음 판으로 바뀌었거나 마감됐으면
+  // 늦게 온 결과로 덮지 않는다 — 옛 판이 되살아나거나 마감 판이 다시 열린다.
+  const currentGameRef = useRef<BalanceGame | null>(game);
+  useEffect(() => {
+    currentGameRef.current = game;
+    return () => {
+      currentGameRef.current = null;
+    };
+  }, [game]);
+
+  const applySettled = useCallback(
+    (settled: BalanceGame) => {
+      const current = currentGameRef.current;
+      if (current?.contentId !== settled.contentId || current.closed) return;
+      onVoted(settled);
+    },
+    [onVoted],
+  );
+
   return useCallback(
     (option: BalanceOptionKey) => {
       // 세션 판정 전에는 아무 판단도 하지 않는다. loading을 비로그인으로 보면
@@ -163,7 +182,7 @@ export function useBalanceVote({
             );
 
             if (!response.ok) {
-              onVoted(sync.confirmed);
+              applySettled(sync.confirmed);
               return;
             }
 
@@ -188,15 +207,15 @@ export function useBalanceVote({
 
           // 맞추는 동안에는 응답을 화면에 넣지 않는다 — 누르는 도중 줄이 되돌아갔다 다시 켜진다.
           // 끝났을 때 한 번만 서버 확정값(다른 사용자의 투표까지 반영된 최신 상태)으로 덮어쓴다.
-          onVoted(sync.confirmed);
+          applySettled(sync.confirmed);
         } catch {
-          onVoted(sync.confirmed);
+          applySettled(sync.confirmed);
         } finally {
           syncRef.current = null;
         }
       })();
     },
     // 실패 문구는 아직 정해지지 않았다 → 롤백만 하고 아무것도 띄우지 않는다(정책: 동작 안 함).
-    [game, onVoted, promptLogin, status, toast],
+    [applySettled, game, onVoted, promptLogin, status, toast],
   );
 }
