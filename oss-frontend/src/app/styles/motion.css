@@ -139,9 +139,12 @@
   --animate-balance-boing: balance-boing 800ms ease-out both;
   /* 밸런스 게임 선택지 — 밀려난 캐릭터: 시무룩하게 좌우로 흔들리다 멈춘다. */
   --animate-balance-sulk: balance-sulk 800ms ease-out both;
-  /* 밸런스 게임 선택지 — 투표 전 대기: A·B가 8초 동안 맞붙는다(솟기·움찔·맞붙어 떨기·연타·반격). */
-  --animate-balance-idle-a: balance-idle-a 8000ms ease-out infinite;
-  --animate-balance-idle-b: balance-idle-b 8000ms ease-out infinite;
+  /*
+    밸런스 게임 선택지 — 투표 전 대기: A·B가 8초 동안 맞붙는다(솟기·움찔·맞붙어 떨기·연타·반격).
+    곡선은 칸마다 따로 걸린다. ease-out은 칸이 시작될 때마다 속도가 툭 튀어 프레임이 멀쩡해도 끊겨 보인다(#317).
+  */
+  --animate-balance-idle-a: balance-idle-a 8000ms ease-in-out infinite;
+  --animate-balance-idle-b: balance-idle-b 8000ms ease-in-out infinite;
   /* 같은 8초 박자의 눈동자 — 노려볼 때는 상대 쪽에 박히고, 밀릴 때는 위아래로 굴러다닌다. */
   --animate-balance-pupil-a: balance-pupil-a 8000ms ease-in-out infinite;
   --animate-balance-pupil-b: balance-pupil-b 8000ms ease-in-out infinite;
@@ -923,100 +926,101 @@
   }
 
   /* 눈동자(BalanceIdleEyes) — +가 아래. A는 노려볼 때 아래(B), B는 위(A)에 박힌다.
+     값은 그림 높이(198)에 대한 % — 그림 좌표로 6 = 3.0303%, 5 = 2.5253%, 3 = 1.5152%. SVG 통째로 움직여서 칸 크기를 따라간다(#317).
      당하는 쪽은 굴러다니지 않고 상대 쪽으로 천천히 옮겨 가만히 본다 — 시선은 노려보는 쪽에 모여야 한다. */
   @keyframes balance-pupil-a {
     0% {
-      transform: translateY(0px);
+      transform: translateY(0);
     }
     5% {
-      transform: translateY(6px);
+      transform: translateY(3.0303%);
     }
     6.5% {
-      transform: translateY(5px);
+      transform: translateY(2.5253%);
     }
     40% {
-      transform: translateY(5px);
+      transform: translateY(2.5253%);
     }
     43.75% {
-      transform: translateY(0px);
+      transform: translateY(0);
     }
     48.75% {
-      transform: translateY(3px);
+      transform: translateY(1.5152%);
     }
     52.5% {
-      transform: translateY(0px);
+      transform: translateY(0);
     }
     58.75% {
-      transform: translateY(3px);
+      transform: translateY(1.5152%);
     }
     71.25% {
-      transform: translateY(3px);
+      transform: translateY(1.5152%);
     }
     73.75% {
-      transform: translateY(6px);
+      transform: translateY(3.0303%);
     }
     75.62% {
-      transform: translateY(5px);
+      transform: translateY(2.5253%);
     }
     88.75% {
-      transform: translateY(5px);
+      transform: translateY(2.5253%);
     }
     92.5% {
-      transform: translateY(0px);
+      transform: translateY(0);
     }
     100% {
-      transform: translateY(0px);
+      transform: translateY(0);
     }
   }
 
   @keyframes balance-pupil-b {
     0% {
-      transform: translateY(0px);
+      transform: translateY(0);
     }
     8.75% {
-      transform: translateY(-3px);
+      transform: translateY(-1.5152%);
     }
     16.25% {
-      transform: translateY(-3px);
+      transform: translateY(-1.5152%);
     }
     17.5% {
-      transform: translateY(-6px);
+      transform: translateY(-3.0303%);
     }
     19.38% {
-      transform: translateY(-5px);
+      transform: translateY(-2.5253%);
     }
     37.5% {
-      transform: translateY(-5px);
+      transform: translateY(-2.5253%);
     }
     40% {
-      transform: translateY(0px);
+      transform: translateY(0);
     }
     49.38% {
-      transform: translateY(-3px);
+      transform: translateY(-1.5152%);
     }
     52.5% {
-      transform: translateY(0px);
+      transform: translateY(0);
     }
     57.5% {
-      transform: translateY(-6px);
+      transform: translateY(-3.0303%);
     }
     59.38% {
-      transform: translateY(-5px);
+      transform: translateY(-2.5253%);
     }
     74.38% {
-      transform: translateY(-5px);
+      transform: translateY(-2.5253%);
     }
     78.75% {
-      transform: translateY(-3px);
+      transform: translateY(-1.5152%);
     }
     87.5% {
-      transform: translateY(-3px);
+      transform: translateY(-1.5152%);
     }
     91.25% {
-      transform: translateY(0px);
+      transform: translateY(0);
     }
     100% {
-      transform: translateY(0px);
+      transform: translateY(0);
     }
   }
 
