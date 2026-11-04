@@ -1,0 +1,33 @@
+{
+  "images": {},
+  "motion": {
+    "src/app/styles/motion.css::balance-intro-punch:filter": "하루 한 번 도는 첫 등장 움직임. 모양을 유지하려고 남긴다.",
+    "src/app/styles/motion.css::balance-intro-wipe:clip-path": "하루 한 번 도는 첫 등장 움직임. 모양을 유지하려고 남긴다.",
+    "src/app/styles/motion.css::balance-intro-fill-retract:clip-path": "하루 한 번 도는 첫 등장 움직임. 모양을 유지하려고 남긴다.",
+    "src/app/styles/motion.css::infinite:balance-idle-a": "밸런스 판의 대결 동작. transform 계열만 움직이고 판이 안 보이면 멈춘다(#317).",
+    "src/app/styles/motion.css::infinite:balance-idle-b": "밸런스 판의 대결 동작. transform 계열만 움직이고 판이 안 보이면 멈춘다(#317).",
+    "src/app/styles/motion.css::infinite:balance-pupil-a": "밸런스 판의 대결 동작. transform 계열만 움직이고 판이 안 보이면 멈춘다(#317).",
+    "src/app/styles/motion.css::infinite:balance-pupil-b": "밸런스 판의 대결 동작. transform 계열만 움직이고 판이 안 보이면 멈춘다(#317).",
+    "src/app/styles/motion.css::infinite:balance-tone-a": "내 활동 목록에는 쓰지 않고 남아 있는 토큰. opacity만 움직이므로 부담이 작다.",
+    "src/app/styles/motion.css::infinite:balance-tone-b": "내 활동 목록에는 쓰지 않고 남아 있는 토큰. opacity만 움직이므로 부담이 작다.",
+    "src/app/styles/motion.css::infinite:balance-gloat-a": "밸런스 판의 대결 동작. transform 계열만 움직이고 판이 안 보이면 멈춘다(#317).",
+    "src/app/styles/motion.css::infinite:balance-gloat-b": "밸런스 판의 대결 동작. transform 계열만 움직이고 판이 안 보이면 멈춘다(#317).",
+    "src/app/styles/motion.css::infinite:balance-cower-a": "밸런스 판의 대결 동작. transform 계열만 움직이고 판이 안 보이면 멈춘다(#317).",
+    "src/app/styles/motion.css::infinite:balance-cower-b": "밸런스 판의 대결 동작. transform 계열만 움직이고 판이 안 보이면 멈춘다(#317).",
+    "src/features/community/presentation/balance/balance-hero-board.tsx::min-height": "고른 순간 줄이 커지는 스프링. 아래 내용이 함께 밀려야 해서 레이아웃이 필요하다.",
+    "src/features/community/presentation/balance/balance-hero-board.tsx::width": "#317에서 transform으로 바뀐다. #317이 반영되면 이 줄을 지운다.",
+    "src/features/community/presentation/balance/balance-hero-board.tsx::clip-path": "#317에서 transform으로 바뀐다. #317이 반영되면 이 줄을 지운다.",
+    "src/features/community/presentation/balance/balance-hero-board.tsx::height": "고른 순간 줄이 커지는 스프링. 아래 내용이 함께 밀려야 해서 레이아웃이 필요하다.",
+    "src/features/community/presentation/balance/balance-option-button.tsx::width": "캐릭터 크기 스프링. 내 활동 목록에서 상태가 바뀔 때만 돈다.",
+    "src/features/community/presentation/balance/balance-option-button.tsx::height": "캐릭터 크기 스프링. 내 활동 목록에서 상태가 바뀔 때만 돈다.",
+    "src/features/community/presentation/comment-input-bar.tsx::grid-template-rows": "답장 줄이 열리고 닫힐 때 300ms. 입력창 높이가 함께 변해야 한다.",
+    "src/features/community/presentation/comment-input-bar.tsx::padding-top": "답장 줄이 열리고 닫힐 때 300ms. 입력창 높이가 함께 변해야 한다.",
+    "src/features/community/presentation/community-feed-list.tsx::grid-template-rows": "카드가 접힐 때 200ms. 아래 카드가 함께 올라와야 한다.",
+    "src/features/community/presentation/community-feed-list.tsx::margin-bottom": "카드가 접힐 때 200ms. 아래 카드가 함께 올라와야 한다.",
+    "src/features/community/presentation/my-activity/my-activity-tabs.tsx::font-weight": "탭을 누를 때 200ms. 글자 굵기 변화라 다른 속성으로 대체할 수 없다.",
+    "src/features/community/presentation/post-write-screen.tsx::width": "첨부 사진을 지울 때 폭을 0으로 접어 옆 사진이 미끄러져 오게 한다. 지울 때만 돈다.",
+    "src/features/community/presentation/post-write-screen.tsx::margin-right": "첨부 사진을 지울 때 폭을 0으로 접어 옆 사진이 미끄러져 오게 한다. 지울 때만 돈다.",
+    "src/features/community/presentation/wheel-picker.tsx::font-size": "선택된 항목이 바뀔 때 글자 크기가 변한다. 150ms로 짧다.",
+    "src/shared/ui/press-styles.ts::filter": "누를 때의 눌림 효과. 누를 때만 짧게 돈다."
+  }
+}
