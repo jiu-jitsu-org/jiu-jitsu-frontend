@@ -81,10 +81,10 @@ const MEDALS = [
   { id: "gold", label: "금메달" },
   { id: "silver", label: "은메달" },
   { id: "bronze", label: "동메달" },
+  { id: "participation", label: "참가" },
 ];
 
 const MISSING = [
-  "메달이 없는 '참가' 결과용 캐릭터 — 지금은 앱 완료 화면에서 메달 아이콘을 보여 준다(iOS #220)",
   "기본 프로필 선 아이콘 머지 — 아직 커밋 전이다(#307)",
   "자세 몸통의 얼굴 — 자세 그림에는 눈·입이 없어 이대로는 캐릭터로 쓸 수 없다",
   "테이크다운 · 스윕 · 조르기 자세 — 최종 몸통에 없다. 스윕은 제미나이가 세 번 모두 거절했다",
@@ -123,7 +123,7 @@ export function CharacterSection() {
         </Grid>
       </Group>
 
-      <Group title="메달 캐릭터" note="앱 대회 기록 완료 화면용(iOS #220) · 5색 × 금·은·동 · 눈은 로그인 캐릭터와 같음">
+      <Group title="메달 캐릭터" note="앱 대회 기록 완료 화면용(iOS #220) · 5색 × 금·은·동·참가 · 눈은 로그인 캐릭터와 같음">
         <Grid className="grid-cols-3 sm:grid-cols-5">
           {MEDALS.flatMap((medal) =>
             RANKS.map((rank) => (

@@ -41,8 +41,8 @@
 | brown.png | 갈색띠 |
 | black.png | 검은띠 (빨간 바) |
 
-## character/medal — 메달을 건 띠 캐릭터 15장 (투명 PNG, 세로 약 900)
+## character/medal — 앱 대회 기록 완료 화면의 띠 캐릭터 20장 (투명 PNG, 세로 약 900)
 
-파일 이름은 `띠색-메달.png`(white·blue·purple·brown·black × gold·silver·bronze). 앱 대회 기록 완료 화면용(iOS #220).
+파일 이름은 `띠색-결과.png`(white·blue·purple·brown·black × gold·silver·bronze·participation). participation은 메달을 걸지 않은 그림이다. 앱 대회 기록 완료 화면용(iOS #220).
 
 파란띠는 로그인 캐릭터 몸통에 제미나이로 빨간 끈과 메달을 더했다. 나머지 4색은 파란띠 그림을 제미나이로 다시 칠해 기운 몸과 정면 얼굴을 맞췄고, 띠마다 기운 방향과 각도를 조금씩 달리했다. 초록 바탕을 뺀 뒤 로그인 화면의 눈을 얹었다.
