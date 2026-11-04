@@ -137,6 +137,9 @@
 
   /* 밸런스 게임 선택지 — 고른 캐릭터: 웅크렸다(12%) 쭉 늘며 솟았다가(30%) 납작하게 착지(48%). */
   --animate-balance-boing: balance-boing 800ms ease-out both;
+  /* 밸런스 판 문구 — 밀려날 때(18→16)·되돌아올 때(16→18) 글자 크기가 끊기지 않게 이어 준다(16/18 비율). */
+  --animate-balance-text-shrink: balance-text-shrink 500ms var(--ease-smooth-out);
+  --animate-balance-text-grow: balance-text-grow 500ms var(--ease-smooth-out);
   /*
     밸런스 게임 선택지 — 투표 전 대기: A·B가 8초 동안 맞붙는다(솟기·움찔·맞붙어 떨기·연타·반격).
     곡선은 칸마다 따로 걸린다. ease-out은 칸이 시작될 때마다 속도가 툭 튀어 프레임이 멀쩡해도 끊겨 보인다(#317).
@@ -535,6 +538,18 @@
     }
     100% {
       transform: translateY(0) scale(1, 1);
+    }
+  }
+
+  @keyframes balance-text-shrink {
+    from {
+      scale: 1.125;
+    }
+  }
+
+  @keyframes balance-text-grow {
+    from {
+      scale: 0.8889;
     }
   }
 
