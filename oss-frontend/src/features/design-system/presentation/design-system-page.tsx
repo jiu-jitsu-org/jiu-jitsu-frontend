@@ -14,6 +14,7 @@ import * as Icons from "@/shared/ui/icons";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { Spinner } from "@/shared/ui/spinner";
 
+import { CharacterSection } from "./design-system-characters";
 import { EmptyStateDemo, MotionDemo, ToastDemo } from "./design-system-demos";
 
 /**
@@ -31,6 +32,7 @@ const SECTIONS = [
   { id: "motion", label: "모션" },
   { id: "icon", label: "아이콘" },
   { id: "component", label: "부품" },
+  { id: "character", label: "캐릭터" },
 ] as const;
 
 /** globals.css `@theme`의 타이포 스케일. */
@@ -363,6 +365,10 @@ export function DesignSystemPage() {
           <Demo title="Toast" note="useToast().show(문구, { tone, action }) · 아래로 밀면 닫힘">
             <ToastDemo />
           </Demo>
+        </Section>
+
+        <Section id="character" title="캐릭터">
+          <CharacterSection />
         </Section>
       </main>
     </div>
