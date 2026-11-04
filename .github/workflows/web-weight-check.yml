@@ -1,0 +1,20 @@
+# 이미지 용량과 무거운 움직임이 PR에 새로 들어오지 않게 막는다(#318).
+# 규칙은 루트 AGENTS.md "웹 무게 규칙"에 있다. 의존성 없는 스크립트라 npm ci를 하지 않는다.
+name: Web Weight Check
+
+on:
+  pull_request:
+    branches: ["develop", "main"]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node oss-frontend/scripts/check-web-weight.mjs
