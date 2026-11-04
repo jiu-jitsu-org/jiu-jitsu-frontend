@@ -316,38 +316,40 @@ function BoardRow({
         (마감되면 양쪽 다 옅게 — readOptionResult의 emphasized). 진영 블록이 그 위에 덮여 왼쪽 끝은 늘 블록이다.
       */}
       {/*
-        투표 전에도 폭 0으로 깔아 둔다(#310) — 고르는 순간 새로 그리면 다 찬 채로 툭 나타난다. 0에서 득표율까지
+        투표 전에도 0%로 깔아 둔다(#310) — 고르는 순간 새로 그리면 다 찬 채로 툭 나타난다. 0에서 득표율까지
         홈의 차오름과 같은 시간·곡선(1초, 부드럽게 멈춤)으로 차오른다. 출렁이는 곡선은 막대가 득표율을 넘쳤다
         돌아와 띠용 하고 튀어 보여 뺐다.
+        폭이 아니라 줄 크기의 면을 밀어 넣는다(#317) — 폭을 바꾸면 차오르는 1초 내내 레이아웃을 다시 계산한다.
+        바깥 겹이 줄 모양으로 잘라, 면의 오른쪽 둥근 끝만 줄 안에서 움직인다.
       */}
       {detail ? (
-        <span
-          aria-hidden
-          className={cn(
-            "absolute inset-y-0 left-0 rounded-2xl motion-safe:transition-[width] motion-safe:duration-1000 motion-safe:ease-smooth-out",
-            CORNER[key],
-            emphasized ? "opacity-90" : "opacity-35",
-          )}
-          style={{ width: `${result?.percent ?? 0}%` }}
-        />
+        <span aria-hidden className="absolute inset-0 overflow-hidden rounded-2xl">
+          <span
+            className={cn(
+              "absolute inset-0 rounded-2xl motion-safe:transition-transform motion-safe:duration-1000 motion-safe:ease-smooth-out",
+              CORNER[key],
+              emphasized ? "opacity-90" : "opacity-35",
+            )}
+            style={{ transform: `translateX(${(result?.percent ?? 0) - 100}%)` }}
+          />
+        </span>
       ) : null}
 
       {/*
         고른 줄 차오름(홈) — 고르면 진영 블록에서 시작해 줄 끝까지 진영 색이 차올라 줄이 통째로 켜진다
         (전광판에서 승자 줄이 켜지듯). 취소하면 같은 길로 빠진다. 득표율을 그리는 상세는 위 득표 막대가 맡는다.
-        폭 대신 오른쪽을 잘라(clip-path) 둥근 모서리가 찌그러지지 않는다.
+        상세 득표 막대와 같은 방식으로 줄 크기의 면을 밀어 넣는다(#317) — 둥근 모서리가 찌그러지지 않고 다시 그리지도 않는다.
       */}
       {detail ? null : (
-        <span
-          aria-hidden
-          className={cn(
-            "absolute inset-0 rounded-2xl motion-safe:transition-[clip-path] motion-safe:duration-1000 motion-safe:ease-smooth-out",
-            CORNER[key],
-            selected
-              ? "[clip-path:inset(0_0_0_0_round_16px)]"
-              : "[clip-path:inset(0_100%_0_0_round_16px)]",
-          )}
-        />
+        <span aria-hidden className="absolute inset-0 overflow-hidden rounded-2xl">
+          <span
+            className={cn(
+              "absolute inset-0 rounded-2xl motion-safe:transition-transform motion-safe:duration-1000 motion-safe:ease-smooth-out",
+              CORNER[key],
+              selected ? "translate-x-0" : "-translate-x-full",
+            )}
+          />
+        </span>
       )}
 
       {/*
