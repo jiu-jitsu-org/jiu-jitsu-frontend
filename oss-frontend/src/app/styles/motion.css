@@ -137,8 +137,9 @@
 
   /* 밸런스 게임 선택지 — 고른 캐릭터: 웅크렸다(12%) 쭉 늘며 솟았다가(30%) 납작하게 착지(48%). */
   --animate-balance-boing: balance-boing 800ms ease-out both;
-  /* 밸런스 게임 선택지 — 밀려난 캐릭터: 시무룩하게 좌우로 흔들리다 멈춘다. */
-  --animate-balance-sulk: balance-sulk 800ms ease-out both;
+  /* 밸런스 판 문구 — 밀려날 때(18→16)·되돌아올 때(16→18) 글자 크기가 끊기지 않게 이어 준다(16/18 비율). */
+  --animate-balance-text-shrink: balance-text-shrink 500ms var(--ease-smooth-out);
+  --animate-balance-text-grow: balance-text-grow 500ms var(--ease-smooth-out);
   /*
     밸런스 게임 선택지 — 투표 전 대기: A·B가 8초 동안 맞붙는다(솟기·움찔·맞붙어 떨기·연타·반격).
     곡선은 칸마다 따로 걸린다. ease-out은 칸이 시작될 때마다 속도가 툭 튀어 프레임이 멀쩡해도 끊겨 보인다(#317).
@@ -153,7 +154,7 @@
   --animate-balance-tone-b: balance-tone-b 8000ms ease-in-out infinite;
   /*
     밸런스 게임 선택지 — 고른 뒤: 고른 쪽은 부풀어 상대를 노려보고(gloat), 밀려난 쪽은 그 순간 움츠러든다
-    (cower). 같은 3.2초 박자라 둘이 맞물린다. 고르는 순간의 보잉·시무룩(0.8초)이 끝난 뒤에 시작한다.
+    (cower). 같은 3.2초 박자라 둘이 맞물린다. 고르는 순간의 보잉(0.8초)이 끝난 뒤에 시작한다.
   */
   --animate-balance-gloat-a: balance-gloat-a 3200ms ease-in-out 800ms infinite;
   --animate-balance-gloat-b: balance-gloat-b 3200ms ease-in-out 800ms infinite;
@@ -540,24 +541,15 @@
     }
   }
 
-  @keyframes balance-sulk {
-    0% {
-      transform: rotate(0deg) scale(1);
+  @keyframes balance-text-shrink {
+    from {
+      scale: 1.125;
     }
-    15% {
-      transform: rotate(-10deg) scale(0.95);
-    }
-    35% {
-      transform: rotate(8deg) scale(0.97);
-    }
-    55% {
-      transform: rotate(-5deg) scale(1);
-    }
-    75% {
-      transform: rotate(2deg) scale(1);
-    }
-    100% {
-      transform: rotate(0deg) scale(1);
+  }
+
+  @keyframes balance-text-grow {
+    from {
+      scale: 0.8889;
     }
   }
 

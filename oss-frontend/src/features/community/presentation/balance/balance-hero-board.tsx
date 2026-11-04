@@ -70,10 +70,45 @@ const ROW_SIZE: Record<BalanceOptionState, string> = {
   unselected: "min-h-[56px] [--corner-w:80px]",
 };
 
+/**
+ * 글자 크기·여백은 바로 바뀐다. 투표 전 2줄(28×2 + 20)을 줄 최소 높이(76)에 맞춰 둬야, 밀려나는 순간 줄이
+ * 튀지 않고 최소 높이 전환을 따라 줄어든다. 고른 줄은 최소 높이(84)가 더 커서 2줄까지 여백의 영향이 없다.
+ */
 const OPTION_TEXT: Record<BalanceOptionState, string> = {
-  default: "py-3 text-title-3",
+  default: "py-2.5 text-title-3",
   selected: "py-3 text-title-3",
   unselected: "py-2 text-body-m",
+};
+
+/**
+ * 문구의 줄바꿈 폭 — 진영 블록 폭이 아니라 줄 전체 폭에서 바로 계산한다. 블록이 움직이는 동안 문구 칸 폭이 변해도
+ * 줄바꿈은 그대로라, 줄어드는 도중에 끊기는 자리가 바뀌며 튀지 않는다. 128 = 투표 전 블록(100) + 문구 좌우 여백(28).
+ * 밀려난 줄의 0.8889는 글자 크기 비율(16/18)이다 — 글자가 작아진 만큼 폭도 줄여 끊기는 자리를 고르기 전과 맞춘다.
+ */
+const TEXT_WRAP_WIDTH: Record<BalanceOptionState, string> = {
+  default: "w-[calc(100cqw-128px-var(--score-w))]",
+  selected: "w-[calc(100cqw-128px-var(--score-w))]",
+  unselected: "w-[calc((100cqw-128px-var(--score-w))*0.8889)]",
+};
+
+/**
+ * 줄 크기 곡선 — 밀려날 때는 넘침 없이 곧장 줄어든다. 고르거나 되돌아올 때만 스프링으로 출렁인다.
+ * 줄 눌림(scale)은 상태와 상관없이 같다.
+ */
+const ROW_MOTION: Record<BalanceOptionState, string> = {
+  default:
+    "motion-safe:[transition:opacity_300ms_ease,min-height_500ms_var(--ease-spring-wobbly),scale_500ms_var(--ease-spring-wobbly)]",
+  selected:
+    "motion-safe:[transition:opacity_300ms_ease,min-height_500ms_var(--ease-spring-wobbly),scale_500ms_var(--ease-spring-wobbly)]",
+  unselected:
+    "motion-safe:[transition:opacity_300ms_ease,min-height_500ms_var(--ease-smooth-out),scale_500ms_var(--ease-spring-wobbly)]",
+};
+
+/** 진영 블록·캐릭터 크기 곡선 — ROW_MOTION과 같은 규칙. */
+const SIZE_EASE: Record<BalanceOptionState, string> = {
+  default: "motion-safe:ease-spring-wobbly",
+  selected: "motion-safe:ease-spring-wobbly",
+  unselected: "motion-safe:ease-smooth-out",
 };
 
 const CHARACTER_SIZE: Record<BalanceOptionState, string> = {
@@ -298,19 +333,32 @@ function BoardRow({
   const [emphasized, setEmphasized] = useState(result?.emphasized ?? true);
   if (result && result.emphasized !== emphasized) setEmphasized(result.emphasized);
 
+  // 글자 크기 전환(18 ↔ 16) — 크기는 바로 바뀌므로 이전 크기로 보이게 키웠다가 줄과 같은 시간에 제 크기로 돌아온다.
+  // 마운트 때와 글자 크기가 그대로인 전환(투표 전 ↔ 고름)에는 돌지 않는다.
+  const [lastState, setLastState] = useState(state);
+  const [textMotion, setTextMotion] = useState<string | null>(null);
+  if (lastState !== state) {
+    setLastState(state);
+    if (state === "unselected") setTextMotion("motion-safe:animate-balance-text-shrink");
+    else if (lastState === "unselected") setTextMotion("motion-safe:animate-balance-text-grow");
+  }
+
   return (
     <button
       type="button"
       aria-pressed={selected}
       onClick={onPress}
       className={cn(
-        "relative flex w-full items-stretch rounded-2xl text-left",
+        // @container: 문구의 줄바꿈 폭(TEXT_WRAP_WIDTH)이 줄 폭을 읽는다.
+        "@container relative flex w-full items-stretch rounded-2xl text-left",
+        // 점수 칸 폭 — 상세는 득표율이 뜨는 폭을 투표 전에도 잡아 둔다. 고르는 순간 문구 폭이 줄어 다시 끊기지 않게.
+        detail ? "[--score-w:64px]" : "[--score-w:40px]",
         ROW_SIZE[state],
         // 바탕은 늘 판 위에 한 단 뜬 면(흰 9%). 고르면 그 위로 진영 색이 왼쪽부터 차오른다(아래 차오름 면).
         palette.row,
         // 득표율을 읽어야 하는 상세에서는 밀려난 줄을 덜 끈다.
         state === "unselected" && (result ? "opacity-75" : "opacity-50"),
-        "motion-safe:[transition:opacity_300ms_ease,min-height_500ms_var(--ease-spring-wobbly),scale_500ms_var(--ease-spring-wobbly)]",
+        ROW_MOTION[state],
         "motion-safe:active:scale-[0.98] motion-safe:active:[transition:scale_100ms_ease-out]",
         interactive && "cursor-pointer",
         intro.row?.[key],
@@ -369,7 +417,8 @@ function BoardRow({
       <span
         aria-hidden
         className={cn(
-          "pointer-events-none relative shrink-0 motion-safe:transition-[width] motion-safe:duration-500 motion-safe:ease-spring-wobbly",
+          "pointer-events-none relative shrink-0 motion-safe:transition-[width] motion-safe:duration-500",
+          SIZE_EASE[state],
           // 너비는 ROW_SIZE의 --corner-w 하나로 정한다 — 인트로 색 판도 같은 값에서 멈춘다.
           "w-[var(--corner-w)]",
         )}
@@ -378,7 +427,8 @@ function BoardRow({
         <span className={cn("absolute inset-0 flex items-end pl-1", CHARACTER_CLIP)}>
           <span
             className={cn(
-              "aspect-[58/66] shrink-0 origin-bottom motion-safe:transition-[height] motion-safe:duration-500 motion-safe:ease-spring-wobbly",
+              "aspect-[58/66] shrink-0 origin-bottom motion-safe:transition-[height] motion-safe:duration-500",
+              SIZE_EASE[state],
               CHARACTER_SIZE[state],
               intro.character?.[key],
             )}
@@ -394,7 +444,19 @@ function BoardRow({
           OPTION_TEXT[state],
         )}
       >
-        {option.text}
+        {/*
+          shrink-0: 스프링이 블록을 잠깐 넓혀도 문구 폭이 눌려 다시 끊기지 않는다. 줄 폭 단위(cqw)를 못 읽는
+          브라우저에서는 폭 지정이 통째로 무시되므로, 넘치지 않게 칸에 맞춰 줄바꿈하도록 그때만 shrink-0을 뺀다.
+        */}
+        <span
+          className={cn(
+            "block min-w-0 origin-left supports-[width:1cqw]:shrink-0",
+            TEXT_WRAP_WIDTH[state],
+            textMotion,
+          )}
+        >
+          {option.text}
+        </span>
         {/* 점수 자리는 낭독기에서 숨겨 두었으므로 득표율은 여기서 읽힌다. */}
         {result ? <span className="sr-only">, {result.percent}%</span> : null}
       </span>
@@ -434,30 +496,31 @@ function BoardRow({
       <span
         aria-hidden
         className={cn(
-          "relative flex shrink-0 items-center justify-center pr-2",
-          result ? "w-16" : "w-10",
+          "relative flex w-(--score-w) shrink-0 items-center justify-end",
         )}
       >
-        <span className={cn("flex", intro.letter?.[key])}>
-          {result ? (
-            <span
-              className={cn(
-                balanceNumeralFont.className,
-                "text-[20px] leading-6 tabular-nums",
-                !result.emphasized && "opacity-80",
-              )}
-            >
-              {result.percent}%
-            </span>
-          ) : selected ? (
-            <CheckIcon size={20} />
-          ) : (
-            <span
-              className={cn(balanceNumeralFont.className, "text-[20px] leading-6 opacity-70", palette.muted)}
-            >
-              {key}
-            </span>
-          )}
+        <span className={cn("flex items-center justify-center pr-2", result ? "w-16" : "w-10")}>
+          <span className={cn("flex", intro.letter?.[key])}>
+            {result ? (
+              <span
+                className={cn(
+                  balanceNumeralFont.className,
+                  "text-[20px] leading-6 tabular-nums",
+                  !result.emphasized && "opacity-80",
+                )}
+              >
+                {result.percent}%
+              </span>
+            ) : selected ? (
+              <CheckIcon size={20} />
+            ) : (
+              <span
+                className={cn(balanceNumeralFont.className, "text-[20px] leading-6 opacity-70", palette.muted)}
+              >
+                {key}
+              </span>
+            )}
+          </span>
         </span>
       </span>
     </button>
