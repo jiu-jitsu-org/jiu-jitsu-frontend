@@ -1,8 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import {
+  Component,
+  type ReactNode,
+  type RefObject,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
-import { BalanceCharacter } from "@/features/community/presentation/balance/balance-character";
+import {
+  BalanceCharacter,
+  SETTLE_TIMING,
+} from "@/features/community/presentation/balance/balance-character";
 import { usePauseMotionWhenHidden } from "@/features/community/presentation/balance/use-pause-motion-when-hidden";
 import { BOARD_PALETTE } from "@/features/community/presentation/balance/balance-board-palette";
 import {
@@ -71,8 +81,7 @@ const ROW_SIZE: Record<BalanceOptionState, string> = {
 };
 
 /**
- * 글자 크기·여백은 바로 바뀐다. 투표 전 2줄(28×2 + 20)을 줄 최소 높이(76)에 맞춰 둬야, 밀려나는 순간 줄이
- * 튀지 않고 최소 높이 전환을 따라 줄어든다. 고른 줄은 최소 높이(84)가 더 커서 2줄까지 여백의 영향이 없다.
+ * 글자 크기·여백은 바로 바뀐다. 줄 높이는 RowHeightMotion이 따로 이어 주므로, 문구가 커져도 줄이 먼저 튀지 않는다.
  */
 const OPTION_TEXT: Record<BalanceOptionState, string> = {
   default: "py-2.5 text-title-3",
@@ -92,12 +101,52 @@ const TEXT_WRAP_WIDTH: Record<BalanceOptionState, string> = {
 };
 
 /**
- * 줄 크기 곡선 — 어느 방향이든 넘침 없이 한 번에 자리 잡는다. 두 줄이 위아래로 쌓여 있어, 위 줄이 출렁이면
- * 아래 줄과 판 아래 피드까지 같이 위아래로 흔들린다. 튕기는 맛은 레이아웃을 건드리지 않는 캐릭터 보잉이 맡는다.
- * 줄 눌림(scale)은 위치를 밀지 않아 스프링을 유지한다.
+ * 줄의 투명도·눌림 전환. 줄 높이는 RowHeightMotion이 맡고, 눌림(scale)은 위치를 밀지 않아 스프링을 유지한다.
  */
 const ROW_MOTION =
-  "motion-safe:[transition:opacity_300ms_ease,min-height_500ms_var(--ease-smooth-out),scale_500ms_var(--ease-spring-wobbly)]";
+  "motion-safe:[transition:opacity_300ms_ease,scale_500ms_var(--ease-spring-wobbly)]";
+
+/**
+ * 줄 높이 전환 — 넘침 없이 한 번에 자리 잡는다. 두 줄이 위아래로 쌓여 있어, 위 줄이 출렁이면 아래 줄과 피드까지
+ * 같이 흔들린다. 튕기는 맛은 레이아웃을 건드리지 않는 캐릭터 보잉이 맡는다.
+ *
+ * min-height 전환으로는 부족하다. 글자가 커지면 문구 높이가 곧바로 늘어, 2줄 문구의 줄이 첫 프레임에 튄다.
+ * 그래서 바뀌기 직전 높이(getSnapshotBeforeUpdate — 이 시점을 잡으려고 클래스로 둔다)에서 새 높이까지 직접 잇는다.
+ * 두 줄이 같은 곡선을 타므로 판 전체 높이도 한 방향으로만 변한다. 높이는 눌림(scale) 영향이 없는 계산값으로 읽는다.
+ */
+class RowHeightMotion extends Component<{
+  state: BalanceOptionState;
+  rowRef: RefObject<HTMLButtonElement | null>;
+  children: ReactNode;
+}> {
+  private motion: Animation | null = null;
+
+  getSnapshotBeforeUpdate(prev: { state: BalanceOptionState }): string | null {
+    const row = this.props.rowRef.current;
+    if (!row || prev.state === this.props.state) return null;
+    return getComputedStyle(row).height;
+  }
+
+  componentDidUpdate(_prev: unknown, _state: unknown, from: string | null) {
+    const row = this.props.rowRef.current;
+    if (!row || from === null) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    this.motion?.cancel();
+    const to = getComputedStyle(row).height;
+    if (from === to) return;
+    this.motion = row.animate(
+      [
+        { height: from, minHeight: from },
+        { height: to, minHeight: to },
+      ],
+      SETTLE_TIMING,
+    );
+  }
+
+  render() {
+    return this.props.children;
+  }
+}
 
 const CHARACTER_SIZE: Record<BalanceOptionState, string> = {
   default: "h-[calc(100%+16px)]",
@@ -315,6 +364,7 @@ function BoardRow({
   const key = option.key;
   const selected = state === "selected";
   const palette = BOARD_PALETTE;
+  const rowRef = useRef<HTMLButtonElement>(null);
 
   // 득표 막대의 진하기 — 마지막으로 받은 득표율의 것을 붙잡아 둔다. 투표를 취소하면 득표율이 사라지며 막대가
   // 0으로 줄어드는데, 그 1초 동안 옅던 쪽이 진하게 번쩍이지 않게 줄어드는 내내 원래 진하기를 지킨다.
@@ -332,184 +382,187 @@ function BoardRow({
   }
 
   return (
-    <button
-      type="button"
-      aria-pressed={selected}
-      onClick={onPress}
-      className={cn(
-        // @container: 문구의 줄바꿈 폭(TEXT_WRAP_WIDTH)이 줄 폭을 읽는다.
-        "@container relative flex w-full items-stretch rounded-2xl text-left",
-        // 점수 칸 폭 — 상세는 득표율이 뜨는 폭을 투표 전에도 잡아 둔다. 고르는 순간 문구 폭이 줄어 다시 끊기지 않게.
-        detail ? "[--score-w:64px]" : "[--score-w:40px]",
-        ROW_SIZE[state],
-        // 바탕은 늘 판 위에 한 단 뜬 면(흰 9%). 고르면 그 위로 진영 색이 왼쪽부터 차오른다(아래 차오름 면).
-        palette.row,
-        // 득표율을 읽어야 하는 상세에서는 밀려난 줄을 덜 끈다.
-        state === "unselected" && (result ? "opacity-75" : "opacity-50"),
-        ROW_MOTION,
-        "motion-safe:active:scale-[0.98] motion-safe:active:[transition:scale_100ms_ease-out]",
-        interactive && "cursor-pointer",
-        intro.row?.[key],
-      )}
-    >
-      {/*
-        득표 막대(상세) — 줄 바탕이 득표율만큼 진영 색으로 찬다. 내가 고른 쪽은 진하게, 다른 쪽은 옅게
-        (마감되면 양쪽 다 옅게 — readOptionResult의 emphasized). 진영 블록이 그 위에 덮여 왼쪽 끝은 늘 블록이다.
-      */}
-      {/*
-        투표 전에도 0%로 깔아 둔다(#310) — 고르는 순간 새로 그리면 다 찬 채로 툭 나타난다. 0에서 득표율까지
-        홈의 차오름과 같은 시간·곡선(1초, 부드럽게 멈춤)으로 차오른다. 출렁이는 곡선은 막대가 득표율을 넘쳤다
-        돌아와 띠용 하고 튀어 보여 뺐다.
-        폭이 아니라 줄 크기의 면을 밀어 넣는다(#317) — 폭을 바꾸면 차오르는 1초 내내 레이아웃을 다시 계산한다.
-        바깥 겹이 줄 모양으로 잘라, 면의 오른쪽 둥근 끝만 줄 안에서 움직인다.
-      */}
-      {detail ? (
-        <span aria-hidden className="absolute inset-0 isolate overflow-hidden rounded-2xl">
-          <span
-            className={cn(
-              "absolute inset-0 rounded-2xl motion-safe:transition-transform motion-safe:duration-1000 motion-safe:ease-smooth-out",
-              CORNER[key],
-              // 진하게 칠한 쪽과 꽉 찬 줄은 진영 블록과 같은 불투명 색이어야 경계가 안 보인다(#324).
-              emphasized || result?.percent === 100 ? "opacity-100" : "opacity-35",
-            )}
-            style={{ transform: `translateX(${(result?.percent ?? 0) - 100}%)` }}
-          />
-        </span>
-      ) : null}
-
-      {/*
-        고른 줄 차오름(홈) — 고르면 진영 블록에서 시작해 줄 끝까지 진영 색이 차올라 줄이 통째로 켜진다
-        (전광판에서 승자 줄이 켜지듯). 취소하면 같은 길로 빠진다. 득표율을 그리는 상세는 위 득표 막대가 맡는다.
-        상세 득표 막대와 같은 방식으로 줄 크기의 면을 밀어 넣는다(#317) — 둥근 모서리가 찌그러지지 않고 다시 그리지도 않는다.
-      */}
-      {detail ? null : (
-        <span aria-hidden className="absolute inset-0 isolate overflow-hidden rounded-2xl">
-          <span
-            className={cn(
-              "absolute inset-0 rounded-2xl motion-safe:transition-transform motion-safe:duration-1000 motion-safe:ease-smooth-out",
-              CORNER[key],
-              selected ? "translate-x-0" : "-translate-x-full",
-            )}
-          />
-        </span>
-      )}
-
-      {/*
-        진영 블록 — 색 면은 기운 변으로 잘리고, 캐릭터는 그 위에 따로 서서 머리가 줄 위로 삐져나온다.
-        줄이 통째로 켜지면 블록과 줄이 한 색이라 기운 변이 사라진다 — 그대로 둬도 된다.
-      */}
-      {/*
-        탭은 받지 않는다(pointer-events-none) — 줄 위로 삐져나온 캐릭터 머리가 이웃 줄이나 판의 탭을 가로채지
-        않게. 블록 안을 누르면 아래의 줄(버튼)이 그대로 받는다.
-      */}
-      <span
-        aria-hidden
+    <RowHeightMotion state={state} rowRef={rowRef}>
+      <button
+        ref={rowRef}
+        type="button"
+        aria-pressed={selected}
+        onClick={onPress}
         className={cn(
-          "pointer-events-none relative shrink-0 motion-safe:transition-[width] motion-safe:duration-500 motion-safe:ease-smooth-out",
-          // 너비는 ROW_SIZE의 --corner-w 하나로 정한다 — 인트로 색 판도 같은 값에서 멈춘다.
-          "w-[var(--corner-w)]",
-        )}
-      >
-        <span className={cn("absolute inset-0 rounded-l-2xl", CORNER[key], CORNER_CLIP)} />
-        <span className={cn("absolute inset-0 flex items-end pl-1", CHARACTER_CLIP)}>
-          <span
-            className={cn(
-              "aspect-[58/66] shrink-0 origin-bottom motion-safe:transition-[height] motion-safe:duration-500 motion-safe:ease-smooth-out",
-              CHARACTER_SIZE[state],
-              intro.character?.[key],
-            )}
-          >
-            <BalanceCharacter optionKey={key} state={state} interactive={interactive} />
-          </span>
-        </span>
-      </span>
-
-      <span
-        className={cn(
-          "relative flex min-w-0 flex-1 items-center pr-1 pl-6 break-keep",
-          OPTION_TEXT[state],
+          // @container: 문구의 줄바꿈 폭(TEXT_WRAP_WIDTH)이 줄 폭을 읽는다.
+          "@container relative flex w-full items-stretch rounded-2xl text-left",
+          // 점수 칸 폭 — 상세는 득표율이 뜨는 폭을 투표 전에도 잡아 둔다. 고르는 순간 문구 폭이 줄어 다시 끊기지 않게.
+          detail ? "[--score-w:64px]" : "[--score-w:40px]",
+          ROW_SIZE[state],
+          // 바탕은 늘 판 위에 한 단 뜬 면(흰 9%). 고르면 그 위로 진영 색이 왼쪽부터 차오른다(아래 차오름 면).
+          palette.row,
+          // 득표율을 읽어야 하는 상세에서는 밀려난 줄을 덜 끈다.
+          state === "unselected" && (result ? "opacity-75" : "opacity-50"),
+          ROW_MOTION,
+          "motion-safe:active:scale-[0.98] motion-safe:active:[transition:scale_100ms_ease-out]",
+          interactive && "cursor-pointer",
+          intro.row?.[key],
         )}
       >
         {/*
-          shrink-0: 블록 폭이 변하는 동안 문구 폭이 눌려 다시 끊기지 않는다. 줄 폭 단위(cqw)를 못 읽는
-          브라우저에서는 폭 지정이 통째로 무시되므로, 넘치지 않게 칸에 맞춰 줄바꿈하도록 그때만 shrink-0을 뺀다.
+          득표 막대(상세) — 줄 바탕이 득표율만큼 진영 색으로 찬다. 내가 고른 쪽은 진하게, 다른 쪽은 옅게
+          (마감되면 양쪽 다 옅게 — readOptionResult의 emphasized). 진영 블록이 그 위에 덮여 왼쪽 끝은 늘 블록이다.
+        */}
+        {/*
+          투표 전에도 0%로 깔아 둔다(#310) — 고르는 순간 새로 그리면 다 찬 채로 툭 나타난다. 0에서 득표율까지
+          홈의 차오름과 같은 시간·곡선(1초, 부드럽게 멈춤)으로 차오른다. 출렁이는 곡선은 막대가 득표율을 넘쳤다
+          돌아와 띠용 하고 튀어 보여 뺐다.
+          폭이 아니라 줄 크기의 면을 밀어 넣는다(#317) — 폭을 바꾸면 차오르는 1초 내내 레이아웃을 다시 계산한다.
+          바깥 겹이 줄 모양으로 잘라, 면의 오른쪽 둥근 끝만 줄 안에서 움직인다.
+        */}
+        {detail ? (
+          <span aria-hidden className="absolute inset-0 isolate overflow-hidden rounded-2xl">
+            <span
+              className={cn(
+                "absolute inset-0 rounded-2xl motion-safe:transition-transform motion-safe:duration-1000 motion-safe:ease-smooth-out",
+                CORNER[key],
+                // 진하게 칠한 쪽과 꽉 찬 줄은 진영 블록과 같은 불투명 색이어야 경계가 안 보인다(#324).
+                emphasized || result?.percent === 100 ? "opacity-100" : "opacity-35",
+              )}
+              style={{ transform: `translateX(${(result?.percent ?? 0) - 100}%)` }}
+            />
+          </span>
+        ) : null}
+
+        {/*
+          고른 줄 차오름(홈) — 고르면 진영 블록에서 시작해 줄 끝까지 진영 색이 차올라 줄이 통째로 켜진다
+          (전광판에서 승자 줄이 켜지듯). 취소하면 같은 길로 빠진다. 득표율을 그리는 상세는 위 득표 막대가 맡는다.
+          상세 득표 막대와 같은 방식으로 줄 크기의 면을 밀어 넣는다(#317) — 둥근 모서리가 찌그러지지 않고 다시 그리지도 않는다.
+        */}
+        {detail ? null : (
+          <span aria-hidden className="absolute inset-0 isolate overflow-hidden rounded-2xl">
+            <span
+              className={cn(
+                "absolute inset-0 rounded-2xl motion-safe:transition-transform motion-safe:duration-1000 motion-safe:ease-smooth-out",
+                CORNER[key],
+                selected ? "translate-x-0" : "-translate-x-full",
+              )}
+            />
+          </span>
+        )}
+
+        {/*
+          진영 블록 — 색 면은 기운 변으로 잘리고, 캐릭터는 그 위에 따로 서서 머리가 줄 위로 삐져나온다.
+          줄이 통째로 켜지면 블록과 줄이 한 색이라 기운 변이 사라진다 — 그대로 둬도 된다.
+        */}
+        {/*
+          탭은 받지 않는다(pointer-events-none) — 줄 위로 삐져나온 캐릭터 머리가 이웃 줄이나 판의 탭을 가로채지
+          않게. 블록 안을 누르면 아래의 줄(버튼)이 그대로 받는다.
         */}
         <span
-          className={cn(
-            "block min-w-0 origin-left supports-[width:1cqw]:shrink-0",
-            TEXT_WRAP_WIDTH[state],
-            textMotion,
-          )}
-        >
-          {option.text}
-        </span>
-        {/* 점수 자리는 낭독기에서 숨겨 두었으므로 득표율은 여기서 읽힌다. */}
-        {result ? <span className="sr-only">, {result.percent}%</span> : null}
-      </span>
-
-      {/* 인트로 색 판 — 줄을 진영 색으로 꽉 채웠다가 빠진다. 평소엔 보이지 않는다(opacity 0). */}
-      {intro.fill ? (
-        <span
           aria-hidden
           className={cn(
-            "pointer-events-none absolute inset-0 rounded-2xl opacity-0",
-            CORNER[key],
-            intro.fill[key],
+            "pointer-events-none relative shrink-0 motion-safe:transition-[width] motion-safe:duration-500 motion-safe:ease-smooth-out",
+            // 너비는 ROW_SIZE의 --corner-w 하나로 정한다 — 인트로 색 판도 같은 값에서 멈춘다.
+            "w-[var(--corner-w)]",
           )}
-        />
-      ) : null}
-
-      {/* 인트로 빛 스침 — 이름표가 다 들어온 순간 줄 위를 한 번 지나간다. */}
-      {intro.sheen ? (
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-0 hidden overflow-hidden rounded-2xl motion-safe:block"
         >
-          <span
-            className={cn(
-              "absolute inset-y-0 left-0 w-1/4 -translate-x-[120%] -skew-x-12",
-              "bg-[linear-gradient(90deg,transparent,color-mix(in_srgb,var(--bw-true-white)_30%,transparent),transparent)]",
-              intro.sheen[key],
-            )}
-          />
-        </span>
-      ) : null}
-
-      {/*
-        점수 자리 — 숫자 대신 진영 글자. 고르면 체크로 바뀐다. 칸막이 선 없이 작게 둬 문구를 누르지 않고
-        "어느 쪽 줄인지"만 귀퉁이에서 말한다. 문구 덩어리와 같은 세로 가운데에 맞춘다.
-      */}
-      <span
-        aria-hidden
-        className={cn(
-          "relative flex w-(--score-w) shrink-0 items-center justify-end",
-        )}
-      >
-        <span className={cn("flex items-center justify-center pr-2", result ? "w-16" : "w-10")}>
-          <span className={cn("flex", intro.letter?.[key])}>
-            {result ? (
-              <span
-                className={cn(
-                  balanceNumeralFont.className,
-                  "text-[20px] leading-6 tabular-nums",
-                  !result.emphasized && "opacity-80",
-                )}
-              >
-                {result.percent}%
-              </span>
-            ) : selected ? (
-              <CheckIcon size={20} />
-            ) : (
-              <span
-                className={cn(balanceNumeralFont.className, "text-[20px] leading-6 opacity-70", palette.muted)}
-              >
-                {key}
-              </span>
-            )}
+          <span className={cn("absolute inset-0 rounded-l-2xl", CORNER[key], CORNER_CLIP)} />
+          <span className={cn("absolute inset-0 flex items-end pl-1", CHARACTER_CLIP)}>
+            <span
+              className={cn(
+                "aspect-[58/66] shrink-0 origin-bottom motion-safe:transition-[height] motion-safe:duration-500 motion-safe:ease-smooth-out",
+                CHARACTER_SIZE[state],
+                intro.character?.[key],
+              )}
+            >
+              <BalanceCharacter optionKey={key} state={state} interactive={interactive} />
+            </span>
           </span>
         </span>
-      </span>
-    </button>
+
+        <span
+          className={cn(
+            "relative flex min-w-0 flex-1 items-center pr-1 pl-6 break-keep",
+            OPTION_TEXT[state],
+          )}
+        >
+          {/*
+            shrink-0: 블록 폭이 변하는 동안 문구 폭이 눌려 다시 끊기지 않는다. 줄 폭 단위(cqw)를 못 읽는
+            브라우저에서는 폭 지정이 통째로 무시되므로, 넘치지 않게 칸에 맞춰 줄바꿈하도록 그때만 shrink-0을 뺀다.
+          */}
+          <span
+            className={cn(
+              "block min-w-0 origin-left supports-[width:1cqw]:shrink-0",
+              TEXT_WRAP_WIDTH[state],
+              textMotion,
+            )}
+          >
+            {option.text}
+          </span>
+          {/* 점수 자리는 낭독기에서 숨겨 두었으므로 득표율은 여기서 읽힌다. */}
+          {result ? <span className="sr-only">, {result.percent}%</span> : null}
+        </span>
+
+        {/* 인트로 색 판 — 줄을 진영 색으로 꽉 채웠다가 빠진다. 평소엔 보이지 않는다(opacity 0). */}
+        {intro.fill ? (
+          <span
+            aria-hidden
+            className={cn(
+              "pointer-events-none absolute inset-0 rounded-2xl opacity-0",
+              CORNER[key],
+              intro.fill[key],
+            )}
+          />
+        ) : null}
+
+        {/* 인트로 빛 스침 — 이름표가 다 들어온 순간 줄 위를 한 번 지나간다. */}
+        {intro.sheen ? (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 hidden overflow-hidden rounded-2xl motion-safe:block"
+          >
+            <span
+              className={cn(
+                "absolute inset-y-0 left-0 w-1/4 -translate-x-[120%] -skew-x-12",
+                "bg-[linear-gradient(90deg,transparent,color-mix(in_srgb,var(--bw-true-white)_30%,transparent),transparent)]",
+                intro.sheen[key],
+              )}
+            />
+          </span>
+        ) : null}
+
+        {/*
+          점수 자리 — 숫자 대신 진영 글자. 고르면 체크로 바뀐다. 칸막이 선 없이 작게 둬 문구를 누르지 않고
+          "어느 쪽 줄인지"만 귀퉁이에서 말한다. 문구 덩어리와 같은 세로 가운데에 맞춘다.
+        */}
+        <span
+          aria-hidden
+          className={cn(
+            "relative flex w-(--score-w) shrink-0 items-center justify-end",
+          )}
+        >
+          <span className={cn("flex items-center justify-center pr-2", result ? "w-16" : "w-10")}>
+            <span className={cn("flex", intro.letter?.[key])}>
+              {result ? (
+                <span
+                  className={cn(
+                    balanceNumeralFont.className,
+                    "text-[20px] leading-6 tabular-nums",
+                    !result.emphasized && "opacity-80",
+                  )}
+                >
+                  {result.percent}%
+                </span>
+              ) : selected ? (
+                <CheckIcon size={20} />
+              ) : (
+                <span
+                  className={cn(balanceNumeralFont.className, "text-[20px] leading-6 opacity-70", palette.muted)}
+                >
+                  {key}
+                </span>
+              )}
+            </span>
+          </span>
+        </span>
+      </button>
+    </RowHeightMotion>
   );
 }
 

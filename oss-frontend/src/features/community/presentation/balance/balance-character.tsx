@@ -194,8 +194,8 @@ function BalanceIdleEyes({
   );
 }
 
-/** 동작을 갈아탈 때 제자리로 돌아오는 시간·곡선 — 줄 크기 전환(500ms, --ease-smooth-out)과 맞춘다. */
-const SETTLE_TIMING = { duration: 500, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" };
+/** 크기·자세가 바뀌는 시간과 곡선(500ms, --ease-smooth-out) — 줄 높이와 캐릭터 자세가 같이 쓴다. */
+export const SETTLE_TIMING = { duration: 500, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" };
 
 /** 취소로 돌아온 뒤 대결을 다시 시작하는 시점 — 제자리로 돌아오는 동안(SETTLE_TIMING) 겹치지 않게 기다린다. */
 const IDLE_RESUME_DELAY = "motion-safe:[animation-delay:500ms]";
