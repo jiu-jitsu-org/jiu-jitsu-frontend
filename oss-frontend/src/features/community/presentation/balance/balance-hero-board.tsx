@@ -378,7 +378,7 @@ function BoardRow({
         <span className={cn("absolute inset-0 flex items-end pl-1", CHARACTER_CLIP)}>
           <span
             className={cn(
-              "aspect-[58/66] shrink-0 origin-bottom motion-safe:transition-[height] motion-safe:duration-750 motion-safe:ease-spring-wobbly",
+              "aspect-[58/66] shrink-0 origin-bottom motion-safe:transition-[height] motion-safe:duration-500 motion-safe:ease-spring-wobbly",
               CHARACTER_SIZE[state],
               intro.character?.[key],
             )}
