@@ -333,7 +333,8 @@ function BoardRow({
             className={cn(
               "absolute inset-0 rounded-2xl motion-safe:transition-transform motion-safe:duration-1000 motion-safe:ease-smooth-out",
               CORNER[key],
-              emphasized ? "opacity-90" : "opacity-35",
+              // 진하게 칠한 쪽은 진영 블록과 같은 불투명 색이어야 100%일 때 경계가 안 보인다(#324).
+              emphasized ? "opacity-100" : "opacity-35",
             )}
             style={{ transform: `translateX(${(result?.percent ?? 0) - 100}%)` }}
           />
