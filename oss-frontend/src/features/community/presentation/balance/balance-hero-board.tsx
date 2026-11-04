@@ -92,24 +92,12 @@ const TEXT_WRAP_WIDTH: Record<BalanceOptionState, string> = {
 };
 
 /**
- * 줄 크기 곡선 — 밀려날 때는 넘침 없이 곧장 줄어든다. 고르거나 되돌아올 때만 스프링으로 출렁인다.
- * 줄 눌림(scale)은 상태와 상관없이 같다.
+ * 줄 크기 곡선 — 어느 방향이든 넘침 없이 한 번에 자리 잡는다. 두 줄이 위아래로 쌓여 있어, 위 줄이 출렁이면
+ * 아래 줄과 판 아래 피드까지 같이 위아래로 흔들린다. 튕기는 맛은 레이아웃을 건드리지 않는 캐릭터 보잉이 맡는다.
+ * 줄 눌림(scale)은 위치를 밀지 않아 스프링을 유지한다.
  */
-const ROW_MOTION: Record<BalanceOptionState, string> = {
-  default:
-    "motion-safe:[transition:opacity_300ms_ease,min-height_500ms_var(--ease-spring-wobbly),scale_500ms_var(--ease-spring-wobbly)]",
-  selected:
-    "motion-safe:[transition:opacity_300ms_ease,min-height_500ms_var(--ease-spring-wobbly),scale_500ms_var(--ease-spring-wobbly)]",
-  unselected:
-    "motion-safe:[transition:opacity_300ms_ease,min-height_500ms_var(--ease-smooth-out),scale_500ms_var(--ease-spring-wobbly)]",
-};
-
-/** 진영 블록·캐릭터 크기 곡선 — ROW_MOTION과 같은 규칙. */
-const SIZE_EASE: Record<BalanceOptionState, string> = {
-  default: "motion-safe:ease-spring-wobbly",
-  selected: "motion-safe:ease-spring-wobbly",
-  unselected: "motion-safe:ease-smooth-out",
-};
+const ROW_MOTION =
+  "motion-safe:[transition:opacity_300ms_ease,min-height_500ms_var(--ease-smooth-out),scale_500ms_var(--ease-spring-wobbly)]";
 
 const CHARACTER_SIZE: Record<BalanceOptionState, string> = {
   default: "h-[calc(100%+16px)]",
@@ -358,7 +346,7 @@ function BoardRow({
         palette.row,
         // 득표율을 읽어야 하는 상세에서는 밀려난 줄을 덜 끈다.
         state === "unselected" && (result ? "opacity-75" : "opacity-50"),
-        ROW_MOTION[state],
+        ROW_MOTION,
         "motion-safe:active:scale-[0.98] motion-safe:active:[transition:scale_100ms_ease-out]",
         interactive && "cursor-pointer",
         intro.row?.[key],
@@ -417,8 +405,7 @@ function BoardRow({
       <span
         aria-hidden
         className={cn(
-          "pointer-events-none relative shrink-0 motion-safe:transition-[width] motion-safe:duration-500",
-          SIZE_EASE[state],
+          "pointer-events-none relative shrink-0 motion-safe:transition-[width] motion-safe:duration-500 motion-safe:ease-smooth-out",
           // 너비는 ROW_SIZE의 --corner-w 하나로 정한다 — 인트로 색 판도 같은 값에서 멈춘다.
           "w-[var(--corner-w)]",
         )}
@@ -427,8 +414,7 @@ function BoardRow({
         <span className={cn("absolute inset-0 flex items-end pl-1", CHARACTER_CLIP)}>
           <span
             className={cn(
-              "aspect-[58/66] shrink-0 origin-bottom motion-safe:transition-[height] motion-safe:duration-500",
-              SIZE_EASE[state],
+              "aspect-[58/66] shrink-0 origin-bottom motion-safe:transition-[height] motion-safe:duration-500 motion-safe:ease-smooth-out",
               CHARACTER_SIZE[state],
               intro.character?.[key],
             )}
@@ -445,7 +431,7 @@ function BoardRow({
         )}
       >
         {/*
-          shrink-0: 스프링이 블록을 잠깐 넓혀도 문구 폭이 눌려 다시 끊기지 않는다. 줄 폭 단위(cqw)를 못 읽는
+          shrink-0: 블록 폭이 변하는 동안 문구 폭이 눌려 다시 끊기지 않는다. 줄 폭 단위(cqw)를 못 읽는
           브라우저에서는 폭 지정이 통째로 무시되므로, 넘치지 않게 칸에 맞춰 줄바꿈하도록 그때만 shrink-0을 뺀다.
         */}
         <span
