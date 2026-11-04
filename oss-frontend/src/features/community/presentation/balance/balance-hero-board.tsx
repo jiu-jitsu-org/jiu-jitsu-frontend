@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { BalanceCharacter } from "@/features/community/presentation/balance/balance-character";
+import { usePauseMotionWhenHidden } from "@/features/community/presentation/balance/use-pause-motion-when-hidden";
 import { BOARD_PALETTE } from "@/features/community/presentation/balance/balance-board-palette";
 import {
   type BalanceHeroProps,
@@ -163,6 +164,7 @@ export function BalanceHeroBoard({
   const detail = variant === "detail";
   const interactive = !game.closed;
   const palette = BOARD_PALETTE;
+  const boardRef = usePauseMotionWhenHidden<HTMLElement>();
 
   // 첫 렌더에서 한 번 정한다. 서버 렌더에서도 집합은 비어 있어 서버·클라이언트 판단이 같다(하이드레이션 일치).
   // 인트로를 돌린 게임은 마운트 때 한 번 정한다. 마감으로 다음 판이 들어와도 판은 다시 마운트되지 않아
@@ -180,9 +182,12 @@ export function BalanceHeroBoard({
 
   return (
     <section
+      ref={boardRef}
       onClick={detail ? undefined : pressOutsideControls(onPressDetail)}
       className={cn(
         "relative flex flex-col overflow-hidden px-4 pt-5",
+        // 판이 안 보이면 안의 반복 움직임을 그 자리에 세운다(usePauseMotionWhenHidden).
+        "data-[motion-paused]:[&_*]:[animation-play-state:paused]",
         detail ? "rounded-[24px] pb-5" : "cursor-pointer rounded-b-[28px] pb-3",
         palette.bg,
         palette.shadow,
