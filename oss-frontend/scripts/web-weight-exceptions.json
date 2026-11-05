@@ -14,7 +14,6 @@
     "src/app/styles/motion.css::infinite:balance-gloat-b": "밸런스 판의 대결 동작. transform 계열만 움직이고 판이 안 보이면 멈춘다(#317).",
     "src/app/styles/motion.css::infinite:balance-cower-a": "밸런스 판의 대결 동작. transform 계열만 움직이고 판이 안 보이면 멈춘다(#317).",
     "src/app/styles/motion.css::infinite:balance-cower-b": "밸런스 판의 대결 동작. transform 계열만 움직이고 판이 안 보이면 멈춘다(#317).",
-    "src/features/community/presentation/balance/balance-hero-board.tsx::min-height": "고른 순간 줄이 커지는 스프링. 아래 내용이 함께 밀려야 해서 레이아웃이 필요하다.",
     "src/features/community/presentation/balance/balance-hero-board.tsx::width": "고른 순간 진영 블록 폭이 바뀌는 스프링. 옆 문구가 함께 밀려야 해서 레이아웃이 필요하다.",
     "src/features/community/presentation/balance/balance-hero-board.tsx::height": "고른 순간 줄이 커지는 스프링. 아래 내용이 함께 밀려야 해서 레이아웃이 필요하다.",
     "src/features/community/presentation/balance/balance-option-button.tsx::width": "캐릭터 크기 스프링. 내 활동 목록에서 상태가 바뀔 때만 돈다.",

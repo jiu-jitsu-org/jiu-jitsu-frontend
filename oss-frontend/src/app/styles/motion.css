@@ -172,7 +172,9 @@
 
   /* 남은 시간 숫자 — 바뀐 자리만 옛 숫자가 위로 빠지고 새 숫자가 아래에서 올라온다(#310).
      두 숫자가 같은 시간·같은 곡선으로 한 띠처럼 붙어 움직이고, 끝에서 부드럽게 멈춘다 — 출렁임(스프링)은
-     큰 경기 시계에서 숫자가 칸 밖으로 넘쳤다 돌아와 어수선해 보여 뺐다. 들고 나며 옅어져 칸 끝이 칼같이 잘리지 않는다. */
+     큰 경기 시계에서 숫자가 칸 밖으로 넘쳤다 돌아와 어수선해 보여 뺐다. 들고 나며 옅어져 칸 끝이 칼같이 잘리지 않는다.
+     both로 끝 모습을 붙잡아 숫자의 GPU 레이어를 남겨 둔다 — 매초 바뀌는 숫자라, 레이어를 풀면 초마다
+     판을 다시 그려 오히려 무거워진다(#317 측정: 대기 8초 배치 재계산 8→24회). */
   --animate-digit-roll-in: digit-roll-in 420ms var(--ease-smooth-out) both;
   --animate-digit-roll-out: digit-roll-out 420ms var(--ease-smooth-out) both;
   /* 탭 패널 — 옮겨 간 쪽에서 살짝(--tab-shift) 밀려 들어온다. */
@@ -206,10 +208,13 @@
   --animate-pop-in: pop-in 400ms var(--ease-spring-bouncy) both;
   /* 지워지는 작은 조각 — 줄어들며 사라진다. 끝나면 호출부가 DOM에서 뺀다. */
   --animate-shrink-out: shrink-out 220ms ease-in both;
+  /* fade-in 계열(fade-in·overlay-in·spinner-in·image-in)은 끝 모습이 원래 모습이라 backwards로 둔다.
+     both로 끝 모습을 붙잡으면 끝난 뒤에도 GPU 레이어가 남아, 피드 사진처럼 쌓이는 곳에서 스크롤할수록
+     레이어가 늘어난다(#317). 늦춰 둔 동안(spinner-in)은 backwards가 첫 장면(투명)으로 숨겨 둔다. */
   /* 짧은 등장(불러오는 중·목록 끝·다시 시도) — 제자리에서 옅게 나타난다. */
-  --animate-fade-in: fade-in 200ms ease-out both;
+  --animate-fade-in: fade-in 200ms ease-out backwards;
   /* 화면을 덮는 판(사진 크게 보기·자르기) — 천천히 덮는다. 0.2초는 빠르다는 피드백으로 0.35초. */
-  --animate-overlay-in: fade-in 350ms ease-out both;
+  --animate-overlay-in: fade-in 350ms ease-out backwards;
   /* 빈 화면 — 8px 아래에서 올라오며 나타난다. */
   --animate-rise-in: rise-in 280ms var(--ease-smooth-out) both;
   /* 피드 카드 — rise-in과 같은 움직임이되 끝난 뒤 아무것도 남기지 않는다(backwards).
@@ -219,9 +224,9 @@
   /* 불러온 답글 — rise-in보다 느리게, 호출부가 0.1초씩 늦춰 차례로 올라오게 한다. */
   --animate-reply-rise-in: rise-in 450ms var(--ease-smooth-out) both;
   /* 스피너 — 0.15초 늦게 옅게 나타난다. 빨리 끝나는 로딩에서는 아예 보이지 않아 깜빡이지 않는다. */
-  --animate-spinner-in: fade-in 200ms ease-out 150ms both;
+  --animate-spinner-in: fade-in 200ms ease-out 150ms backwards;
   /* 다 불러온 사진 — 제자리에서 천천히 옅게 나타난다. overlay-in과 같은 0.35초. */
-  --animate-image-in: fade-in 350ms ease-out both;
+  --animate-image-in: fade-in 350ms ease-out backwards;
   /* 확인 창(다이얼로그) 상자 — 살짝 작게(0.92) 시작해 한 번 톡 넘치며 자리 잡는다. */
   --animate-dialog-in: dialog-in 450ms var(--ease-spring-bouncy) both;
   /* 떠 있는 토스트가 다시 불릴 때 — 상자는 그대로, 아이콘과 글자만 8 아래에서 올라오며 바뀐다. */
