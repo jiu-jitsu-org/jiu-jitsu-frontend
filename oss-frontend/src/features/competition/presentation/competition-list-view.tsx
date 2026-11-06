@@ -1,10 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { useIsSignedIn } from "@/features/auth/presentation/auth-provider";
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
 import type { CompetitionListMonth } from "@/features/competition/application/get-competition-list-page-data";
+import {
+  closingSoonInterested,
+  type ClosingSoonItem,
+} from "@/features/competition/domain/competition-closing-soon";
 import {
   EMPTY_COMPETITION_FILTER,
   isCompetitionFilterEmpty,
@@ -13,7 +17,11 @@ import {
 } from "@/features/competition/domain/competition-filter";
 import type { CompetitionRegion } from "@/features/competition/domain/competition-region";
 import { CompetitionCalendar } from "@/features/competition/presentation/competition-calendar";
-import { MonthSection } from "@/features/competition/presentation/competition-month-section";
+import { CompetitionClosingSoonBanner } from "@/features/competition/presentation/competition-closing-soon-banner";
+import {
+  MonthSection,
+  competitionRowId,
+} from "@/features/competition/presentation/competition-month-section";
 import { CompetitionRegionSheet } from "@/features/competition/presentation/competition-region-sheet";
 import { useCompetitionInterest } from "@/features/competition/presentation/use-competition-interest";
 import { CalendarIcon, ChevronDownIcon, ListIcon } from "@/shared/ui";
@@ -80,6 +88,54 @@ export function CompetitionListView({
     // 관심은 이 화면에서 누른 결과까지 반영한 값으로 거른다 — 관심만 보는 중에 해제하면 바로 빠진다.
   }, [activeFilter, interest.interestedIds, months]);
 
+  // 관심 대회 마감 배너(#344) — 필터와 무관하게 내 관심 대회 전체에서 고른다. 비로그인이면 관심이 없어 비어 있다.
+  const closingSoon = useMemo(
+    () =>
+      signedIn
+        ? closingSoonInterested(
+            months.flatMap((month) => month.items),
+            interest.interestedIds,
+          )
+        : [],
+    [interest.interestedIds, months, signedIn],
+  );
+
+  // 배너에서 누른 대회. seq는 같은 대회를 다시 눌러도 다시 움직이게 하려고 둔다.
+  const [focus, setFocus] = useState<{
+    id: string;
+    date: string;
+    seq: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!focus) return;
+    // 목록이면 그 대회 줄로, 달력이면 다시 그린 달력 아래 그날 대회 줄로 내려간다(둘 다 같은 줄을 쓴다).
+    const row = document.getElementById(competitionRowId(focus.id));
+    if (!row) return;
+    const reduce = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    row.scrollIntoView({
+      behavior: reduce ? "auto" : "smooth",
+      block: "start",
+    });
+    // 스크린리더·키보드도 이동한 곳에서 이어 가게 초점을 옮긴다(스크롤은 위에서 이미 했다).
+    row.focus({ preventScroll: true });
+  }, [focus]);
+
+  const focusCompetition = ({ competition }: ClosingSoonItem) => {
+    // 켜 둔 필터에 걸려 안 보이는 대회면 필터를 풀어야 갈 수 있다.
+    const visible = visibleMonths.some((month) =>
+      month.items.some((item) => item.competition.id === competition.id),
+    );
+    if (!visible) setFilter(EMPTY_COMPETITION_FILTER);
+    setFocus((current) => ({
+      id: competition.id,
+      date: competition.date,
+      seq: (current?.seq ?? 0) + 1,
+    }));
+  };
+
   const toggle = (key: "interestedOnly" | "openOnly" | "nogiOnly") =>
     setFilter((current) => ({ ...current, [key]: !current[key] }));
 
@@ -141,7 +197,11 @@ export function CompetitionListView({
         </div>
         <IconButton
           aria-label={mode === "list" ? "달력으로 보기" : "목록으로 보기"}
-          onClick={() => setMode(mode === "list" ? "calendar" : "list")}
+          onClick={() => {
+            setMode(mode === "list" ? "calendar" : "list");
+            // 보기를 바꾸면 배너로 골랐던 대회는 잊는다 — 달력은 늘 가장 가까운 대회 날부터 연다.
+            setFocus(null);
+          }}
           className="mr-2"
         >
           {mode === "list" ? (
@@ -152,9 +212,17 @@ export function CompetitionListView({
         </IconButton>
       </div>
 
+      <CompetitionClosingSoonBanner
+        items={closingSoon}
+        onSelect={focusCompetition}
+      />
+
       {mode === "calendar" ? (
         // 달력은 걸러서 비어도 그대로 둔다 — 달을 넘기며 다른 날을 볼 수 있어야 한다.
+        // 배너에서 대회를 누르면 key를 바꿔 그 날짜를 고른 채로 다시 그린다.
         <CompetitionCalendar
+          key={focus ? `focus-${focus.seq}` : "initial"}
+          focusDate={focus?.date}
           months={visibleMonths}
           lastMonth={months.at(-1) ?? { year: currentYear, month: 12 }}
           today={today}
