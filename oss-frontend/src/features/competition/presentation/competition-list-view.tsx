@@ -49,18 +49,25 @@ export function CompetitionListView({
   const signedIn = useIsSignedIn();
   const { guard } = useLoginGuard();
 
+  // 로그아웃했거나 세션이 만료돼 비로그인으로 판정되면 켜 두었던 관심 필터는 풀린 것으로 본다 —
+  // 남겨 두면 이전 관심 목록으로 거르거나 늘 빈 결과만 보인다.
+  const activeFilter = useMemo(
+    () => (signedIn ? filter : { ...filter, interestedOnly: false }),
+    [filter, signedIn],
+  );
+
   const visibleMonths = useMemo(() => {
-    if (isCompetitionFilterEmpty(filter)) return months;
+    if (isCompetitionFilterEmpty(activeFilter)) return months;
     const interested = new Set(interestedIds);
     return months
       .map((month) => ({
         ...month,
         items: month.items.filter((item) =>
-          matchesCompetitionFilter(item, filter, interested),
+          matchesCompetitionFilter(item, activeFilter, interested),
         ),
       }))
       .filter((month) => month.items.length > 0);
-  }, [filter, interestedIds, months]);
+  }, [activeFilter, interestedIds, months]);
 
   const toggle = (key: "interestedOnly" | "openOnly" | "nogiOnly") =>
     setFilter((current) => ({ ...current, [key]: !current[key] }));
@@ -73,8 +80,8 @@ export function CompetitionListView({
           목록 바탕과 같은 면이라 붙어 있어도 선이 따로 필요 없다. */}
       <div className="sticky top-0 z-10 flex gap-2 overflow-x-auto bg-surface-container px-4 py-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <Chip
-          selected={filter.interestedOnly}
-          aria-pressed={filter.interestedOnly}
+          selected={activeFilter.interestedOnly}
+          aria-pressed={activeFilter.interestedOnly}
           onClick={
             signedIn
               ? toggleInterested
@@ -89,6 +96,12 @@ export function CompetitionListView({
         <Chip
           selected={filter.regions.length > 0}
           aria-haspopup="dialog"
+          // 시트를 여는 칩이라 aria-pressed 대신 이름에 고른 지역을 담는다.
+          aria-label={
+            filter.regions.length > 0
+              ? `지역: ${filter.regions.join(", ")}`
+              : "지역: 전체"
+          }
           onClick={() => {
             setRegionSheetKey((key) => key + 1);
             setRegionSheetOpen(true);
