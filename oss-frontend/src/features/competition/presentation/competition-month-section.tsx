@@ -248,7 +248,7 @@ function CompetitionTicket({
         ) : null}
       </div>
       {registration || popular ? (
-        <div className="mt-3 ml-14 flex items-center justify-between gap-2 border-t border-dashed border-border-default pt-3">
+        <div className="mt-3 ml-14 flex items-center justify-between gap-2 border-t border-dashed border-border-default pt-3 [&_[data-chip-tone=disabled]]:bg-surface-disabled [&_[data-chip-tone=neutral]]:bg-surface-secondary">
           <div className="flex min-w-0 flex-wrap items-center gap-1.5">
             {registration ? <RegistrationChip status={registration} /> : null}
             {popular ? (
@@ -564,7 +564,7 @@ function PosterThumb({ competition }: { competition: Competition }) {
 /**
  * 상태 칩 — 줄 마지막 단의 작은 알약.
  *
- * 한 줄에 색 면은 접수 중(옅은 파랑) 하나뿐이다. 접수 예정·관심 많은 대회는 회색 면, 마감은 흐린 회색 면.
+ * 한 줄에 색 면은 접수 중(옅은 파랑) 하나뿐이다. 접수 예정·관심 많은 대회·마감은 흰 면(마감은 흐린 글자).
  * 누르는 칩(필터 줄)과 헷갈리지 않게 테두리 없이 면만 쓰고 높이를 22로 낮춘다.
  */
 function StatusChip({
@@ -576,11 +576,13 @@ function StatusChip({
 }) {
   return (
     <span
+      data-chip-tone={tone}
       className={cn(
         "inline-flex h-[22px] items-center rounded-full px-2 text-[12px] leading-none font-semibold whitespace-nowrap",
         tone === "primary" && "bg-surface-primary-subtle text-primary",
-        tone === "neutral" && "bg-surface-secondary text-text-secondary-strong",
-        tone === "disabled" && "bg-surface-disabled text-text-disabled",
+        // 회색 카드 위에 놓이므로 회색 칩은 흰 면으로 띄운다. 흰 카드(c안)는 칩 줄에서 회색으로 되돌린다.
+        tone === "neutral" && "bg-surface-container text-text-secondary-strong",
+        tone === "disabled" && "bg-surface-container text-text-disabled",
       )}
     >
       {children}
