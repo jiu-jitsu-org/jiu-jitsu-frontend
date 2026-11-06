@@ -6,6 +6,7 @@
 export * from "./icons";
 export { BackButton } from "./back-button";
 export { Button, buttonVariants } from "./button";
+export { Chip } from "./chip";
 export type { ButtonProps } from "./button";
 export { IconButton, iconButtonVariants } from "./icon-button";
 export type { IconButtonProps } from "./icon-button";
