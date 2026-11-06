@@ -48,6 +48,10 @@ export const OutboundMessageType = {
   // 없어 네이티브가 사진 선택 화면을 직접 연다. 결과(PHOTOS_PICKED)를 받아야 해서 requestId로 짝짓는다.
   // 구버전 앱은 이 메시지를 모르므로 지원 목록(AppBridgeCapabilities)에 있을 때만 보낸다 — 없으면 file input.
   PICK_PHOTOS: "PICK_PHOTOS",
+  // 대회 관심 첫 등록(#335 · jiu-jitsu-ios#243). 이 기기에서 처음 관심 등록이 성공하면 한 번 보낸다.
+  // 관심 등록은 마감 알림을 받는 기능이라, 앱이 이 순간에 알림 권한을 묻는다(이미 물었으면 앱이 판단).
+  // 결과 회신은 없다 — 권한을 거절해도 관심 등록 자체는 유지된다. 이 메시지를 모르는 구버전 앱은 무시한다.
+  COMPETITION_INTEREST_FIRST_ADDED: "COMPETITION_INTEREST_FIRST_ADDED",
 } as const;
 export type OutboundMessageType =
   (typeof OutboundMessageType)[keyof typeof OutboundMessageType];
@@ -184,6 +188,11 @@ export type SelectSheetResultPayload = {
  */
 export type ShareSheetPayload = {
   url: string;
+};
+
+/** `COMPETITION_INTEREST_FIRST_ADDED` payload — 처음 관심 등록한 대회. 앱이 안내 문구에 쓸 수 있다. */
+export type CompetitionInterestFirstAddedPayload = {
+  competitionId: string;
 };
 
 /** `PICK_PHOTOS` payload — 네이티브가 열 사진 선택 화면. */
