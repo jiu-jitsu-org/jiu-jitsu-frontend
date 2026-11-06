@@ -6,6 +6,7 @@ import type {
   Competition,
   CompetitionDivision,
 } from "@/features/competition/domain/competition";
+import { isPopularCompetition } from "@/features/competition/domain/competition-popularity";
 import type { RegistrationStatus } from "@/features/competition/domain/competition-registration";
 import type { CompetitionInterest } from "@/features/competition/presentation/use-competition-interest";
 import { cn } from "@/shared/lib/cn";
@@ -71,6 +72,9 @@ export function CompetitionRow({
   const weekday = weekdayOf(competition.date);
   // 장소·부문이 아직 안 정해진 대회는 둘째 줄을 통째로 뺀다 — 빈 줄이 높이만 차지하지 않게.
   const meta = metaLine(competition);
+  const popular =
+    interest !== undefined &&
+    isPopularCompetition(interest.countOf(competition.id));
 
   return (
     <li className="flex gap-2.5 py-3">
@@ -93,6 +97,7 @@ export function CompetitionRow({
         </span>
       </time>
       <div className="flex min-w-0 flex-1 flex-col gap-0.5 pt-0.5">
+        {popular ? <PopularTag /> : null}
         <h3 className="text-[16px] leading-[22px] font-bold break-keep text-text-primary">
           {competition.name}
         </h3>
@@ -114,6 +119,20 @@ export function CompetitionRow({
         />
       ) : null}
     </li>
+  );
+}
+
+/**
+ * "관심 많은 대회" 표시 (#336) — 이름 위 작은 꼬리표.
+ *
+ * 줄 안에서 유일한 색 면이다(옅은 파랑 바탕 + 파랑 글자). 이름보다 먼저 눈에 걸리되 이름을 밀어내지 않게
+ * 이름 위에 따로 둔다. 몇 명인지는 오른쪽 관심 수가 이미 말하므로 여기엔 숫자를 넣지 않는다.
+ */
+function PopularTag() {
+  return (
+    <span className="mb-0.5 inline-flex h-[18px] w-fit items-center rounded-full bg-surface-primary-subtle px-1.5 text-[11px] leading-none font-semibold text-primary">
+      관심 많은 대회
+    </span>
   );
 }
 
