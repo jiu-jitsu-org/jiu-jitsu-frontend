@@ -124,9 +124,11 @@ export function CompetitionListView({
     const reduce = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
-    row.scrollIntoView({
+    // 위에 붙은 필터 줄(검색칸이 열리면 더 높다) 바로 아래에 오게 그 높이만큼 띄운다.
+    const barHeight = document.getElementById(FILTER_BAR_ID)?.offsetHeight ?? 0;
+    window.scrollTo({
+      top: row.getBoundingClientRect().top + window.scrollY - barHeight - 8,
       behavior: reduce ? "auto" : "smooth",
-      block: "start",
     });
     // 스크린리더·키보드도 이동한 곳에서 이어 가게 초점을 옮긴다(스크롤은 위에서 이미 했다).
     row.focus({ preventScroll: true });
@@ -170,7 +172,10 @@ export function CompetitionListView({
       {/* 필터 줄: 좌우 16 · 칩 간격 8, 넘치면 가로 스크롤(스크롤바 숨김) — 글쓰기 카테고리 칩 줄과 같은 규격.
           목록 바탕과 같은 면이라 붙어 있어도 선이 따로 필요 없다.
           오른쪽 끝에 목록 ↔ 달력 전환(#339)을 고정해 둔다 — 칩이 늘어 가로로 밀어도 늘 같은 자리에 있게. */}
-      <div className="sticky top-0 z-10 bg-surface-container">
+      <div
+        id={FILTER_BAR_ID}
+        className="sticky top-0 z-10 bg-surface-container"
+      >
         <div className="flex items-center">
           <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto py-3 pr-2 pl-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <Chip
@@ -320,6 +325,7 @@ export function CompetitionListView({
   );
 }
 
+const FILTER_BAR_ID = "competition-filter-bar";
 const SEARCH_INPUT_ID = "competition-name-search";
 const SEARCH_BUTTON_ID = "competition-name-search-toggle";
 
