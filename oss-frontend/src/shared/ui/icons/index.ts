@@ -15,6 +15,7 @@ export { ShareIcon } from "./share-icon";
 export { ChevronDownIcon } from "./chevron-down-icon";
 export { CalendarIcon } from "./calendar-icon";
 export { ListIcon } from "./list-icon";
+export { SearchIcon } from "./search-icon";
 export { ChevronLeftIcon } from "./chevron-left-icon";
 export { EditIcon } from "./edit-icon";
 export { ImageIcon } from "./image-icon";
