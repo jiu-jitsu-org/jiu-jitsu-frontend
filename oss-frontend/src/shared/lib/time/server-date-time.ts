@@ -46,6 +46,17 @@ function kstCalendar(epochMs: number) {
 }
 
 /**
+ * 시각(ms) → 그 순간의 한국 날짜 "YYYY-MM-DD".
+ *
+ * 시각 없이 날짜만 오는 값(대회 날짜 등)과 "오늘"을 비교할 때 쓴다. 문자열이 사전순 = 날짜순이라
+ * 그대로 크기 비교할 수 있다.
+ */
+export function toKstDateKey(epochMs: number): string {
+  const { year, month, day } = kstCalendar(epochMs);
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+/**
  * 공통 상대 시간 표기 — 게시글 리스트 · 상세 · 댓글 · 대댓글 · 알림함이 모두 이 규칙을 쓴다.
  *
  * - 1분 미만 → 방금 전 (서버·기기 오차로 미래 시각이 나와도 방금 전)
