@@ -108,17 +108,20 @@ export function CompetitionListView({
   } | null>(null);
 
   useEffect(() => {
-    if (!focus || mode !== "list") return;
+    if (!focus) return;
+    // 목록이면 그 대회 줄로, 달력이면 다시 그린 달력 아래 그날 대회 줄로 내려간다(둘 다 같은 줄을 쓴다).
+    const row = document.getElementById(competitionRowId(focus.id));
+    if (!row) return;
     const reduce = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
-    document
-      .getElementById(competitionRowId(focus.id))
-      ?.scrollIntoView({
-        behavior: reduce ? "auto" : "smooth",
-        block: "start",
-      });
-  }, [focus, mode]);
+    row.scrollIntoView({
+      behavior: reduce ? "auto" : "smooth",
+      block: "start",
+    });
+    // 스크린리더·키보드도 이동한 곳에서 이어 가게 초점을 옮긴다(스크롤은 위에서 이미 했다).
+    row.focus({ preventScroll: true });
+  }, [focus]);
 
   const focusCompetition = ({ competition }: ClosingSoonItem) => {
     // 켜 둔 필터에 걸려 안 보이는 대회면 필터를 풀어야 갈 수 있다.

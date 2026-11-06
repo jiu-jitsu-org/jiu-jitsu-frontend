@@ -1,9 +1,13 @@
+"use client";
+
+import { useState } from "react";
+
 import type { ClosingSoonItem } from "@/features/competition/domain/competition-closing-soon";
 import { deadlineLabel } from "@/features/competition/presentation/competition-month-section";
 import { cn } from "@/shared/lib/cn";
 import { SURFACE_PRESS } from "@/shared/ui/press-styles";
 
-/** 배너에 보이는 줄 수. 넘치면 "외 N개"로 줄인다 — 배너가 목록을 밀어내지 않게. */
+/** 처음 보이는 줄 수. 넘치면 "N개 더 보기"로 접어 둔다 — 배너가 목록을 밀어내지 않게. */
 const MAX_ROWS = 3;
 
 /**
@@ -20,8 +24,10 @@ export function CompetitionClosingSoonBanner({
   items: readonly ClosingSoonItem[];
   onSelect: (item: ClosingSoonItem) => void;
 }) {
+  const [expanded, setExpanded] = useState(false);
   if (items.length === 0) return null;
-  const rest = items.length - MAX_ROWS;
+  const shown = expanded ? items : items.slice(0, MAX_ROWS);
+  const rest = items.length - shown.length;
 
   return (
     <section
@@ -35,7 +41,7 @@ export function CompetitionClosingSoonBanner({
         관심 대회 · 곧 마감
       </h2>
       <ul className="mt-1 flex flex-col">
-        {items.slice(0, MAX_ROWS).map((item) => (
+        {shown.map((item) => (
           <li key={item.competition.id}>
             <button
               type="button"
@@ -63,9 +69,16 @@ export function CompetitionClosingSoonBanner({
         ))}
       </ul>
       {rest > 0 ? (
-        <p className="px-2 pt-0.5 pb-1 text-[12px] leading-[16px] text-text-secondary">
-          외 {rest}개
-        </p>
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className={cn(
+            "flex min-h-8 w-full items-center rounded-10 px-2 text-[12px] leading-[16px] text-text-secondary",
+            SURFACE_PRESS,
+          )}
+        >
+          {rest}개 더 보기
+        </button>
       ) : null}
     </section>
   );

@@ -84,7 +84,8 @@ export function CompetitionRow({
     // id는 마감 배너(#344)에서 누르면 이 줄로 내려오는 데 쓴다. 위에 붙은 필터 줄에 가리지 않게 여백을 둔다.
     <li
       id={competitionRowId(competition.id)}
-      className="flex scroll-mt-20 gap-2.5 py-3"
+      tabIndex={-1}
+      className="flex scroll-mt-20 gap-2.5 py-3 outline-none"
     >
       <time
         dateTime={competition.date}
