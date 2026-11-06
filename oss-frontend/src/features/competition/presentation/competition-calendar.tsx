@@ -90,7 +90,7 @@ export function CompetitionCalendar({
     <div className="pb-6">
       <section
         aria-label="대회 달력"
-        className="mx-2 mt-1 rounded-20 bg-surface-field-subtle px-2 pt-2 pb-3"
+        className="mx-3 mt-1 rounded-20 bg-surface-field-subtle px-2 pt-2 pb-3"
       >
         <div className="flex items-center justify-between">
           <IconButton
@@ -148,15 +148,19 @@ export function CompetitionCalendar({
         </div>
       </section>
 
-      <section aria-label={`${selectedLabel} 대회`}>
+      {/* 고른 날 카드 — 목록 보기의 달 카드(#348)와 같은 모양: 머리(날짜)와 대회 줄을 한 면에 담는다. */}
+      <section
+        aria-label={`${selectedLabel} 대회`}
+        className="mx-3 mt-3 rounded-20 bg-surface-field-subtle px-4 pt-4 pb-1"
+      >
         <h2
           aria-live="polite"
-          className="px-4 pt-5 pb-2 text-[15px] leading-[22px] font-bold text-section-header-title"
+          className="text-[17px] leading-[24px] font-bold text-text-primary"
         >
           {selectedLabel}
         </h2>
         {selectedItems.length > 0 ? (
-          <ul className="mx-2 flex flex-col rounded-20 bg-surface-field-subtle px-3 py-1">
+          <ul className="flex flex-col pt-1">
             {selectedItems.map((item) => (
               <CompetitionRow
                 key={item.competition.id}
@@ -167,7 +171,7 @@ export function CompetitionCalendar({
             ))}
           </ul>
         ) : (
-          <p className="px-4 text-[14px] leading-[21px] text-text-secondary">
+          <p className="pt-1 pb-3 text-[14px] leading-[21px] text-text-secondary">
             {filtered
               ? "이 날은 조건에 맞는 대회가 없어요"
               : "이 날은 대회가 없어요"}
