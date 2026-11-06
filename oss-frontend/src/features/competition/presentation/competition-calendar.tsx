@@ -30,6 +30,7 @@ export function CompetitionCalendar({
   today,
   currentYear,
   interest,
+  filtered,
 }: {
   /** 필터로 거른 뒤의 월별 대회. */
   months: CompetitionListMonth[];
@@ -39,6 +40,8 @@ export function CompetitionCalendar({
   today: string;
   currentYear: number;
   interest: CompetitionInterest;
+  /** 필터가 켜져 있는지 — 빈 날 문구를 "조건에 맞는 대회가 없어요"로 바꾼다. */
+  filtered: boolean;
 }) {
   const firstMonth = useMemo(() => yearMonthOf(today), [today]);
 
@@ -143,7 +146,10 @@ export function CompetitionCalendar({
       </section>
 
       <section aria-label={`${selectedLabel} 대회`}>
-        <h2 className="px-4 pt-5 pb-2 text-[15px] leading-[22px] font-bold text-section-header-title">
+        <h2
+          aria-live="polite"
+          className="px-4 pt-5 pb-2 text-[15px] leading-[22px] font-bold text-section-header-title"
+        >
           {selectedLabel}
         </h2>
         {selectedItems.length > 0 ? (
@@ -159,7 +165,9 @@ export function CompetitionCalendar({
           </ul>
         ) : (
           <p className="px-4 text-[14px] leading-[21px] text-text-secondary">
-            이 날은 대회가 없어요
+            {filtered
+              ? "이 날은 조건에 맞는 대회가 없어요"
+              : "이 날은 대회가 없어요"}
           </p>
         )}
       </section>

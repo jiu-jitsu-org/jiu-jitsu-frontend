@@ -160,6 +160,7 @@ export function CompetitionListView({
           today={today}
           currentYear={currentYear}
           interest={interest}
+          filtered={!isCompetitionFilterEmpty(activeFilter)}
         />
       ) : visibleMonths.length === 0 ? (
         <EmptyState
