@@ -15,8 +15,14 @@ import type { CompetitionRegion } from "@/features/competition/domain/competitio
 import { CompetitionCalendar } from "@/features/competition/presentation/competition-calendar";
 import { MonthSection } from "@/features/competition/presentation/competition-month-section";
 import { CompetitionRegionSheet } from "@/features/competition/presentation/competition-region-sheet";
+import { CompetitionSearchField } from "@/features/competition/presentation/competition-search-field";
 import { useCompetitionInterest } from "@/features/competition/presentation/use-competition-interest";
-import { CalendarIcon, ChevronDownIcon, ListIcon } from "@/shared/ui";
+import {
+  CalendarIcon,
+  ChevronDownIcon,
+  ListIcon,
+  SearchIcon,
+} from "@/shared/ui";
 import { Chip } from "@/shared/ui/chip";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { IconButton } from "@/shared/ui/icon-button";
@@ -55,6 +61,8 @@ export function CompetitionListView({
   const [regionSheetKey, setRegionSheetKey] = useState(0);
   // 기본은 목록이다 — 대회가 거의 토·일에 몰려 달력을 먼저 펼치면 빈 칸이 대부분이다(#339).
   const [mode, setMode] = useState<"list" | "calendar">("list");
+  // 이름 검색(#345)은 돋보기를 눌러야 열린다. 닫으면 검색어도 지운다 — 안 보이는 검색어로 걸러지지 않게.
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const signedIn = useIsSignedIn();
   const { guard } = useLoginGuard();
@@ -85,71 +93,103 @@ export function CompetitionListView({
 
   const toggleInterested = () => toggle("interestedOnly");
 
+  const setNameQuery = (nameQuery: string) =>
+    setFilter((current) => ({ ...current, nameQuery }));
+
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setNameQuery("");
+  };
+
+  // 검색어만 걸려서 비었으면 검색어 탓이라고 말하고, 검색어만 지우게 한다.
+  const emptyBySearchOnly =
+    filter.nameQuery.trim() !== "" &&
+    isCompetitionFilterEmpty({ ...activeFilter, nameQuery: "" });
+
   return (
     <>
       {/* 필터 줄: 좌우 16 · 칩 간격 8, 넘치면 가로 스크롤(스크롤바 숨김) — 글쓰기 카테고리 칩 줄과 같은 규격.
           목록 바탕과 같은 면이라 붙어 있어도 선이 따로 필요 없다.
           오른쪽 끝에 목록 ↔ 달력 전환(#339)을 고정해 둔다 — 칩이 늘어 가로로 밀어도 늘 같은 자리에 있게. */}
-      <div className="sticky top-0 z-10 flex items-center bg-surface-container">
-        <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto py-3 pr-2 pl-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <Chip
-            selected={activeFilter.interestedOnly}
-            aria-pressed={activeFilter.interestedOnly}
-            onClick={
-              signedIn
-                ? toggleInterested
-                : guard(
-                    toggleInterested,
-                    "관심 대회는 OSS 앱에서 로그인 후 볼 수 있어요.",
-                  )
-            }
+      <div className="sticky top-0 z-10 bg-surface-container">
+        <div className="flex items-center">
+          <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto py-3 pr-2 pl-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <Chip
+              selected={activeFilter.interestedOnly}
+              aria-pressed={activeFilter.interestedOnly}
+              onClick={
+                signedIn
+                  ? toggleInterested
+                  : guard(
+                      toggleInterested,
+                      "관심 대회는 OSS 앱에서 로그인 후 볼 수 있어요.",
+                    )
+              }
+            >
+              관심
+            </Chip>
+            <Chip
+              selected={filter.regions.length > 0}
+              aria-haspopup="dialog"
+              // 시트를 여는 칩이라 aria-pressed 대신 이름에 고른 지역을 담는다.
+              aria-label={
+                filter.regions.length > 0
+                  ? `지역: ${filter.regions.join(", ")}`
+                  : "지역: 전체"
+              }
+              onClick={() => {
+                setRegionSheetKey((key) => key + 1);
+                setRegionSheetOpen(true);
+              }}
+              className="gap-0.5 pr-2"
+            >
+              {regionLabel(filter.regions)}
+              <ChevronDownIcon size={16} />
+            </Chip>
+            <Chip
+              selected={filter.openOnly}
+              aria-pressed={filter.openOnly}
+              onClick={() => toggle("openOnly")}
+            >
+              접수 중
+            </Chip>
+            <Chip
+              selected={filter.nogiOnly}
+              aria-pressed={filter.nogiOnly}
+              onClick={() => toggle("nogiOnly")}
+            >
+              노기
+            </Chip>
+          </div>
+          <IconButton
+            aria-label="대회 이름 검색"
+            aria-expanded={searchOpen}
+            aria-controls={searchOpen ? SEARCH_INPUT_ID : undefined}
+            onClick={() => (searchOpen ? closeSearch() : setSearchOpen(true))}
+            className={searchOpen ? "text-primary" : undefined}
           >
-            관심
-          </Chip>
-          <Chip
-            selected={filter.regions.length > 0}
-            aria-haspopup="dialog"
-            // 시트를 여는 칩이라 aria-pressed 대신 이름에 고른 지역을 담는다.
-            aria-label={
-              filter.regions.length > 0
-                ? `지역: ${filter.regions.join(", ")}`
-                : "지역: 전체"
-            }
-            onClick={() => {
-              setRegionSheetKey((key) => key + 1);
-              setRegionSheetOpen(true);
-            }}
-            className="gap-0.5 pr-2"
+            <SearchIcon size={22} />
+          </IconButton>
+          <IconButton
+            aria-label={mode === "list" ? "달력으로 보기" : "목록으로 보기"}
+            onClick={() => setMode(mode === "list" ? "calendar" : "list")}
+            className="mr-2"
           >
-            {regionLabel(filter.regions)}
-            <ChevronDownIcon size={16} />
-          </Chip>
-          <Chip
-            selected={filter.openOnly}
-            aria-pressed={filter.openOnly}
-            onClick={() => toggle("openOnly")}
-          >
-            접수 중
-          </Chip>
-          <Chip
-            selected={filter.nogiOnly}
-            aria-pressed={filter.nogiOnly}
-            onClick={() => toggle("nogiOnly")}
-          >
-            노기
-          </Chip>
+            {mode === "list" ? (
+              <CalendarIcon size={22} />
+            ) : (
+              <ListIcon size={22} />
+            )}
+          </IconButton>
         </div>
-        <IconButton
-          aria-label={mode === "list" ? "달력으로 보기" : "목록으로 보기"}
-          onClick={() => setMode(mode === "list" ? "calendar" : "list")}
-          className="mr-2"
-        >
-          {mode === "list" ? (
-            <CalendarIcon size={22} />
-          ) : (
-            <ListIcon size={22} />
-          )}
-        </IconButton>
+        {searchOpen ? (
+          <CompetitionSearchField
+            id={SEARCH_INPUT_ID}
+            value={filter.nameQuery}
+            onChange={setNameQuery}
+            onClose={closeSearch}
+          />
+        ) : null}
       </div>
 
       {mode === "calendar" ? (
@@ -164,11 +204,20 @@ export function CompetitionListView({
         />
       ) : visibleMonths.length === 0 ? (
         <EmptyState
-          title="조건에 맞는 대회가 없어요"
-          action={{
-            label: "필터 지우기",
-            onClick: () => setFilter(EMPTY_COMPETITION_FILTER),
-          }}
+          title={
+            emptyBySearchOnly
+              ? "이름이 맞는 대회가 없어요"
+              : "조건에 맞는 대회가 없어요"
+          }
+          action={
+            emptyBySearchOnly
+              ? { label: "검색어 지우기", onClick: () => setNameQuery("") }
+              : {
+                  label: "필터 지우기",
+                  // 검색칸이 열려 있으면 검색어도 함께 비운다 — EMPTY에 빈 검색어가 들어 있다.
+                  onClick: () => setFilter(EMPTY_COMPETITION_FILTER),
+                }
+          }
           className="pt-[30vh]"
         />
       ) : (
@@ -198,6 +247,8 @@ export function CompetitionListView({
     </>
   );
 }
+
+const SEARCH_INPUT_ID = "competition-name-search";
 
 /** 안 골랐으면 "지역", 하나면 "서울", 여럿이면 "서울 외 2". */
 function regionLabel(regions: readonly CompetitionRegion[]) {
