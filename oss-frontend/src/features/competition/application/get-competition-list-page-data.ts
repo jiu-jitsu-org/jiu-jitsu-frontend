@@ -34,6 +34,8 @@ export type CompetitionListPageData =
       ok: true;
       months: CompetitionListMonth[];
       currentYear: number;
+      /** 오늘 — 한국 날짜 "YYYY-MM-DD". 달력(#339)이 지난 날짜를 흐리게 하고 첫 달을 정할 때 쓴다. */
+      today: string;
       /** 내가 관심 등록한 대회 id. 비로그인이면 빈 배열. */
       interestedIds: string[];
       /** 대회별 익명 관심 수(#335). 없는 대회는 0. 읽기 실패면 빈 객체 — 숫자만 안 보인다. */
@@ -87,6 +89,7 @@ export async function getCompetitionListPageData({
         })),
       })),
       currentYear: Number(today.slice(0, 4)),
+      today,
       interestedIds,
       interestCounts,
       regionsWithCompetitions: COMPETITION_REGIONS.filter((region) =>
