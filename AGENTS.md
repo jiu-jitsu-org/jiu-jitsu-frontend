@@ -389,7 +389,7 @@ Server Action은 UI 이벤트 adapter에 가깝다.
 - `shared/lib/http` 기반 공통 서버 HTTP 계층
 - `shared/lib/time` + `shared/ui/server-clock` 기반 공통 시간 표기 (서버 날짜는 타임존 없는 KST → infrastructure에서 `toKstIso`로 정규화, 시간을 그리는 페이지는 `ServerClockProvider`로 감싼다)
 - `bootstrap` feature 기반 Server Component 초기 조회 예시
-- `competition` feature — 대회 탭 목록(`/competition`)과 위 필터 줄(관심·지역·접수 중·노기, 거르기는 클라이언트에서 domain `matchesCompetitionFilter`로), 줄마다 관심 등록 버튼·익명 관심 수(등록·해제는 `presentation/actions`의 Server Action, 첫 등록이면 앱에 `COMPETITION_INTEREST_FIRST_ADDED`). 대회·관심 API 전이라 infrastructure의 고정 데이터 저장소로 그리고, 가짜 데이터가 운영에 보이지 않게 로컬·개발 서버에서만 연다(`is-competition-page-enabled.ts`)
+- `competition` feature — 대회 탭 목록(`/competition`)과 위 필터 줄(관심·지역·접수 중·노기, 거르기는 클라이언트에서 domain `matchesCompetitionFilter`로), 줄마다 관심 등록 버튼·익명 관심 수(등록·해제는 `presentation/actions`의 Server Action, 첫 등록이면 앱에 `COMPETITION_INTEREST_FIRST_ADDED`), 관심 수가 기준(domain `competition-popularity.ts`) 이상이면 '관심 많은 대회' 꼬리표. 대회·관심 API 전이라 infrastructure의 고정 데이터 저장소로 그리고, 가짜 데이터가 운영에 보이지 않게 로컬·개발 서버에서만 연다(`is-competition-page-enabled.ts`)
 - `VersionInfoPage` Client Component와 `useActionState` 기반 Server Action 갱신 예시
 - 개발/운영 `.env` 분리
 - `design-tokens/` 기반 컬러 디자인 토큰 파이프라인 (`npm run tokens`)
