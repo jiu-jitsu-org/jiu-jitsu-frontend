@@ -267,7 +267,7 @@ function CompetitionTicket({
 /**
  * d·e안 — 세로 타임라인 (#348).
  *
- * 줄 위에 날짜·요일(면 없이 흰 바탕), 옆에 회색 박스. 줄은 날짜 칸 가운데(44 칸의 22)를 지나고 흰 날짜 칸 뒤로 숨는다.
+ * 줄 위에 날짜·요일(면 없이 흰 바탕), 옆에 회색 박스. 줄은 날짜 칸 가운데(36 칸의 18)를 지나고 — 박스를 넓히려 날짜 칸·틈을 좁게 둔다 — 흰 날짜 칸 뒤로 숨는다.
  * d(캐롯 주행 기록 참고): 달이 바뀌는 자리에 작은 점 + "12월", 카드 오른쪽에 가장 급한 숫자(남은 날)를 크게.
  * e(일정 앱 참고): 달 이름을 굵은 머리로, 박스 첫 줄 오른쪽에 남은 날(시각 자리).
  */
@@ -293,11 +293,11 @@ function TimelineMonth({
         aria-hidden
         className={cn(
           // 줄은 흐름만 알려 주는 보조 표시라 칩·글자보다 연한 회색 1px로 둔다.
-          "absolute top-0 bottom-0 left-[37px] w-px bg-surface-secondary",
+          "absolute top-0 bottom-0 left-[33.5px] w-px bg-surface-secondary",
         )}
       />
-      <h2 id={headingId} className="relative flex items-center gap-3 pt-4 pb-3">
-        <span aria-hidden className="flex w-11 flex-none justify-center">
+      <h2 id={headingId} className="relative flex items-center gap-2 pt-4 pb-3">
+        <span aria-hidden className="flex w-9 flex-none justify-center">
           <span
             className={cn(
               "rounded-full bg-icon-disabled ring-4 ring-surface-container",
@@ -371,12 +371,12 @@ function TimelineItem({
     <li
       id={competitionRowId(competition.id)}
       tabIndex={-1}
-      className="flex scroll-mt-20 items-start gap-3 outline-none"
+      className="flex scroll-mt-20 items-start gap-2 outline-none"
     >
       {/* 날짜 칸은 면·테두리 없이 흰 바탕에 글자만 — 흰 바탕이 뒤의 세로 줄을 가려 날짜가 줄 위에 놓인 듯 보인다. */}
       <time
         dateTime={competition.date}
-        className="relative flex h-14 w-11 flex-none flex-col items-center justify-center bg-surface-container"
+        className="relative flex h-14 w-9 flex-none flex-col items-center justify-center bg-surface-container"
       >
         <span className="text-[18px] leading-[22px] font-bold text-text-primary tabular-nums">
           {day}
