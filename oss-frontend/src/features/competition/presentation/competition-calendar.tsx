@@ -163,6 +163,7 @@ export function CompetitionCalendar({
               <CompetitionRow
                 key={item.competition.id}
                 item={item}
+                currentYear={currentYear}
                 interest={interest}
               />
             ))}

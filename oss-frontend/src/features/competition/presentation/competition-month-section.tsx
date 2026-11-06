@@ -60,6 +60,7 @@ export function MonthSection({
           <CompetitionRow
             key={item.competition.id}
             item={item}
+            currentYear={currentYear}
             interest={interest}
           />
         ))}
@@ -80,9 +81,11 @@ export function competitionRowId(competitionId: string) {
  */
 export function CompetitionRow({
   item: { competition, registration },
+  currentYear,
   interest,
 }: {
   item: CompetitionListItem;
+  currentYear: number;
   interest?: CompetitionInterest;
 }) {
   const meta = metaLine(competition);
@@ -131,7 +134,7 @@ export function CompetitionRow({
           </div>
           {/* 마감 대회는 칩이 이미 "접수 마감"이라 큰 숫자를 두지 않는다 — 같은 말을 두 번 하지 않게. */}
           {registration && registration.kind !== "closed" ? (
-            <DeadlineMetric status={registration} />
+            <DeadlineMetric status={registration} currentYear={currentYear} />
           ) : null}
         </div>
         {registration || popular || interest ? (
@@ -159,12 +162,15 @@ export function CompetitionRow({
 
 /**
  * 박스 오른쪽 위 큰 숫자 — 대회 카드에서 가장 급한 숫자인 남은 날.
- * 접수 중: "D-2"(얼리버드면 빨강, 당일은 "오늘") · 접수 예정: "11.10" + 접수 오픈. 마감 대회는 그리지 않는다.
+ * 접수 중: "D-2"(얼리버드면 빨강, 당일은 "오늘") · 접수 예정: "11.10" + 접수 오픈(해가 다르면 "2027년 접수 오픈").
+ * 마감 대회는 그리지 않는다.
  */
 function DeadlineMetric({
   status,
+  currentYear,
 }: {
   status: Exclude<RegistrationStatus, { kind: "closed" }>;
+  currentYear: number;
 }) {
   let value: string;
   let caption: string;
@@ -178,9 +184,10 @@ function DeadlineMetric({
         status.deadline === "early-bird" ? "text-text-error" : "text-primary";
       break;
     case "upcoming": {
-      const [, month, day] = status.opensOn.split("-").map(Number);
+      const [year, month, day] = status.opensOn.split("-").map(Number);
       value = `${month}.${day}`;
-      caption = "접수 오픈";
+      // 12월에 보는 내년 1월 오픈이 지난 날짜로 읽히지 않게, 해가 다르면 아래 글자에 연도를 붙인다.
+      caption = year === currentYear ? "접수 오픈" : `${year}년 접수 오픈`;
       tone = "text-text-secondary-strong";
       break;
     }
