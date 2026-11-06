@@ -32,7 +32,17 @@ export type RegistrationStatus =
 export function registrationStatusOn(
   registration: CompetitionRegistration,
   today: string,
-): RegistrationStatus {
+): RegistrationStatus | null {
+  // 날짜 모양이 틀렸거나 시작일이 마감일보다 늦으면 상태를 지어내지 않는다 — "마감 D-NaN"이나
+  // 마감일을 무시한 "접수 예정"을 보여 주느니 줄을 빼는 편이 낫다.
+  if (
+    !isDateKey(registration.opensOn) ||
+    !isDateKey(registration.closesOn) ||
+    registration.opensOn > registration.closesOn
+  ) {
+    return null;
+  }
+
   if (today < registration.opensOn) {
     return { kind: "upcoming", opensOn: registration.opensOn };
   }
@@ -40,7 +50,13 @@ export function registrationStatusOn(
     return { kind: "closed" };
   }
 
-  const { earlyBirdClosesOn } = registration;
+  // 얼리버드 마감이 접수 마감보다 늦게 잡힌 값은 무시한다 — 실제로는 없는 날을 빨강으로 약속하게 된다.
+  const earlyBirdClosesOn =
+    registration.earlyBirdClosesOn &&
+    isDateKey(registration.earlyBirdClosesOn) &&
+    registration.earlyBirdClosesOn <= registration.closesOn
+      ? registration.earlyBirdClosesOn
+      : undefined;
   if (earlyBirdClosesOn && today <= earlyBirdClosesOn) {
     const earlyBirdDaysLeft = daysBetween(today, earlyBirdClosesOn);
     if (earlyBirdDaysLeft <= EARLY_BIRD_EMPHASIS_DAYS) {
@@ -56,6 +72,11 @@ export function registrationStatusOn(
     deadline: "final",
     daysLeft: daysBetween(today, registration.closesOn),
   };
+}
+
+/** "YYYY-MM-DD" 모양인지. 문자열 크기 비교가 날짜순과 같으려면 자릿수가 맞아야 한다. */
+function isDateKey(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;

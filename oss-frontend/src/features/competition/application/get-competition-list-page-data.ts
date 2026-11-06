@@ -11,7 +11,7 @@ import { toKstDateKey } from "@/shared/lib/time";
 
 export type CompetitionListItem = {
   competition: Competition;
-  /** 접수 일정이 공지되지 않은 대회는 null */
+  /** 접수 일정이 공지되지 않았거나 일정 값이 잘못된 대회는 null */
   registration: RegistrationStatus | null;
 };
 
