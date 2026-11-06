@@ -1,3 +1,5 @@
+import type { CompetitionRegistration } from "@/features/competition/domain/competition-registration";
+
 /** 대회 부문 — 도복(gi) · 노기(nogi). 한 대회가 둘 다 열 수 있다. */
 export type CompetitionDivision = "gi" | "nogi";
 
@@ -11,6 +13,8 @@ export type Competition = {
   divisions: CompetitionDivision[];
   /** 참가 대상이 제한된 대회만 갖는다. 예: "키즈" */
   audience?: string;
+  /** 접수 일정. 아직 공지되지 않은 대회는 없다. */
+  registration?: CompetitionRegistration;
 };
 
 /** 같은 달에 열리는 대회 묶음. 월은 1부터. */

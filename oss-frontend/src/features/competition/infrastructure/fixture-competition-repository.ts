@@ -7,6 +7,7 @@ import type { CompetitionRepository } from "@/features/competition/domain/compet
  * 백엔드 대회 데이터는 아직 이름·연도뿐이라 화면을 먼저 만들기 위해 둔다. API가 나오면
  * External 저장소를 만들어 competition-use-case-factory에서 바꿔 끼우고 이 파일은 지운다.
  * 일부러 날짜순이 아니게 섞고 지난 대회도 하나 넣었다 — 정렬·지난 대회 숨김이 실제로 도는지 보이게.
+ * 접수 일정(#333)은 2026-11-06 기준으로 접수 예정 · 접수 중(얼리버드 강조 포함) · 마감 · 미공지가 다 보이게 잡았다.
  */
 const FIXTURE_COMPETITIONS: Competition[] = [
   {
@@ -15,6 +16,11 @@ const FIXTURE_COMPETITIONS: Competition[] = [
     date: "2026-11-22",
     place: "서울 송파",
     divisions: ["gi"],
+    registration: {
+      opensOn: "2026-10-20",
+      closesOn: "2026-11-16",
+      earlyBirdClosesOn: "2026-11-09",
+    },
   },
   {
     id: "incheon-autumn-open",
@@ -30,6 +36,11 @@ const FIXTURE_COMPETITIONS: Competition[] = [
     place: "수원",
     divisions: ["gi"],
     audience: "키즈",
+    registration: {
+      opensOn: "2026-10-10",
+      closesOn: "2026-11-18",
+      earlyBirdClosesOn: "2026-10-31",
+    },
   },
   {
     id: "gwangju-championship",
@@ -37,6 +48,10 @@ const FIXTURE_COMPETITIONS: Competition[] = [
     date: "2026-11-07",
     place: "광주",
     divisions: ["gi"],
+    registration: {
+      opensOn: "2026-10-12",
+      closesOn: "2026-11-01",
+    },
   },
   {
     id: "seoul-nogi-invitational",
@@ -44,6 +59,10 @@ const FIXTURE_COMPETITIONS: Competition[] = [
     date: "2026-11-08",
     place: "서울 강남",
     divisions: ["nogi"],
+    registration: {
+      opensOn: "2026-10-15",
+      closesOn: "2026-11-02",
+    },
   },
   {
     id: "daejeon-open",
@@ -51,6 +70,10 @@ const FIXTURE_COMPETITIONS: Competition[] = [
     date: "2026-11-14",
     place: "대전",
     divisions: ["gi", "nogi"],
+    registration: {
+      opensOn: "2026-10-20",
+      closesOn: "2026-11-09",
+    },
   },
   {
     id: "busan-nogi-open",
@@ -58,6 +81,10 @@ const FIXTURE_COMPETITIONS: Competition[] = [
     date: "2026-12-05",
     place: "부산",
     divisions: ["nogi"],
+    registration: {
+      opensOn: "2026-11-10",
+      closesOn: "2026-11-28",
+    },
   },
   {
     id: "gyeonggi-governor-cup",
@@ -65,6 +92,11 @@ const FIXTURE_COMPETITIONS: Competition[] = [
     date: "2026-12-06",
     place: "고양",
     divisions: ["gi", "nogi"],
+    registration: {
+      opensOn: "2026-10-27",
+      closesOn: "2026-11-29",
+      earlyBirdClosesOn: "2026-11-06",
+    },
   },
   {
     id: "daegu-open",
@@ -72,6 +104,11 @@ const FIXTURE_COMPETITIONS: Competition[] = [
     date: "2026-12-13",
     place: "대구",
     divisions: ["gi"],
+    registration: {
+      opensOn: "2026-11-16",
+      closesOn: "2026-12-06",
+      earlyBirdClosesOn: "2026-11-23",
+    },
   },
   {
     id: "jeju-open",
@@ -79,6 +116,11 @@ const FIXTURE_COMPETITIONS: Competition[] = [
     date: "2026-12-19",
     place: "제주",
     divisions: ["gi", "nogi"],
+    registration: {
+      opensOn: "2026-11-01",
+      closesOn: "2026-12-05",
+      earlyBirdClosesOn: "2026-11-20",
+    },
   },
   {
     id: "new-year-open-2027",
@@ -86,6 +128,11 @@ const FIXTURE_COMPETITIONS: Competition[] = [
     date: "2027-01-16",
     place: "서울 마포",
     divisions: ["gi"],
+    registration: {
+      opensOn: "2026-12-01",
+      closesOn: "2027-01-09",
+      earlyBirdClosesOn: "2026-12-15",
+    },
   },
   {
     id: "weeknight-nogi-league",
@@ -93,6 +140,10 @@ const FIXTURE_COMPETITIONS: Competition[] = [
     date: "2026-11-18",
     place: "서울 마포",
     divisions: ["nogi"],
+    registration: {
+      opensOn: "2026-10-25",
+      closesOn: "2026-11-06",
+    },
   },
   {
     // 장소·부문이 아직 안 나온 대회 — 둘째 줄이 빠진 모양을 보이게.
@@ -109,6 +160,11 @@ const FIXTURE_COMPETITIONS: Competition[] = [
     date: "2027-03-14",
     place: "인천",
     divisions: ["gi"],
+    registration: {
+      opensOn: "2027-02-01",
+      closesOn: "2027-03-07",
+      earlyBirdClosesOn: "2027-02-14",
+    },
   },
   {
     id: "winter-kids-cup-2027",
@@ -117,6 +173,10 @@ const FIXTURE_COMPETITIONS: Competition[] = [
     place: "성남",
     divisions: ["gi"],
     audience: "키즈",
+    registration: {
+      opensOn: "2027-01-02",
+      closesOn: "2027-01-10",
+    },
   },
 ];
 
