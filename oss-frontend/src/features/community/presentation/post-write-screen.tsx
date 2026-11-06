@@ -22,6 +22,7 @@ import {
   useNativeLeaveGuard,
 } from "@/shared/lib/native-bridge";
 import { enqueuePendingToast, useToast } from "@/shared/ui";
+import { Chip } from "@/shared/ui/chip";
 import { IconButton } from "@/shared/ui/icon-button";
 import { SURFACE_PRESS } from "@/shared/ui/press-styles";
 import { AppBarShell } from "@/features/community/presentation/app-bar-shell";
@@ -133,11 +134,6 @@ const THUMBNAIL_REMOVE_ICON_SIZE = 16;
 const THUMBNAIL_STATUS_SIZE = 24;
 /** 썸네일 ✕ 배경(image/delete-button-bg). */
 const THUMBNAIL_REMOVE_BG_CLASS = "bg-image-delete-button-bg";
-/** 카테고리 칩 테두리 색(chip/default/border · chip/selected/border). */
-const CHIP_BORDER_DEFAULT_CLASS = "border-chip-default-border";
-const CHIP_BORDER_SELECTED_CLASS = "border-chip-selected-border";
-/** 카테고리 미선택으로 등록이 막혔을 때 칩 테두리(border/error, #303). chip 전용 오류 토큰이 없어 semantic을 쓴다. */
-const CHIP_BORDER_ERROR_CLASS = "border-border-error";
 /** 제목·본문 입력칸 색(textfield_display/filled/text · default/placeholder-text · cursor · counter-text · counter-text-limit). */
 const TEXTFIELD_TEXT_CLASS = "text-textfield-display-filled-text";
 const TEXTFIELD_PLACEHOLDER_CLASS = "placeholder:text-textfield-display-default-placeholder-text";
@@ -899,36 +895,19 @@ export function PostWriteScreen({
         {categories.map((category) => {
           const selected = category.id === categoryId;
           return (
-            <button
+            <Chip
               key={category.id}
-              type="button"
+              selected={selected}
+              // 미선택으로 등록이 막혔으면(#303) 모든 칩 테두리를 오류 색으로 — 고르는 순간 풀린다.
+              invalid={categoryMissing}
               onClick={() => {
                 setCategoryId(category.id);
                 setCategoryMissing(false);
               }}
               aria-pressed={selected}
-              className={cn(
-                "inline-flex h-8 shrink-0 items-center rounded-full border px-3 text-button-s text-tag-chip-default-text transition-colors",
-                selected
-                  ? cn("bg-tag-chip-selected-bg", CHIP_BORDER_SELECTED_CLASS)
-                  : cn(
-                      "bg-tag-chip-default-bg",
-                      // 미선택으로 등록이 막혔으면(#303) 모든 칩 테두리를 오류 색으로 — 고르는 순간 풀린다.
-                      categoryMissing
-                        ? CHIP_BORDER_ERROR_CLASS
-                        : CHIP_BORDER_DEFAULT_CLASS,
-                      // 눌림 면은 비선택 칩에만 — 선택 칩은 제 바탕(chip/selected)을 그대로 지킨다.
-                      "active:bg-surface-container-pressed",
-                    ),
-                // 누르는 동안 96%로 눌렸다가 놓으면 스프링으로 돌아온다(PRESS_BOUNCE와 같은 값).
-                // transition 속성 하나에 색·크기를 함께 적는다 — 따로 걸면 transition-property가 서로 덮어쓴다.
-                "motion-safe:[transition:scale_500ms_var(--ease-spring-wobbly),background-color_120ms_ease-out,border-color_120ms_ease-out]",
-                "motion-safe:active:[transition:scale_100ms_ease-out,background-color_120ms_ease-out,border-color_120ms_ease-out]",
-                "motion-safe:active:scale-96",
-              )}
             >
               {category.name}
-            </button>
+            </Chip>
           );
         })}
       </div>
