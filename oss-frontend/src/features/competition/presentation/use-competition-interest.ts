@@ -2,10 +2,16 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 
-import { useIsSignedIn } from "@/features/auth/presentation/auth-provider";
+import {
+  useAuth,
+  useIsSignedIn,
+} from "@/features/auth/presentation/auth-provider";
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
 import { setCompetitionInterestAction } from "@/features/competition/presentation/actions/set-competition-interest-action";
-import { notifyCompetitionInterestFirstAdded } from "@/shared/lib/native-bridge";
+import {
+  isNativeBridgeAvailable,
+  notifyCompetitionInterestFirstAdded,
+} from "@/shared/lib/native-bridge";
 import { useToast } from "@/shared/ui";
 
 /** 이 기기에서 관심 등록을 한 번이라도 했는지 — 첫 등록 안내·알림 권한 신호를 한 번만 내려고 둔다. */
@@ -42,8 +48,21 @@ export function useCompetitionInterest({
   const [overrides, setOverrides] = useState<Record<string, Override>>({});
   const pending = useRef(new Set<string>());
   const signedIn = useIsSignedIn();
+  const { promptLogin } = useAuth();
   const { guard } = useLoginGuard();
   const toast = useToast();
+
+  // 서버 값이 새로 오거나(로그인 뒤 다시 그림) 로그인 상태가 바뀌면 이 화면에서 덮어 쓴 값을 비운다 —
+  // 새 서버 값이 이미 그 결과를 담고 있고, 로그아웃·다른 계정이면 이전 사람의 관심이 남으면 안 된다.
+  const [seen, setSeen] = useState({ interestedIds, interestCounts, signedIn });
+  if (
+    seen.interestedIds !== interestedIds ||
+    seen.interestCounts !== interestCounts ||
+    seen.signedIn !== signedIn
+  ) {
+    setSeen({ interestedIds, interestCounts, signedIn });
+    setOverrides({});
+  }
 
   const serverInterested = useMemo(
     () => new Set(signedIn ? interestedIds : []),
@@ -85,12 +104,20 @@ export function useCompetitionInterest({
 
       try {
         const result = await setCompetitionInterestAction(id, next);
+        if (!result.ok && result.reason === "unauthenticated") {
+          // 화면은 로그인으로 알았는데 서버 세션이 끝났다 — 다시 눌러도 안 되니 로그인부터 안내한다.
+          setOverrides((current) => ({ ...current, [id]: before }));
+          promptLogin({ reason: "대회 관심 등록" });
+          return;
+        }
         if (!result.ok) throw new Error(result.reason);
         setOverrides((current) => ({
           ...current,
           [id]: { interested: next, count: result.count },
         }));
-        if (next && markFirstInterest()) {
+        // 마감 알림은 앱만 보낸다 — 앱 밖 브라우저에서는 안내도, 첫 등록 표시도 남기지 않는다.
+        // 표시를 남기면 나중에 앱에서 처음 등록해도 알림 권한 신호가 안 나간다.
+        if (next && isNativeBridgeAvailable() && markFirstInterest()) {
           toast.show("관심 대회로 등록했어요. 마감 전에 알려 드려요", {
             tone: "success",
           });
@@ -106,7 +133,7 @@ export function useCompetitionInterest({
         pending.current.delete(id);
       }
     },
-    [countOf, isInterested, toast],
+    [countOf, isInterested, promptLogin, toast],
   );
 
   const toggle = useCallback(

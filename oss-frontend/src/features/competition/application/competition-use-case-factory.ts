@@ -29,6 +29,7 @@ export function createGetCompetitionInterestCountsUseCase(): GetCompetitionInter
 
 export function createSetCompetitionInterestUseCase(): SetCompetitionInterestUseCase {
   return new SetCompetitionInterestUseCase(
+    new FixtureCompetitionRepository(),
     new FixtureCompetitionInterestRepository(),
   );
 }

@@ -17,7 +17,13 @@ export async function setCompetitionInterestAction(
   competitionId: string,
   interested: boolean,
 ): Promise<SetCompetitionInterestResult> {
-  if (typeof competitionId !== "string" || competitionId.length === 0) {
+  // 화면 밖에서도 부를 수 있는 입구라 타입부터 다시 본다. id 길이는 실제 대회 id보다 넉넉한 상한.
+  if (
+    typeof competitionId !== "string" ||
+    competitionId.length === 0 ||
+    competitionId.length > 100 ||
+    typeof interested !== "boolean"
+  ) {
     return { ok: false, reason: "failed" };
   }
   if ((await readSessionToken()) === null) {
@@ -27,7 +33,7 @@ export async function setCompetitionInterestAction(
   try {
     const count = await createSetCompetitionInterestUseCase().execute(
       competitionId,
-      interested === true,
+      interested,
     );
     return { ok: true, count };
   } catch {

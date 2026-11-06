@@ -140,9 +140,10 @@ function InterestButton({
       type="button"
       onClick={onToggle}
       aria-pressed={interested}
-      aria-label={`${competitionName} 관심 등록${count > 0 ? `, 관심 ${count}` : ""}`}
+      aria-label={`${competitionName} 관심 등록${count > 0 ? `, 관심 ${count}명` : ""}`}
       className={cn(
-        "-my-1 -mr-1 flex w-11 flex-none flex-col items-center gap-0.5 self-start rounded-10 py-1.5",
+        // 관심 수가 없어도 누를 자리는 44×44를 지킨다.
+        "-my-1 -mr-1 flex min-h-11 w-11 flex-none flex-col items-center gap-0.5 self-start rounded-10 py-1.5",
         SURFACE_PRESS,
       )}
     >
