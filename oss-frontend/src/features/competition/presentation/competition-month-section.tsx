@@ -52,6 +52,19 @@ export function MonthSection({
     />
   ));
 
+  if (look === "d" || look === "e") {
+    return (
+      <TimelineMonth
+        headingId={headingId}
+        label={label}
+        month={month}
+        currentYear={currentYear}
+        interest={interest}
+        look={look}
+      />
+    );
+  }
+
   if (look === "c") {
     return (
       <section aria-labelledby={headingId} className="px-3 pb-2">
@@ -251,6 +264,237 @@ function CompetitionTicket({
   );
 }
 
+/**
+ * d·e안 — 세로 타임라인 (#348).
+ *
+ * d(캐롯 주행 기록 참고): 줄 왼쪽에 날짜 타일, 달이 바뀌는 자리에 점 + "12월". 카드 오른쪽에 가장 급한 숫자(남은 날)를 크게.
+ * e(일정 앱 참고): 줄 위 동그라미 안에 날짜, 옆 연한 회색 박스. 박스 첫 줄 오른쪽에 남은 날(시각 자리).
+ * 줄은 날짜 칸 가운데(44 칸의 22)를 지난다. 날짜 칸이 불투명이라 줄이 칸 뒤로 숨는다.
+ */
+function TimelineMonth({
+  headingId,
+  label,
+  month,
+  currentYear,
+  interest,
+  look,
+}: {
+  headingId: string;
+  label: string;
+  month: CompetitionListMonth;
+  currentYear: number;
+  interest?: CompetitionInterest;
+  look: "d" | "e";
+}) {
+  return (
+    <section aria-labelledby={headingId} className="relative px-4">
+      {/* 세로 줄 — 섹션 위아래 끝까지 이어 달이 바뀌어도 끊기지 않는다. */}
+      <span
+        aria-hidden
+        className={cn(
+          "absolute top-0 bottom-0 left-[37px] bg-border-disabled",
+          look === "e" ? "w-0.5 -translate-x-1/2" : "w-px",
+        )}
+      />
+      <h2 id={headingId} className="relative flex items-center gap-3 pt-4 pb-3">
+        <span aria-hidden className="flex w-11 flex-none justify-center">
+          <span
+            className={cn(
+              "rounded-full bg-icon-disabled ring-4 ring-surface-container",
+              look === "e" ? "size-2" : "size-1.5",
+            )}
+          />
+        </span>
+        <span
+          className={cn(
+            look === "e"
+              ? "text-[17px] leading-[24px] font-bold text-text-primary"
+              : "text-[13px] leading-[18px] font-semibold text-text-secondary",
+          )}
+        >
+          {label}
+        </span>
+      </h2>
+      <ul className="relative flex flex-col gap-3 pb-3">
+        {month.items.map((item) => (
+          <TimelineItem
+            key={item.competition.id}
+            item={item}
+            currentYear={currentYear}
+            interest={interest}
+            look={look}
+          />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function TimelineItem({
+  item: { competition, registration },
+  currentYear,
+  interest,
+  look,
+}: {
+  item: CompetitionListItem;
+  currentYear: number;
+  interest?: CompetitionInterest;
+  look: "d" | "e";
+}) {
+  const meta = metaLine(competition);
+  const popular = isPopular(competition, interest);
+  const weekday = weekdayOf(competition.date);
+  const day = Number(competition.date.slice(8, 10));
+
+  const chips =
+    registration || popular || interest ? (
+      <div className="mt-2.5 flex items-center gap-1.5">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+          {registration ? <RegistrationChip status={registration} /> : null}
+          {popular ? (
+            <StatusChip tone="neutral">관심 많은 대회</StatusChip>
+          ) : null}
+        </div>
+        {interest ? (
+          <InterestButton
+            inline
+            competitionName={competition.name}
+            interested={interest.isInterested(competition.id)}
+            count={interest.countOf(competition.id)}
+            onToggle={() => interest.toggle(competition.id)}
+          />
+        ) : null}
+      </div>
+    ) : null;
+
+  return (
+    <li
+      id={competitionRowId(competition.id)}
+      tabIndex={-1}
+      className="flex scroll-mt-20 items-start gap-3 outline-none"
+    >
+      <time
+        dateTime={competition.date}
+        className={cn(
+          "relative flex flex-none flex-col items-center justify-center",
+          look === "e"
+            ? "mt-2 size-11 rounded-full border-2 border-border-default bg-surface-container"
+            : "h-14 w-11 rounded-15 bg-surface-field-subtle",
+        )}
+      >
+        <span
+          className={cn(
+            "font-bold text-text-primary tabular-nums",
+            look === "e"
+              ? "text-[15px] leading-[16px]"
+              : "text-[18px] leading-[22px]",
+          )}
+        >
+          {day}
+        </span>
+        <span
+          className={cn(
+            "font-medium",
+            look === "e"
+              ? "text-[10px] leading-[12px]"
+              : "text-[12px] leading-[16px]",
+            weekdayTone(weekday.index),
+          )}
+        >
+          {weekday.label}
+        </span>
+      </time>
+      <div className="min-w-0 flex-1 rounded-20 bg-surface-field-subtle px-4 pt-3.5 pb-3">
+        {look === "d" ? (
+          <div className="flex items-start gap-3">
+            <div className="min-w-0 flex-1">
+              <h3 className="text-[16px] leading-[22px] font-bold break-keep text-text-primary [overflow-wrap:anywhere]">
+                {competition.name}
+              </h3>
+              {meta ? (
+                <p className="mt-0.5 text-[14px] leading-[20px] text-text-secondary">
+                  {meta}
+                </p>
+              ) : null}
+            </div>
+            {/* 마감 대회는 칩이 이미 "접수 마감"이라 큰 숫자를 두지 않는다 — 같은 말을 두 번 하지 않게. */}
+            {registration && registration.kind !== "closed" ? (
+              <DeadlineMetric status={registration} />
+            ) : null}
+          </div>
+        ) : (
+          <>
+            <div className="flex items-start justify-between gap-3">
+              <h3 className="min-w-0 text-[16px] leading-[22px] font-bold break-keep text-text-primary [overflow-wrap:anywhere]">
+                {competition.name}
+              </h3>
+              {registration ? (
+                <span className="flex-none">
+                  <RegistrationNote
+                    status={registration}
+                    currentYear={currentYear}
+                  />
+                </span>
+              ) : null}
+            </div>
+            {meta ? (
+              <p className="mt-0.5 text-[14px] leading-[20px] text-text-secondary">
+                {meta}
+              </p>
+            ) : null}
+          </>
+        )}
+        {chips}
+      </div>
+    </li>
+  );
+}
+
+/**
+ * d안 카드 오른쪽 큰 숫자 — 캐롯의 점수 자리. 대회 카드에서 가장 급한 숫자인 남은 날을 크게 둔다.
+ * 접수 중: "D-2"(얼리버드면 빨강) · 접수 예정: "11.10 오픈". 마감 대회는 그리지 않는다.
+ */
+function DeadlineMetric({
+  status,
+}: {
+  status: Exclude<RegistrationStatus, { kind: "closed" }>;
+}) {
+  let value: string;
+  let caption: string;
+  let tone: string;
+  switch (status.kind) {
+    case "open":
+      value = status.daysLeft === 0 ? "오늘" : `D-${status.daysLeft}`;
+      caption =
+        status.deadline === "early-bird" ? "얼리버드 마감" : "접수 마감";
+      tone =
+        status.deadline === "early-bird" ? "text-text-error" : "text-primary";
+      break;
+    case "upcoming": {
+      const [, month, day] = status.opensOn.split("-").map(Number);
+      value = `${month}.${day}`;
+      caption = "접수 오픈";
+      tone = "text-text-secondary-strong";
+      break;
+    }
+  }
+  return (
+    <div className="flex flex-none flex-col items-end pt-0.5">
+      <span
+        className={cn(
+          "text-[22px] leading-[26px] font-bold tabular-nums",
+          tone,
+        )}
+      >
+        {value}
+      </span>
+      <span className="text-[12px] leading-[16px] text-text-tertiary">
+        {caption}
+      </span>
+    </div>
+  );
+}
+
 function isPopular(competition: Competition, interest?: CompetitionInterest) {
   return (
     interest !== undefined &&
@@ -357,12 +601,15 @@ function InterestButton({
   count,
   onToggle,
   className,
+  inline = false,
 }: {
   competitionName: string;
   interested: boolean;
   count: number;
   onToggle: () => void;
   className?: string;
+  /** d·e안 — 칩 줄 끝에 하트와 수를 가로로 놓는다. 누를 자리 높이는 44를 지킨다. */
+  inline?: boolean;
 }) {
   return (
     <button
@@ -372,13 +619,15 @@ function InterestButton({
       aria-label={`${competitionName} 관심 등록${count > 0 ? `, 관심 ${count}명` : ""}`}
       className={cn(
         // 관심 수가 없어도 누를 자리는 44×44를 지킨다.
-        "-mr-1.5 flex min-h-11 w-11 flex-none flex-col items-center justify-center gap-0.5 rounded-10 py-1",
+        inline
+          ? "-my-2.5 -mr-2 flex min-h-11 min-w-11 flex-none items-center justify-center gap-1 rounded-10 px-2"
+          : "-mr-1.5 flex min-h-11 w-11 flex-none flex-col items-center justify-center gap-0.5 rounded-10 py-1",
         SURFACE_PRESS,
         className,
       )}
     >
       <HeartIcon
-        size={22}
+        size={inline ? 18 : 22}
         filled={interested}
         className={
           interested
