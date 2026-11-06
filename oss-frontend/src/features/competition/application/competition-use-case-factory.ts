@@ -1,5 +1,7 @@
+import { GetCompetitionInterestCountsUseCase } from "@/features/competition/application/get-competition-interest-counts";
 import { GetCompetitionListUseCase } from "@/features/competition/application/get-competition-list";
 import { GetInterestedCompetitionIdsUseCase } from "@/features/competition/application/get-interested-competition-ids";
+import { SetCompetitionInterestUseCase } from "@/features/competition/application/set-competition-interest";
 import { FixtureCompetitionInterestRepository } from "@/features/competition/infrastructure/fixture-competition-interest-repository";
 import { FixtureCompetitionRepository } from "@/features/competition/infrastructure/fixture-competition-repository";
 
@@ -15,6 +17,18 @@ export function createGetCompetitionListUseCase(): GetCompetitionListUseCase {
 
 export function createGetInterestedCompetitionIdsUseCase(): GetInterestedCompetitionIdsUseCase {
   return new GetInterestedCompetitionIdsUseCase(
+    new FixtureCompetitionInterestRepository(),
+  );
+}
+
+export function createGetCompetitionInterestCountsUseCase(): GetCompetitionInterestCountsUseCase {
+  return new GetCompetitionInterestCountsUseCase(
+    new FixtureCompetitionInterestRepository(),
+  );
+}
+
+export function createSetCompetitionInterestUseCase(): SetCompetitionInterestUseCase {
+  return new SetCompetitionInterestUseCase(
     new FixtureCompetitionInterestRepository(),
   );
 }
