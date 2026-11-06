@@ -12,12 +12,14 @@ import {
   type CompetitionFilter,
 } from "@/features/competition/domain/competition-filter";
 import type { CompetitionRegion } from "@/features/competition/domain/competition-region";
+import { CompetitionCalendar } from "@/features/competition/presentation/competition-calendar";
 import { MonthSection } from "@/features/competition/presentation/competition-month-section";
 import { CompetitionRegionSheet } from "@/features/competition/presentation/competition-region-sheet";
 import { useCompetitionInterest } from "@/features/competition/presentation/use-competition-interest";
-import { ChevronDownIcon } from "@/shared/ui";
+import { CalendarIcon, ChevronDownIcon, ListIcon } from "@/shared/ui";
 import { Chip } from "@/shared/ui/chip";
 import { EmptyState } from "@/shared/ui/empty-state";
+import { IconButton } from "@/shared/ui/icon-button";
 
 /**
  * 대회 목록 + 위 필터 줄 (#334) — 관심 · 지역 · 접수 중 · 노기.
@@ -32,12 +34,15 @@ import { EmptyState } from "@/shared/ui/empty-state";
 export function CompetitionListView({
   months,
   currentYear,
+  today,
   interestedIds,
   interestCounts,
   regionsWithCompetitions,
 }: {
   months: CompetitionListMonth[];
   currentYear: number;
+  /** 한국 날짜 "YYYY-MM-DD" — 달력 보기용. */
+  today: string;
   interestedIds: string[];
   interestCounts: Record<string, number>;
   regionsWithCompetitions: CompetitionRegion[];
@@ -48,6 +53,8 @@ export function CompetitionListView({
   const [regionSheetOpen, setRegionSheetOpen] = useState(false);
   // 시트를 열 때마다 key를 바꿔 고르던 값을 지금 필터로 다시 시작한다.
   const [regionSheetKey, setRegionSheetKey] = useState(0);
+  // 기본은 목록이다 — 대회가 거의 토·일에 몰려 달력을 먼저 펼치면 빈 칸이 대부분이다(#339).
+  const [mode, setMode] = useState<"list" | "calendar">("list");
 
   const signedIn = useIsSignedIn();
   const { guard } = useLoginGuard();
@@ -81,57 +88,81 @@ export function CompetitionListView({
   return (
     <>
       {/* 필터 줄: 좌우 16 · 칩 간격 8, 넘치면 가로 스크롤(스크롤바 숨김) — 글쓰기 카테고리 칩 줄과 같은 규격.
-          목록 바탕과 같은 면이라 붙어 있어도 선이 따로 필요 없다. */}
-      <div className="sticky top-0 z-10 flex gap-2 overflow-x-auto bg-surface-container px-4 py-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <Chip
-          selected={activeFilter.interestedOnly}
-          aria-pressed={activeFilter.interestedOnly}
-          onClick={
-            signedIn
-              ? toggleInterested
-              : guard(
-                  toggleInterested,
-                  "관심 대회는 OSS 앱에서 로그인 후 볼 수 있어요.",
-                )
-          }
+          목록 바탕과 같은 면이라 붙어 있어도 선이 따로 필요 없다.
+          오른쪽 끝에 목록 ↔ 달력 전환(#339)을 고정해 둔다 — 칩이 늘어 가로로 밀어도 늘 같은 자리에 있게. */}
+      <div className="sticky top-0 z-10 flex items-center bg-surface-container">
+        <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto py-3 pr-2 pl-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <Chip
+            selected={activeFilter.interestedOnly}
+            aria-pressed={activeFilter.interestedOnly}
+            onClick={
+              signedIn
+                ? toggleInterested
+                : guard(
+                    toggleInterested,
+                    "관심 대회는 OSS 앱에서 로그인 후 볼 수 있어요.",
+                  )
+            }
+          >
+            관심
+          </Chip>
+          <Chip
+            selected={filter.regions.length > 0}
+            aria-haspopup="dialog"
+            // 시트를 여는 칩이라 aria-pressed 대신 이름에 고른 지역을 담는다.
+            aria-label={
+              filter.regions.length > 0
+                ? `지역: ${filter.regions.join(", ")}`
+                : "지역: 전체"
+            }
+            onClick={() => {
+              setRegionSheetKey((key) => key + 1);
+              setRegionSheetOpen(true);
+            }}
+            className="gap-0.5 pr-2"
+          >
+            {regionLabel(filter.regions)}
+            <ChevronDownIcon size={16} />
+          </Chip>
+          <Chip
+            selected={filter.openOnly}
+            aria-pressed={filter.openOnly}
+            onClick={() => toggle("openOnly")}
+          >
+            접수 중
+          </Chip>
+          <Chip
+            selected={filter.nogiOnly}
+            aria-pressed={filter.nogiOnly}
+            onClick={() => toggle("nogiOnly")}
+          >
+            노기
+          </Chip>
+        </div>
+        <IconButton
+          aria-label={mode === "list" ? "달력으로 보기" : "목록으로 보기"}
+          onClick={() => setMode(mode === "list" ? "calendar" : "list")}
+          className="mr-2"
         >
-          관심
-        </Chip>
-        <Chip
-          selected={filter.regions.length > 0}
-          aria-haspopup="dialog"
-          // 시트를 여는 칩이라 aria-pressed 대신 이름에 고른 지역을 담는다.
-          aria-label={
-            filter.regions.length > 0
-              ? `지역: ${filter.regions.join(", ")}`
-              : "지역: 전체"
-          }
-          onClick={() => {
-            setRegionSheetKey((key) => key + 1);
-            setRegionSheetOpen(true);
-          }}
-          className="gap-0.5 pr-2"
-        >
-          {regionLabel(filter.regions)}
-          <ChevronDownIcon size={16} />
-        </Chip>
-        <Chip
-          selected={filter.openOnly}
-          aria-pressed={filter.openOnly}
-          onClick={() => toggle("openOnly")}
-        >
-          접수 중
-        </Chip>
-        <Chip
-          selected={filter.nogiOnly}
-          aria-pressed={filter.nogiOnly}
-          onClick={() => toggle("nogiOnly")}
-        >
-          노기
-        </Chip>
+          {mode === "list" ? (
+            <CalendarIcon size={22} />
+          ) : (
+            <ListIcon size={22} />
+          )}
+        </IconButton>
       </div>
 
-      {visibleMonths.length === 0 ? (
+      {mode === "calendar" ? (
+        // 달력은 걸러서 비어도 그대로 둔다 — 달을 넘기며 다른 날을 볼 수 있어야 한다.
+        <CompetitionCalendar
+          months={visibleMonths}
+          lastMonth={months.at(-1) ?? { year: currentYear, month: 12 }}
+          today={today}
+          currentYear={currentYear}
+          interest={interest}
+          filtered={!isCompetitionFilterEmpty(activeFilter)}
+        />
+      ) : visibleMonths.length === 0 ? (
         <EmptyState
           title="조건에 맞는 대회가 없어요"
           action={{

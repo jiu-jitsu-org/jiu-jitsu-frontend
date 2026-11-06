@@ -38,6 +38,7 @@ function renderBody(data: CompetitionListPageData) {
     <CompetitionListView
       months={data.months}
       currentYear={data.currentYear}
+      today={data.today}
       interestedIds={data.interestedIds}
       interestCounts={data.interestCounts}
       regionsWithCompetitions={data.regionsWithCompetitions}

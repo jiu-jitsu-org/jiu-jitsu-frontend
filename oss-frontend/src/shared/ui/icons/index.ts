@@ -13,6 +13,8 @@ export { BellOffIcon } from "./bell-off-icon";
 export { MoreVerticalIcon } from "./more-vertical-icon";
 export { ShareIcon } from "./share-icon";
 export { ChevronDownIcon } from "./chevron-down-icon";
+export { CalendarIcon } from "./calendar-icon";
+export { ListIcon } from "./list-icon";
 export { ChevronLeftIcon } from "./chevron-left-icon";
 export { EditIcon } from "./edit-icon";
 export { ImageIcon } from "./image-icon";
