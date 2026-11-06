@@ -31,6 +31,7 @@ export function CompetitionCalendar({
   currentYear,
   interest,
   filtered,
+  focusDate,
 }: {
   /** 필터로 거른 뒤의 월별 대회. */
   months: CompetitionListMonth[];
@@ -42,6 +43,8 @@ export function CompetitionCalendar({
   interest: CompetitionInterest;
   /** 필터가 켜져 있는지 — 빈 날 문구를 "조건에 맞는 대회가 없어요"로 바꾼다. */
   filtered: boolean;
+  /** 처음 골라 둘 날짜 — 마감 배너(#344)에서 누른 대회 날. 바꾸려면 key도 바꿔 다시 그린다. */
+  focusDate?: string;
 }) {
   const firstMonth = useMemo(() => yearMonthOf(today), [today]);
 
@@ -58,7 +61,7 @@ export function CompetitionCalendar({
   }, [months]);
 
   const [initialDate] = useState(
-    () => months[0]?.items[0]?.competition.date ?? today,
+    () => focusDate ?? months[0]?.items[0]?.competition.date ?? today,
   );
   const [view, setView] = useState<YearMonth>(() => yearMonthOf(initialDate));
   const [selected, setSelected] = useState<string>(initialDate);

@@ -58,6 +58,10 @@ export function MonthSection({
   );
 }
 
+export function competitionRowId(competitionId: string) {
+  return `competition-${competitionId}`;
+}
+
 /** 대회 한 줄. 달력 보기의 그날 대회 목록도 같은 줄을 쓴다. */
 export function CompetitionRow({
   item: { competition, registration },
@@ -77,7 +81,11 @@ export function CompetitionRow({
     isPopularCompetition(interest.countOf(competition.id));
 
   return (
-    <li className="flex gap-2.5 py-3">
+    // id는 마감 배너(#344)에서 누르면 이 줄로 내려오는 데 쓴다. 위에 붙은 필터 줄에 가리지 않게 여백을 둔다.
+    <li
+      id={competitionRowId(competition.id)}
+      className="flex scroll-mt-20 gap-2.5 py-3"
+    >
       <time
         dateTime={competition.date}
         className="flex w-[30px] flex-none flex-col items-center"
@@ -224,10 +232,7 @@ function registrationParts(status: RegistrationStatus, currentYear: number) {
     case "closed":
       return <b className="font-semibold text-text-disabled">접수 마감</b>;
     case "open": {
-      const label =
-        status.deadline === "early-bird"
-          ? `얼리버드 ${dDayLabel(status.daysLeft)}`
-          : dDayLabel(status.daysLeft);
+      const label = deadlineLabel(status);
       return (
         <>
           <b className="font-semibold text-primary">접수 중</b>
@@ -241,6 +246,15 @@ function registrationParts(status: RegistrationStatus, currentYear: number) {
       );
     }
   }
+}
+
+/** 접수 중 대회의 남은 날 — "얼리버드 마감 D-3" · "마감 D-12". 마감 배너(#344)도 같은 문구를 쓴다. */
+export function deadlineLabel(
+  status: Extract<RegistrationStatus, { kind: "open" }>,
+) {
+  return status.deadline === "early-bird"
+    ? `얼리버드 ${dDayLabel(status.daysLeft)}`
+    : dDayLabel(status.daysLeft);
 }
 
 /** 남은 날 → "마감 D-3", 당일은 "오늘 마감". */
