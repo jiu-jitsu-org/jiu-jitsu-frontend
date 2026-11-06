@@ -179,6 +179,7 @@ export function CompetitionListView({
         <div className="flex items-center">
           <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto py-3 pr-2 pl-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <Chip
+              tone="primary"
               selected={activeFilter.interestedOnly}
               aria-pressed={activeFilter.interestedOnly}
               onClick={
@@ -193,6 +194,7 @@ export function CompetitionListView({
               관심
             </Chip>
             <Chip
+              tone="primary"
               selected={filter.regions.length > 0}
               aria-haspopup="dialog"
               // 시트를 여는 칩이라 aria-pressed 대신 이름에 고른 지역을 담는다.
@@ -211,6 +213,7 @@ export function CompetitionListView({
               <ChevronDownIcon size={16} />
             </Chip>
             <Chip
+              tone="primary"
               selected={filter.openOnly}
               aria-pressed={filter.openOnly}
               onClick={() => toggle("openOnly")}
@@ -218,6 +221,7 @@ export function CompetitionListView({
               접수 중
             </Chip>
             <Chip
+              tone="primary"
               selected={filter.nogiOnly}
               aria-pressed={filter.nogiOnly}
               onClick={() => toggle("nogiOnly")}

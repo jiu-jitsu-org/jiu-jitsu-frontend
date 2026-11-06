@@ -9,17 +9,22 @@ import { cn } from "@/shared/lib/cn";
  * 선택 = chip/selected/bg + 1px chip/selected/border. 글자는 둘 다 chip/default/text.
  * 누르는 동안 96%로 눌렸다가 놓으면 스프링으로 돌아온다(PRESS_BOUNCE와 같은 값).
  *
+ * `tone="primary"`는 켜짐을 파랑(옅은 파랑 면 + 파랑 테두리·글자)으로 세게 보여 준다. 대회 필터처럼 여러 개를
+ * 겹쳐 켜고 한눈에 무엇이 켜졌는지 봐야 하는 곳에 쓴다 — 기본(검정 테두리 + 옅은 회색)은 켜짐이 약하게 읽힌다.
+ *
  * `invalid`는 필수 선택을 비워 둔 채 제출했을 때 비선택 칩 테두리를 오류 색으로 바꾼다.
  * 켜짐 상태를 화면 읽기 도구에 알리는 aria-pressed는 호출부가 붙인다 — 시트를 여는 칩은 토글이 아니다.
  */
 export function Chip({
   selected,
+  tone = "neutral",
   invalid = false,
   className,
   type = "button",
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
   selected: boolean;
+  tone?: "neutral" | "primary";
   invalid?: boolean;
 }) {
   return (
@@ -28,7 +33,10 @@ export function Chip({
       className={cn(
         "inline-flex h-8 shrink-0 items-center rounded-full border px-3 text-button-s text-tag-chip-default-text transition-colors",
         selected
-          ? "border-chip-selected-border bg-tag-chip-selected-bg"
+          ? tone === "primary"
+            ? // chip 토큰에 파랑 켜짐이 없어 semantic(primary)을 쓴다 — 접수 중 상태 칩과 같은 파랑.
+              "border-primary bg-surface-primary-subtle text-primary not-disabled:active:bg-surface-primary-subtle-pressed"
+            : "border-chip-selected-border bg-tag-chip-selected-bg"
           : cn(
               "bg-tag-chip-default-bg",
               // chip 전용 오류 토큰이 없어 semantic(border/error)을 쓴다.
