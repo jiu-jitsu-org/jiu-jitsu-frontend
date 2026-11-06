@@ -389,6 +389,7 @@ Server Action은 UI 이벤트 adapter에 가깝다.
 - `shared/lib/http` 기반 공통 서버 HTTP 계층
 - `shared/lib/time` + `shared/ui/server-clock` 기반 공통 시간 표기 (서버 날짜는 타임존 없는 KST → infrastructure에서 `toKstIso`로 정규화, 시간을 그리는 페이지는 `ServerClockProvider`로 감싼다)
 - `bootstrap` feature 기반 Server Component 초기 조회 예시
+- `competition` feature — 대회 탭 목록(`/competition`). 대회 API 전이라 infrastructure의 고정 데이터 저장소로 그리고, 가짜 데이터가 운영에 보이지 않게 로컬·개발 서버에서만 연다(`is-competition-page-enabled.ts`)
 - `VersionInfoPage` Client Component와 `useActionState` 기반 Server Action 갱신 예시
 - 개발/운영 `.env` 분리
 - `design-tokens/` 기반 컬러 디자인 토큰 파이프라인 (`npm run tokens`)
