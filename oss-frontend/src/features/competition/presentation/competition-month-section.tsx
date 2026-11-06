@@ -337,20 +337,6 @@ function InterestButton({
   );
 }
 
-/** 접수 중 대회의 남은 날 — "얼리버드 마감 D-3" · "마감 D-12". 마감 배너(#344)가 쓴다. */
-export function deadlineLabel(
-  status: Extract<RegistrationStatus, { kind: "open" }>,
-) {
-  return status.deadline === "early-bird"
-    ? `얼리버드 ${dDayLabel(status.daysLeft)}`
-    : dDayLabel(status.daysLeft);
-}
-
-/** 남은 날 → "마감 D-3", 당일은 "오늘 마감". */
-function dDayLabel(daysLeft: number) {
-  return daysLeft === 0 ? "오늘 마감" : `마감 D-${daysLeft}`;
-}
-
 const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"] as const;
 
 /** "YYYY-MM-DD" → 요일. 날짜만 있는 값이라 UTC로 계산해 실행 환경 타임존과 무관하게 같다. */
