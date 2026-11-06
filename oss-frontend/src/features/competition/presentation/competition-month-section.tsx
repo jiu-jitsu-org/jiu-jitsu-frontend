@@ -145,7 +145,7 @@ export function CompetitionRow({
             <StatusChip tone="neutral">관심 많은 대회</StatusChip>
           </span>
         ) : null}
-        <h3 className="text-[16px] leading-[24px] font-bold break-keep text-text-primary">
+        <h3 className="text-[16px] leading-[24px] font-bold break-keep text-text-primary [overflow-wrap:anywhere]">
           {competition.name}
         </h3>
         {meta ? (
@@ -215,7 +215,7 @@ function CompetitionTicket({
           </span>
         </time>
         <div className="flex min-w-0 flex-1 flex-col pt-0.5">
-          <h3 className="text-[16px] leading-[22px] font-bold break-keep text-text-primary">
+          <h3 className="text-[16px] leading-[22px] font-bold break-keep text-text-primary [overflow-wrap:anywhere]">
             {competition.name}
           </h3>
           {meta ? (
@@ -310,7 +310,7 @@ function PosterThumb({ competition }: { competition: Competition }) {
         tone,
       )}
     >
-      <span className="line-clamp-3 text-[10px] leading-[12px] font-bold break-keep text-text-primary">
+      <span className="line-clamp-3 text-[10px] leading-[12px] font-bold break-keep text-text-primary [overflow-wrap:anywhere]">
         {competition.name}
       </span>
     </div>
