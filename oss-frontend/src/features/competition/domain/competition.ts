@@ -1,3 +1,4 @@
+import type { CompetitionRegion } from "@/features/competition/domain/competition-region";
 import type { CompetitionRegistration } from "@/features/competition/domain/competition-registration";
 
 /** 대회 부문 — 도복(gi) · 노기(nogi). 한 대회가 둘 다 열 수 있다. */
@@ -10,6 +11,8 @@ export type Competition = {
   date: string;
   /** 목록에 그대로 보이는 짧은 장소 표기. 예: "서울 송파" */
   place: string;
+  /** 시·도 — 지역 필터용. 장소가 아직 안 정해진 대회는 없다. */
+  region?: CompetitionRegion;
   divisions: CompetitionDivision[];
   /** 참가 대상이 제한된 대회만 갖는다. 예: "키즈" */
   audience?: string;

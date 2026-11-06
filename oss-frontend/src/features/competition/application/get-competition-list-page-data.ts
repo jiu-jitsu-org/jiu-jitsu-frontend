@@ -1,8 +1,15 @@
-import { createGetCompetitionListUseCase } from "@/features/competition/application/competition-use-case-factory";
+import {
+  createGetCompetitionListUseCase,
+  createGetInterestedCompetitionIdsUseCase,
+} from "@/features/competition/application/competition-use-case-factory";
 import {
   groupUpcomingByMonth,
   type Competition,
 } from "@/features/competition/domain/competition";
+import {
+  COMPETITION_REGIONS,
+  type CompetitionRegion,
+} from "@/features/competition/domain/competition-region";
 import {
   registrationStatusOn,
   type RegistrationStatus,
@@ -22,25 +29,50 @@ export type CompetitionListMonth = {
 };
 
 export type CompetitionListPageData =
-  | { ok: true; months: CompetitionListMonth[]; currentYear: number }
+  | {
+      ok: true;
+      months: CompetitionListMonth[];
+      currentYear: number;
+      /** 내가 관심 등록한 대회 id. 비로그인이면 빈 배열. */
+      interestedIds: string[];
+      /** 예정 대회가 하나라도 있는 시·도 — 지역 시트에서 나머지는 고를 수 없게 둔다. 표준 순서. */
+      regionsWithCompetitions: CompetitionRegion[];
+    }
   | { ok: false };
 
 /**
  * 대회 탭 목록 화면 데이터 — 오늘(한국 날짜) 이후 대회를 월별로 묶어 가까운 날짜부터,
- * 대회마다 오늘 기준 접수 상태를 붙여서.
+ * 대회마다 오늘 기준 접수 상태를 붙여서. 필터(#334)에 쓸 관심 목록·시·도도 함께 싣는다.
  *
  * now는 요청 시각(readServerNow). "오늘"과 "올해"를 서버 시각 하나로 정해 기기 시계와 어긋나지 않게 한다.
+ * signedIn은 요청 쿠키로 본 로그인 여부 — 비로그인이면 관심 목록을 부르지 않는다.
  */
-export async function getCompetitionListPageData(
-  now: number,
-): Promise<CompetitionListPageData> {
+export async function getCompetitionListPageData({
+  now,
+  signedIn,
+}: {
+  now: number;
+  signedIn: boolean;
+}): Promise<CompetitionListPageData> {
   try {
-    const competitions = await createGetCompetitionListUseCase().execute();
+    const [competitions, interestedIds] = await Promise.all([
+      createGetCompetitionListUseCase().execute(),
+      signedIn ? loadInterestedIds() : Promise.resolve([]),
+    ]);
     const today = toKstDateKey(now);
+    const months = groupUpcomingByMonth(competitions, today);
+
+    const regions = new Set(
+      months.flatMap((month) =>
+        month.competitions.flatMap((competition) =>
+          competition.region ? [competition.region] : [],
+        ),
+      ),
+    );
 
     return {
       ok: true,
-      months: groupUpcomingByMonth(competitions, today).map((month) => ({
+      months: months.map((month) => ({
         year: month.year,
         month: month.month,
         items: month.competitions.map((competition) => ({
@@ -51,8 +83,24 @@ export async function getCompetitionListPageData(
         })),
       })),
       currentYear: Number(today.slice(0, 4)),
+      interestedIds,
+      regionsWithCompetitions: COMPETITION_REGIONS.filter((region) =>
+        regions.has(region),
+      ),
     };
   } catch {
     return { ok: false };
+  }
+}
+
+/**
+ * 관심 목록을 못 읽어도 대회 목록은 보여 준다 — 관심 필터 하나 때문에 탭 전체가 실패 화면이 되지 않게.
+ * 이때 관심 필터는 결과가 비어 "조건에 맞는 대회가 없어요"로 보인다.
+ */
+async function loadInterestedIds(): Promise<string[]> {
+  try {
+    return await createGetInterestedCompetitionIdsUseCase().execute();
+  } catch {
+    return [];
   }
 }

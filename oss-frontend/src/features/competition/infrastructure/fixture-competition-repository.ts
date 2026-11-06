@@ -15,6 +15,7 @@ const FIXTURE_COMPETITIONS: Competition[] = [
     name: "서울 오픈 챔피언십",
     date: "2026-11-22",
     place: "서울 송파",
+    region: "서울",
     divisions: ["gi"],
     registration: {
       opensOn: "2026-10-20",
@@ -27,6 +28,7 @@ const FIXTURE_COMPETITIONS: Competition[] = [
     name: "인천 가을 오픈",
     date: "2026-11-01",
     place: "인천",
+    region: "인천",
     divisions: ["gi", "nogi"],
   },
   {
@@ -34,6 +36,7 @@ const FIXTURE_COMPETITIONS: Competition[] = [
     name: "경기 유소년 주짓수 대회",
     date: "2026-11-29",
     place: "수원",
+    region: "경기",
     divisions: ["gi"],
     audience: "키즈",
     registration: {
@@ -47,6 +50,7 @@ const FIXTURE_COMPETITIONS: Competition[] = [
     name: "광주 주짓수 챔피언십",
     date: "2026-11-07",
     place: "광주",
+    region: "광주",
     divisions: ["gi"],
     registration: {
       opensOn: "2026-10-12",
@@ -58,6 +62,7 @@ const FIXTURE_COMPETITIONS: Competition[] = [
     name: "서울 노기 인비테이셔널",
     date: "2026-11-08",
     place: "서울 강남",
+    region: "서울",
     divisions: ["nogi"],
     registration: {
       opensOn: "2026-10-15",
@@ -69,6 +74,7 @@ const FIXTURE_COMPETITIONS: Competition[] = [
     name: "대전 오픈",
     date: "2026-11-14",
     place: "대전",
+    region: "대전",
     divisions: ["gi", "nogi"],
     registration: {
       opensOn: "2026-10-20",
@@ -80,6 +86,7 @@ const FIXTURE_COMPETITIONS: Competition[] = [
     name: "부산 노기 오픈",
     date: "2026-12-05",
     place: "부산",
+    region: "부산",
     divisions: ["nogi"],
     registration: {
       opensOn: "2026-11-10",
@@ -91,6 +98,7 @@ const FIXTURE_COMPETITIONS: Competition[] = [
     name: "제1회 경기도지사배 생활체육 주짓수 오픈 챔피언십",
     date: "2026-12-06",
     place: "고양",
+    region: "경기",
     divisions: ["gi", "nogi"],
     registration: {
       opensOn: "2026-10-27",
@@ -103,6 +111,7 @@ const FIXTURE_COMPETITIONS: Competition[] = [
     name: "대구 주짓수 오픈",
     date: "2026-12-13",
     place: "대구",
+    region: "대구",
     divisions: ["gi"],
     registration: {
       opensOn: "2026-11-16",
@@ -115,6 +124,7 @@ const FIXTURE_COMPETITIONS: Competition[] = [
     name: "제주 오픈",
     date: "2026-12-19",
     place: "제주",
+    region: "제주",
     divisions: ["gi", "nogi"],
     registration: {
       opensOn: "2026-11-01",
@@ -127,6 +137,7 @@ const FIXTURE_COMPETITIONS: Competition[] = [
     name: "신년 오픈 챔피언십",
     date: "2027-01-16",
     place: "서울 마포",
+    region: "서울",
     divisions: ["gi"],
     registration: {
       opensOn: "2026-12-01",
@@ -139,6 +150,7 @@ const FIXTURE_COMPETITIONS: Competition[] = [
     name: "평일 저녁 노기 리그",
     date: "2026-11-18",
     place: "서울 마포",
+    region: "서울",
     divisions: ["nogi"],
     registration: {
       opensOn: "2026-10-25",
@@ -159,6 +171,7 @@ const FIXTURE_COMPETITIONS: Competition[] = [
     name: "봄맞이 오픈",
     date: "2027-03-14",
     place: "인천",
+    region: "인천",
     divisions: ["gi"],
     registration: {
       opensOn: "2027-02-01",
@@ -171,6 +184,7 @@ const FIXTURE_COMPETITIONS: Competition[] = [
     name: "겨울 키즈 컵",
     date: "2027-01-17",
     place: "성남",
+    region: "경기",
     divisions: ["gi"],
     audience: "키즈",
     registration: {
