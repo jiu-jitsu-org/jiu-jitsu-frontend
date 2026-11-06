@@ -32,7 +32,7 @@ export function CompetitionClosingSoonBanner({
   return (
     <section
       aria-labelledby="competition-closing-soon-title"
-      className="mx-3 mt-1 mb-1 rounded-15 border-[1.5px] border-primary bg-surface-field-subtle px-1 pt-2.5 pb-1.5"
+      className="mx-3 mt-1 mb-1 rounded-15 border-[1.5px] border-primary bg-surface-field px-1 pt-2.5 pb-1.5"
     >
       <h2
         id="competition-closing-soon-title"
