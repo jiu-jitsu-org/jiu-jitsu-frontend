@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { BottomSheetFrame } from "@/features/community/presentation/bottom-sheet-frame";
 import {
@@ -38,6 +38,7 @@ export function CompetitionRegionSheet({
 }) {
   const [draft, setDraft] = useState<CompetitionRegion[]>(() => [...selected]);
   const trayRef = useRef<HTMLUListElement>(null);
+  const allChipId = useId();
   const previousCount = useRef(draft.length);
 
   // 새로 고른 지역은 모음 줄 끝에 붙는다 — 넘쳐서 가려지지 않게 끝으로 밀어 보여 준다.
@@ -62,10 +63,27 @@ export function CompetitionRegionSheet({
         : [...current, region],
     );
 
+  // 모음 줄의 ×로 빼면 누른 버튼이 사라진다 — 초점이 시트 밖으로 떨어지지 않게 다음 알약(없으면 앞 알약,
+  // 다 빠지면 "전체" 칩)으로 옮긴다. 다시 그린 뒤에 찾아야 해서 한 프레임 미룬다.
+  const removeFromTray = (region: CompetitionRegion, index: number) => {
+    const rest = draft.filter((value) => value !== region);
+    const next = rest[Math.min(index, rest.length - 1)];
+    toggle(region);
+    requestAnimationFrame(() => {
+      const target = next
+        ? trayRef.current?.querySelector<HTMLElement>(
+            `[data-region-pill="${next}"]`,
+          )
+        : document.getElementById(allChipId);
+      target?.focus();
+    });
+  };
+
   return (
     <BottomSheetFrame open={open} title="지역" onDismiss={onDismiss}>
       <div className="mt-4 flex flex-wrap gap-2">
         <Chip
+          id={allChipId}
           tone="primary"
           selected={draft.length === 0}
           aria-pressed={draft.length === 0}
@@ -115,13 +133,15 @@ export function CompetitionRegionSheet({
             aria-label="고른 지역"
             className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto pr-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
-            {draft.map((region) => (
+            {draft.map((region, index) => (
               <li key={region} className="shrink-0">
                 <button
                   type="button"
+                  data-region-pill={region}
                   aria-label={`${region} 빼기`}
-                  onClick={() => toggle(region)}
-                  className="inline-flex h-7 items-center gap-0.5 rounded-full bg-surface-primary-subtle pr-1.5 pl-2.5 text-[13px] leading-none font-semibold text-primary active:bg-surface-primary-subtle-pressed"
+                  onClick={() => removeFromTray(region, index)}
+                  // 보이는 알약은 28이지만 누를 자리는 위아래로 8씩 늘려 44에 맞춘다(옆 알약과는 겹치지 않게 세로만).
+                  className="relative inline-flex h-7 items-center gap-0.5 rounded-full bg-surface-primary-subtle pr-1.5 pl-2.5 text-[13px] leading-none font-semibold text-primary before:absolute before:inset-x-0 before:-inset-y-2 before:content-[''] active:bg-surface-primary-subtle-pressed"
                 >
                   {region}
                   <CloseIcon size={14} />
