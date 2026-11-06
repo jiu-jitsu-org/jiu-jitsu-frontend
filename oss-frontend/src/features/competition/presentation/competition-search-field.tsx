@@ -1,5 +1,7 @@
 "use client";
 
+import { useRef } from "react";
+
 import { CloseIcon, SearchIcon } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
 
@@ -21,6 +23,7 @@ export function CompetitionSearchField({
   onChange: (value: string) => void;
   onClose: () => void;
 }) {
+  const inputRef = useRef<HTMLInputElement>(null);
   return (
     <div className="px-4 pb-3">
       <label
@@ -34,15 +37,18 @@ export function CompetitionSearchField({
           className="flex-none text-textfield-default-icon"
         />
         <input
+          ref={inputRef}
           id={id}
           type="search"
           enterKeyHint="search"
           autoFocus
           value={value}
           placeholder="대회 이름으로 찾기"
-          aria-label="대회 이름 검색"
+          aria-label="대회 이름"
           onChange={(event) => onChange(event.target.value)}
           onKeyDown={(event) => {
+            // 한글 조합 중의 Enter·Esc는 조합을 끝내는 키라 검색을 닫거나 키보드를 내리지 않는다.
+            if (event.nativeEvent.isComposing) return;
             if (event.key === "Enter") event.currentTarget.blur();
             if (event.key === "Escape") onClose();
           }}
@@ -53,7 +59,10 @@ export function CompetitionSearchField({
           <button
             type="button"
             aria-label="검색어 지우기"
-            onClick={() => onChange("")}
+            onClick={() => {
+              onChange("");
+              inputRef.current?.focus();
+            }}
             className="-mr-1.5 flex size-8 flex-none items-center justify-center rounded-full text-textfield-default-icon active:bg-surface-container-pressed"
           >
             <CloseIcon size={16} />

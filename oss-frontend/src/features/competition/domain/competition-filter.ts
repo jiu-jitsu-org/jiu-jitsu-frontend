@@ -34,8 +34,13 @@ export function isCompetitionFilterEmpty(filter: CompetitionFilter): boolean {
     filter.regions.length === 0 &&
     !filter.openOnly &&
     !filter.nogiOnly &&
-    normalizeName(filter.nameQuery) === ""
+    !hasNameQuery(filter.nameQuery)
   );
+}
+
+/** 실제로 거르는 검색어가 있는지 — 공백만 친 검색어는 없는 것으로 본다. */
+export function hasNameQuery(query: string): boolean {
+  return normalizeName(query) !== "";
 }
 
 /**

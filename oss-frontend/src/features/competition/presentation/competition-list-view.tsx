@@ -7,6 +7,7 @@ import { useLoginGuard } from "@/features/community/presentation/use-login-guard
 import type { CompetitionListMonth } from "@/features/competition/application/get-competition-list-page-data";
 import {
   EMPTY_COMPETITION_FILTER,
+  hasNameQuery,
   isCompetitionFilterEmpty,
   matchesCompetitionFilter,
   type CompetitionFilter,
@@ -99,11 +100,13 @@ export function CompetitionListView({
   const closeSearch = () => {
     setSearchOpen(false);
     setNameQuery("");
+    // 입력칸이 사라지면 초점이 화면 맨 앞으로 튀지 않게 돋보기로 돌려준다.
+    document.getElementById(SEARCH_BUTTON_ID)?.focus();
   };
 
   // 검색어만 걸려서 비었으면 검색어 탓이라고 말하고, 검색어만 지우게 한다.
   const emptyBySearchOnly =
-    filter.nameQuery.trim() !== "" &&
+    hasNameQuery(filter.nameQuery) &&
     isCompetitionFilterEmpty({ ...activeFilter, nameQuery: "" });
 
   return (
@@ -162,6 +165,7 @@ export function CompetitionListView({
             </Chip>
           </div>
           <IconButton
+            id={SEARCH_BUTTON_ID}
             aria-label="대회 이름 검색"
             aria-expanded={searchOpen}
             aria-controls={searchOpen ? SEARCH_INPUT_ID : undefined}
@@ -249,6 +253,7 @@ export function CompetitionListView({
 }
 
 const SEARCH_INPUT_ID = "competition-name-search";
+const SEARCH_BUTTON_ID = "competition-name-search-toggle";
 
 /** 안 골랐으면 "지역", 하나면 "서울", 여럿이면 "서울 외 2". */
 function regionLabel(regions: readonly CompetitionRegion[]) {
