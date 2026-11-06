@@ -10,6 +10,10 @@ import type {
 } from "@/features/competition/domain/competition";
 import { isPopularCompetition } from "@/features/competition/domain/competition-popularity";
 import type { RegistrationStatus } from "@/features/competition/domain/competition-registration";
+import {
+  FlameIcon,
+  RegistrationIcon,
+} from "@/features/competition/presentation/competition-icons";
 import type { CompetitionInterest } from "@/features/competition/presentation/use-competition-interest";
 import { cn } from "@/shared/lib/cn";
 import { HeartIcon } from "@/shared/ui/icons";
@@ -142,7 +146,13 @@ export function CompetitionRow({
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
               {registration ? <RegistrationChip status={registration} /> : null}
               {popular ? (
-                <StatusChip tone="neutral">관심 많은 대회</StatusChip>
+                <StatusChip
+                  tone="neutral"
+                  // 빨강 전용 토큰이 없어 얼리버드 마감과 같은 semantic(text/error) 빨강을 쓴다.
+                  icon={<FlameIcon size={13} className="text-text-error" />}
+                >
+                  관심 많은 대회
+                </StatusChip>
               ) : null}
             </div>
             {interest ? (
@@ -214,23 +224,27 @@ function DeadlineMetric({
  *
  * 한 박스에 색 면은 접수 중(옅은 파랑) 하나뿐이다. 접수 예정·관심 많은 대회·마감은 회색 박스 위에 흰 면으로 띄운다
  * (마감은 흐린 글자). 누르는 칩(필터 줄)과 헷갈리지 않게 테두리 없이 면만 쓰고 높이를 22로 낮춘다.
+ * 앞 아이콘(12)은 글자색을 따른다 — 관심 많은 대회의 불꽃만 빨강으로 따로 칠한다.
  */
 function StatusChip({
   tone,
+  icon,
   children,
 }: {
   tone: "primary" | "neutral" | "disabled";
+  icon: ReactNode;
   children: ReactNode;
 }) {
   return (
     <span
       className={cn(
-        "inline-flex h-[22px] items-center rounded-full px-2 text-[12px] leading-none font-semibold whitespace-nowrap",
+        "inline-flex h-[22px] items-center gap-[3px] rounded-full pr-2 pl-1.5 text-[12px] leading-none font-semibold whitespace-nowrap",
         tone === "primary" && "bg-surface-primary-subtle text-primary",
         tone === "neutral" && "bg-surface-container text-text-secondary-strong",
         tone === "disabled" && "bg-surface-container text-text-disabled",
       )}
     >
+      {icon}
       {children}
     </span>
   );
@@ -240,11 +254,32 @@ function StatusChip({
 function RegistrationChip({ status }: { status: RegistrationStatus }) {
   switch (status.kind) {
     case "upcoming":
-      return <StatusChip tone="neutral">접수 예정</StatusChip>;
+      return (
+        <StatusChip
+          tone="neutral"
+          icon={<RegistrationIcon stage="before" size={12} />}
+        >
+          접수 예정
+        </StatusChip>
+      );
     case "closed":
-      return <StatusChip tone="disabled">접수 마감</StatusChip>;
+      return (
+        <StatusChip
+          tone="disabled"
+          icon={<RegistrationIcon stage="closed" size={12} />}
+        >
+          접수 마감
+        </StatusChip>
+      );
     case "open":
-      return <StatusChip tone="primary">접수 중</StatusChip>;
+      return (
+        <StatusChip
+          tone="primary"
+          icon={<RegistrationIcon stage="open" size={12} />}
+        >
+          접수 중
+        </StatusChip>
+      );
   }
 }
 

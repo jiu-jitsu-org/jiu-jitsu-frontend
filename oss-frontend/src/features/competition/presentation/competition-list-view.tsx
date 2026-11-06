@@ -19,6 +19,7 @@ import {
 import type { CompetitionRegion } from "@/features/competition/domain/competition-region";
 import { CompetitionCalendar } from "@/features/competition/presentation/competition-calendar";
 import { CompetitionClosingSoonBanner } from "@/features/competition/presentation/competition-closing-soon-banner";
+import { RegistrationIcon } from "@/features/competition/presentation/competition-icons";
 import {
   MonthSection,
   competitionRowId,
@@ -217,7 +218,9 @@ export function CompetitionListView({
               selected={filter.openOnly}
               aria-pressed={filter.openOnly}
               onClick={() => toggle("openOnly")}
+              className="gap-1 pl-2.5"
             >
+              <RegistrationIcon stage="open" size={16} />
               접수 중
             </Chip>
             <Chip
