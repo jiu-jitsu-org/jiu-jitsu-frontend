@@ -267,9 +267,9 @@ function CompetitionTicket({
 /**
  * d·e안 — 세로 타임라인 (#348).
  *
- * d(캐롯 주행 기록 참고): 줄 왼쪽에 날짜 타일, 달이 바뀌는 자리에 점 + "12월". 카드 오른쪽에 가장 급한 숫자(남은 날)를 크게.
- * e(일정 앱 참고): 줄 위 동그라미 안에 날짜, 옆 연한 회색 박스. 박스 첫 줄 오른쪽에 남은 날(시각 자리).
- * 줄은 날짜 칸 가운데(44 칸의 22)를 지난다. 날짜 칸이 불투명이라 줄이 칸 뒤로 숨는다.
+ * 줄 위에 날짜·요일(면 없이 흰 바탕), 옆에 회색 박스. 줄은 날짜 칸 가운데(44 칸의 22)를 지나고 흰 날짜 칸 뒤로 숨는다.
+ * d(캐롯 주행 기록 참고): 달이 바뀌는 자리에 작은 점 + "12월", 카드 오른쪽에 가장 급한 숫자(남은 날)를 크게.
+ * e(일정 앱 참고): 달 이름을 굵은 머리로, 박스 첫 줄 오른쪽에 남은 날(시각 자리).
  */
 function TimelineMonth({
   headingId,
@@ -292,8 +292,8 @@ function TimelineMonth({
       <span
         aria-hidden
         className={cn(
-          "absolute top-0 bottom-0 left-[37px] bg-border-disabled",
-          look === "e" ? "w-0.5 -translate-x-1/2" : "w-px",
+          // 줄은 흐름만 알려 주는 보조 표시라 칩·글자보다 연한 회색 1px로 둔다.
+          "absolute top-0 bottom-0 left-[37px] w-px bg-surface-secondary",
         )}
       />
       <h2 id={headingId} className="relative flex items-center gap-3 pt-4 pb-3">
@@ -373,31 +373,17 @@ function TimelineItem({
       tabIndex={-1}
       className="flex scroll-mt-20 items-start gap-3 outline-none"
     >
+      {/* 날짜 칸은 면·테두리 없이 흰 바탕에 글자만 — 흰 바탕이 뒤의 세로 줄을 가려 날짜가 줄 위에 놓인 듯 보인다. */}
       <time
         dateTime={competition.date}
-        className={cn(
-          "relative flex flex-none flex-col items-center justify-center",
-          look === "e"
-            ? "mt-2 size-11 rounded-full border-2 border-border-default bg-surface-container"
-            : "h-14 w-11 rounded-15 bg-surface-field",
-        )}
+        className="relative flex h-14 w-11 flex-none flex-col items-center justify-center bg-surface-container"
       >
-        <span
-          className={cn(
-            "font-bold text-text-primary tabular-nums",
-            look === "e"
-              ? "text-[15px] leading-[16px]"
-              : "text-[18px] leading-[22px]",
-          )}
-        >
+        <span className="text-[18px] leading-[22px] font-bold text-text-primary tabular-nums">
           {day}
         </span>
         <span
           className={cn(
-            "font-medium",
-            look === "e"
-              ? "text-[10px] leading-[12px]"
-              : "text-[12px] leading-[16px]",
+            "text-[12px] leading-[16px] font-medium",
             weekdayTone(weekday.index),
           )}
         >
