@@ -14,6 +14,7 @@ import {
 import type { CompetitionRegion } from "@/features/competition/domain/competition-region";
 import { MonthSection } from "@/features/competition/presentation/competition-month-section";
 import { CompetitionRegionSheet } from "@/features/competition/presentation/competition-region-sheet";
+import { useCompetitionInterest } from "@/features/competition/presentation/use-competition-interest";
 import { ChevronDownIcon } from "@/shared/ui";
 import { Chip } from "@/shared/ui/chip";
 import { EmptyState } from "@/shared/ui/empty-state";
@@ -32,11 +33,13 @@ export function CompetitionListView({
   months,
   currentYear,
   interestedIds,
+  interestCounts,
   regionsWithCompetitions,
 }: {
   months: CompetitionListMonth[];
   currentYear: number;
   interestedIds: string[];
+  interestCounts: Record<string, number>;
   regionsWithCompetitions: CompetitionRegion[];
 }) {
   const [filter, setFilter] = useState<CompetitionFilter>(
@@ -48,6 +51,7 @@ export function CompetitionListView({
 
   const signedIn = useIsSignedIn();
   const { guard } = useLoginGuard();
+  const interest = useCompetitionInterest({ interestedIds, interestCounts });
 
   // 로그아웃했거나 세션이 만료돼 비로그인으로 판정되면 켜 두었던 관심 필터는 풀린 것으로 본다 —
   // 남겨 두면 이전 관심 목록으로 거르거나 늘 빈 결과만 보인다.
@@ -58,16 +62,16 @@ export function CompetitionListView({
 
   const visibleMonths = useMemo(() => {
     if (isCompetitionFilterEmpty(activeFilter)) return months;
-    const interested = new Set(interestedIds);
     return months
       .map((month) => ({
         ...month,
         items: month.items.filter((item) =>
-          matchesCompetitionFilter(item, activeFilter, interested),
+          matchesCompetitionFilter(item, activeFilter, interest.interestedIds),
         ),
       }))
       .filter((month) => month.items.length > 0);
-  }, [activeFilter, interestedIds, months]);
+    // 관심은 이 화면에서 누른 결과까지 반영한 값으로 거른다 — 관심만 보는 중에 해제하면 바로 빠진다.
+  }, [activeFilter, interest.interestedIds, months]);
 
   const toggle = (key: "interestedOnly" | "openOnly" | "nogiOnly") =>
     setFilter((current) => ({ ...current, [key]: !current[key] }));
@@ -143,6 +147,7 @@ export function CompetitionListView({
               key={`${month.year}-${month.month}`}
               month={month}
               currentYear={currentYear}
+              interest={interest}
             />
           ))}
         </div>

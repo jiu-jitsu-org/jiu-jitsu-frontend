@@ -7,7 +7,10 @@ import type {
   CompetitionDivision,
 } from "@/features/competition/domain/competition";
 import type { RegistrationStatus } from "@/features/competition/domain/competition-registration";
+import type { CompetitionInterest } from "@/features/competition/presentation/use-competition-interest";
 import { cn } from "@/shared/lib/cn";
+import { BookmarkIcon } from "@/shared/ui/icons";
+import { SURFACE_PRESS } from "@/shared/ui/press-styles";
 
 /**
  * 한 달 묶음 — 달 이름 아래 옅은 면 하나에 그 달 대회 줄을 모은다 (#332), 줄마다 접수 상태 (#333).
@@ -18,9 +21,12 @@ import { cn } from "@/shared/lib/cn";
 export function MonthSection({
   month,
   currentYear,
+  interest,
 }: {
   month: CompetitionListMonth;
   currentYear: number;
+  /** 넘기면 줄마다 오른쪽에 관심 버튼과 관심 수를 단다(#335). */
+  interest?: CompetitionInterest;
 }) {
   const headingId = `competition-month-${month.year}-${month.month}`;
   // 올해는 "11월", 해가 바뀌면 "2027년 1월" — 연말에 다음 해 대회가 섞여도 헷갈리지 않게.
@@ -43,6 +49,7 @@ export function MonthSection({
             key={item.competition.id}
             item={item}
             currentYear={currentYear}
+            interest={interest}
           />
         ))}
       </ul>
@@ -50,12 +57,15 @@ export function MonthSection({
   );
 }
 
-function CompetitionRow({
+/** 대회 한 줄. 달력 보기의 그날 대회 목록도 같은 줄을 쓴다. */
+export function CompetitionRow({
   item: { competition, registration },
   currentYear,
+  interest,
 }: {
   item: CompetitionListItem;
   currentYear: number;
+  interest?: CompetitionInterest;
 }) {
   const day = Number(competition.date.slice(8, 10));
   const weekday = weekdayOf(competition.date);
@@ -95,7 +105,70 @@ function CompetitionRow({
           <RegistrationLine status={registration} currentYear={currentYear} />
         ) : null}
       </div>
+      {interest ? (
+        <InterestButton
+          competitionName={competition.name}
+          interested={interest.isInterested(competition.id)}
+          count={interest.countOf(competition.id)}
+          onToggle={() => interest.toggle(competition.id)}
+        />
+      ) : null}
     </li>
+  );
+}
+
+/**
+ * 관심 버튼 (#335) — 북마크 아이콘 아래 익명 관심 수.
+ *
+ * 커뮤니티 글의 저장(북마크)과 같은 아이콘·색 토큰을 쓴다: 등록 전 옅은 회색 선, 등록하면 파랑 채움.
+ * 관심 수는 아무도 없으면 빼서 "0"이 줄마다 늘어서지 않게 한다. 누가 눌렀는지는 보여 주지 않는다.
+ * 줄 오른쪽 위(이름 높이)에 붙여 대회마다 같은 자리에 온다.
+ */
+function InterestButton({
+  competitionName,
+  interested,
+  count,
+  onToggle,
+}: {
+  competitionName: string;
+  interested: boolean;
+  count: number;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={interested}
+      aria-label={`${competitionName} 관심 등록${count > 0 ? `, 관심 ${count}명` : ""}`}
+      className={cn(
+        // 관심 수가 없어도 누를 자리는 44×44를 지킨다.
+        "-my-1 -mr-1 flex min-h-11 w-11 flex-none flex-col items-center gap-0.5 self-start rounded-10 py-1.5",
+        SURFACE_PRESS,
+      )}
+    >
+      <BookmarkIcon
+        size={20}
+        filled={interested}
+        className={
+          interested
+            ? "text-reaction-bar-active-bookmark-icon"
+            : "text-reaction-bar-default-icon"
+        }
+      />
+      {count > 0 ? (
+        <span
+          className={cn(
+            "text-[12px] leading-[15px] tabular-nums",
+            interested
+              ? "text-reaction-bar-active-count-text"
+              : "text-reaction-bar-default-count-text",
+          )}
+        >
+          {count}
+        </span>
+      ) : null}
+    </button>
   );
 }
 

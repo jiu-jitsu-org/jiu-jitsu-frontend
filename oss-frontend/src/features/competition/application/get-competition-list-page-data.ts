@@ -1,4 +1,5 @@
 import {
+  createGetCompetitionInterestCountsUseCase,
   createGetCompetitionListUseCase,
   createGetInterestedCompetitionIdsUseCase,
 } from "@/features/competition/application/competition-use-case-factory";
@@ -35,6 +36,8 @@ export type CompetitionListPageData =
       currentYear: number;
       /** 내가 관심 등록한 대회 id. 비로그인이면 빈 배열. */
       interestedIds: string[];
+      /** 대회별 익명 관심 수(#335). 없는 대회는 0. 읽기 실패면 빈 객체 — 숫자만 안 보인다. */
+      interestCounts: Record<string, number>;
       /** 예정 대회가 하나라도 있는 시·도 — 지역 시트에서 나머지는 고를 수 없게 둔다. 표준 순서. */
       regionsWithCompetitions: CompetitionRegion[];
     }
@@ -55,9 +58,10 @@ export async function getCompetitionListPageData({
   signedIn: boolean;
 }): Promise<CompetitionListPageData> {
   try {
-    const [competitions, interestedIds] = await Promise.all([
+    const [competitions, interestedIds, interestCounts] = await Promise.all([
       createGetCompetitionListUseCase().execute(),
       signedIn ? loadInterestedIds() : Promise.resolve([]),
+      loadInterestCounts(),
     ]);
     const today = toKstDateKey(now);
     const months = groupUpcomingByMonth(competitions, today);
@@ -84,6 +88,7 @@ export async function getCompetitionListPageData({
       })),
       currentYear: Number(today.slice(0, 4)),
       interestedIds,
+      interestCounts,
       regionsWithCompetitions: COMPETITION_REGIONS.filter((region) =>
         regions.has(region),
       ),
@@ -102,5 +107,14 @@ async function loadInterestedIds(): Promise<string[]> {
     return await createGetInterestedCompetitionIdsUseCase().execute();
   } catch {
     return [];
+  }
+}
+
+/** 관심 수도 목록을 막지 않는다 — 못 읽으면 숫자만 빠진다. */
+async function loadInterestCounts(): Promise<Record<string, number>> {
+  try {
+    return await createGetCompetitionInterestCountsUseCase().execute();
+  } catch {
+    return {};
   }
 }

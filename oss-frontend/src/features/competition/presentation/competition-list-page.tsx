@@ -39,6 +39,7 @@ function renderBody(data: CompetitionListPageData) {
       months={data.months}
       currentYear={data.currentYear}
       interestedIds={data.interestedIds}
+      interestCounts={data.interestCounts}
       regionsWithCompetitions={data.regionsWithCompetitions}
     />
   );
