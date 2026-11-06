@@ -10,6 +10,10 @@ import type {
 } from "@/features/competition/domain/competition";
 import { isPopularCompetition } from "@/features/competition/domain/competition-popularity";
 import type { RegistrationStatus } from "@/features/competition/domain/competition-registration";
+import {
+  FlameIcon,
+  RegistrationIcon,
+} from "@/features/competition/presentation/competition-icons";
 import type { CompetitionInterest } from "@/features/competition/presentation/use-competition-interest";
 import { cn } from "@/shared/lib/cn";
 import { HeartIcon } from "@/shared/ui/icons";
@@ -60,6 +64,7 @@ export function MonthSection({
           <CompetitionRow
             key={item.competition.id}
             item={item}
+            currentYear={currentYear}
             interest={interest}
           />
         ))}
@@ -80,9 +85,11 @@ export function competitionRowId(competitionId: string) {
  */
 export function CompetitionRow({
   item: { competition, registration },
+  currentYear,
   interest,
 }: {
   item: CompetitionListItem;
+  currentYear: number;
   interest?: CompetitionInterest;
 }) {
   const meta = metaLine(competition);
@@ -131,7 +138,7 @@ export function CompetitionRow({
           </div>
           {/* 마감 대회는 칩이 이미 "접수 마감"이라 큰 숫자를 두지 않는다 — 같은 말을 두 번 하지 않게. */}
           {registration && registration.kind !== "closed" ? (
-            <DeadlineMetric status={registration} />
+            <DeadlineMetric status={registration} currentYear={currentYear} />
           ) : null}
         </div>
         {registration || popular || interest ? (
@@ -139,7 +146,13 @@ export function CompetitionRow({
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
               {registration ? <RegistrationChip status={registration} /> : null}
               {popular ? (
-                <StatusChip tone="neutral">관심 많은 대회</StatusChip>
+                <StatusChip
+                  tone="neutral"
+                  // 빨강 전용 토큰이 없어 얼리버드 마감과 같은 semantic(text/error) 빨강을 쓴다.
+                  icon={<FlameIcon size={13} className="text-text-error" />}
+                >
+                  관심 많은 대회
+                </StatusChip>
               ) : null}
             </div>
             {interest ? (
@@ -159,12 +172,15 @@ export function CompetitionRow({
 
 /**
  * 박스 오른쪽 위 큰 숫자 — 대회 카드에서 가장 급한 숫자인 남은 날.
- * 접수 중: "D-2"(얼리버드면 빨강, 당일은 "오늘") · 접수 예정: "11.10" + 접수 오픈. 마감 대회는 그리지 않는다.
+ * 접수 중: "D-2"(얼리버드면 빨강, 당일은 "오늘") · 접수 예정: "11.10" + 접수 오픈(해가 다르면 "2027년 접수 오픈").
+ * 마감 대회는 그리지 않는다.
  */
 function DeadlineMetric({
   status,
+  currentYear,
 }: {
   status: Exclude<RegistrationStatus, { kind: "closed" }>;
+  currentYear: number;
 }) {
   let value: string;
   let caption: string;
@@ -178,9 +194,10 @@ function DeadlineMetric({
         status.deadline === "early-bird" ? "text-text-error" : "text-primary";
       break;
     case "upcoming": {
-      const [, month, day] = status.opensOn.split("-").map(Number);
+      const [year, month, day] = status.opensOn.split("-").map(Number);
       value = `${month}.${day}`;
-      caption = "접수 오픈";
+      // 12월에 보는 내년 1월 오픈이 지난 날짜로 읽히지 않게, 해가 다르면 아래 글자에 연도를 붙인다.
+      caption = year === currentYear ? "접수 오픈" : `${year}년 접수 오픈`;
       tone = "text-text-secondary-strong";
       break;
     }
@@ -207,23 +224,27 @@ function DeadlineMetric({
  *
  * 한 박스에 색 면은 접수 중(옅은 파랑) 하나뿐이다. 접수 예정·관심 많은 대회·마감은 회색 박스 위에 흰 면으로 띄운다
  * (마감은 흐린 글자). 누르는 칩(필터 줄)과 헷갈리지 않게 테두리 없이 면만 쓰고 높이를 22로 낮춘다.
+ * 앞 아이콘(12)은 글자색을 따른다 — 관심 많은 대회의 불꽃만 빨강으로 따로 칠한다.
  */
 function StatusChip({
   tone,
+  icon,
   children,
 }: {
   tone: "primary" | "neutral" | "disabled";
+  icon: ReactNode;
   children: ReactNode;
 }) {
   return (
     <span
       className={cn(
-        "inline-flex h-[22px] items-center rounded-full px-2 text-[12px] leading-none font-semibold whitespace-nowrap",
+        "inline-flex h-[22px] items-center gap-[3px] rounded-full pr-2 pl-1.5 text-[12px] leading-none font-semibold whitespace-nowrap",
         tone === "primary" && "bg-surface-primary-subtle text-primary",
         tone === "neutral" && "bg-surface-container text-text-secondary-strong",
         tone === "disabled" && "bg-surface-container text-text-disabled",
       )}
     >
+      {icon}
       {children}
     </span>
   );
@@ -233,11 +254,32 @@ function StatusChip({
 function RegistrationChip({ status }: { status: RegistrationStatus }) {
   switch (status.kind) {
     case "upcoming":
-      return <StatusChip tone="neutral">접수 예정</StatusChip>;
+      return (
+        <StatusChip
+          tone="neutral"
+          icon={<RegistrationIcon stage="before" size={12} />}
+        >
+          접수 예정
+        </StatusChip>
+      );
     case "closed":
-      return <StatusChip tone="disabled">접수 마감</StatusChip>;
+      return (
+        <StatusChip
+          tone="disabled"
+          icon={<RegistrationIcon stage="closed" size={12} />}
+        >
+          접수 마감
+        </StatusChip>
+      );
     case "open":
-      return <StatusChip tone="primary">접수 중</StatusChip>;
+      return (
+        <StatusChip
+          tone="primary"
+          icon={<RegistrationIcon stage="open" size={12} />}
+        >
+          접수 중
+        </StatusChip>
+      );
   }
 }
 
@@ -293,20 +335,6 @@ function InterestButton({
       ) : null}
     </button>
   );
-}
-
-/** 접수 중 대회의 남은 날 — "얼리버드 마감 D-3" · "마감 D-12". 마감 배너(#344)가 쓴다. */
-export function deadlineLabel(
-  status: Extract<RegistrationStatus, { kind: "open" }>,
-) {
-  return status.deadline === "early-bird"
-    ? `얼리버드 ${dDayLabel(status.daysLeft)}`
-    : dDayLabel(status.daysLeft);
-}
-
-/** 남은 날 → "마감 D-3", 당일은 "오늘 마감". */
-function dDayLabel(daysLeft: number) {
-  return daysLeft === 0 ? "오늘 마감" : `마감 D-${daysLeft}`;
 }
 
 const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"] as const;
