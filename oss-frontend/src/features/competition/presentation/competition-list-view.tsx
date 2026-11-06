@@ -19,6 +19,8 @@ import {
 import type { CompetitionRegion } from "@/features/competition/domain/competition-region";
 import { CompetitionCalendar } from "@/features/competition/presentation/competition-calendar";
 import { CompetitionClosingSoonBanner } from "@/features/competition/presentation/competition-closing-soon-banner";
+import type { CompetitionLook } from "@/features/competition/presentation/competition-look";
+import { cn } from "@/shared/lib/cn";
 import {
   MonthSection,
   competitionRowId,
@@ -53,6 +55,7 @@ export function CompetitionListView({
   interestedIds,
   interestCounts,
   regionsWithCompetitions,
+  look = "a",
 }: {
   months: CompetitionListMonth[];
   currentYear: number;
@@ -61,6 +64,8 @@ export function CompetitionListView({
   interestedIds: string[];
   interestCounts: Record<string, number>;
   regionsWithCompetitions: CompetitionRegion[];
+  /** 시안 (#348) — c안은 회색 바탕 위 흰 카드라 필터 줄도 바탕색을 따른다. */
+  look?: CompetitionLook;
 }) {
   const [filter, setFilter] = useState<CompetitionFilter>(
     EMPTY_COMPETITION_FILTER,
@@ -174,7 +179,12 @@ export function CompetitionListView({
           오른쪽 끝에 목록 ↔ 달력 전환(#339)을 고정해 둔다 — 칩이 늘어 가로로 밀어도 늘 같은 자리에 있게. */}
       <div
         id={FILTER_BAR_ID}
-        className="sticky top-0 z-10 bg-surface-container"
+        className={cn(
+          "sticky top-0 z-10",
+          look === "c"
+            ? "bg-surface-background-default"
+            : "bg-surface-container",
+        )}
       >
         <div className="flex items-center">
           <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto py-3 pr-2 pl-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -301,6 +311,7 @@ export function CompetitionListView({
         <div className="pb-6">
           {visibleMonths.map((month) => (
             <MonthSection
+              look={look}
               key={`${month.year}-${month.month}`}
               month={month}
               currentYear={currentYear}

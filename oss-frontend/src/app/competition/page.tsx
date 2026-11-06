@@ -7,6 +7,7 @@ import { SessionHintProvider } from "@/features/auth/presentation/session-hint";
 import { getCompetitionListPageData } from "@/features/competition/application/get-competition-list-page-data";
 import { isCompetitionPageEnabled } from "@/features/competition/application/is-competition-page-enabled";
 import { CompetitionListPage } from "@/features/competition/presentation/competition-list-page";
+import { parseCompetitionLook } from "@/features/competition/presentation/competition-look";
 import { readSessionToken } from "@/shared/lib/auth";
 import { readServerNow } from "@/shared/lib/time";
 
@@ -14,10 +15,16 @@ export const metadata: Metadata = {
   title: "대회",
 };
 
-export default async function CompetitionRoutePage() {
+export default async function CompetitionRoutePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   // 요청마다 "오늘"을 다시 정한다 — 빌드 때 그려 두면 지난 대회가 계속 남는다.
   await connection();
   if (!isCompetitionPageEnabled()) notFound();
+  // 시안 비교용 (#348) — 고르면 지운다.
+  const look = parseCompetitionLook((await searchParams).look);
 
   const signedIn = (await readSessionToken()) !== null;
   const data = await getCompetitionListPageData({
@@ -30,7 +37,7 @@ export default async function CompetitionRoutePage() {
     // 로그인하면 관심 목록을 다시 읽도록 서버 렌더를 다시 돌린다.
     <SessionHintProvider authenticated={signedIn}>
       <RefreshOnLogin />
-      <CompetitionListPage data={data} />
+      <CompetitionListPage data={data} look={look} />
     </SessionHintProvider>
   );
 }

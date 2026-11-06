@@ -1,6 +1,8 @@
 import type { CompetitionListPageData } from "@/features/competition/application/get-competition-list-page-data";
 import { FeedErrorState } from "@/features/community/presentation/feed-error-state";
 import { CompetitionListView } from "@/features/competition/presentation/competition-list-view";
+import type { CompetitionLook } from "@/features/competition/presentation/competition-look";
+import { cn } from "@/shared/lib/cn";
 import { EmptyState } from "@/shared/ui/empty-state";
 
 /**
@@ -12,17 +14,25 @@ import { EmptyState } from "@/shared/ui/empty-state";
  */
 export function CompetitionListPage({
   data,
+  look = "a",
 }: {
   data: CompetitionListPageData;
+  /** 시안 (#348) — `?look=b`·`?look=c`. */
+  look?: CompetitionLook;
 }) {
   return (
-    <main className="min-h-screen bg-surface-container">
-      {renderBody(data)}
+    <main
+      className={cn(
+        "min-h-screen",
+        look === "c" ? "bg-surface-background-default" : "bg-surface-container",
+      )}
+    >
+      {renderBody(data, look)}
     </main>
   );
 }
 
-function renderBody(data: CompetitionListPageData) {
+function renderBody(data: CompetitionListPageData, look: CompetitionLook) {
   // 불러오기 실패는 홈 피드와 같은 화면(안내 + 재시도)을 쓴다 — 탭마다 실패 모양이 다르지 않게.
   if (!data.ok) return <FeedErrorState />;
   if (data.months.length === 0) {
@@ -42,6 +52,7 @@ function renderBody(data: CompetitionListPageData) {
       interestedIds={data.interestedIds}
       interestCounts={data.interestCounts}
       regionsWithCompetitions={data.regionsWithCompetitions}
+      look={look}
     />
   );
 }
