@@ -19,7 +19,7 @@ import { SURFACE_PRESS } from "@/shared/ui/press-styles";
 /**
  * 한 달 묶음 (#332·#348).
  *
- * a·b안: 옅은 면 카드 하나에 달 이름(머리)과 그 달 대회 줄을 함께 담는다 — 축구 일정 앱처럼 묶음을 카드 단위로
+ * a·b안: 회색 면(cool-gray-25) 카드 하나에 달 이름(머리)과 그 달 대회 줄을 함께 담는다 — 축구 일정 앱처럼 묶음을 카드 단위로
  * 끊어 읽게 한다. 주짓수 대회는 하루에 몇 개 안 돼서 날짜가 아니라 달로 묶는다. 줄끼리는 선 대신 간격으로 나눈다.
  * c안: 달 이름은 카드 밖 머리로 두고 대회마다 흰 카드 한 장(회색 바탕 위).
  * 상태가 없어 서버·클라이언트 어디서든 그릴 수 있다(필터 화면이 클라이언트에서 그린다).
@@ -82,7 +82,7 @@ export function MonthSection({
   return (
     <section
       aria-labelledby={headingId}
-      className="mx-3 mt-3 rounded-20 bg-surface-field-subtle px-4 pt-4 pb-1 first:mt-1"
+      className="mx-3 mt-3 rounded-20 bg-surface-field px-4 pt-4 pb-1 first:mt-1"
     >
       <h2
         id={headingId}
@@ -379,7 +379,7 @@ function TimelineItem({
           "relative flex flex-none flex-col items-center justify-center",
           look === "e"
             ? "mt-2 size-11 rounded-full border-2 border-border-default bg-surface-container"
-            : "h-14 w-11 rounded-15 bg-surface-field-subtle",
+            : "h-14 w-11 rounded-15 bg-surface-field",
         )}
       >
         <span
@@ -404,7 +404,7 @@ function TimelineItem({
           {weekday.label}
         </span>
       </time>
-      <div className="min-w-0 flex-1 rounded-20 bg-surface-field-subtle px-4 pt-3.5 pb-3">
+      <div className="min-w-0 flex-1 rounded-20 bg-surface-field px-4 pt-3.5 pb-3">
         {look === "d" ? (
           <div className="flex items-start gap-3">
             <div className="min-w-0 flex-1">

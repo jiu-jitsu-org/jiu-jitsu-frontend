@@ -90,7 +90,7 @@ export function CompetitionCalendar({
     <div className="pb-6">
       <section
         aria-label="대회 달력"
-        className="mx-3 mt-1 rounded-20 bg-surface-field-subtle px-2 pt-2 pb-3"
+        className="mx-3 mt-1 rounded-20 bg-surface-field px-2 pt-2 pb-3"
       >
         <div className="flex items-center justify-between">
           <IconButton
@@ -151,7 +151,7 @@ export function CompetitionCalendar({
       {/* 고른 날 카드 — 목록 보기의 달 카드(#348)와 같은 모양: 머리(날짜)와 대회 줄을 한 면에 담는다. */}
       <section
         aria-label={`${selectedLabel} 대회`}
-        className="mx-3 mt-3 rounded-20 bg-surface-field-subtle px-4 pt-4 pb-1"
+        className="mx-3 mt-3 rounded-20 bg-surface-field px-4 pt-4 pb-1"
       >
         <h2
           aria-live="polite"
