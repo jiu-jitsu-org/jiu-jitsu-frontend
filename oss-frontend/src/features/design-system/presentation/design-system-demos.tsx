@@ -5,6 +5,7 @@ import { useState } from "react";
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
 import { EmptyState } from "@/shared/ui/empty-state";
+import { SearchField } from "@/shared/ui/search-field";
 import { useToast } from "@/shared/ui/toast";
 
 /** motion.css의 공통 움직임 — 화면 전용(밸런스 캐릭터 등)은 빼고 여러 곳이 같이 쓰는 것만. */
@@ -97,5 +98,19 @@ export function EmptyStateDemo() {
       action={{ label: "다시 시도", onClick: () => toast.show("다시 불러왔어요", { tone: "success" }) }}
       className="py-6"
     />
+  );
+}
+
+export function SearchFieldDemo() {
+  const [value, setValue] = useState("");
+  return (
+    <div className="max-w-sm">
+      <SearchField
+        value={value}
+        onValueChange={setValue}
+        placeholder="대회 이름으로 찾기"
+        aria-label="검색어"
+      />
+    </div>
   );
 }

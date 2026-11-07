@@ -15,7 +15,12 @@ import { Skeleton } from "@/shared/ui/skeleton";
 import { Spinner } from "@/shared/ui/spinner";
 
 import { CharacterSection } from "./design-system-characters";
-import { EmptyStateDemo, MotionDemo, ToastDemo } from "./design-system-demos";
+import {
+  EmptyStateDemo,
+  MotionDemo,
+  SearchFieldDemo,
+  ToastDemo,
+} from "./design-system-demos";
 
 /**
  * /ds — 디자인 시스템 한눈에 보기.
@@ -336,6 +341,13 @@ export function DesignSystemPage() {
                 <Icons.CloseIcon />
               </IconButton>
             </div>
+          </Demo>
+
+          <Demo
+            title="SearchField"
+            note="높이 40 · 회색 면 · 입력 중 파랑 테두리 · 글자 16(iOS 확대 막음) · 글자 있으면 지우기"
+          >
+            <SearchFieldDemo />
           </Demo>
 
           <Demo title="EmptyState" note="제목 + 설명 + 버튼(선택)">
