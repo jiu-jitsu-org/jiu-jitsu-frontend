@@ -16,6 +16,21 @@
 | thumbs-up.png | 엄지척 |
 | shaka.png | OSS · 샤카 |
 
+## character/gloves-2d — 2D 오스 손동작 · 띠 색별 (SVG, 그림자 없음)
+
+`gloves/shaka.png`(3D 샤카)의 윤곽을 그대로 따서 둥글게 다듬은 2D 손. 확정안 C1 = 띠 색 장갑 + 두꺼운 검은 테두리 + 접힌 손가락 셋을 감싸는 검은 선. 새끼손가락은 3D 보다 조금 길게.
+출처: 디자인 캔버스 "띠 캐릭터 2D 모음" (https://claude.ai/artifact/VoZ4qVt2YS4ZxeERxiAvWc)
+
+viewBox `-20 -20 296 296` (손 256 칸 + 테두리 여유 20). 만드는 스크립트는 iOS 레포 쪽 `design/character-2d/export-hands.mjs`.
+
+| 파일 | 띠 |
+| --- | --- |
+| shaka/white.svg | 흰띠 |
+| shaka/blue.svg | 파란띠 |
+| shaka/purple.svg | 보라띠 |
+| shaka/brown.svg | 갈색띠 |
+| shaka/black.svg | 검은띠 |
+
 ## character/bodies — 최종 몸통 쉐입 · 띠 색별, 얼굴 없음 (320×320)
 
 폴더 = 띠 색: `white` 흰띠 · `blue` 파란띠 · `purple` 보라띠 · `brown` 갈색띠 · `black` 검은띠 · `red` 빨강 원본
