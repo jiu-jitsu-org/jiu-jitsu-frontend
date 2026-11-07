@@ -30,6 +30,7 @@ import { useCompetitionInterest } from "@/features/competition/presentation/use-
 import {
   CalendarIcon,
   ChevronDownIcon,
+  HeartIcon,
   ListIcon,
   SearchIcon,
 } from "@/shared/ui";
@@ -38,7 +39,7 @@ import { EmptyState } from "@/shared/ui/empty-state";
 import { IconButton } from "@/shared/ui/icon-button";
 
 /**
- * 대회 목록 + 위 필터 줄 (#334) — 관심 · 지역 · 접수 중 · 노기.
+ * 대회 목록 + 위 필터 줄 (#334) — 관심(하트) · 지역 · 접수 중.
  *
  * 목록은 서버가 한 번에 다 보내고 거르기는 여기서 한다 — 대회 수가 한 해 수백 건이라 칩을 누를 때마다
  * 서버를 다시 부르지 않는다. 필터 줄은 목록을 내려도 위에 붙어 있어 언제든 바꿀 수 있다.
@@ -148,7 +149,7 @@ export function CompetitionListView({
     }));
   };
 
-  const toggle = (key: "interestedOnly" | "openOnly" | "nogiOnly") =>
+  const toggle = (key: "interestedOnly" | "openOnly") =>
     setFilter((current) => ({ ...current, [key]: !current[key] }));
 
   const toggleInterested = () => toggle("interestedOnly");
@@ -179,10 +180,12 @@ export function CompetitionListView({
       >
         <div className="flex items-center">
           <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto py-3 pr-2 pl-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {/* 관심은 글자 대신 하트 — 대회 줄의 관심 버튼과 같은 하트·같은 빨강이라 무엇을 거르는지 바로 읽힌다. */}
             <Chip
               tone="primary"
               selected={activeFilter.interestedOnly}
               aria-pressed={activeFilter.interestedOnly}
+              aria-label="관심 대회만 보기"
               onClick={
                 signedIn
                   ? toggleInterested
@@ -191,8 +194,17 @@ export function CompetitionListView({
                       "관심 대회는 OSS 앱에서 로그인 후 볼 수 있어요.",
                     )
               }
+              className="px-2.5"
             >
-              관심
+              <HeartIcon
+                size={18}
+                filled={activeFilter.interestedOnly}
+                className={
+                  activeFilter.interestedOnly
+                    ? "text-reaction-bar-active-like-icon"
+                    : undefined
+                }
+              />
             </Chip>
             <Chip
               tone="primary"
@@ -222,14 +234,6 @@ export function CompetitionListView({
             >
               <RegistrationIcon stage="open" size={16} />
               접수 중
-            </Chip>
-            <Chip
-              tone="primary"
-              selected={filter.nogiOnly}
-              aria-pressed={filter.nogiOnly}
-              onClick={() => toggle("nogiOnly")}
-            >
-              노기
             </Chip>
           </div>
           <IconButton

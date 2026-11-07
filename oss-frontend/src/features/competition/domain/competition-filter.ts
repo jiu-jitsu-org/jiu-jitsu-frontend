@@ -3,7 +3,7 @@ import type { CompetitionRegion } from "@/features/competition/domain/competitio
 import type { RegistrationStatus } from "@/features/competition/domain/competition-registration";
 
 /**
- * 대회 목록 필터(#334) — 관심 · 지역 · 접수 중 · 노기, 그리고 이름 검색(#345).
+ * 대회 목록 필터(#334) — 관심 · 지역 · 접수 중, 그리고 이름 검색(#345).
  *
  * 모두 "그리고"로 겹친다. 지역은 여러 시·도를 고를 수 있고, 고른 시·도 중 하나면 통과한다.
  * 아무것도 고르지 않은 지역(빈 배열)은 "전체"다.
@@ -14,8 +14,6 @@ export type CompetitionFilter = {
   regions: readonly CompetitionRegion[];
   /** 지금 신청할 수 있는 대회만 */
   openOnly: boolean;
-  /** 노기 부문이 있는 대회만 */
-  nogiOnly: boolean;
   /** 대회 이름 검색어(#345). 빈 문자열이면 검색하지 않는다. */
   nameQuery: string;
 };
@@ -24,7 +22,6 @@ export const EMPTY_COMPETITION_FILTER: CompetitionFilter = {
   interestedOnly: false,
   regions: [],
   openOnly: false,
-  nogiOnly: false,
   nameQuery: "",
 };
 
@@ -33,7 +30,6 @@ export function isCompetitionFilterEmpty(filter: CompetitionFilter): boolean {
     !filter.interestedOnly &&
     filter.regions.length === 0 &&
     !filter.openOnly &&
-    !filter.nogiOnly &&
     !hasNameQuery(filter.nameQuery)
   );
 }
@@ -77,7 +73,6 @@ export function matchesCompetitionFilter(
     return false;
   }
   if (filter.openOnly && registration?.kind !== "open") return false;
-  if (filter.nogiOnly && !competition.divisions.includes("nogi")) return false;
   if (!matchesCompetitionName(competition.name, filter.nameQuery)) return false;
   return true;
 }
