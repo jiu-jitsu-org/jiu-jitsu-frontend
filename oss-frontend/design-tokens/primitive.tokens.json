@@ -872,6 +872,46 @@
           }
         }
       }
+    },
+    "Orange": {
+      "500": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            1.0,
+            0.47843137254901963,
+            0.0
+          ],
+          "alpha": 1,
+          "hex": "#FF7A00"
+        },
+        "$extensions": {
+          "com.figma.scopes": [
+            "ALL_SCOPES"
+          ]
+        }
+      }
+    },
+    "Yellow": {
+      "400": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            1.0,
+            0.7686274509803922,
+            0.0
+          ],
+          "alpha": 1,
+          "hex": "#FFC400"
+        },
+        "$extensions": {
+          "com.figma.scopes": [
+            "ALL_SCOPES"
+          ]
+        }
+      }
     }
   },
   "$extensions": {

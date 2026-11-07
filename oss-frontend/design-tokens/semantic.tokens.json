@@ -625,6 +625,28 @@
           "targetVariableSetName": "Primitive"
         }
       }
+    },
+    "icon-flame-core": {
+      "$type": "color",
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          1.0,
+          0.7686274509803922,
+          0.0
+        ],
+        "alpha": 1,
+        "hex": "#FFC400"
+      },
+      "$extensions": {
+        "com.figma.scopes": [
+          "ALL_SCOPES"
+        ],
+        "com.figma.aliasData": {
+          "targetVariableName": "Color/Yellow/400",
+          "targetVariableSetName": "Primitive"
+        }
+      }
     }
   },
   "transparent": {
