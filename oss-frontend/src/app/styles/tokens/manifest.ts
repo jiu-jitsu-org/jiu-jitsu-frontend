@@ -56,6 +56,8 @@ export const primitiveTokens: TokenEntry[] = [
   {"name":"opacity-blue-10","alias":null,"hex":"#009dff1a"},
   {"name":"opacity-blue-40","alias":null,"hex":"#009dff66"},
   {"name":"opacity-red-10","alias":null,"hex":"#ff1d0d1a"},
+  {"name":"orange-500","alias":null,"hex":"#ff7a00"},
+  {"name":"yellow-400","alias":null,"hex":"#ffc400"},
 ];
 
 export const semanticTokens: TokenEntry[] = [
@@ -84,6 +86,7 @@ export const semanticTokens: TokenEntry[] = [
   {"name":"icon-disabled-on-dark","alias":"opacity-white-40","hex":"#ffffff66"},
   {"name":"icon-on-inactive","alias":"bw-white","hex":"#fafafa"},
   {"name":"icon-on-inactive-2","alias":"bw-white","hex":"#fafafa"},
+  {"name":"icon-flame-core","alias":"yellow-400","hex":"#ffc400"},
   {"name":"transparent","alias":null,"hex":"#ffffff00"},
   {"name":"border-default","alias":"cool-gray-200","hex":"#b7b9bd"},
   {"name":"border-pressed","alias":"cool-gray-300","hex":"#9c9ea6"},

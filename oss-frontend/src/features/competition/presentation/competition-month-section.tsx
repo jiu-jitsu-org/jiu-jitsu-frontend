@@ -19,6 +19,48 @@ import { cn } from "@/shared/lib/cn";
 import { HeartIcon } from "@/shared/ui/icons";
 import { SURFACE_PRESS } from "@/shared/ui/press-styles";
 
+/** 달 머리 한 줄의 틀. 달 사이는 위 16으로 띄우고, 맨 첫 달은 필터 줄에 붙어 있어 위 4만 둔다(칩 줄과 16 간격). */
+const MONTH_HEADING_CLASS =
+  "relative flex items-center gap-2 pt-4 pb-3 [section:first-child>&]:pt-1";
+
+/** 올해는 "11월", 해가 바뀌면 "2027년 1월" — 연말에 다음 해 대회가 섞여도 헷갈리지 않게. */
+export function monthLabel(
+  month: { year: number; month: number },
+  currentYear: number,
+) {
+  return month.year === currentYear
+    ? `${month.month}월`
+    : `${month.year}년 ${month.month}월`;
+}
+
+/** 달 머리 속 — 줄 위 작은 점 + "12월". `onLine`이면 점 둘레를 바탕색으로 둘러 지나가는 세로 줄을 끊어 보이게 한다. */
+export function MonthHeadingContent({
+  label,
+  onLine = true,
+}: {
+  label: string;
+  onLine?: boolean;
+}) {
+  return (
+    <>
+      <span aria-hidden className="flex w-9 flex-none justify-center">
+        <span
+          className={cn(
+            "size-1.5 rounded-full bg-icon-disabled",
+            onLine && "ring-4 ring-surface-container",
+          )}
+        />
+      </span>
+      <span
+        data-month-label
+        className="text-[13px] leading-[18px] font-semibold text-text-secondary"
+      >
+        {label}
+      </span>
+    </>
+  );
+}
+
 /**
  * 한 달 묶음 — 세로 타임라인 (#348, 캐롯 주행 기록 참고).
  *
@@ -38,11 +80,6 @@ export function MonthSection({
   interest?: CompetitionInterest;
 }) {
   const headingId = `competition-month-${month.year}-${month.month}`;
-  // 올해는 "11월", 해가 바뀌면 "2027년 1월" — 연말에 다음 해 대회가 섞여도 헷갈리지 않게.
-  const label =
-    month.year === currentYear
-      ? `${month.month}월`
-      : `${month.year}년 ${month.month}월`;
 
   return (
     <section aria-labelledby={headingId} className="relative px-4">
@@ -51,13 +88,9 @@ export function MonthSection({
         aria-hidden
         className="absolute top-0 bottom-0 left-[33.5px] w-px bg-surface-secondary"
       />
-      <h2 id={headingId} className="relative flex items-center gap-2 pt-4 pb-3">
-        <span aria-hidden className="flex w-9 flex-none justify-center">
-          <span className="size-1.5 rounded-full bg-icon-disabled ring-4 ring-surface-container" />
-        </span>
-        <span className="text-[13px] leading-[18px] font-semibold text-text-secondary">
-          {label}
-        </span>
+      {/* 스크롤해 이 머리가 위로 지나가면 필터 줄의 흐림 판이 같은 자리에 같은 모양으로 이어 보여 준다(목록 화면). */}
+      <h2 id={headingId} className={MONTH_HEADING_CLASS}>
+        <MonthHeadingContent label={monthLabel(month, currentYear)} />
       </h2>
       <ul className="relative flex flex-col gap-3 pb-3">
         {month.items.map((item) => (
@@ -81,7 +114,8 @@ export function competitionRowId(competitionId: string) {
  * 대회 한 줄 (#348). 달력 보기의 그날 대회 목록도 같은 줄을 쓴다.
  *
  * 왼쪽 날짜·요일, 오른쪽 회색 박스 — 대회 이름(굵게) → "장소 · 부문 · 대상"(회색) → 상태 칩 · 관심(하트).
- * 박스 오른쪽 위에는 가장 급한 숫자인 남은 날을 크게 둔다(캐롯의 점수 자리).
+ * 남은 날(D-day)은 내가 관심 등록한 대회에만 접수 칩 안에 작게 붙인다(2026-11) — 모든 대회에 큰 숫자를 두면
+ * 이름 자리를 빼앗는데, 챙겨 볼 날짜는 관심 대회뿐이다.
  */
 export function CompetitionRow({
   item: { competition, registration },
@@ -97,6 +131,7 @@ export function CompetitionRow({
     interest !== undefined &&
     isPopularCompetition(interest.countOf(competition.id));
   const weekday = weekdayOf(competition.date);
+  const interested = interest?.isInterested(competition.id) ?? false;
 
   return (
     // id는 마감 배너(#344)에서 누르면 이 줄로 내려오는 데 쓴다. 위에 붙은 필터 줄에 가리지 않게 여백을 둔다.
@@ -125,40 +160,37 @@ export function CompetitionRow({
         </span>
       </time>
       <div className="min-w-0 flex-1 rounded-20 bg-surface-field px-4 pt-3.5 pb-3">
-        <div className="flex items-start gap-3">
-          <div className="min-w-0 flex-1">
-            <h3 className="text-[16px] leading-[22px] font-bold break-keep text-text-primary [overflow-wrap:anywhere]">
-              {competition.name}
-            </h3>
-            {meta ? (
-              <p className="mt-0.5 text-[14px] leading-[20px] text-text-secondary">
-                {meta}
-              </p>
-            ) : null}
-          </div>
-          {/* 마감 대회는 칩이 이미 "접수 마감"이라 큰 숫자를 두지 않는다 — 같은 말을 두 번 하지 않게. */}
-          {registration && registration.kind !== "closed" ? (
-            <DeadlineMetric status={registration} currentYear={currentYear} />
-          ) : null}
-        </div>
+        <h3 className="text-[16px] leading-[22px] font-bold break-keep text-text-primary [overflow-wrap:anywhere]">
+          {competition.name}
+        </h3>
+        {meta ? (
+          <p className="mt-0.5 text-[14px] leading-[20px] text-text-secondary">
+            {meta}
+          </p>
+        ) : null}
         {registration || popular || interest ? (
           <div className="mt-2.5 flex items-center gap-1.5">
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-              {registration ? <RegistrationChip status={registration} /> : null}
+              {registration ? (
+                <RegistrationChip
+                  status={registration}
+                  // 남은 날은 관심 대회에만 — 챙겨 볼 날짜만 숫자로 띄운다.
+                  dday={interested}
+                  currentYear={currentYear}
+                />
+              ) : null}
               {popular ? (
-                <StatusChip
-                  tone="neutral"
-                  // 빨강 전용 토큰이 없어 얼리버드 마감과 같은 semantic(text/error) 빨강을 쓴다.
-                  icon={<FlameIcon size={13} className="text-text-error" />}
-                >
-                  관심 많은 대회
+                <StatusChip tone="hot" icon={<FlameIcon size={16} />}>
+                  {/* 보이는 글자는 짧게 HOT, 읽어 주는 이름은 뜻 그대로. */}
+                  <span aria-hidden>HOT</span>
+                  <span className="sr-only">관심 많은 대회</span>
                 </StatusChip>
               ) : null}
             </div>
             {interest ? (
               <InterestButton
                 competitionName={competition.name}
-                interested={interest.isInterested(competition.id)}
+                interested={interested}
                 count={interest.countOf(competition.id)}
                 onToggle={() => interest.toggle(competition.id)}
               />
@@ -171,77 +203,55 @@ export function CompetitionRow({
 }
 
 /**
- * 박스 오른쪽 위 큰 숫자 — 대회 카드에서 가장 급한 숫자인 남은 날.
- * 접수 중: "D-2"(얼리버드면 빨강, 당일은 "오늘") · 접수 예정: "11.10" + 접수 오픈(해가 다르면 "2027년 접수 오픈").
- * 마감 대회는 그리지 않는다.
+ * 접수 칩 끝에 붙는 남은 날 — 관심 대회에만 그린다.
+ * 접수 중: "D-2"(당일은 "오늘 마감", 얼리버드 마감이 먼저면 "얼리버드 D-2") · 접수 예정: 여는 날 "11.10 오픈"
+ * (해가 다르면 "2027.1.5 오픈"). 마감 대회는 없다.
  */
-function DeadlineMetric({
-  status,
-  currentYear,
-}: {
-  status: Exclude<RegistrationStatus, { kind: "closed" }>;
-  currentYear: number;
-}) {
-  let value: string;
-  let caption: string;
-  let tone: string;
+function deadlineLabel(
+  status: Exclude<RegistrationStatus, { kind: "closed" }>,
+  currentYear: number,
+): { text: string; urgent: boolean } {
   switch (status.kind) {
-    case "open":
-      value = status.daysLeft === 0 ? "오늘" : `D-${status.daysLeft}`;
-      caption =
-        status.deadline === "early-bird" ? "얼리버드 마감" : "접수 마감";
-      tone =
-        status.deadline === "early-bird" ? "text-text-error" : "text-primary";
-      break;
+    case "open": {
+      const earlyBird = status.deadline === "early-bird";
+      const days = status.daysLeft === 0 ? "오늘 마감" : `D-${status.daysLeft}`;
+      return { text: earlyBird ? `얼리버드 ${days}` : days, urgent: earlyBird };
+    }
     case "upcoming": {
       const [year, month, day] = status.opensOn.split("-").map(Number);
-      value = `${month}.${day}`;
-      // 12월에 보는 내년 1월 오픈이 지난 날짜로 읽히지 않게, 해가 다르면 아래 글자에 연도를 붙인다.
-      caption = year === currentYear ? "접수 오픈" : `${year}년 접수 오픈`;
-      tone = "text-text-secondary-strong";
-      break;
+      // 12월에 보는 내년 1월 오픈이 지난 날짜로 읽히지 않게 해가 다르면 연도를 붙인다.
+      const date =
+        year === currentYear ? `${month}.${day}` : `${year}.${month}.${day}`;
+      return { text: `${date} 오픈`, urgent: false };
     }
   }
-  return (
-    <div className="flex flex-none flex-col items-end pt-0.5">
-      <span
-        className={cn(
-          "text-[22px] leading-[26px] font-bold tabular-nums",
-          tone,
-        )}
-      >
-        {value}
-      </span>
-      <span className="text-[12px] leading-[16px] text-text-tertiary">
-        {caption}
-      </span>
-    </div>
-  );
 }
 
 /**
- * 상태 칩 — 박스 아래 칩 줄의 작은 알약.
+ * 상태 칩 — 박스 아래 칩 줄의 알약.
  *
- * 한 박스에 색 면은 접수 중(옅은 파랑) 하나뿐이다. 접수 예정·관심 많은 대회·마감은 회색 박스 위에 흰 면으로 띄운다
- * (마감은 흐린 글자). 누르는 칩(필터 줄)과 헷갈리지 않게 테두리 없이 면만 쓰고 높이를 22로 낮춘다.
- * 앞 아이콘(12)은 글자색을 따른다 — 관심 많은 대회의 불꽃만 빨강으로 따로 칠한다.
+ * 색 면은 접수 중(옅은 파랑) 하나다. 접수 예정·HOT·마감은 회색 박스 위에 흰 면으로 띄운다 — 옅은 빨강 면은 회색 위에서
+ * 묻혀서, HOT은 흰 면 + 굵은 빨강 글자로 띄운다(마감은 흐린 글자).
+ * 누르는 칩(필터 줄)과 헷갈리지 않게 테두리 없이 면만 쓴다. 폰에서 앞 아이콘이 읽히게 아이콘 16 · 높이 26 · 글자 13.
+ * 앞 아이콘은 글자색을 따른다 — HOT의 불꽃만 제 색(빨강 + 노랑 속불)을 갖는다.
  */
 function StatusChip({
   tone,
   icon,
   children,
 }: {
-  tone: "primary" | "neutral" | "disabled";
+  tone: "primary" | "neutral" | "disabled" | "hot";
   icon: ReactNode;
   children: ReactNode;
 }) {
   return (
     <span
       className={cn(
-        "inline-flex h-[22px] items-center gap-[3px] rounded-full pr-2 pl-1.5 text-[12px] leading-none font-semibold whitespace-nowrap",
+        "inline-flex h-[26px] items-center gap-1 rounded-full pr-2.5 pl-1.5 text-[13px] leading-none font-semibold whitespace-nowrap",
         tone === "primary" && "bg-surface-primary-subtle text-primary",
         tone === "neutral" && "bg-surface-container text-text-secondary-strong",
         tone === "disabled" && "bg-surface-container text-text-disabled",
+        tone === "hot" && "bg-surface-container font-bold text-text-error",
       )}
     >
       {icon}
@@ -250,23 +260,47 @@ function StatusChip({
   );
 }
 
-/** 접수 상태 칩 — 접수 중(파랑 면) · 접수 예정(흰 면) · 접수 마감(흰 면, 흐린 글자). */
-function RegistrationChip({ status }: { status: RegistrationStatus }) {
+/**
+ * 접수 상태 칩 — 접수 중(파랑 면) · 접수 예정(흰 면) · 접수 마감(흰 면, 흐린 글자).
+ * `dday`면 칩 끝에 남은 날을 붙인다(가는 점으로 띄움). 얼리버드 마감은 칩 글자를 "얼리버드 D-2"로 바꾼다.
+ */
+function RegistrationChip({
+  status,
+  dday,
+  currentYear,
+}: {
+  status: RegistrationStatus;
+  dday: boolean;
+  currentYear: number;
+}) {
+  const deadline =
+    dday && status.kind !== "closed"
+      ? deadlineLabel(status, currentYear)
+      : null;
+  const suffix = deadline ? (
+    <>
+      <span aria-hidden className="opacity-40">
+        ·
+      </span>
+      <span className="font-bold tabular-nums">{deadline.text}</span>
+    </>
+  ) : null;
   switch (status.kind) {
     case "upcoming":
       return (
         <StatusChip
           tone="neutral"
-          icon={<RegistrationIcon stage="before" size={12} />}
+          icon={<RegistrationIcon stage="before" size={16} />}
         >
           접수 예정
+          {suffix}
         </StatusChip>
       );
     case "closed":
       return (
         <StatusChip
           tone="disabled"
-          icon={<RegistrationIcon stage="closed" size={12} />}
+          icon={<RegistrationIcon stage="closed" size={16} />}
         >
           접수 마감
         </StatusChip>
@@ -275,9 +309,14 @@ function RegistrationChip({ status }: { status: RegistrationStatus }) {
       return (
         <StatusChip
           tone="primary"
-          icon={<RegistrationIcon stage="open" size={12} />}
+          icon={<RegistrationIcon stage="open" size={16} />}
         >
-          접수 중
+          {/* 얼리버드 마감이 먼저면 "얼리버드 D-2"만 — 칩이 한 줄에 들어가게 줄이고, 파란 칩 안에 빨강을 섞지 않는다. */}
+          {deadline?.urgent ? (
+            <span className="font-bold tabular-nums">{deadline.text}</span>
+          ) : (
+            <>접수 중{suffix}</>
+          )}
         </StatusChip>
       );
   }

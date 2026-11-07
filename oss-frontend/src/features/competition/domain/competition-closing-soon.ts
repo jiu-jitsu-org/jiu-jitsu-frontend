@@ -25,7 +25,7 @@ export type ClosingSoonItem = {
 /**
  * 관심 대회 중 곧 마감인 대회 — 마감이 가까운 순, 같으면 대회 날짜순·이름순.
  *
- * 필터와 무관하다: 지역·노기 필터를 켜 둬도 내 대회의 마감은 놓치지 않게 한다.
+ * 필터와 무관하다: 지역·접수 중 필터를 켜 둬도 내 대회의 마감은 놓치지 않게 한다.
  */
 export function closingSoonInterested(
   targets: readonly ClosingSoonTarget[],

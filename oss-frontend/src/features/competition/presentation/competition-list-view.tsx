@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { useIsSignedIn } from "@/features/auth/presentation/auth-provider";
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
@@ -21,8 +21,10 @@ import { CompetitionCalendar } from "@/features/competition/presentation/competi
 import { CompetitionClosingSoonBanner } from "@/features/competition/presentation/competition-closing-soon-banner";
 import { RegistrationIcon } from "@/features/competition/presentation/competition-icons";
 import {
+  MonthHeadingContent,
   MonthSection,
   competitionRowId,
+  monthLabel,
 } from "@/features/competition/presentation/competition-month-section";
 import { CompetitionRegionSheet } from "@/features/competition/presentation/competition-region-sheet";
 import { CompetitionSearchField } from "@/features/competition/presentation/competition-search-field";
@@ -30,6 +32,7 @@ import { useCompetitionInterest } from "@/features/competition/presentation/use-
 import {
   CalendarIcon,
   ChevronDownIcon,
+  HeartIcon,
   ListIcon,
   SearchIcon,
 } from "@/shared/ui";
@@ -38,7 +41,7 @@ import { EmptyState } from "@/shared/ui/empty-state";
 import { IconButton } from "@/shared/ui/icon-button";
 
 /**
- * 대회 목록 + 위 필터 줄 (#334) — 관심 · 지역 · 접수 중 · 노기.
+ * 대회 목록 + 위 필터 줄 (#334) — 관심(하트) · 지역 · 접수 중.
  *
  * 목록은 서버가 한 번에 다 보내고 거르기는 여기서 한다 — 대회 수가 한 해 수백 건이라 칩을 누를 때마다
  * 서버를 다시 부르지 않는다. 필터 줄은 목록을 내려도 위에 붙어 있어 언제든 바꿀 수 있다.
@@ -73,6 +76,10 @@ export function CompetitionListView({
   const [mode, setMode] = useState<"list" | "calendar">("list");
   // 이름 검색(#345)은 돋보기를 눌러야 열린다. 닫으면 검색어도 지운다 — 안 보이는 검색어로 걸러지지 않게.
   const [searchOpen, setSearchOpen] = useState(false);
+  // 필터 줄(칩 + 열린 검색칸)과 목록 — 스크롤하며 어느 달 머리가 필터 줄 밑으로 지나갔는지 잰다.
+  const filterBarRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const [passedMonthIndex, setPassedMonthIndex] = useState<number | null>(null);
 
   const signedIn = useIsSignedIn();
   const { guard } = useLoginGuard();
@@ -97,6 +104,82 @@ export function CompetitionListView({
       .filter((month) => month.items.length > 0);
     // 관심은 이 화면에서 누른 결과까지 반영한 값으로 거른다 — 관심만 보는 중에 해제하면 바로 빠진다.
   }, [activeFilter, interest.interestedIds, months]);
+
+  // 달 머리가 필터 줄 밑으로 지나가면 필터 줄 흐림 판 아래에 그 달 머리를 같은 자리·같은 모양으로 이어 단다.
+  // 따로 붙는 머리를 두면 흐림 판이 둘로 나뉘어 이음매가 보여, 한 판에 둘을 함께 얹는다.
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      // 검색칸을 여닫으며 목록이 미끄러지는 동안은 옮겨 둔 자리라 재지 않는다 — 끝나면 다시 잰다.
+      if (belowBarRef.current?.getAnimations().length) return;
+      const barBottom = filterBarRef.current?.offsetHeight ?? 0;
+      // 목록 속 달 글자가 이어 단 머리의 글자 자리(필터 줄 아래 4)에 닿는 순간 바꿔, 겹친 채로 넘어가게 한다.
+      const labels = Array.from(
+        list.querySelectorAll("section > h2 [data-month-label]"),
+      );
+      let passed: number | null = null;
+      for (const [index, label] of labels.entries()) {
+        if (
+          label.getBoundingClientRect().top <=
+          barBottom + PASSED_MONTH_TOP_GAP + 0.5
+        )
+          passed = index;
+      }
+      setPassedMonthIndex(passed);
+    };
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    schedule();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+    };
+  }, [mode, visibleMonths, searchOpen]);
+  const passedMonth =
+    mode === "list" && passedMonthIndex !== null
+      ? visibleMonths[passedMonthIndex]
+      : undefined;
+
+  // 검색칸이 열리고 닫히면 필터 줄 높이가 바뀌어 그 아래(이어 단 달 머리·배너·목록)가 한 번에 밀린다.
+  // 밀린 만큼 거꾸로 옮겨 놓고 제자리로 미끄러지게 해, 검색칸이 나타나는 0.5초 동안 함께 움직이게 한다.
+  // 높이는 움직이지 않고 위치(transform)만 움직이며, 끝나면 아무것도 남기지 않는다.
+  const passedMonthRef = useRef<HTMLDivElement>(null);
+  const belowBarRef = useRef<HTMLDivElement>(null);
+  const lastBarHeight = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    const height = filterBarRef.current?.offsetHeight ?? 0;
+    const shift = (lastBarHeight.current ?? height) - height;
+    lastBarHeight.current = height;
+    if (shift === 0) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const easing =
+      getComputedStyle(document.documentElement)
+        .getPropertyValue("--ease-smooth-out")
+        .trim() || "cubic-bezier(0.2, 0.8, 0.2, 1)";
+    for (const element of [passedMonthRef.current, belowBarRef.current]) {
+      if (!element) continue;
+      // 미끄러지는 도중에 다시 여닫으면 지금 보이는 자리에서 이어 간다(처음 자리로 튀지 않게).
+      const current = new DOMMatrixReadOnly(getComputedStyle(element).transform)
+        .m42;
+      for (const running of element.getAnimations()) running.cancel();
+      const animation = element.animate(
+        [
+          { transform: `translateY(${shift + current}px)` },
+          { transform: "none" },
+        ],
+        { duration: 500, easing },
+      );
+      // 움직이는 동안 잰 달 머리 위치는 옮겨 둔 자리라, 끝나면 다시 잰다.
+      animation.onfinish = () => window.dispatchEvent(new Event("scroll"));
+    }
+  }, [searchOpen]);
 
   // 관심 대회 마감 배너(#344) — 필터와 무관하게 내 관심 대회 전체에서 고른다. 비로그인이면 관심이 없어 비어 있다.
   const closingSoon = useMemo(
@@ -125,10 +208,19 @@ export function CompetitionListView({
     const reduce = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
-    // 위에 붙은 필터 줄(검색칸이 열리면 더 높다) 바로 아래에 오게 그 높이만큼 띄운다.
-    const barHeight = document.getElementById(FILTER_BAR_ID)?.offsetHeight ?? 0;
+    // 위에 붙은 필터 줄(검색칸이 열리면 더 높다)과 목록이면 그 아래 이어 다는 달 머리까지 비켜 띄운다.
+    const barHeight = filterBarRef.current?.offsetHeight ?? 0;
+    // 달력의 대회 줄은 달 묶음(달 머리 있는 section) 밖이라 이어 다는 달 머리가 없다.
+    const inMonthSection = row
+      .closest("section")
+      ?.querySelector(":scope > h2 [data-month-label]");
     window.scrollTo({
-      top: row.getBoundingClientRect().top + window.scrollY - barHeight - 8,
+      top:
+        row.getBoundingClientRect().top +
+        window.scrollY -
+        barHeight -
+        (inMonthSection ? PASSED_MONTH_HEIGHT : 0) -
+        8,
       behavior: reduce ? "auto" : "smooth",
     });
     // 스크린리더·키보드도 이동한 곳에서 이어 가게 초점을 옮긴다(스크롤은 위에서 이미 했다).
@@ -148,7 +240,7 @@ export function CompetitionListView({
     }));
   };
 
-  const toggle = (key: "interestedOnly" | "openOnly" | "nogiOnly") =>
+  const toggle = (key: "interestedOnly" | "openOnly") =>
     setFilter((current) => ({ ...current, [key]: !current[key] }));
 
   const toggleInterested = () => toggle("interestedOnly");
@@ -171,151 +263,179 @@ export function CompetitionListView({
   return (
     <>
       {/* 필터 줄: 좌우 16 · 칩 간격 8, 넘치면 가로 스크롤(스크롤바 숨김) — 글쓰기 카테고리 칩 줄과 같은 규격.
-          목록 바탕과 같은 면이라 붙어 있어도 선이 따로 필요 없다.
+          목록 바탕색을 반투명(60%)으로 깔고 뒤를 흐려, 아래로 지나가는 카드가 비치되 글자는 읽히게 한다.
+          흐림 판은 아래 끝을 서서히 지워 선 없이 목록으로 녹아들게 한다. 달 머리도 같은 판 위에 얹어 이음매가 없다.
           오른쪽 끝에 목록 ↔ 달력 전환(#339)을 고정해 둔다 — 칩이 늘어 가로로 밀어도 늘 같은 자리에 있게. */}
       <div
-        id={FILTER_BAR_ID}
-        className="sticky top-0 z-10 bg-surface-container"
+        className="sticky top-0 z-10 [overflow-anchor:none]"
+        // 이어 단 달 머리는 목록 속 머리 위에 겹쳐 놓일 뿐이라 자리를 차지하지 않게 그 높이만큼 당긴다.
+        style={passedMonth ? { marginBottom: -PASSED_MONTH_HEIGHT } : undefined}
       >
-        <div className="flex items-center">
-          <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto py-3 pr-2 pl-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <Chip
-              tone="primary"
-              selected={activeFilter.interestedOnly}
-              aria-pressed={activeFilter.interestedOnly}
-              onClick={
-                signedIn
-                  ? toggleInterested
-                  : guard(
-                      toggleInterested,
-                      "관심 대회는 OSS 앱에서 로그인 후 볼 수 있어요.",
-                    )
-              }
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 -bottom-4 bg-surface-container/60 backdrop-blur-lg [mask-image:linear-gradient(to_bottom,black_calc(100%-28px),transparent)]"
+        />
+        <div id={FILTER_BAR_ID} ref={filterBarRef} className="relative">
+          <div className="flex items-center">
+            <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto py-3 pr-2 pl-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {/* 관심은 글자 대신 하트 — 대회 줄의 관심 버튼과 같은 하트·같은 빨강이라 무엇을 거르는지 바로 읽힌다. */}
+              <Chip
+                tone="primary"
+                selected={activeFilter.interestedOnly}
+                aria-pressed={activeFilter.interestedOnly}
+                aria-label="관심 대회만 보기"
+                onClick={
+                  signedIn
+                    ? toggleInterested
+                    : guard(
+                        toggleInterested,
+                        "관심 대회는 OSS 앱에서 로그인 후 볼 수 있어요.",
+                      )
+                }
+                className="px-2.5"
+              >
+                <HeartIcon
+                  size={18}
+                  filled={activeFilter.interestedOnly}
+                  className={
+                    activeFilter.interestedOnly
+                      ? "text-reaction-bar-active-like-icon"
+                      : undefined
+                  }
+                />
+              </Chip>
+              <Chip
+                tone="primary"
+                selected={filter.regions.length > 0}
+                aria-haspopup="dialog"
+                // 시트를 여는 칩이라 aria-pressed 대신 이름에 고른 지역을 담는다.
+                aria-label={
+                  filter.regions.length > 0
+                    ? `지역: ${filter.regions.join(", ")}`
+                    : "지역: 전체"
+                }
+                onClick={() => {
+                  setRegionSheetKey((key) => key + 1);
+                  setRegionSheetOpen(true);
+                }}
+                className="gap-0.5 pr-2"
+              >
+                {regionLabel(filter.regions)}
+                <ChevronDownIcon size={16} />
+              </Chip>
+              <Chip
+                tone="primary"
+                selected={filter.openOnly}
+                aria-pressed={filter.openOnly}
+                onClick={() => toggle("openOnly")}
+                className="gap-1 pl-2.5"
+              >
+                <RegistrationIcon stage="open" size={16} />
+                접수 중
+              </Chip>
+            </div>
+            <IconButton
+              id={SEARCH_BUTTON_ID}
+              aria-label="대회 이름 검색"
+              aria-expanded={searchOpen}
+              aria-controls={searchOpen ? SEARCH_INPUT_ID : undefined}
+              onClick={() => (searchOpen ? closeSearch() : setSearchOpen(true))}
+              className={searchOpen ? "text-primary" : undefined}
             >
-              관심
-            </Chip>
-            <Chip
-              tone="primary"
-              selected={filter.regions.length > 0}
-              aria-haspopup="dialog"
-              // 시트를 여는 칩이라 aria-pressed 대신 이름에 고른 지역을 담는다.
-              aria-label={
-                filter.regions.length > 0
-                  ? `지역: ${filter.regions.join(", ")}`
-                  : "지역: 전체"
-              }
+              <SearchIcon size={22} />
+            </IconButton>
+            <IconButton
+              aria-label={mode === "list" ? "달력으로 보기" : "목록으로 보기"}
               onClick={() => {
-                setRegionSheetKey((key) => key + 1);
-                setRegionSheetOpen(true);
+                setMode(mode === "list" ? "calendar" : "list");
+                // 보기를 바꾸면 배너로 골랐던 대회는 잊는다 — 달력은 늘 가장 가까운 대회 날부터 연다.
+                setFocus(null);
               }}
-              className="gap-0.5 pr-2"
+              className="mr-2"
             >
-              {regionLabel(filter.regions)}
-              <ChevronDownIcon size={16} />
-            </Chip>
-            <Chip
-              tone="primary"
-              selected={filter.openOnly}
-              aria-pressed={filter.openOnly}
-              onClick={() => toggle("openOnly")}
-              className="gap-1 pl-2.5"
-            >
-              <RegistrationIcon stage="open" size={16} />
-              접수 중
-            </Chip>
-            <Chip
-              tone="primary"
-              selected={filter.nogiOnly}
-              aria-pressed={filter.nogiOnly}
-              onClick={() => toggle("nogiOnly")}
-            >
-              노기
-            </Chip>
+              {mode === "list" ? (
+                <CalendarIcon size={22} />
+              ) : (
+                <ListIcon size={22} />
+              )}
+            </IconButton>
           </div>
-          <IconButton
-            id={SEARCH_BUTTON_ID}
-            aria-label="대회 이름 검색"
-            aria-expanded={searchOpen}
-            aria-controls={searchOpen ? SEARCH_INPUT_ID : undefined}
-            onClick={() => (searchOpen ? closeSearch() : setSearchOpen(true))}
-            className={searchOpen ? "text-primary" : undefined}
-          >
-            <SearchIcon size={22} />
-          </IconButton>
-          <IconButton
-            aria-label={mode === "list" ? "달력으로 보기" : "목록으로 보기"}
-            onClick={() => {
-              setMode(mode === "list" ? "calendar" : "list");
-              // 보기를 바꾸면 배너로 골랐던 대회는 잊는다 — 달력은 늘 가장 가까운 대회 날부터 연다.
-              setFocus(null);
-            }}
-            className="mr-2"
-          >
-            {mode === "list" ? (
-              <CalendarIcon size={22} />
-            ) : (
-              <ListIcon size={22} />
-            )}
-          </IconButton>
+          {searchOpen ? (
+            <CompetitionSearchField
+              id={SEARCH_INPUT_ID}
+              value={filter.nameQuery}
+              onChange={setNameQuery}
+              onClose={closeSearch}
+            />
+          ) : null}
         </div>
-        {searchOpen ? (
-          <CompetitionSearchField
-            id={SEARCH_INPUT_ID}
-            value={filter.nameQuery}
-            onChange={setNameQuery}
-            onClose={closeSearch}
-          />
+        {passedMonth ? (
+          // 목록 속 진짜 머리(h2)가 뜻을 맡으니 여기는 보이기만 한다.
+          <div
+            ref={passedMonthRef}
+            aria-hidden
+            className="relative flex items-center gap-2 px-4 pt-1 pb-3"
+          >
+            <MonthHeadingContent
+              label={monthLabel(passedMonth, currentYear)}
+              onLine={false}
+            />
+          </div>
         ) : null}
       </div>
 
-      <CompetitionClosingSoonBanner
-        items={closingSoon}
-        onSelect={focusCompetition}
-      />
+      {/* 브라우저가 스크롤을 몰래 고쳐 목록을 제자리에 붙잡으면(크롬) 위 미끄러짐과 어긋나, 여기서는 끈다 —
+          사파리처럼 늘 검색칸만큼 밀리고 그 밀림을 미끄러지게 보여 준다. */}
+      <div ref={belowBarRef} className="[overflow-anchor:none]">
+        <CompetitionClosingSoonBanner
+          items={closingSoon}
+          onSelect={focusCompetition}
+        />
 
-      {mode === "calendar" ? (
-        // 달력은 걸러서 비어도 그대로 둔다 — 달을 넘기며 다른 날을 볼 수 있어야 한다.
-        // 배너에서 대회를 누르면 key를 바꿔 그 날짜를 고른 채로 다시 그린다.
-        <CompetitionCalendar
-          key={focus ? `focus-${focus.seq}` : "initial"}
-          focusDate={focus?.date}
-          months={visibleMonths}
-          lastMonth={months.at(-1) ?? { year: currentYear, month: 12 }}
-          today={today}
-          currentYear={currentYear}
-          interest={interest}
-          filtered={!isCompetitionFilterEmpty(activeFilter)}
-        />
-      ) : visibleMonths.length === 0 ? (
-        <EmptyState
-          title={
-            emptyBySearchOnly
-              ? "이름이 맞는 대회가 없어요"
-              : "조건에 맞는 대회가 없어요"
-          }
-          action={
-            emptyBySearchOnly
-              ? { label: "검색어 지우기", onClick: () => setNameQuery("") }
-              : {
-                  label: "필터 지우기",
-                  // 검색칸이 열려 있으면 검색어도 함께 비운다 — EMPTY에 빈 검색어가 들어 있다.
-                  onClick: () => setFilter(EMPTY_COMPETITION_FILTER),
-                }
-          }
-          className="pt-[30vh]"
-        />
-      ) : (
-        <div className="pb-6">
-          {visibleMonths.map((month) => (
-            <MonthSection
-              key={`${month.year}-${month.month}`}
-              month={month}
-              currentYear={currentYear}
-              interest={interest}
-            />
-          ))}
-        </div>
-      )}
+        {mode === "calendar" ? (
+          // 달력은 걸러서 비어도 그대로 둔다 — 달을 넘기며 다른 날을 볼 수 있어야 한다.
+          // 배너에서 대회를 누르면 key를 바꿔 그 날짜를 고른 채로 다시 그린다.
+          <CompetitionCalendar
+            key={focus ? `focus-${focus.seq}` : "initial"}
+            focusDate={focus?.date}
+            months={visibleMonths}
+            lastMonth={months.at(-1) ?? { year: currentYear, month: 12 }}
+            today={today}
+            currentYear={currentYear}
+            interest={interest}
+            filtered={!isCompetitionFilterEmpty(activeFilter)}
+          />
+        ) : visibleMonths.length === 0 ? (
+          <EmptyState
+            title={
+              emptyBySearchOnly
+                ? "이름이 맞는 대회가 없어요"
+                : "조건에 맞는 대회가 없어요"
+            }
+            action={
+              emptyBySearchOnly
+                ? { label: "검색어 지우기", onClick: () => setNameQuery("") }
+                : {
+                    label: "필터 지우기",
+                    // 검색칸이 열려 있으면 검색어도 함께 비운다 — EMPTY에 빈 검색어가 들어 있다.
+                    onClick: () => setFilter(EMPTY_COMPETITION_FILTER),
+                  }
+            }
+            className="pt-[30vh]"
+          />
+        ) : (
+          <div ref={listRef} className="pb-6">
+            {visibleMonths.map((month) => (
+              <MonthSection
+                key={`${month.year}-${month.month}`}
+                month={month}
+                currentYear={currentYear}
+                interest={interest}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
       <CompetitionRegionSheet
         key={regionSheetKey}
@@ -333,6 +453,9 @@ export function CompetitionListView({
 }
 
 const FILTER_BAR_ID = "competition-filter-bar";
+/** 필터 줄에 이어 다는 달 머리 — 칩 줄 아래 여백 12에 위 4를 더해 칩과 16 간격. 높이는 위 4 + 글자 18 + 아래 12. */
+const PASSED_MONTH_TOP_GAP = 4;
+const PASSED_MONTH_HEIGHT = 34;
 const SEARCH_INPUT_ID = "competition-name-search";
 const SEARCH_BUTTON_ID = "competition-name-search-toggle";
 

@@ -10,6 +10,7 @@ export { Chip } from "./chip";
 export type { ButtonProps } from "./button";
 export { IconButton, iconButtonVariants } from "./icon-button";
 export type { IconButtonProps } from "./icon-button";
+export { SearchField } from "./search-field";
 export { Skeleton } from "./skeleton";
 export { Divider } from "./divider";
 export { EmptyState } from "./empty-state";

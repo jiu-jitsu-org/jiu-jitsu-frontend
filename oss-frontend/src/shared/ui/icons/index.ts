@@ -24,6 +24,7 @@ export { HashIcon } from "./hash-icon";
 export { ReplyBranchIcon } from "./reply-branch-icon";
 export { SendIcon } from "./send-icon";
 export { CloseIcon } from "./close-icon";
+export { ClearIcon } from "./clear-icon";
 export { AlertTriangleIcon } from "./alert-triangle-icon";
 export { TimerIcon } from "./timer-icon";
 export { CheckIcon } from "./check-icon";
