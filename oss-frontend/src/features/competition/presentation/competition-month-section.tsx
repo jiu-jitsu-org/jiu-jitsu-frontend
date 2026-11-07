@@ -230,7 +230,7 @@ function deadlineLabel(
 /**
  * 상태 칩 — 박스 아래 칩 줄의 알약.
  *
- * 색 면은 접수 중(옅은 파랑) 하나다. 접수 예정·HOT·마감은 회색 박스 위에 흰 면으로 띄운다 — 옅은 빨강 면은 회색 위에서
+ * 색 면은 접수 중(파랑) 하나다 — 가장 옅은 파랑은 회색 박스와 밝기가 같아 묻혀서 한 단계 진한 파랑(subtle-strong)을 쓴다. 접수 예정·HOT·마감은 회색 박스 위에 흰 면으로 띄운다 — 옅은 빨강 면은 회색 위에서
  * 묻혀서, HOT은 흰 면 + 굵은 빨강 글자로 띄운다(마감은 흐린 글자).
  * 누르는 칩(필터 줄)과 헷갈리지 않게 테두리 없이 면만 쓴다. 폰에서 앞 아이콘이 읽히게 아이콘 16 · 높이 26 · 글자 13.
  * 앞 아이콘은 글자색을 따른다 — HOT의 불꽃만 제 색(빨강 + 노랑 속불)을 갖는다.
@@ -248,7 +248,7 @@ function StatusChip({
     <span
       className={cn(
         "inline-flex h-[26px] items-center gap-1 rounded-full pr-2.5 pl-1.5 text-[13px] leading-none font-semibold whitespace-nowrap",
-        tone === "primary" && "bg-surface-primary-subtle text-primary",
+        tone === "primary" && "bg-surface-primary-subtle-strong text-primary",
         tone === "neutral" && "bg-surface-container text-text-secondary-strong",
         tone === "disabled" && "bg-surface-container text-text-disabled",
         tone === "hot" && "bg-surface-container font-bold text-text-error",
