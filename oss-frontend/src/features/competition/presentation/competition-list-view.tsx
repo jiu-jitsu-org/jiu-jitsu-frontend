@@ -113,6 +113,8 @@ export function CompetitionListView({
     let frame = 0;
     const update = () => {
       frame = 0;
+      // 검색칸을 여닫으며 목록이 미끄러지는 동안은 옮겨 둔 자리라 재지 않는다 — 끝나면 다시 잰다.
+      if (belowBarRef.current?.getAnimations().length) return;
       const barBottom = filterBarRef.current?.offsetHeight ?? 0;
       // 목록 속 달 글자가 이어 단 머리의 글자 자리(필터 줄 아래 4)에 닿는 순간 바꿔, 겹친 채로 넘어가게 한다.
       const labels = Array.from(
@@ -162,13 +164,20 @@ export function CompetitionListView({
         .getPropertyValue("--ease-smooth-out")
         .trim() || "cubic-bezier(0.2, 0.8, 0.2, 1)";
     for (const element of [passedMonthRef.current, belowBarRef.current]) {
-      const animation = element?.animate(
-        [{ transform: `translateY(${shift}px)` }, { transform: "none" }],
+      if (!element) continue;
+      // 미끄러지는 도중에 다시 여닫으면 지금 보이는 자리에서 이어 간다(처음 자리로 튀지 않게).
+      const current = new DOMMatrixReadOnly(getComputedStyle(element).transform)
+        .m42;
+      for (const running of element.getAnimations()) running.cancel();
+      const animation = element.animate(
+        [
+          { transform: `translateY(${shift + current}px)` },
+          { transform: "none" },
+        ],
         { duration: 500, easing },
       );
       // 움직이는 동안 잰 달 머리 위치는 옮겨 둔 자리라, 끝나면 다시 잰다.
-      if (animation)
-        animation.onfinish = () => window.dispatchEvent(new Event("scroll"));
+      animation.onfinish = () => window.dispatchEvent(new Event("scroll"));
     }
   }, [searchOpen]);
 
@@ -201,12 +210,16 @@ export function CompetitionListView({
     ).matches;
     // 위에 붙은 필터 줄(검색칸이 열리면 더 높다)과 목록이면 그 아래 이어 다는 달 머리까지 비켜 띄운다.
     const barHeight = filterBarRef.current?.offsetHeight ?? 0;
+    // 달력의 대회 줄은 달 묶음(달 머리 있는 section) 밖이라 이어 다는 달 머리가 없다.
+    const inMonthSection = row
+      .closest("section")
+      ?.querySelector(":scope > h2 [data-month-label]");
     window.scrollTo({
       top:
         row.getBoundingClientRect().top +
         window.scrollY -
         barHeight -
-        PASSED_MONTH_HEIGHT -
+        (inMonthSection ? PASSED_MONTH_HEIGHT : 0) -
         8,
       behavior: reduce ? "auto" : "smooth",
     });
