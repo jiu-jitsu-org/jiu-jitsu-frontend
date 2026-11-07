@@ -223,6 +223,9 @@
   --animate-feed-rise-in: rise-in 280ms var(--ease-smooth-out) backwards;
   /* 불러온 답글 — rise-in보다 느리게, 호출부가 0.1초씩 늦춰 차례로 올라오게 한다. */
   --animate-reply-rise-in: rise-in 450ms var(--ease-smooth-out) both;
+  /* 펼쳐 여는 검색칸(대회 검색) — 돋보기 아래에서 살짝 내려오며 나타난다. 끝난 뒤 transform을 남기지 않는다(backwards). */
+  --animate-search-drop-in: search-drop-in 500ms var(--ease-smooth-out)
+    backwards;
   /* 스피너 — 0.15초 늦게 옅게 나타난다. 빨리 끝나는 로딩에서는 아예 보이지 않아 깜빡이지 않는다. */
   --animate-spinner-in: fade-in 200ms ease-out 150ms backwards;
   /* 다 불러온 사진 — 제자리에서 천천히 옅게 나타난다. overlay-in과 같은 0.35초. */
@@ -324,6 +327,17 @@
     }
     30% {
       transform: scale(1.04);
+    }
+  }
+
+  @keyframes search-drop-in {
+    from {
+      opacity: 0;
+      transform: translateY(-12px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: none;
     }
   }
 
