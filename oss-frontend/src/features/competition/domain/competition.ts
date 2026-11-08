@@ -18,6 +18,28 @@ export type Competition = {
   audience?: string;
   /** 접수 일정. 아직 공지되지 않은 대회는 없다. */
   registration?: CompetitionRegistration;
+  /** 시작 시각 "HH:MM" — 상세(#361). 공지되지 않았으면 없다. */
+  startTime?: string;
+  /** 경기장 이름 — 상세에서 장소 뒤에 붙인다. 예: "송파 올림픽홀" */
+  venue?: string;
+  /** 주최 단체 이름 */
+  host?: string;
+  /** 대회사가 올린 공지 주소. 접수 상태와 상관없이 이 공지로 보낸다. */
+  noticeUrl?: string;
+  /** 참가비 단계(#364) — 싼 단계부터. 성인 1종목 기준. 공지되지 않았으면 없다. */
+  fees?: CompetitionFee[];
+  /** 대회 공지와 마지막으로 맞춰 본 날 "YYYY-MM-DD"(#365). 아직 확인하지 못한 대회는 없다. */
+  verifiedOn?: string;
+};
+
+/**
+ * 참가비 한 단계. 얼리버드처럼 기한이 있는 단계는 until(그날 포함)을 갖고, 기본 참가비는 없다.
+ * 금액은 원 단위 정수.
+ */
+export type CompetitionFee = {
+  label: string;
+  amount: number;
+  until?: string;
 };
 
 /** 같은 달에 열리는 대회 묶음. 월은 1부터. */

@@ -52,6 +52,13 @@ export const OutboundMessageType = {
   // 관심 등록은 마감 알림을 받는 기능이라, 앱이 이 순간에 알림 권한을 묻는다(이미 물었으면 앱이 판단).
   // 결과 회신은 없다 — 권한을 거절해도 관심 등록 자체는 유지된다. 이 메시지를 모르는 구버전 앱은 무시한다.
   COMPETITION_INTEREST_FIRST_ADDED: "COMPETITION_INTEREST_FIRST_ADDED",
+  // 홈 피드로 가기(jiu-jitsu-frontend#366 · jiu-jitsu-ios#250). 대회 상세의 "커뮤니티에서 더 보기"가 보낸다.
+  // 피드는 앱 홈 탭이 띄우는 화면이라 웹이 서브뷰로 열면 탭 바·헤더 없는 피드가 쌓인다 — 앱이 열린 서브뷰를 닫고
+  // 홈 탭으로 바꾼다. 구버전 앱은 모르므로 지원 목록에 있을 때만 보내고, 없으면 피드를 서브뷰로 연다.
+  OPEN_HOME_FEED: "OPEN_HOME_FEED",
+  // 대회 기록 남기기(jiu-jitsu-frontend#368 · jiu-jitsu-ios#252). 끝난 대회 상세의 "내 기록에 남기기"가 보낸다.
+  // 앱의 대회 정보 추가 흐름을 대회 이름·연도를 채운 채로 연다. 지원 목록에 있을 때만 보낸다.
+  OPEN_COMPETITION_RECORD: "OPEN_COMPETITION_RECORD",
 } as const;
 export type OutboundMessageType =
   (typeof OutboundMessageType)[keyof typeof OutboundMessageType];
@@ -193,6 +200,14 @@ export type ShareSheetPayload = {
 /** `COMPETITION_INTEREST_FIRST_ADDED` payload — 처음 관심 등록한 대회. 앱이 안내 문구에 쓸 수 있다. */
 export type CompetitionInterestFirstAddedPayload = {
   competitionId: string;
+};
+
+/** `OPEN_COMPETITION_RECORD` payload — 결과를 남길 대회. 앱은 이름·연도를 미리 채운다. */
+export type OpenCompetitionRecordPayload = {
+  competitionId: string;
+  name: string;
+  /** 대회 연도. 예: 2026 */
+  year: number;
 };
 
 /** `PICK_PHOTOS` payload — 네이티브가 열 사진 선택 화면. */

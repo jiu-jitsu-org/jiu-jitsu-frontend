@@ -3,6 +3,7 @@ import {
   type BridgeMessage,
   type InboundMessage,
   type CompetitionInterestFirstAddedPayload,
+  type OpenCompetitionRecordPayload,
   type OpenSubviewPayload,
   type OpenUserProfilePayload,
   type ShareSheetPayload,
@@ -127,6 +128,28 @@ export function notifyCompetitionInterestFirstAdded(
     type: OutboundMessageType.COMPETITION_INTEREST_FIRST_ADDED,
     payload,
   });
+}
+
+/**
+ * 앱 홈 탭(피드)으로 가도록 요청한다(#366). 지원하지 않는 앱이면 false — 호출부가 다른 길로 연다.
+ */
+export function openNativeHomeFeed(): boolean {
+  if (!supportsNativeMessage(OutboundMessageType.OPEN_HOME_FEED)) return false;
+  postToNative({ type: OutboundMessageType.OPEN_HOME_FEED });
+  return true;
+}
+
+/**
+ * 앱의 대회 기록 입력을 이 대회로 채워 열도록 요청한다(#368). 지원하지 않는 앱이면 false.
+ */
+export function openNativeCompetitionRecord(
+  payload: OpenCompetitionRecordPayload,
+): boolean {
+  if (!supportsNativeMessage(OutboundMessageType.OPEN_COMPETITION_RECORD)) {
+    return false;
+  }
+  postToNative({ type: OutboundMessageType.OPEN_COMPETITION_RECORD, payload });
+  return true;
 }
 
 /**

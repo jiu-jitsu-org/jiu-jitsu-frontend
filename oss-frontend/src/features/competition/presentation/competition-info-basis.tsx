@@ -1,0 +1,115 @@
+"use client";
+
+import { useRef, useState } from "react";
+
+import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
+import { useNativeDialog } from "@/features/community/presentation/use-native-dialog";
+import {
+  COMPETITION_INFO_REPORT_DETAIL_MAX_LENGTH,
+  COMPETITION_INFO_REPORT_REASONS,
+} from "@/features/competition/domain/competition-info-report";
+import { reportCompetitionInfoAction } from "@/features/competition/presentation/actions/report-competition-info-action";
+import { fullDateLabel } from "@/features/competition/presentation/competition-detail-format";
+import { useAuth } from "@/features/auth/presentation/auth-provider";
+import { cn } from "@/shared/lib/cn";
+import { useToast } from "@/shared/ui";
+import { SURFACE_PRESS } from "@/shared/ui/press-styles";
+
+/**
+ * 정보 기준 (#365) — 무엇을 기준으로 적었는지 · 마지막 확인일 · "정보가 달라요" 제보.
+ *
+ * 같은 대회의 마감일이 서비스마다 다른 일이 있어 얼마나 믿을지 스스로 판단하게 기준을 밝힌다.
+ * 확인하지 못한 대회는 대회 공지에서 확인하라고 먼저 말한다.
+ * 제보는 커뮤니티 신고와 같은 선택 시트(앱이면 앱이 그리는 시트)로 무엇이 다른지 하나 고른다.
+ */
+export function CompetitionInfoBasis({
+  competitionId,
+  verifiedOn,
+}: {
+  competitionId: string;
+  verifiedOn?: string;
+}) {
+  const { guard } = useLoginGuard();
+  const { promptLogin } = useAuth();
+  const { selectSheet, dialog } = useNativeDialog();
+  const toast = useToast();
+  const [sending, setSending] = useState(false);
+  // 시트가 뜨기 전 짧은 틈에 두 번 눌러도 시트·제보가 한 번만 가게 잠근다.
+  const busy = useRef(false);
+
+  async function report() {
+    if (busy.current) return;
+    busy.current = true;
+    try {
+      await reportOnce();
+    } finally {
+      busy.current = false;
+    }
+  }
+
+  async function reportOnce() {
+    const outcome = await selectSheet({
+      title: "어떤 정보가 다른가요?",
+      message: "알려 주시면 대회 공지와 다시 맞춰 볼게요.",
+      options: COMPETITION_INFO_REPORT_REASONS.map((reason) => ({ ...reason })),
+      customTextPlaceholder: "무엇이 다른지 적어 주세요.",
+      customTextMaxLength: COMPETITION_INFO_REPORT_DETAIL_MAX_LENGTH,
+      submitText: "보내기",
+    });
+    if (!outcome.submitted || !outcome.value) return;
+
+    setSending(true);
+    try {
+      const result = await reportCompetitionInfoAction(
+        competitionId,
+        outcome.value,
+        outcome.customText,
+      );
+      if (!result.ok && result.reason === "unauthenticated") {
+        promptLogin({ reason: "대회 정보 제보" });
+        return;
+      }
+      if (!result.ok) throw new Error(result.reason);
+      toast.show("알려 주셔서 고마워요. 확인하고 고칠게요", { tone: "success" });
+    } catch {
+      toast.show("보내지 못했어요. 다시 눌러 주세요", { tone: "error" });
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <section className="px-5 pt-4 text-[13px] leading-[18px] text-text-tertiary">
+      <p>
+        {verifiedOn
+          ? "대회 공지 기준이에요. 바뀔 수 있어요."
+          : "아직 대회 공지와 맞춰 보지 못한 정보예요. 신청 전에 대회 공지에서 꼭 확인해 주세요."}
+      </p>
+      <div className="mt-0.5 flex items-center gap-1">
+        {verifiedOn ? (
+          <>
+            <span className="tabular-nums">{fullDateLabel(verifiedOn)} 확인</span>
+            <span aria-hidden>·</span>
+          </>
+        ) : null}
+        <button
+          type="button"
+          disabled={sending}
+          onClick={() =>
+            guard(
+              () => void report(),
+              "정보 제보는 OSS 앱에서 로그인 후 할 수 있어요.",
+            )()
+          }
+          className={cn(
+            "-mx-1 -my-3 min-h-11 rounded-10 px-1 font-semibold text-text-secondary disabled:text-text-disabled",
+            SURFACE_PRESS,
+          )}
+        >
+          정보가 달라요 ›
+        </button>
+      </div>
+      {dialog}
+    </section>
+  );
+}

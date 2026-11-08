@@ -194,8 +194,73 @@ const FIXTURE_COMPETITIONS: Competition[] = [
   },
 ];
 
+/**
+ * 상세(#361~#365)에만 쓰는 정보 — 시작 시각 · 경기장 · 주최 · 공지 · 참가비 · 확인일.
+ * 다 갖춘 대회, 참가비 단계가 셋인 대회, 확인하지 못한 대회, 상세 정보가 없는 대회가 섞이게 잡았다.
+ * 이름은 모두 예시다.
+ */
+const FIXTURE_DETAILS: Record<string, Partial<Competition>> = {
+  "seoul-open-championship": {
+    startTime: "09:00",
+    venue: "송파 체육문화회관",
+    host: "서울 주짓수 협회",
+    noticeUrl: "https://example.com/seoul-open-championship",
+    fees: [
+      { label: "얼리버드", amount: 60000, until: "2026-11-09" },
+      { label: "기본 참가비", amount: 70000 },
+    ],
+    verifiedOn: "2026-11-04",
+  },
+  "gyeonggi-governor-cup": {
+    startTime: "10:00",
+    venue: "고양 체육관",
+    host: "경기도 주짓수 협회",
+    noticeUrl: "https://example.com/gyeonggi-governor-cup",
+    fees: [
+      { label: "얼리버드", amount: 50000, until: "2026-11-06" },
+      { label: "일반 접수", amount: 60000, until: "2026-11-20" },
+      { label: "마감 접수", amount: 70000 },
+    ],
+    verifiedOn: "2026-11-02",
+  },
+  "daejeon-open": {
+    startTime: "09:30",
+    host: "대전 주짓수 클럽 연합",
+    noticeUrl: "https://example.com/daejeon-open",
+    fees: [{ label: "기본 참가비", amount: 65000 }],
+  },
+  "busan-nogi-open": {
+    venue: "부산 사직 보조경기장",
+    host: "부산 노기 리그",
+    noticeUrl: "https://example.com/busan-nogi-open",
+    fees: [{ label: "기본 참가비", amount: 55000 }],
+    verifiedOn: "2026-11-05",
+  },
+  "gwangju-championship": {
+    startTime: "09:00",
+    venue: "광주 염주체육관",
+    host: "광주 주짓수 협회",
+    noticeUrl: "https://example.com/gwangju-championship",
+    fees: [{ label: "기본 참가비", amount: 60000 }],
+    verifiedOn: "2026-10-28",
+  },
+  "incheon-autumn-open": {
+    host: "인천 주짓수 협회",
+    noticeUrl: "https://example.com/incheon-autumn-open",
+  },
+};
+
+function withDetails(competition: Competition): Competition {
+  return { ...competition, ...FIXTURE_DETAILS[competition.id] };
+}
+
 export class FixtureCompetitionRepository implements CompetitionRepository {
   async getCompetitions(): Promise<Competition[]> {
-    return FIXTURE_COMPETITIONS.map((competition) => ({ ...competition }));
+    return FIXTURE_COMPETITIONS.map(withDetails);
+  }
+
+  async getCompetition(id: string): Promise<Competition | null> {
+    const competition = FIXTURE_COMPETITIONS.find((item) => item.id === id);
+    return competition ? withDetails(competition) : null;
   }
 }
