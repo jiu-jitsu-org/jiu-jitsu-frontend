@@ -13,6 +13,8 @@ import { cn } from "@/shared/lib/cn";
 
 /**
  * 상세 덩어리 하나 — 제목 + 회색 박스. 목록 줄과 같은 회색 박스(rounded-20)로 묶고, 덩어리 사이는 선 없이 간격으로 나눈다.
+ * 글자 위계: 대회 이름 24 → 덩어리 제목 18 → 본문 15 → 보조 13. 덩어리 사이(32)를 제목과 박스 사이(12)보다 넓게 둬
+ * 제목이 아래 박스에 붙어 읽히게 한다.
  */
 export function DetailSection({
   title,
@@ -24,9 +26,9 @@ export function DetailSection({
   className?: string;
 }) {
   return (
-    <section className={cn("px-4 pt-6", className)}>
+    <section className={cn("px-4 pt-8", className)}>
       {title ? (
-        <h2 className="mb-2 px-1 text-[16px] leading-[22px] font-bold text-text-primary">
+        <h2 className="mb-3 px-1 text-[18px] leading-[26px] font-bold text-text-primary">
           {title}
         </h2>
       ) : null}
@@ -92,7 +94,7 @@ export function CompetitionInfoSection({
             <dt className="w-9 flex-none text-[14px] leading-[21px] text-text-secondary">
               {row.label}
             </dt>
-            <dd className="min-w-0 flex-1 text-[15px] leading-[21px] break-keep text-text-primary [overflow-wrap:anywhere]">
+            <dd className="min-w-0 flex-1 text-[15px] leading-[21px] font-medium break-keep text-text-primary [overflow-wrap:anywhere]">
               {row.value}
             </dd>
           </div>
