@@ -21,7 +21,7 @@ const DISMISS_EVENT = "oss:competition-result-prompt-dismissed";
  * 맨 위(앱바 아래)에 화면 흐름 안에 놓아 읽던 내용을 가리지 않는다. ✕로 닫으면 이 기기에서 같은 대회에 다시 뜨지 않는다.
  * "내 기록에 남기기"는 앱의 대회 정보 추가를 이 대회로 채워 연다(jiu-jitsu-ios#252) — 결과 입력은 앱 화면이다.
  * 그래서 앱 밖 브라우저에서는 배너를 두지 않는다(위에 '앱으로 보기' 배너가 있다).
- * 닫은 기록은 브라우저 저장소에 있어 서버 그림에는 없다 — 처음엔 숨겨 두고 확인한 뒤 옅게 나타난다.
+ * 닫은 기록은 브라우저 저장소에만 있어 서버는 모른다 — 서버 그림에 배너를 넣어 두고, 닫아 둔 기기에서만 걷어 낸다.
  */
 export function CompetitionResultBanner({
   competitionId,
@@ -38,7 +38,9 @@ export function CompetitionResultBanner({
   const dismissed = useSyncExternalStore(
     subscribeDismissed,
     () => readDismissed(competitionId),
-    () => true,
+    // 서버 그림에는 배너를 넣어 둔다 — 늦게 나타나면 아래 내용이 배너 높이만큼 밀려 내려간다.
+    // 닫아 둔 사람만 그린 뒤 걷힌다(닫은 기록은 이 기기에만 있다).
+    () => false,
   );
   const { guard } = useLoginGuard();
   const toast = useToast();
@@ -54,7 +56,7 @@ export function CompetitionResultBanner({
   return (
     <aside
       aria-label="대회 결과 남기기"
-      className="mx-4 mt-3 flex items-start gap-2 rounded-20 bg-surface-primary-subtle py-3 pr-1.5 pl-4 motion-safe:animate-fade-in"
+      className="mx-4 mt-3 flex items-start gap-2 rounded-20 bg-surface-primary-subtle py-3 pr-1.5 pl-4"
     >
       <div className="min-w-0 flex-1">
         <p className="text-[15px] leading-[21px] font-bold text-text-primary">

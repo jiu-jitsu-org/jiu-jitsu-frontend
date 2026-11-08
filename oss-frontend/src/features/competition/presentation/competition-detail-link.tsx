@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useRef, type MouseEvent, type ReactNode } from "react";
 
 import {
   isNativeBridgeAvailable,
@@ -13,6 +13,9 @@ import { cn } from "@/shared/lib/cn";
 export function competitionDetailPath(competitionId: string): string {
   return `/competition/${encodeURIComponent(competitionId)}`;
 }
+
+/** 같은 화면에서 상세를 다시 열 수 있게 되기까지(ms) — 빠르게 두 번 누르면 앱에 상세가 두 겹 쌓인다. */
+const OPEN_LOCK_MS = 600;
 
 /** 목록에서 상세를 열었는지 — 돌아왔을 때 관심 상태를 다시 읽을지 정한다. */
 const DETAIL_OPENED_KEY = "oss.competition.detail-opened";
@@ -42,7 +45,11 @@ function takeDetailOpened(): boolean {
  */
 export function useOpenCompetitionDetail() {
   const router = useRouter();
+  const lockedUntil = useRef(0);
   return (competitionId: string) => {
+    const now = Date.now();
+    if (now < lockedUntil.current) return;
+    lockedUntil.current = now + OPEN_LOCK_MS;
     const path = competitionDetailPath(competitionId);
     markDetailOpened();
     if (isNativeBridgeAvailable()) {

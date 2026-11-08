@@ -37,14 +37,12 @@ export async function reportCompetitionInfoAction(
   ) {
     return { ok: false, reason: "failed" };
   }
-  // 직접 적는 글은 "다른 정보"에만 받고, 그때는 비어 있으면 안 된다 — 무엇이 다른지 모르는 제보가 된다.
+  // 직접 적는 글은 "다른 정보"에만 받는다. 다른 사유에 딸려 온 글은 버린다 — 시트가 "다른 정보"에서 적다가
+  // 다른 사유로 바꾼 글을 함께 보낼 수 있는데, 그것 때문에 제보 자체를 실패시키지 않는다.
   const allowsDetail = COMPETITION_INFO_REPORT_REASONS.some(
     (option) => option.value === reason && "allowsCustomText" in option,
   );
-  const trimmed = detail?.trim() ?? "";
-  if (allowsDetail ? trimmed === "" : trimmed !== "") {
-    return { ok: false, reason: "failed" };
-  }
+  const trimmed = allowsDetail ? (detail?.trim() ?? "") : "";
   if ((await readSessionToken()) === null) {
     return { ok: false, reason: "unauthenticated" };
   }
