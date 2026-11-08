@@ -26,6 +26,9 @@ import { Chip } from "@/shared/ui/chip";
 import { IconButton } from "@/shared/ui/icon-button";
 import { SURFACE_PRESS } from "@/shared/ui/press-styles";
 import { AppBarShell } from "@/features/community/presentation/app-bar-shell";
+import type { CompetitionPickerOption } from "@/features/competition/application/get-competition-picker-options";
+import { linkPostCompetitionAction } from "@/features/competition/presentation/actions/link-post-competition-action";
+import { CompetitionPicker } from "@/features/competition/presentation/competition-picker";
 import { useNativeDialog } from "@/features/community/presentation/use-native-dialog";
 import {
   BackArrowIcon,
@@ -70,6 +73,22 @@ import {
  * 막지 않기 위해서다. 빈 본문(공백만 포함)은 올리기 버튼 비활성(hasRequiredInput)이 막고, 서버도 빈 값만 거른다.
  */
 const BODY_MAX_LENGTH = 800;
+/** 대회 연결을 기다리는 최대 시간(ms) — 글 저장 뒤 화면을 떠나기 전에 이만큼만 기다린다. */
+const COMPETITION_LINK_WAIT_MS = 1500;
+
+/** 글에 고른 대회를 잇는다(#367). 실패·지연은 삼킨다 — 글은 이미 저장됐다. */
+async function linkCompetitionBriefly(
+  postId: number,
+  competitionId: string | null,
+): Promise<void> {
+  await Promise.race([
+    linkPostCompetitionAction(postId, competitionId).catch(() => undefined),
+    new Promise((resolve) => setTimeout(resolve, COMPETITION_LINK_WAIT_MS)),
+  ]);
+}
+
+/** 대회 고르기 칸을 여는 카테고리(#367). id보다 이름으로 본다 — 카테고리 API가 실패한 폴백 목록에서도 같은 이름이다. */
+const COMPETITION_CATEGORY_NAME = "대회";
 /** 제목 글자 수 범위(2~45). */
 const TITLE_MIN_LENGTH = 2;
 const TITLE_MAX_LENGTH = 45;
@@ -180,6 +199,7 @@ const TAG_INPUT_TEXT_CLASS = "text-text-primary";
 export function PostWriteScreen({
   categories,
   edit,
+  competitionPicker,
 }: {
   /** 카테고리 칩 목록(GET /board/category) — 라우트(Server Component)가 읽어 넘긴다. */
   categories: PostCategory[];
@@ -188,6 +208,16 @@ export function PostWriteScreen({
    * returnToDetail: 상세 ⋮에서 연 수정 — 성공 시 새 상세를 쌓지 않고 원래 상세로 돌아간다(#157).
    */
   edit?: { postId: number; initial: PostEditInitial; returnToDetail: boolean };
+  /**
+   * 대회 고르기(#367) — 있으면 '대회' 카테고리를 골랐을 때 카테고리 칩 아래에 대회 고르기 칸을 둔다.
+   * 고를 대회가 없는 환경(운영 — 대회 데이터가 아직 가짜)에서는 라우트가 넘기지 않는다.
+   */
+  competitionPicker?: {
+    options: CompetitionPickerOption[];
+    /** 수정 모드에서 이 글이 이미 고른 대회 */
+    initialId: string | null;
+    currentYear: number;
+  };
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -206,6 +236,23 @@ export function PostWriteScreen({
   const [categoryId, setCategoryId] = useState<number | null>(
     edit?.initial.categoryId ?? null,
   );
+  // 고른 대회(#367). '대회' 카테고리일 때만 뜻이 있다 — 다른 카테고리로 바꾸면 보내지 않는다(고른 값은 남겨 둬
+  // 다시 '대회'로 돌아오면 그대로 보인다).
+  const [competitionId, setCompetitionId] = useState<string | null>(
+    competitionPicker?.initialId ?? null,
+  );
+  const competitionCategorySelected =
+    categories.find((category) => category.id === categoryId)?.name ===
+    COMPETITION_CATEGORY_NAME;
+  const linkedCompetitionId =
+    competitionPicker && competitionCategorySelected ? competitionId : null;
+  // 수정 시작 값도 같은 조건으로 본다 — 대회를 고른 글이 지금 다른 카테고리면 처음부터 "변경됨"이 되지 않게.
+  const initialLinkedCompetitionId =
+    competitionPicker &&
+    categories.find((category) => category.id === edit?.initial.categoryId)
+      ?.name === COMPETITION_CATEGORY_NAME
+      ? competitionPicker.initialId
+      : null;
   // 수정 모드의 등록된 이미지 — 삭제만 가능(정책). 남은 id 전체가 PUT의 imageFileIdList가 된다.
   const [existingImages, setExistingImages] = useState<PostImage[]>(
     edit?.initial.images ?? [],
@@ -291,7 +338,8 @@ export function PostWriteScreen({
       tags.join("\u0000") !== edit.initial.tags.join("\u0000") ||
       tagInput.length > 0 ||
       existingImages.map((image) => image.id).join(",") !==
-        edit.initial.images.map((image) => image.id).join(",")
+        edit.initial.images.map((image) => image.id).join(",") ||
+      linkedCompetitionId !== initialLinkedCompetitionId
     : categoryId !== null ||
       title.trim().length > 0 ||
       body.trim().length > 0 ||
@@ -763,6 +811,11 @@ export function PostWriteScreen({
           imageFileIdList: existingImages.map((image) => image.id),
           tags: finalTags,
         });
+        // 고른 대회도 함께 맞춘다(#367). 앱은 곧 이 화면을 닫아 요청이 끊길 수 있어 잠깐만 기다린다 —
+        // 실패하거나 늦어도 글은 저장됐고, 대회 이야기에만 빠진다.
+        if (competitionPicker) {
+          await linkCompetitionBriefly(edit.postId, linkedCompetitionId);
+        }
         // 목록/상세가 복귀 시 이 글을 다시 읽게 표시한다(제목·이미지가 바뀌었을 수 있음).
         markPostDirty(edit.postId);
         // 성공 경로는 잠금을 풀지 않는다 — 이동이 끝나기 전 연타로 중복 전송되는 것을 막는다(#157).
@@ -784,6 +837,10 @@ export function PostWriteScreen({
       });
       // 여기 도달 = 생성 성공(2xx). created.id로 실제 추가 여부를 확인할 수 있다.
       console.info("[post-write] 게시글 생성 성공:", created);
+      // 고른 대회를 이 글에 잇는다(#367) — 기다리지 않는다. 실패해도 글은 올라갔고 대회 이야기에만 빠진다.
+      if (linkedCompetitionId) {
+        await linkCompetitionBriefly(created.id, linkedCompetitionId);
+      }
       // 목록이 복귀 시 첫 페이지를 다시 읽어 이 글을 앞에 붙이고 최상단으로 올린다(#38).
       // 성공했을 때만 남긴다 — 취소로 닫으면 목록은 아무것도 하지 않는다.
       markPostCreated(created.id);
@@ -911,6 +968,18 @@ export function PostWriteScreen({
           );
         })}
       </div>
+
+      {/* '대회' 카테고리면 어떤 대회 이야기인지 고르는 칸(#367). 칩 줄과 같은 좌우 16, 칩 아래 12. */}
+      {competitionPicker && competitionCategorySelected ? (
+        <div className="shrink-0 px-4 pt-3">
+          <CompetitionPicker
+            options={competitionPicker.options}
+            value={competitionId}
+            onChange={setCompetitionId}
+            currentYear={competitionPicker.currentYear}
+          />
+        </div>
+      ) : null}
 
       {/* 본문 영역: 제목 → 본문 → 태그 → 안내문이 한 덩어리로 스크롤된다(main 내부 스크롤).
           제목·본문 textarea는 자동으로 자라므로 스크롤은 이 main에서만 일어난다. */}

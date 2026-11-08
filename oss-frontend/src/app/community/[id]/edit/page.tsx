@@ -5,9 +5,14 @@ import { createGetPostDetailUseCase } from "@/features/community/application/com
 import { getPostCategoriesOrFallback } from "@/features/community/application/get-post-write-page-data";
 import type { PostEditInitial } from "@/features/community/domain/post";
 import { PostWriteScreen } from "@/features/community/presentation/post-write-screen";
+import {
+  getCompetitionPickerOptions,
+  getPostCompetitionId,
+} from "@/features/competition/application/get-competition-picker-options";
 import { POST_EDIT_FROM_DETAIL } from "@/features/community/presentation/post-edit-return";
 import { readSessionToken } from "@/shared/lib/auth";
 import { ApiErrorCode, toApiError } from "@/shared/lib/http";
+import { readServerNow, toKstDateKey } from "@/shared/lib/time";
 
 import EditLoading from "./loading";
 
@@ -65,10 +70,29 @@ export default async function CommunityPostEditPage({
     notFound();
   }
 
-  const categories = await getPostCategoriesOrFallback();
+  const now = readServerNow();
+  // 대회 고르기(#367) — 이 글이 이미 고른 대회를 먼저 읽어, 오래돼 목록에서 빠졌어도 고르기 목록에 넣는다.
+  // 대회 데이터가 없는 환경이면 빈 목록이라 칸이 안 나온다.
+  const [categories, competitionId] = await Promise.all([
+    getPostCategoriesOrFallback(),
+    getPostCompetitionId(postId),
+  ]);
+  const competitionOptions = await getCompetitionPickerOptions({
+    now,
+    include: competitionId,
+  });
   return (
     <PostWriteScreen
       categories={categories}
+      competitionPicker={
+        competitionOptions.length > 0
+          ? {
+              options: competitionOptions,
+              initialId: competitionId,
+              currentYear: Number(toKstDateKey(now).slice(0, 4)),
+            }
+          : undefined
+      }
       edit={{
         postId,
         initial,

@@ -75,14 +75,14 @@ export function registrationStatusOn(
 }
 
 /** "YYYY-MM-DD" 모양인지. 문자열 크기 비교가 날짜순과 같으려면 자릿수가 맞아야 한다. */
-function isDateKey(value: string): boolean {
+export function isDateKey(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** 두 한국 날짜 사이 일수(to - from). 날짜만 있는 값이라 UTC 자정으로 놓고 빼면 서머타임 걱정이 없다. */
-function daysBetween(from: string, to: string): number {
+export function daysBetween(from: string, to: string): number {
   return Math.round((dateOnlyToUtcMs(to) - dateOnlyToUtcMs(from)) / DAY_MS);
 }
 

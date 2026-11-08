@@ -10,6 +10,7 @@ import type {
 } from "@/features/competition/domain/competition";
 import { isPopularCompetition } from "@/features/competition/domain/competition-popularity";
 import type { RegistrationStatus } from "@/features/competition/domain/competition-registration";
+import { CompetitionDetailLink } from "@/features/competition/presentation/competition-detail-link";
 import {
   FlameIcon,
   RegistrationIcon,
@@ -106,14 +107,11 @@ export function MonthSection({
   );
 }
 
-export function competitionRowId(competitionId: string) {
-  return `competition-${competitionId}`;
-}
-
 /**
  * 대회 한 줄 (#348). 달력 보기의 그날 대회 목록도 같은 줄을 쓴다.
  *
  * 왼쪽 날짜·요일, 오른쪽 회색 박스 — 대회 이름(굵게) → "장소 · 부문 · 대상"(회색) → 상태 칩 · 관심(하트).
+ * 박스 어디를 눌러도 대회 상세가 열린다(#361) — 관심 하트만 따로 눌린다.
  * 남은 날(D-day)은 내가 관심 등록한 대회에만 접수 칩 안에 작게 붙인다(2026-11) — 모든 대회에 큰 숫자를 두면
  * 이름 자리를 빼앗는데, 챙겨 볼 날짜는 관심 대회뿐이다.
  */
@@ -134,11 +132,7 @@ export function CompetitionRow({
   const interested = interest?.isInterested(competition.id) ?? false;
 
   return (
-    // id는 마감 배너(#344)에서 누르면 이 줄로 내려오는 데 쓴다. 위에 붙은 필터 줄에 가리지 않게 여백을 둔다.
-    <li
-      id={competitionRowId(competition.id)}
-      tabIndex={-1}
-      className="flex scroll-mt-20 items-start gap-2 outline-none"
+    <li className="flex items-start gap-2"
     >
       {/* 날짜 칸은 면·테두리 없이 흰 바탕에 글자만 — 흰 바탕이 뒤의 세로 줄을 가려 날짜가 줄 위에 놓인 듯 보인다. */}
       <time
@@ -159,9 +153,11 @@ export function CompetitionRow({
           {weekday.label}
         </span>
       </time>
-      <div className="min-w-0 flex-1 rounded-20 bg-surface-field px-4 pt-3.5 pb-3">
+      <div className="relative min-w-0 flex-1 rounded-20 bg-surface-field px-4 pt-3.5 pb-3 transition-colors duration-120 has-[[data-detail-link]:active]:bg-surface-container-pressed">
         <h3 className="text-[16px] leading-[22px] font-bold break-keep text-text-primary [overflow-wrap:anywhere]">
-          {competition.name}
+          <CompetitionDetailLink competitionId={competition.id}>
+            {competition.name}
+          </CompetitionDetailLink>
         </h3>
         {meta ? (
           <p className="mt-0.5 text-[14px] leading-[20px] text-text-secondary">
@@ -347,7 +343,7 @@ function InterestButton({
       aria-pressed={interested}
       aria-label={`${competitionName} 관심 등록${count > 0 ? `, 관심 ${count}명` : ""}`}
       className={cn(
-        "-my-2.5 -mr-2 flex min-h-11 min-w-11 flex-none items-center justify-center gap-1 rounded-10 px-2",
+        "relative -my-2.5 -mr-2 flex min-h-11 min-w-11 flex-none items-center justify-center gap-1 rounded-10 px-2",
         SURFACE_PRESS,
       )}
     >
@@ -379,7 +375,7 @@ function InterestButton({
 const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"] as const;
 
 /** "YYYY-MM-DD" → 요일. 날짜만 있는 값이라 UTC로 계산해 실행 환경 타임존과 무관하게 같다. */
-function weekdayOf(date: string) {
+export function weekdayOf(date: string) {
   const [year, month, day] = date.split("-").map(Number);
   const index = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
   return { index, label: WEEKDAY_LABELS[index] };
@@ -390,11 +386,16 @@ const DIVISION_LABELS: Record<CompetitionDivision, string> = {
   nogi: "노기",
 };
 
-/** "서울 송파 · 도복 · 노기 · 키즈" — 부문은 도복 → 노기 순, 대상은 제한된 대회만. */
-function metaLine(competition: Competition) {
-  const divisions = (["gi", "nogi"] as const)
+/** "도복 · 노기" 순서의 부문 이름들 — 상세의 종목 줄도 같은 순서를 쓴다. */
+export function divisionLabels(competition: Competition): string[] {
+  return (["gi", "nogi"] as const)
     .filter((division) => competition.divisions.includes(division))
     .map((division) => DIVISION_LABELS[division]);
+}
+
+/** "서울 송파 · 도복 · 노기 · 키즈" — 부문은 도복 → 노기 순, 대상은 제한된 대회만. */
+function metaLine(competition: Competition) {
+  const divisions = divisionLabels(competition);
 
   return [competition.place.trim(), ...divisions, competition.audience?.trim()]
     .filter(Boolean)

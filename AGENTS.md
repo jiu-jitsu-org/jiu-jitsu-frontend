@@ -390,6 +390,7 @@ Server Action은 UI 이벤트 adapter에 가깝다.
 - `shared/lib/time` + `shared/ui/server-clock` 기반 공통 시간 표기 (서버 날짜는 타임존 없는 KST → infrastructure에서 `toKstIso`로 정규화, 시간을 그리는 페이지는 `ServerClockProvider`로 감싼다)
 - `bootstrap` feature 기반 Server Component 초기 조회 예시
 - `competition` feature — 대회 탭 목록(`/competition`)과 위 필터 줄(관심·지역·접수 중, 거르기는 클라이언트에서 domain `matchesCompetitionFilter`로), 줄마다 관심 등록 버튼·익명 관심 수(등록·해제는 `presentation/actions`의 Server Action, 첫 등록이면 앱에 `COMPETITION_INTEREST_FIRST_ADDED`), 관심 수가 기준(domain `competition-popularity.ts`) 이상이면 '관심 많은 대회' 꼬리표, 필터 줄 오른쪽 끝의 목록 ↔ 달력 전환(달력은 `competition-calendar.tsx`, 같은 필터·같은 대회 줄을 쓴다). 대회·관심 API 전이라 infrastructure의 고정 데이터 저장소로 그리고, 가짜 데이터가 운영에 보이지 않게 로컬·개발 서버에서만 연다(`is-competition-page-enabled.ts`)
+- `competition` 대회 상세(`/competition/[id]`) — 목록·달력의 대회 줄을 누르면 열린다(앱은 `OPEN_SUBVIEW`). 상태·가장 가까운 마감(domain `competition-schedule.ts`), 관심 등록·조회수, 기본 정보·일정·참가비(`competition-fee.ts`), 정보 기준과 '정보가 달라요' 제보(Server Action), 대회 이야기(이 대회를 고른 글 최대 5개, `competition-story.ts`), 끝난 대회의 결과 남기기 배너(앱에 `OPEN_COMPETITION_RECORD`), 공유 미리보기 메타데이터와 유니버설 링크(`/competition/*`). 화면 데이터는 `get-competition-detail-page-data.ts`. 글쓰기는 '대회' 카테고리에서 대회를 고르고(`competition-picker.tsx`), 고른 대회는 글 저장 뒤 Server Action으로 잇는다 — 글 API가 대회를 받으면 글 저장에 함께 싣는다. 조회수·대회 이야기·제보도 API 전이라 고정 데이터 저장소다
 - `VersionInfoPage` Client Component와 `useActionState` 기반 Server Action 갱신 예시
 - 개발/운영 `.env` 분리
 - `design-tokens/` 기반 컬러 디자인 토큰 파이프라인 (`npm run tokens`)
