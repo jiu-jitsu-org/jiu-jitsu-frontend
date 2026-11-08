@@ -54,22 +54,22 @@ export function CompetitionScheduleSection({
         {steps.map((step, index) => {
           const current = step.phase === "current";
           const done = step.phase === "done";
-          // 이 줄에서 다음 줄로 가는 선이 이미 지나온 구간인지.
-          const passed = currentIndex === -1 || index < currentIndex;
           return (
             <li
               key={step.key}
               className="relative flex min-h-12 items-center gap-3"
             >
+              {/* 선은 줄마다 위 반 · 아래 반으로 나눠 그린다 — 이름이 두 줄로 접혀 줄 높이가 달라도 점끼리 이어진다. */}
+              {index > 0 ? (
+                <Rail
+                  position="top"
+                  passed={isPassedSegment(index - 1, currentIndex)}
+                />
+              ) : null}
               {index < steps.length - 1 ? (
-                <span
-                  aria-hidden
-                  className={cn(
-                    "absolute top-1/2 left-[9px] h-full",
-                    passed
-                      ? "w-0.5 bg-primary"
-                      : "border-l-2 border-dotted border-border-default",
-                  )}
+                <Rail
+                  position="bottom"
+                  passed={isPassedSegment(index, currentIndex)}
                 />
               ) : null}
               <span
@@ -118,5 +118,32 @@ export function CompetitionScheduleSection({
         })}
       </ol>
     </DetailSection>
+  );
+}
+
+/** from번째 줄에서 다음 줄로 가는 구간이 이미 지나온 구간인지. 모두 지났으면(currentIndex -1) 전부 지나온 구간이다. */
+function isPassedSegment(from: number, currentIndex: number) {
+  return currentIndex === -1 || from < currentIndex;
+}
+
+/** 점 사이 선의 반쪽 — 지나온 구간은 파란 실선, 남은 구간은 점선. */
+function Rail({
+  position,
+  passed,
+}: {
+  position: "top" | "bottom";
+  passed: boolean;
+}) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "absolute left-[9px]",
+        position === "top" ? "top-0 h-1/2" : "top-1/2 bottom-0",
+        passed
+          ? "w-0.5 bg-primary"
+          : "border-l-2 border-dotted border-border-default",
+      )}
+    />
   );
 }
