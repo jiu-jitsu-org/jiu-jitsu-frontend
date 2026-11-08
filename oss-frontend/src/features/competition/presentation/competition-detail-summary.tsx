@@ -51,7 +51,7 @@ export function CompetitionDetailSummary({
   return (
     <section className="px-4 pt-4">
       {status ? <StatusLine status={status} currentYear={currentYear} /> : null}
-      <h1 className={cn(status && "mt-2", "text-[22px] leading-[30px] font-bold break-keep text-text-primary [overflow-wrap:anywhere]")}>
+      <h1 className={cn(status && "mt-2", "text-[24px] leading-[32px] font-bold break-keep text-text-primary [overflow-wrap:anywhere]")}>
         {name}
       </h1>
       <div className="mt-3 flex min-h-8 items-center gap-2">
