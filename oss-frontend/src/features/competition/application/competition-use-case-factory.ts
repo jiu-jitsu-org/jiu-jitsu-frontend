@@ -1,5 +1,9 @@
 import { GetCompetitionDetailUseCase } from "@/features/competition/application/get-competition-detail";
 import { GetCompetitionStoriesUseCase } from "@/features/competition/application/get-competition-stories";
+import {
+  GetPostCompetitionIdUseCase,
+  LinkPostCompetitionUseCase,
+} from "@/features/competition/application/link-post-competition";
 import { RecordCompetitionViewUseCase } from "@/features/competition/application/record-competition-view";
 import { ReportCompetitionInfoUseCase } from "@/features/competition/application/report-competition-info";
 import { GetCompetitionInterestCountsUseCase } from "@/features/competition/application/get-competition-interest-counts";
@@ -60,4 +64,13 @@ export function createReportCompetitionInfoUseCase(): ReportCompetitionInfoUseCa
   );
 }
 
+export function createLinkPostCompetitionUseCase(): LinkPostCompetitionUseCase {
+  return new LinkPostCompetitionUseCase(
+    new FixtureCompetitionRepository(),
+    new FixtureCompetitionStoryRepository(),
+  );
+}
 
+export function createGetPostCompetitionIdUseCase(): GetPostCompetitionIdUseCase {
+  return new GetPostCompetitionIdUseCase(new FixtureCompetitionStoryRepository());
+}
