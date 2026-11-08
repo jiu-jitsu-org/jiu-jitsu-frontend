@@ -79,6 +79,15 @@ export class ExternalCommunityWriteRepository implements CommunityWriteRepositor
     });
   }
 
+  async restoreComment(commentId: number): Promise<void> {
+    // PUT /community/comments/{id}/restore — 삭제한 본인 댓글 복구(backend#112). 응답 본문은 사용하지 않는다.
+    // 복구 가능 시간이 지났으면 업스트림이 400 C0008을, 본인 댓글이 아니면 403 U0003을 내려주고,
+    // 이미 복구된 댓글은 성공으로 돌려준다(더블탭 방어) — 성공/실패 판정은 HTTP 상태가 담당한다.
+    await this.httpClient.put<Envelope<null>>({
+      path: `${COMMENT_ENDPOINT_PATH}/${commentId}/restore`,
+    });
+  }
+
   async deletePost(postId: number): Promise<void> {
     // DELETE /board/{id} — 본인 게시글 삭제. 응답 본문은 사용하지 않는다.
     await this.httpClient.delete<Envelope<null>>({

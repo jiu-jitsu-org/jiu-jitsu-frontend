@@ -43,6 +43,22 @@ import { MoreVerticalIcon } from "@/shared/ui/icons";
  * 같은 경로다. 무엇을 물어보고 확인 후 무엇을 호출할지는 여기(웹)가 그대로 쥔다.
  * 계약 상세: docs/native-dialog-bridge.md
  */
+/**
+ * 복구 실패가 "가능 시간 만료"(업스트림 400 C0008)인지 판별한다.
+ * 커뮤니티 BFF는 업스트림 error.body를 details로 실어 내려주므로 details.code로 가린다.
+ */
+async function isRestoreExpired(response: Response): Promise<boolean> {
+  if (response.status !== 400) return false;
+  try {
+    const body = (await response.clone().json()) as {
+      details?: { code?: string };
+    } | null;
+    return body?.details?.code === "C0008";
+  } catch {
+    return false;
+  }
+}
+
 export function CommentMenu({
   commentId,
   authorId,
@@ -65,7 +81,13 @@ export function CommentMenu({
   // 삭제 · 신고 · 차단 모두 계정이 있어야 성립하는 동작이라, 비로그인에게는 열어줄 항목이 없다.
   const { externalBrowser, guest } = useLoginGuard();
 
-  /** 삭제: 확인 알럿 → DELETE → 성공 시 목록 갱신. */
+  /**
+   * 삭제: 확인 알럿 → DELETE → 성공 시 목록 갱신 + "되돌리기" 토스트.
+   *
+   * 삭제해도 목록에서 빼지 않고 "삭제한 댓글입니다." 자리 표시로 바뀌며(서버가 isDeleted로 내려줌),
+   * 토스트가 떠 있는 동안 되돌리기를 누르면 복구한다(#370). 복구 가능 시간은 업스트림이 쥐고(backend#112),
+   * 토스트가 그보다 먼저 사라지므로 화면상으로는 떠 있는 동안만 복구할 수 있다.
+   */
   async function handleDelete() {
     const confirmed = await confirm({
       title: "댓글 삭제",
@@ -75,9 +97,15 @@ export function CommentMenu({
     });
     if (!confirmed) return;
 
-    // 예시(데모)에선 네트워크 없이 토스트만(목록 갱신/삭제 없음).
+    // 예시(데모)에선 네트워크 없이 토스트만(목록 갱신/삭제 없음) — 되돌리기도 안내만 띄운다.
     if (demo) {
-      toast.show("댓글을 삭제했어요", { tone: "success" });
+      toast.show("댓글을 삭제했어요", {
+        tone: "success",
+        action: {
+          label: "되돌리기",
+          onAction: () => toast.show("댓글을 복구했어요", { tone: "success" }),
+        },
+      });
       return;
     }
 
@@ -93,8 +121,44 @@ export function CommentMenu({
       return;
     }
 
-    toast.show("댓글을 삭제했어요", { tone: "success" });
-    // 서버 렌더 목록 재요청 — 삭제된 댓글이 빠진다.
+    toast.show("댓글을 삭제했어요", {
+      tone: "success",
+      action: { label: "되돌리기", onAction: () => void handleRestore() },
+    });
+    // 서버 렌더 목록 재요청 — 삭제된 댓글이 "삭제한 댓글입니다." 자리 표시로 바뀐다.
+    router.refresh();
+  }
+
+  /**
+   * 되돌리기: 삭제 토스트의 "되돌리기" → PUT /restore → 성공 시 목록 갱신.
+   *
+   * 복구 가능 시간이 지났으면 업스트림 400 C0008을 BFF가 details.code로 실어 내려주므로
+   * 그때만 "시간이 지났어요"로 안내하고, 그 밖의 실패는 일반 실패 문구로 묶는다. 이미 복구된
+   * 댓글을 다시 눌러도(더블탭) 서버가 성공으로 돌려줘 같은 결과가 된다.
+   */
+  async function handleRestore() {
+    const response = await bffFetch(
+      `/api/community/comments/${commentId}/restore`,
+      { method: "PUT" },
+    );
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
+        toast.show("댓글을 복구하지 못했어요", { tone: "error" });
+        return;
+      }
+
+      const expired = await isRestoreExpired(response);
+      toast.show(
+        expired ? "복구할 수 있는 시간이 지났어요" : "댓글을 복구하지 못했어요",
+        { tone: "error" },
+      );
+      return;
+    }
+
+    toast.show("댓글을 복구했어요", { tone: "success" });
+    // 서버 렌더 목록 재요청 — 복구된 댓글이 다시 본문으로 돌아온다.
     router.refresh();
   }
 
