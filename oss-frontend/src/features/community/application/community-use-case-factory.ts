@@ -3,6 +3,7 @@ import { CreatePostUseCase } from "@/features/community/application/create-post"
 import { UpdatePostUseCase } from "@/features/community/application/update-post";
 import { CreateReportUseCase } from "@/features/community/application/create-report";
 import { DeleteCommentUseCase } from "@/features/community/application/delete-comment";
+import { RestoreCommentUseCase } from "@/features/community/application/restore-comment";
 import { DeletePostUseCase } from "@/features/community/application/delete-post";
 import { GetCommentsUseCase } from "@/features/community/application/get-comments";
 import { GetMyBeltUseCase } from "@/features/community/application/get-my-belt";
@@ -117,6 +118,12 @@ export function createDeleteCommentUseCase(
   accessToken: string,
 ): DeleteCommentUseCase {
   return new DeleteCommentUseCase(createWriteRepository(accessToken));
+}
+
+export function createRestoreCommentUseCase(
+  accessToken: string,
+): RestoreCommentUseCase {
+  return new RestoreCommentUseCase(createWriteRepository(accessToken));
 }
 
 export function createDeletePostUseCase(

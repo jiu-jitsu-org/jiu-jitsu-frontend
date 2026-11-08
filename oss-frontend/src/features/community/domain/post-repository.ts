@@ -112,6 +112,12 @@ export interface CommunityWriteRepository {
   ): Promise<Comment>;
   /** 댓글 삭제(본인 댓글). 결과 본문이 없어 void. */
   deleteComment(commentId: number): Promise<void>;
+  /**
+   * 삭제한 댓글 복구(본인 댓글, PUT /community/comments/{id}/restore). 결과 본문이 없어 void.
+   * 삭제 후 짧은 시간 안에만 가능하고(만료 시 업스트림 400 C0008), 이미 복구된 댓글을 다시
+   * 요청해도 성공한다(되돌리기 더블탭 방어). 만료·권한 실패는 HttpError로 상위에 전달한다.
+   */
+  restoreComment(commentId: number): Promise<void>;
   /** 게시글 삭제(본인 게시글, DELETE /board/{id}). 결과 본문이 없어 void. */
   deletePost(postId: number): Promise<void>;
   /** 게시글/댓글 신고(POST /reports). 동일 대상 중복 신고는 서버가 막는다. 결과 본문이 없어 void. */
