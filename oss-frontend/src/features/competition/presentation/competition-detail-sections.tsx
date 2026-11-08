@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 
 import type { Competition } from "@/features/competition/domain/competition";
 import type { CompetitionFeeItem } from "@/features/competition/domain/competition-fee";
-import type { CompetitionScheduleItem } from "@/features/competition/domain/competition-schedule";
 import {
   feeAmountLabel,
   longDateLabel,
@@ -99,64 +98,6 @@ export function CompetitionInfoSection({
           </div>
         ))}
       </dl>
-    </DetailSection>
-  );
-}
-
-/**
- * 전체 일정 (#363) — 접수 시작 · 얼리버드 마감 · 접수 마감 · 대회일.
- * 지난 일정은 흐린 글자 + "완료", 남은 일정은 D-n. 바로 다음 일정만 굵게 띄워 지금 챙길 날을 먼저 보이게 한다.
- */
-export function CompetitionScheduleSection({
-  items,
-  currentYear,
-}: {
-  items: CompetitionScheduleItem[];
-  currentYear: number;
-}) {
-  if (items.length === 0) return null;
-  const nextIndex = items.findIndex((item) => item.state !== "done");
-
-  return (
-    <DetailSection title="일정">
-      <ol className="flex flex-col">
-        {items.map((item, index) => {
-          const done = item.state === "done";
-          const next = index === nextIndex;
-          return (
-            <li key={item.key} className="flex min-h-10 items-center gap-3">
-              <time
-                dateTime={item.date}
-                className={cn(
-                  "w-12 flex-none text-[14px] leading-[20px] tabular-nums",
-                  done ? "text-text-disabled" : "text-text-secondary",
-                )}
-              >
-                {shortDateLabel(item.date, currentYear)}
-              </time>
-              <span
-                className={cn(
-                  "min-w-0 flex-1 text-[15px] leading-[21px]",
-                  done ? "text-text-disabled" : "text-text-primary",
-                  next && "font-bold",
-                )}
-              >
-                {item.label}
-              </span>
-              <span
-                className={cn(
-                  "flex-none text-[14px] leading-[20px] tabular-nums",
-                  done && "text-text-disabled",
-                  !done && next && "font-bold text-primary",
-                  !done && !next && "text-text-secondary",
-                )}
-              >
-                {done ? "완료" : item.state === "today" ? "오늘" : `D-${item.daysLeft}`}
-              </span>
-            </li>
-          );
-        })}
-      </ol>
     </DetailSection>
   );
 }

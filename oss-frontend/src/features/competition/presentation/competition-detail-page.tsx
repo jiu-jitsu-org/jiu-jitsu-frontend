@@ -4,8 +4,8 @@ import { CompetitionDetailHeader } from "@/features/competition/presentation/com
 import {
   CompetitionFeeSection,
   CompetitionInfoSection,
-  CompetitionScheduleSection,
 } from "@/features/competition/presentation/competition-detail-sections";
+import { CompetitionScheduleSection } from "@/features/competition/presentation/competition-detail-schedule";
 import { CompetitionDetailSummary } from "@/features/competition/presentation/competition-detail-summary";
 import { CompetitionInfoBasis } from "@/features/competition/presentation/competition-info-basis";
 import { CompetitionResultBanner } from "@/features/competition/presentation/competition-result-banner";
