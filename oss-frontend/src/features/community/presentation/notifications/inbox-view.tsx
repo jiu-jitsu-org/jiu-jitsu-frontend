@@ -190,7 +190,9 @@ function InboxList({
 
     if (!communityOk) setReadState(ids, false);
     if (competitionOk) {
-      for (const id of competitionIds) competitionReadByAll.current.add(id);
+      // 모두 읽음은 서버에서 대회 알림 전부를 읽음으로 바꾼다 — 그 전에 눌러 아직 응답을 기다리는 것도 포함한다.
+      for (const item of competitionAlerts)
+        competitionReadByAll.current.add(item.id);
     } else {
       setCompetitionReadState(competitionIds, false);
     }
