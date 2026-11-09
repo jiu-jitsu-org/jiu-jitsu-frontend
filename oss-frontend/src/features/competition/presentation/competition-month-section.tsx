@@ -246,14 +246,13 @@ export function StatusChip({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full leading-none font-semibold whitespace-nowrap",
-        size === "m"
-          ? "h-[26px] gap-1 pr-2.5 pl-1.5 text-[13px]"
-          : "h-[22px] gap-0.5 pr-2 pl-1 text-[12px]",
+        "inline-flex h-[26px] items-center gap-1 rounded-full pr-2.5 pl-1.5 text-[13px] leading-none font-semibold whitespace-nowrap",
         tone === "primary" && "bg-surface-primary-subtle text-primary",
         tone === "neutral" && "bg-surface-container text-text-secondary-strong",
         tone === "disabled" && "bg-surface-container text-text-disabled",
         tone === "hot" && "bg-surface-container font-bold text-text-error",
+        // 작은 크기는 위 기본 크기를 덮어쓴다(cn이 뒤의 값을 남긴다).
+        size === "s" && "h-[22px] gap-0.5 pr-2 pl-1 text-[12px] leading-none",
       )}
     >
       {icon}
