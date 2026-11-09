@@ -11,6 +11,7 @@ import { GetCompetitionDetailUseCase } from "@/features/competition/application/
 import { GetCompetitionStoriesUseCase } from "@/features/competition/application/get-competition-stories";
 import {
   GetPostCompetitionIdUseCase,
+  GetPostCompetitionIdsUseCase,
   LinkPostCompetitionUseCase,
 } from "@/features/competition/application/link-post-competition";
 import { RecordCompetitionViewUseCase } from "@/features/competition/application/record-competition-view";
@@ -119,5 +120,11 @@ export function createGetCompetitionAlertNotificationsUseCase(): GetCompetitionA
 export function createMarkCompetitionAlertNotificationsReadUseCase(): MarkCompetitionAlertNotificationsReadUseCase {
   return new MarkCompetitionAlertNotificationsReadUseCase(
     new FixtureCompetitionAlertRepository(),
+  );
+}
+
+export function createGetPostCompetitionIdsUseCase(): GetPostCompetitionIdsUseCase {
+  return new GetPostCompetitionIdsUseCase(
+    new FixtureCompetitionStoryRepository(),
   );
 }

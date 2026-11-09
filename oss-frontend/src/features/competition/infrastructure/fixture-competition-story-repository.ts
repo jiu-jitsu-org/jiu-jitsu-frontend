@@ -11,20 +11,74 @@ import type { CompetitionStoryRepository } from "@/features/competition/domain/c
  */
 const SAMPLE_STORIES: Record<string, CompetitionStory[]> = {
   "seoul-open-championship": [
-    story(900101, "-76kg 몇 명이나 나올까요?", 12, 8, "2026-11-06T10:00:00+09:00"),
-    story(900102, "작년에 나가신 분, 대기 시간 어땠나요?", 9, 5, "2026-11-05T21:10:00+09:00"),
-    story(900103, "첫 대회 계체, 도복 입고 재나요?", 1, 0, "2026-11-08T09:40:00+09:00"),
-    story(900104, "도장에서 저 혼자 나가요. 같이 몸 풀 분?", 2, 0, "2026-11-08T07:00:00+09:00"),
+    story(
+      900101,
+      "-76kg 몇 명이나 나올까요?",
+      12,
+      8,
+      "2026-11-06T10:00:00+09:00",
+    ),
+    story(
+      900102,
+      "작년에 나가신 분, 대기 시간 어땠나요?",
+      9,
+      5,
+      "2026-11-05T21:10:00+09:00",
+    ),
+    story(
+      900103,
+      "첫 대회 계체, 도복 입고 재나요?",
+      1,
+      0,
+      "2026-11-08T09:40:00+09:00",
+    ),
+    story(
+      900104,
+      "도장에서 저 혼자 나가요. 같이 몸 풀 분?",
+      2,
+      0,
+      "2026-11-08T07:00:00+09:00",
+    ),
     story(900105, "주차 어디에 하세요?", 1, 0, "2026-11-07T19:30:00+09:00"),
-    story(900106, "체급 하나 올릴지 고민이에요", 0, 0, "2026-11-01T12:00:00+09:00"),
+    story(
+      900106,
+      "체급 하나 올릴지 고민이에요",
+      0,
+      0,
+      "2026-11-01T12:00:00+09:00",
+    ),
   ],
   "gwangju-championship": [
-    story(900201, "첫 대회 끝! 블루 -76kg 은메달 후기", 14, 22, "2026-11-07T20:00:00+09:00"),
-    story(900202, "오늘 대기 시간 어땠나요?", 9, 0, "2026-11-07T18:00:00+09:00"),
+    story(
+      900201,
+      "첫 대회 끝! 블루 -76kg 은메달 후기",
+      14,
+      22,
+      "2026-11-07T20:00:00+09:00",
+    ),
+    story(
+      900202,
+      "오늘 대기 시간 어땠나요?",
+      9,
+      0,
+      "2026-11-07T18:00:00+09:00",
+    ),
   ],
   "daejeon-open": [
-    story(900301, "대전 오픈 노기 부문 처음 나가요", 0, 0, "2026-11-04T08:00:00+09:00"),
-    story(900302, "대전역에서 경기장까지 버스 있나요?", 0, 0, "2026-11-06T13:00:00+09:00"),
+    story(
+      900301,
+      "대전 오픈 노기 부문 처음 나가요",
+      0,
+      0,
+      "2026-11-04T08:00:00+09:00",
+    ),
+    story(
+      900302,
+      "대전역에서 경기장까지 버스 있나요?",
+      0,
+      0,
+      "2026-11-06T13:00:00+09:00",
+    ),
   ],
 };
 
@@ -56,9 +110,7 @@ function linkedPosts(): Map<number, Linked> {
   return scope[STORE_KEY];
 }
 
-export class FixtureCompetitionStoryRepository
-  implements CompetitionStoryRepository
-{
+export class FixtureCompetitionStoryRepository implements CompetitionStoryRepository {
   async getStories(competitionId: string): Promise<CompetitionStory[]> {
     const linked = [...linkedPosts().values()]
       .filter((post) => post.competitionId === competitionId)
@@ -93,5 +145,17 @@ export class FixtureCompetitionStoryRepository
 
   async getPostCompetitionId(postId: number): Promise<string | null> {
     return linkedPosts().get(postId)?.competitionId ?? null;
+  }
+
+  async getPostCompetitionIds(
+    postIds: readonly number[],
+  ): Promise<Record<number, string>> {
+    const posts = linkedPosts();
+    return Object.fromEntries(
+      postIds.flatMap((postId) => {
+        const linked = posts.get(postId);
+        return linked ? [[postId, linked.competitionId]] : [];
+      }),
+    );
   }
 }

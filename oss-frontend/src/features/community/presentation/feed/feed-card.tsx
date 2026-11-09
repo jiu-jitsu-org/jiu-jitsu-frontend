@@ -108,6 +108,8 @@ export type FeedCardProps = {
    * 어디로 갈지(내 커뮤니티 활동 등)는 호출부가 정한다 — 카드는 화면 이동을 모른다.
    */
   onPressAuthor?: () => void;
+  /** 본문·사진 아래에 붙는 카드(글이 고른 대회, #379). 카드 속 링크·버튼은 글 상세로 가지 않는다. */
+  attachment?: ReactNode;
   className?: string;
 };
 
@@ -138,6 +140,7 @@ export function FeedCard({
   menu,
   hideAuthor = false,
   onPressAuthor,
+  attachment,
   className,
 }: FeedCardProps) {
   const hasImages = images !== undefined && images.length > 0;
@@ -201,14 +204,14 @@ export function FeedCard({
           ) : undefined
         }
       />
-      {hasImages ? (
-        <FeedCardImages images={images} className="mt-3" />
-      ) : null}
+      {hasImages ? <FeedCardImages images={images} className="mt-3" /> : null}
+      {/* 글이 고른 대회 카드(#379) — 본문·사진 아래, 리액션 위. 사진과 같은 간격(12)으로 붙인다. */}
+      {attachment ? <div className="mt-3">{attachment}</div> : null}
       {/* 본문행 → 리액션행: 여백 없음. 아이콘(20)을 감싼 버튼(32)의 위쪽 6이 보이는 간격이 된다.
           사진 → 리액션행: 6을 더해(mt-1.5) 보이는 간격 12 — 본문→사진(mt-3)과 같다.
           사진은 면이 꽉 차 있어 글자보다 경계가 뚜렷하므로, 6만 두면 아이콘이 사진에 붙어 보인다. */}
       <FeedCardReactions
-        className={hasImages ? "mt-1.5" : undefined}
+        className={hasImages || attachment ? "mt-1.5" : undefined}
         counts={counts}
         commented={commented}
         liked={liked}

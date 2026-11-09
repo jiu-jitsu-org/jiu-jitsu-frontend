@@ -1,3 +1,4 @@
+import type { CompetitionCard } from "@/features/competition/domain/competition-card";
 import type {
   PostAuthor,
   PostCounts,
@@ -32,6 +33,11 @@ export type PostSummary = {
   updatedAt?: string | null;
   /** isUpdated → "수정됨" 표시 여부. */
   edited: boolean;
+  /**
+   * '대회' 카테고리 글이 고른 대회(#379). 고르지 않은 글은 없다.
+   * 글 목록 응답에 실려 오기 전까지는 application이 대회 feature에서 읽어 붙인다(attachPostCompetitions).
+   */
+  competition?: CompetitionCard;
 };
 
 /**

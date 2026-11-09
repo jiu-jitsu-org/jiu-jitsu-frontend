@@ -19,8 +19,11 @@ import { FeedEmptyState } from "@/features/community/presentation/feed-empty-sta
 import { FeedErrorState } from "@/features/community/presentation/feed-error-state";
 import { FeedScrollTopOnReload } from "@/features/community/presentation/feed/feed-scroll-top-on-reload";
 import { PostWriteFab } from "@/features/community/presentation/post-write-fab";
+import { isCompetitionPageEnabled } from "@/features/competition/application/is-competition-page-enabled";
+import { loadCompetitionAlertSettings } from "@/features/competition/application/load-competition-alert-settings";
+import { CompetitionAlertProvider } from "@/features/competition/presentation/competition-alert-provider";
 import { readSessionToken } from "@/shared/lib/auth";
-import { readServerNow } from "@/shared/lib/time";
+import { readServerNow, toKstDateKey } from "@/shared/lib/time";
 import { ServerClockProvider } from "@/shared/ui/server-clock";
 import { Spinner } from "@/shared/ui/spinner";
 
@@ -55,6 +58,12 @@ export default async function Home({
     readSessionToken(),
     cookies(),
   ]);
+  // 글 속 대회 카드(#379)의 하트로 처음 관심 등록하면 마감 알림 시트를 띄운다 — 알림 설정을 함께 읽는다.
+  const alertSettings =
+    sessionToken !== null && isCompetitionPageEnabled()
+      ? await loadCompetitionAlertSettings()
+      : null;
+  const now = readServerNow();
   // 그날 게임을 처음 볼 때만 히어로 인트로를 돌린다(balance-intro의 BALANCE_INTRO_COOKIE).
   const balanceIntro =
     balanceGame !== null &&
@@ -68,15 +77,20 @@ export default async function Home({
     // 카드 ⋮가 로그인 여부로 갈린다 — 세션 판정 전에도 맞게 그리도록 힌트를 깐다(#173).
     <SessionHintProvider authenticated={sessionToken !== null}>
       {/* 상대 시간("5분 전")을 서버 시각 기준으로 계산하고 60초마다 갱신한다(#188). */}
-      <ServerClockProvider serverNow={readServerNow()}>
-        <main className="feed-bounce-scroll min-h-screen bg-surface-container">
-          {/* 새로고침이면 이전 위치 대신 맨 위에서 시작한다(#260). */}
-          <FeedScrollTopOnReload />
-          {renderFeed(result, balanceGame, balanceIntro)}
+      <ServerClockProvider serverNow={now}>
+        <CompetitionAlertProvider
+          settings={alertSettings}
+          today={toKstDateKey(now)}
+        >
+          <main className="feed-bounce-scroll min-h-screen bg-surface-container">
+            {/* 새로고침이면 이전 위치 대신 맨 위에서 시작한다(#260). */}
+            <FeedScrollTopOnReload />
+            {renderFeed(result, balanceGame, balanceIntro)}
 
-          {/* 게시글 작성 진입 FAB — 네이티브면 OPEN_SUBVIEW로 풀스크린 서브뷰, 웹 단독이면 라우터 이동. */}
-          <PostWriteFab />
-        </main>
+            {/* 게시글 작성 진입 FAB — 네이티브면 OPEN_SUBVIEW로 풀스크린 서브뷰, 웹 단독이면 라우터 이동. */}
+            <PostWriteFab />
+          </main>
+        </CompetitionAlertProvider>
       </ServerClockProvider>
     </SessionHintProvider>
   );
@@ -95,9 +109,7 @@ function renderFeed(
 ): ReactNode {
   if (!result.ok) {
     if (result.reason === "session-expired") {
-      return (
-        <SessionExpiredRecovery loading={<FeedLoading />} />
-      );
+      return <SessionExpiredRecovery loading={<FeedLoading />} />;
     }
     return <FeedErrorState />;
   }
