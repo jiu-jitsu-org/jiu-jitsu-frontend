@@ -188,6 +188,8 @@
      애니메이션을 처음부터 다시 재생한다(다시 마운트하면 안의 숫자 굴림이 끊긴다). */
   --animate-tick-bump: tick-bump 500ms var(--ease-spring-bouncy);
   --animate-tick-bump-alt: tick-bump-alt 500ms var(--ease-spring-bouncy);
+  /* 관심 대회 머리 캐릭터 — 카드 뒤에서 한 번 쏙 올라와 멈춘다(반복 없음). */
+  --animate-peek-rise: peek-rise 500ms var(--ease-spring-bouncy) both;
   /* 드롭다운 메뉴 — 트리거 쪽에서 --menu-shift만큼 떨어진 곳부터 차분히 미끄러져 나타난다. */
   --animate-menu-slide-in: menu-slide-in 260ms var(--ease-smooth-out) both;
   /* 드롭다운 메뉴 닫힘 — 들어온 길(--menu-shift)로 되돌아가며 옅어진다. 끝나면 호출부가 DOM에서 뺀다. */
@@ -307,6 +309,15 @@
     }
     100% {
       transform: rotate(0deg) scale(1);
+    }
+  }
+
+  @keyframes peek-rise {
+    from {
+      transform: translateY(40px);
+    }
+    to {
+      transform: translateY(0);
     }
   }
 

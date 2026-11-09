@@ -4,8 +4,8 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { useIsSignedIn } from "@/features/auth/presentation/auth-provider";
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
+import type { BeltRank } from "@/features/community/domain/belt";
 import type { CompetitionListMonth } from "@/features/competition/application/get-competition-list-page-data";
-import { closingSoonInterested } from "@/features/competition/domain/competition-closing-soon";
 import {
   EMPTY_COMPETITION_FILTER,
   hasNameQuery,
@@ -13,9 +13,13 @@ import {
   matchesCompetitionFilter,
   type CompetitionFilter,
 } from "@/features/competition/domain/competition-filter";
+import { upcomingInterested } from "@/features/competition/domain/competition-interest-banner";
 import type { CompetitionRegion } from "@/features/competition/domain/competition-region";
 import { CompetitionCalendar } from "@/features/competition/presentation/competition-calendar";
-import { CompetitionClosingSoonBanner } from "@/features/competition/presentation/competition-closing-soon-banner";
+import {
+  CompetitionInterestBanner,
+  InterestBannerTint,
+} from "@/features/competition/presentation/competition-interest-banner";
 import { RegistrationIcon } from "@/features/competition/presentation/competition-icons";
 import {
   MonthHeadingContent,
@@ -57,6 +61,7 @@ export function CompetitionListView({
   interestedIds,
   interestCounts,
   regionsWithCompetitions,
+  myBeltRank,
 }: {
   months: CompetitionListMonth[];
   currentYear: number;
@@ -65,6 +70,8 @@ export function CompetitionListView({
   interestedIds: string[];
   interestCounts: Record<string, number>;
   regionsWithCompetitions: CompetitionRegion[];
+  /** 내 띠 — 관심 대회 머리 캐릭터·위 그라데이션 색. 없으면 흰띠. */
+  myBeltRank: BeltRank | null;
 }) {
   const [filter, setFilter] = useState<CompetitionFilter>(
     EMPTY_COMPETITION_FILTER,
@@ -183,16 +190,18 @@ export function CompetitionListView({
     }
   }, [searchOpen]);
 
-  // 관심 대회 마감 배너(#344) — 필터와 무관하게 내 관심 대회 전체에서 고른다. 비로그인이면 관심이 없어 비어 있다.
-  const closingSoon = useMemo(
+  // 관심 대회 배너 — 필터와 무관하게 내 관심 대회 전체에서 고른다. 비로그인이면 관심이 없어 비어 있다.
+  // 접수 마감이 가까운 관심 대회(#344)도 이 배너의 접수 소식 줄로 알린다.
+  const interestedUpcoming = useMemo(
     () =>
       signedIn
-        ? closingSoonInterested(
+        ? upcomingInterested(
             months.flatMap((month) => month.items),
             interest.interestedIds,
+            today,
           )
         : [],
-    [interest.interestedIds, months, signedIn],
+    [interest.interestedIds, months, signedIn, today],
   );
 
   // 배너에서 누른 대회는 상세로 바로 연다(#361) — 목록 줄을 누른 것과 같다.
@@ -220,6 +229,9 @@ export function CompetitionListView({
 
   return (
     <>
+      {interestedUpcoming.length > 0 ? (
+        <InterestBannerTint rank={myBeltRank ?? "white"} />
+      ) : null}
       {/* 필터 줄: 좌우 16 · 칩 간격 8, 넘치면 가로 스크롤(스크롤바 숨김) — 글쓰기 카테고리 칩 줄과 같은 규격.
           목록 바탕색을 반투명(60%)으로 깔고 뒤를 흐려, 아래로 지나가는 카드가 비치되 글자는 읽히게 한다.
           흐림 판은 아래 끝을 서서히 지워 선 없이 목록으로 녹아들게 한다. 달 머리도 같은 판 위에 얹어 이음매가 없다.
@@ -343,8 +355,10 @@ export function CompetitionListView({
       {/* 브라우저가 스크롤을 몰래 고쳐 목록을 제자리에 붙잡으면(크롬) 위 미끄러짐과 어긋나, 여기서는 끈다 —
           사파리처럼 늘 검색칸만큼 밀리고 그 밀림을 미끄러지게 보여 준다. */}
       <div ref={belowBarRef} className="[overflow-anchor:none]">
-        <CompetitionClosingSoonBanner
-          items={closingSoon}
+        <CompetitionInterestBanner
+          items={interestedUpcoming}
+          currentYear={currentYear}
+          beltRank={myBeltRank}
           onSelect={({ competition }) => openDetail(competition.id)}
         />
 

@@ -17,7 +17,7 @@ export function CompetitionListPage({
   data: CompetitionListPageData;
 }) {
   return (
-    <main className="min-h-screen bg-surface-container">
+    <main className="isolate min-h-screen bg-surface-container">
       {renderBody(data)}
     </main>
   );
@@ -45,6 +45,7 @@ function renderBody(data: CompetitionListPageData) {
         interestedIds={data.interestedIds}
         interestCounts={data.interestCounts}
         regionsWithCompetitions={data.regionsWithCompetitions}
+        myBeltRank={data.myBeltRank}
       />
     </CompetitionAlertProvider>
   );

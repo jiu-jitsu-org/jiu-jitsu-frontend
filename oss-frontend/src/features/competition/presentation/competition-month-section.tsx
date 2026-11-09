@@ -203,7 +203,7 @@ export function CompetitionRow({
  * 접수 중: "D-2"(당일은 "오늘 마감", 얼리버드 마감이 먼저면 "얼리버드 D-2") · 접수 예정: 여는 날 "11.10 오픈"
  * (해가 다르면 "2027.1.5 오픈"). 마감 대회는 없다.
  */
-function deadlineLabel(
+export function deadlineLabel(
   status: Exclude<RegistrationStatus, { kind: "closed" }>,
   currentYear: number,
 ): { text: string; urgent: boolean } {
