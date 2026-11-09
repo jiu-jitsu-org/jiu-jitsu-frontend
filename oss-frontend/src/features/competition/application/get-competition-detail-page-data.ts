@@ -5,7 +5,9 @@ import {
   createGetInterestedCompetitionIdsUseCase,
   createRecordCompetitionViewUseCase,
 } from "@/features/competition/application/competition-use-case-factory";
+import { loadCompetitionAlertSettings } from "@/features/competition/application/load-competition-alert-settings";
 import type { Competition } from "@/features/competition/domain/competition";
+import type { CompetitionAlertSettings } from "@/features/competition/domain/competition-alert";
 import {
   feeItemsOn,
   type CompetitionFeeItem,
@@ -40,6 +42,8 @@ export type CompetitionDetailPageData =
       stories: CompetitionStory[] | null;
       /** 결과 남기기 배너를 띄울지(#368) */
       promptResult: boolean;
+      /** 관심 대회 마감 알림 설정(#376). 비로그인이거나 못 읽으면 null */
+      alertSettings: CompetitionAlertSettings | null;
     }
   | { ok: false; reason: "not-found" | "failed" };
 
@@ -70,8 +74,8 @@ export async function getCompetitionDetailPageData({
   }
   if (!competition) return { ok: false, reason: "not-found" };
 
-  const [interestedIds, interestCounts, viewCount, stories] = await Promise.all(
-    [
+  const [interestedIds, interestCounts, viewCount, stories, alertSettings] =
+    await Promise.all([
       signedIn
         ? safely(() => createGetInterestedCompetitionIdsUseCase().execute(), [])
         : Promise.resolve([] as string[]),
@@ -86,8 +90,8 @@ export async function getCompetitionDetailPageData({
         () => createGetCompetitionStoriesUseCase().execute(competitionId),
         null,
       ),
-    ],
-  );
+      signedIn ? loadCompetitionAlertSettings() : Promise.resolve(null),
+    ]);
 
   const today = toKstDateKey(now);
   const status = detailStatusOn(competition, today);
@@ -100,14 +104,19 @@ export async function getCompetitionDetailPageData({
     today,
     currentYear: Number(today.slice(0, 4)),
     interested: interestedIds.includes(competition.id),
-    interestCount: (interestCounts as Record<string, number>)[competition.id] ?? 0,
+    interestCount:
+      (interestCounts as Record<string, number>)[competition.id] ?? 0,
     viewCount,
     stories,
     promptResult: shouldPromptResult(status),
+    alertSettings,
   };
 }
 
-async function safely<T, F>(load: () => Promise<T>, fallback: F): Promise<T | F> {
+async function safely<T, F>(
+  load: () => Promise<T>,
+  fallback: F,
+): Promise<T | F> {
   try {
     return await load();
   } catch {

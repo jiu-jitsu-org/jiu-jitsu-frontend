@@ -1,5 +1,7 @@
 import type { CompetitionDetailPageData } from "@/features/competition/application/get-competition-detail-page-data";
 import { DetailErrorState } from "@/features/community/presentation/detail-error-state";
+import { CompetitionAlertProvider } from "@/features/competition/presentation/competition-alert-provider";
+import { CompetitionDetailInterestProvider } from "@/features/competition/presentation/competition-detail-interest";
 import { CompetitionDetailHeader } from "@/features/competition/presentation/competition-detail-header";
 import {
   CompetitionFeeSection,
@@ -34,42 +36,55 @@ export function CompetitionDetailPage({
   }
 
   const { competition, status, currentYear } = data;
+  const target = {
+    id: competition.id,
+    name: competition.name,
+    registration: competition.registration,
+  };
+
   return (
-    <SubviewScrollShell className="bg-surface-container">
-      <CompetitionDetailHeader />
-      <div className="pb-[calc(env(safe-area-inset-bottom)+40px)]">
-        {data.promptResult && status?.kind === "ended" ? (
-          <CompetitionResultBanner
-            competitionId={competition.id}
-            name={competition.name}
-            year={Number(competition.date.slice(0, 4))}
-            daysAgo={status.daysAgo}
-          />
-        ) : null}
-        <CompetitionDetailSummary
-          competitionId={competition.id}
-          name={competition.name}
-          status={status}
-          currentYear={currentYear}
-          interested={data.interested}
-          interestCount={data.interestCount}
-          viewCount={data.viewCount}
-        />
-        <CompetitionInfoSection
-          competition={competition}
-          currentYear={currentYear}
-        />
-        <CompetitionScheduleSection
-          items={data.schedule}
-          currentYear={currentYear}
-        />
-        <CompetitionFeeSection fees={data.fees} currentYear={currentYear} />
-        <CompetitionInfoBasis
-          competitionId={competition.id}
-          verifiedOn={competition.verifiedOn}
-        />
-        {data.stories ? <CompetitionStories stories={data.stories} /> : null}
-      </div>
-    </SubviewScrollShell>
+    <CompetitionAlertProvider settings={data.alertSettings} today={data.today}>
+      <CompetitionDetailInterestProvider
+        competitionId={competition.id}
+        interested={data.interested}
+        interestCount={data.interestCount}
+      >
+        <SubviewScrollShell className="bg-surface-container">
+          <CompetitionDetailHeader />
+          <div className="pb-[calc(env(safe-area-inset-bottom)+40px)]">
+            {data.promptResult && status?.kind === "ended" ? (
+              <CompetitionResultBanner
+                competitionId={competition.id}
+                name={competition.name}
+                year={Number(competition.date.slice(0, 4))}
+                daysAgo={status.daysAgo}
+              />
+            ) : null}
+            <CompetitionDetailSummary
+              target={target}
+              status={status}
+              currentYear={currentYear}
+              viewCount={data.viewCount}
+            />
+            <CompetitionInfoSection
+              competition={competition}
+              currentYear={currentYear}
+            />
+            <CompetitionScheduleSection
+              items={data.schedule}
+              currentYear={currentYear}
+            />
+            <CompetitionFeeSection fees={data.fees} currentYear={currentYear} />
+            <CompetitionInfoBasis
+              competitionId={competition.id}
+              verifiedOn={competition.verifiedOn}
+            />
+            {data.stories ? (
+              <CompetitionStories stories={data.stories} />
+            ) : null}
+          </div>
+        </SubviewScrollShell>
+      </CompetitionDetailInterestProvider>
+    </CompetitionAlertProvider>
   );
 }

@@ -1,8 +1,10 @@
+import { loadCompetitionAlertSettings } from "@/features/competition/application/load-competition-alert-settings";
 import {
   createGetCompetitionInterestCountsUseCase,
   createGetCompetitionListUseCase,
   createGetInterestedCompetitionIdsUseCase,
 } from "@/features/competition/application/competition-use-case-factory";
+import type { CompetitionAlertSettings } from "@/features/competition/domain/competition-alert";
 import {
   groupUpcomingByMonth,
   type Competition,
@@ -42,6 +44,8 @@ export type CompetitionListPageData =
       interestCounts: Record<string, number>;
       /** 예정 대회가 하나라도 있는 시·도 — 지역 시트에서 나머지는 고를 수 없게 둔다. 표준 순서. */
       regionsWithCompetitions: CompetitionRegion[];
+      /** 관심 대회 마감 알림 설정(#375). 비로그인이거나 못 읽으면 null — 첫 관심 등록 시트가 뜨지 않는다. */
+      alertSettings: CompetitionAlertSettings | null;
     }
   | { ok: false };
 
@@ -60,11 +64,13 @@ export async function getCompetitionListPageData({
   signedIn: boolean;
 }): Promise<CompetitionListPageData> {
   try {
-    const [competitions, interestedIds, interestCounts] = await Promise.all([
-      createGetCompetitionListUseCase().execute(),
-      signedIn ? loadInterestedIds() : Promise.resolve([]),
-      loadInterestCounts(),
-    ]);
+    const [competitions, interestedIds, interestCounts, alertSettings] =
+      await Promise.all([
+        createGetCompetitionListUseCase().execute(),
+        signedIn ? loadInterestedIds() : Promise.resolve([]),
+        loadInterestCounts(),
+        signedIn ? loadCompetitionAlertSettings() : Promise.resolve(null),
+      ]);
     const today = toKstDateKey(now);
     const months = groupUpcomingByMonth(competitions, today);
 
@@ -95,6 +101,7 @@ export async function getCompetitionListPageData({
       regionsWithCompetitions: COMPETITION_REGIONS.filter((region) =>
         regions.has(region),
       ),
+      alertSettings,
     };
   } catch {
     return { ok: false };

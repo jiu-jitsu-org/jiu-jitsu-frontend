@@ -188,7 +188,7 @@ export function CompetitionRow({
                 competitionName={competition.name}
                 interested={interested}
                 count={interest.countOf(competition.id)}
-                onToggle={() => interest.toggle(competition.id)}
+                onToggle={() => interest.toggle(competition)}
               />
             ) : null}
           </div>
@@ -231,19 +231,25 @@ function deadlineLabel(
  * 누르는 칩(필터 줄)과 헷갈리지 않게 테두리 없이 면만 쓴다. 폰에서 앞 아이콘이 읽히게 아이콘 16 · 높이 26 · 글자 13.
  * 앞 아이콘은 글자색을 따른다 — HOT의 불꽃만 제 색(빨강 + 노랑 속불)을 갖는다.
  */
-function StatusChip({
+export function StatusChip({
   tone,
   icon,
   children,
+  size = "m",
 }: {
   tone: "primary" | "neutral" | "disabled" | "hot";
   icon: ReactNode;
   children: ReactNode;
+  /** s: 글 속 축소 카드(#379·#380) — 높이 22 · 글자 12 · 아이콘 14. */
+  size?: "m" | "s";
 }) {
   return (
     <span
       className={cn(
-        "inline-flex h-[26px] items-center gap-1 rounded-full pr-2.5 pl-1.5 text-[13px] leading-none font-semibold whitespace-nowrap",
+        "inline-flex items-center rounded-full leading-none font-semibold whitespace-nowrap",
+        size === "m"
+          ? "h-[26px] gap-1 pr-2.5 pl-1.5 text-[13px]"
+          : "h-[22px] gap-0.5 pr-2 pl-1 text-[12px]",
         tone === "primary" && "bg-surface-primary-subtle text-primary",
         tone === "neutral" && "bg-surface-container text-text-secondary-strong",
         tone === "disabled" && "bg-surface-container text-text-disabled",
@@ -260,15 +266,18 @@ function StatusChip({
  * 접수 상태 칩 — 접수 중(파랑 면) · 접수 예정(흰 면) · 접수 마감(흰 면, 흐린 글자).
  * `dday`면 칩 끝에 남은 날을 붙인다(가는 점으로 띄움). 얼리버드 마감은 칩 글자를 "얼리버드 D-2"로 바꾼다.
  */
-function RegistrationChip({
+export function RegistrationChip({
   status,
   dday,
   currentYear,
+  size = "m",
 }: {
   status: RegistrationStatus;
   dday: boolean;
   currentYear: number;
+  size?: "m" | "s";
 }) {
+  const iconSize = size === "m" ? 16 : 14;
   const deadline =
     dday && status.kind !== "closed"
       ? deadlineLabel(status, currentYear)
@@ -285,8 +294,9 @@ function RegistrationChip({
     case "upcoming":
       return (
         <StatusChip
+          size={size}
           tone="neutral"
-          icon={<RegistrationIcon stage="before" size={16} />}
+          icon={<RegistrationIcon stage="before" size={iconSize} />}
         >
           접수 예정
           {suffix}
@@ -295,8 +305,9 @@ function RegistrationChip({
     case "closed":
       return (
         <StatusChip
+          size={size}
           tone="disabled"
-          icon={<RegistrationIcon stage="closed" size={16} />}
+          icon={<RegistrationIcon stage="closed" size={iconSize} />}
         >
           접수 마감
         </StatusChip>
@@ -304,8 +315,9 @@ function RegistrationChip({
     case "open":
       return (
         <StatusChip
+          size={size}
           tone="primary"
-          icon={<RegistrationIcon stage="open" size={16} />}
+          icon={<RegistrationIcon stage="open" size={iconSize} />}
         >
           {/* 얼리버드 마감이 먼저면 "얼리버드 D-2"만 — 칩이 한 줄에 들어가게 줄이고, 파란 칩 안에 빨강을 섞지 않는다. */}
           {deadline?.urgent ? (
@@ -325,7 +337,7 @@ function RegistrationChip({
  * 관심 수는 아무도 없으면 빼서 "0"이 줄마다 늘어서지 않게 한다. 누가 눌렀는지는 보여 주지 않는다.
  * 보이는 크기는 칩 줄 높이에 맞추고, 누를 자리는 음수 여백으로 44×44를 지킨다.
  */
-function InterestButton({
+export function InterestButton({
   competitionName,
   interested,
   count,
@@ -394,7 +406,7 @@ export function divisionLabels(competition: Competition): string[] {
 }
 
 /** "서울 송파 · 도복 · 노기 · 키즈" — 부문은 도복 → 노기 순, 대상은 제한된 대회만. */
-function metaLine(competition: Competition) {
+export function metaLine(competition: Competition) {
   const divisions = divisionLabels(competition);
 
   return [competition.place.trim(), ...divisions, competition.audience?.trim()]

@@ -1,5 +1,6 @@
 import type { CompetitionListPageData } from "@/features/competition/application/get-competition-list-page-data";
 import { FeedErrorState } from "@/features/community/presentation/feed-error-state";
+import { CompetitionAlertProvider } from "@/features/competition/presentation/competition-alert-provider";
 import { CompetitionListView } from "@/features/competition/presentation/competition-list-view";
 import { EmptyState } from "@/shared/ui/empty-state";
 
@@ -35,13 +36,16 @@ function renderBody(data: CompetitionListPageData) {
     );
   }
   return (
-    <CompetitionListView
-      months={data.months}
-      currentYear={data.currentYear}
-      today={data.today}
-      interestedIds={data.interestedIds}
-      interestCounts={data.interestCounts}
-      regionsWithCompetitions={data.regionsWithCompetitions}
-    />
+    // 처음 관심 등록하면 마감 알림을 받을지 묻는 시트(#375)를 이 아래 어디서든 띄운다.
+    <CompetitionAlertProvider settings={data.alertSettings} today={data.today}>
+      <CompetitionListView
+        months={data.months}
+        currentYear={data.currentYear}
+        today={data.today}
+        interestedIds={data.interestedIds}
+        interestCounts={data.interestCounts}
+        regionsWithCompetitions={data.regionsWithCompetitions}
+      />
+    </CompetitionAlertProvider>
   );
 }
