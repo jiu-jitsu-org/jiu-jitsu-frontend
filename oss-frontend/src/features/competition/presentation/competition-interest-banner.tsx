@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+
 import type { BeltRank } from "@/features/community/domain/belt";
 import type { InterestBannerItem } from "@/features/competition/domain/competition-interest-banner";
 import { shortDateLabel } from "@/features/competition/presentation/competition-detail-format";
@@ -19,12 +21,17 @@ const CARD_RADIUS = 20;
 /** 띠(검은 단) 가운데 자리 — 첫 카드 왼쪽에서 15, 카드 위에서 26. 머리는 카드 위로 약 58px 드러난다. */
 const BAND_X = 15;
 const BAND_ABOVE_CARD = 26;
+/** 숨은 캐릭터가 내려가 있는 거리 — 머리끝(카드 위 약 58px)이 카드 뒤로 다 들어가는 값. */
+const PEEK_HIDE = 64;
 
 /**
  * 관심 대회 배너 — 필터 줄 바로 아래, 내 관심 대회를 한 장씩 옆으로 넘겨 본다.
  *
- * 2026-11 시안 "Ⓓ 제목 앞 · 똑바로 서기": 첫 카드 왼쪽 위로 내 띠 캐릭터가 곧게 서서 머리를 내밀고,
- * 그 옆에 '관심 대회 N'. 캐릭터는 첫 카드와 같이 넘어가고, 아랫몸은 카드 뒤에서 잘라 카드 밖으로 드러나지 않는다.
+ * 2026-11 시안 "Ⓓ 제목 앞 · 똑바로 서기": 지금 보는 카드 왼쪽 위로 내 띠 캐릭터가 곧게 서서 머리를 내밀고,
+ * 그 옆에 '관심 대회 N'. 캐릭터는 카드마다 있어 카드와 같이 넘어가고, 다음 장으로 넘기면 앞 장의 캐릭터는
+ * 카드 뒤로 쏙 들어가고 새 장의 캐릭터가 아래에서 튀어 오른다. 아랫몸은 카드 뒤에서 잘라 카드 밖으로 드러나지 않는다.
+ * 어느 장이든 같은 자리(왼쪽 끝)에 멈추도록 마지막 장 뒤에 빈자리를 둔다 — 안 그러면 마지막 장이 오른쪽 끝에 붙어
+ * 캐릭터가 제목 위로 겹친다.
  * 카드: 진한 면에 이름·하트, 아래 줄에 날짜(요일)·장소와 접수 소식 알약. 대회 날짜가 가까운 순이다.
  * 여러 장이면 다음 장이 오른쪽에 비쳐 넘길 수 있다는 걸 알린다(카드 폭 = 줄 폭 - 48, 간격 10).
  * 관심 대회가 없으면(비로그인 포함) 아무것도 그리지 않는다.
@@ -41,6 +48,9 @@ export function CompetitionInterestBanner({
   beltRank: BeltRank | null;
   onSelect: (item: InterestBannerItem) => void;
 }) {
+  const listRef = useRef<HTMLUListElement>(null);
+  const current = useCurrentCard(listRef);
+
   if (items.length === 0) return null;
   const many = items.length > 1;
 
@@ -59,8 +69,10 @@ export function CompetitionInterestBanner({
       <ul
         className={cn(
           "flex gap-2.5 overflow-x-auto px-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-          many && "snap-x snap-mandatory scroll-px-4 overscroll-x-contain",
+          many &&
+            "snap-x snap-mandatory scroll-px-4 overscroll-x-contain after:w-[38px] after:flex-none after:content-['']",
         )}
+        ref={listRef}
         // 그래픽 자리까지 넘김 안에 넣는다 — 넘김 영역은 위아래도 잘라 내서, 밖으로 빼면 머리가 잘린다.
         style={{ paddingTop: HEAD_SPACE }}
       >
@@ -72,7 +84,7 @@ export function CompetitionInterestBanner({
               many ? "w-[calc(100%-48px)]" : "w-full",
             )}
           >
-            {index === 0 ? <BeltPeek rank={beltRank ?? "white"} /> : null}
+            <BeltPeek rank={beltRank ?? "white"} up={index === current} />
             <InterestCard
               item={item}
               currentYear={currentYear}
@@ -83,6 +95,38 @@ export function CompetitionInterestBanner({
       </ul>
     </section>
   );
+}
+
+/**
+ * 지금 왼쪽 끝에 멈춰 있는(또는 가장 가까운) 카드 번호. 처음 그릴 땐 -1이라 캐릭터가 다 숨어 있다가,
+ * 화면에 붙은 다음 프레임에 0이 되어 첫 장 캐릭터가 한 번 올라온다.
+ * 넘기는 도중 카드의 절반을 넘으면 바로 바뀐다 — 손을 떼기 전에 새 캐릭터가 마중 나온다.
+ */
+function useCurrentCard(listRef: React.RefObject<HTMLUListElement | null>) {
+  const [current, setCurrent] = useState(-1);
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    let frame = 0;
+    const measure = () => {
+      frame = 0;
+      const first = list.firstElementChild as HTMLElement | null;
+      if (!first) return;
+      const step =
+        first.offsetWidth + parseFloat(getComputedStyle(list).columnGap || "0");
+      setCurrent(step > 0 ? Math.round(list.scrollLeft / step) : 0);
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(measure);
+    };
+    frame = requestAnimationFrame(measure);
+    list.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      list.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(frame);
+    };
+  }, [listRef]);
+  return current;
 }
 
 function InterestCard({
@@ -146,9 +190,11 @@ function InterestCard({
  * 그림은 public/images/characters/stand — 앱 로그인 화면의 눈 없는 몸통·눈을 표시 크기의 3배로 줄인 것.
  * 흰·파란띠 몸통 원본은 휘어 있어서 곧은 보라 몸통의 색만 바꿔 만들었다.
  * 상자는 그래픽 자리 맨 위부터 카드 아래 끝 - 모서리까지다. 그 아래 몸은 잘려 카드 밖으로 나오지 않는다.
- * 화면에 들어올 때 한 번만 쏙 올라온다(동작 줄이기 설정이면 가만히 있다).
+ * up이면 아래에서 띠용 튀어 올라 서 있고(500ms), 아니면 카드 뒤로 재빨리 숨는다(200ms).
+ * 오르는 건 스프링 곡선 대신 키프레임으로 넘침을 8px로 묶는다 — 머리 위 여유가 10px라 스프링(25% 넘침)이면 머리끝이 잘린다.
+ * 동작 줄이기 설정이면 움직이지 않고 바로 나타나고 사라진다.
  */
-function BeltPeek({ rank }: { rank: BeltRank }) {
+function BeltPeek({ rank, up }: { rank: BeltRank; up: boolean }) {
   const body = PEEK_BODY[rank];
   const eyes = PEEK_EYES[rank];
   const bandY = HEAD_SPACE - BAND_ABOVE_CARD;
@@ -162,7 +208,15 @@ function BeltPeek({ rank }: { rank: BeltRank }) {
         height: HEAD_SPACE + CARD_HEIGHT - CARD_RADIUS,
       }}
     >
-      <span className="absolute inset-0 motion-safe:animate-peek-rise">
+      <span
+        className={cn(
+          "absolute inset-0",
+          up
+            ? "motion-safe:animate-peek-rise"
+            : "motion-safe:transition-transform motion-safe:duration-200 motion-safe:ease-in",
+        )}
+        style={{ transform: `translateY(${up ? 0 : PEEK_HIDE}px)` }}
+      >
         {/* eslint-disable-next-line @next/next/no-img-element -- 크기를 고정한 작은 장식 그림 */}
         <img
           src={body.src}
@@ -282,13 +336,17 @@ export function InterestBannerTint({ rank }: { rank: BeltRank }) {
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute inset-x-0 top-0 h-[180px]"
+      className="pointer-events-none absolute inset-x-0 top-0"
       style={{
+        height: TINT_HEIGHT,
         background: `linear-gradient(180deg, color-mix(in srgb, ${color} 28%, var(--surface-container)) 0%, color-mix(in srgb, ${color} 10%, var(--surface-container)) 45%, var(--surface-container) 100%)`,
       }}
     />
   );
 }
+
+/** 그라데이션 높이와 멈춤 자리 — 아래 배경 그림과 앱 머리 색 계산이 같이 쓴다. */
+const TINT_HEIGHT = 180;
 
 /** 그라데이션 색 — 프로필 머리의 띠 색 토큰을 쓴다. */
 const TINT_COLOR: Record<BeltRank, string> = {

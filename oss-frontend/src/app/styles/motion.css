@@ -188,8 +188,9 @@
      애니메이션을 처음부터 다시 재생한다(다시 마운트하면 안의 숫자 굴림이 끊긴다). */
   --animate-tick-bump: tick-bump 500ms var(--ease-spring-bouncy);
   --animate-tick-bump-alt: tick-bump-alt 500ms var(--ease-spring-bouncy);
-  /* 관심 대회 머리 캐릭터 — 카드 뒤에서 한 번 쏙 올라와 멈춘다(반복 없음). */
-  --animate-peek-rise: peek-rise 500ms var(--ease-spring-bouncy) both;
+  /* 관심 대회 머리 캐릭터 — 카드 뒤에 숨어 있다가 띠용 튀어 올라 한 번 출렁이고 멈춘다(반복 없음).
+     머리 위 여유가 10px라 넘침은 8px로 묶는다. 숨는 거리(64px)는 컴포넌트의 PEEK_HIDE와 같다. */
+  --animate-peek-rise: peek-rise 500ms ease-out both;
   /* 드롭다운 메뉴 — 트리거 쪽에서 --menu-shift만큼 떨어진 곳부터 차분히 미끄러져 나타난다. */
   --animate-menu-slide-in: menu-slide-in 260ms var(--ease-smooth-out) both;
   /* 드롭다운 메뉴 닫힘 — 들어온 길(--menu-shift)로 되돌아가며 옅어진다. 끝나면 호출부가 DOM에서 뺀다. */
@@ -315,10 +316,22 @@
   }
 
   @keyframes peek-rise {
-    from {
-      transform: translateY(40px);
+    0% {
+      transform: translateY(64px);
     }
-    to {
+    50% {
+      transform: translateY(-8px);
+      animation-timing-function: ease-in-out;
+    }
+    72% {
+      transform: translateY(3px);
+      animation-timing-function: ease-in-out;
+    }
+    88% {
+      transform: translateY(-1px);
+      animation-timing-function: ease-in-out;
+    }
+    100% {
       transform: translateY(0);
     }
   }
