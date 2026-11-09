@@ -60,6 +60,10 @@ export const OutboundMessageType = {
   // 대회 기록 남기기(jiu-jitsu-frontend#368 · jiu-jitsu-ios#252). 끝난 대회 상세의 "내 기록에 남기기"가 보낸다.
   // 앱의 대회 정보 추가 흐름을 대회 이름·연도를 채운 채로 연다. 지원 목록에 있을 때만 보낸다.
   OPEN_COMPETITION_RECORD: "OPEN_COMPETITION_RECORD",
+  // 대회 탭 머리 색(앱이 그리는 '대회' 제목 줄과 상태바). 웹 맨 위에 내 띠 색 그라데이션이 깔리면, 그 맨 윗색을
+  // 보내 앱 머리를 같은 색으로 칠해 이음매를 없앤다. 스크롤로 그라데이션이 올라가면 옅어진 색을 다시 보내고,
+  // 다 사라지면 color:null(앱 기본색). 구버전 앱은 모르므로 지원 목록에 있을 때만 보낸다.
+  COMPETITION_HEADER_TINT: "COMPETITION_HEADER_TINT",
 } as const;
 export type OutboundMessageType =
   (typeof OutboundMessageType)[keyof typeof OutboundMessageType];
@@ -201,6 +205,11 @@ export type ShareSheetPayload = {
 /** `COMPETITION_ALERTS_ENABLED` payload — 알림을 켠 시트가 묻던 대회. 앱이 안내 문구에 쓸 수 있다. */
 export type CompetitionAlertsEnabledPayload = {
   competitionId: string;
+};
+
+/** `COMPETITION_HEADER_TINT` payload — 앱 머리를 칠할 색. "#RRGGBB" 이거나 null(앱 기본 머리색으로). */
+export type CompetitionHeaderTintPayload = {
+  color: string | null;
 };
 
 /** `OPEN_COMPETITION_RECORD` payload — 결과를 남길 대회. 앱은 이름·연도를 미리 채운다. */

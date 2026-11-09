@@ -10,6 +10,7 @@ import {
   weekdayOf,
 } from "@/features/competition/presentation/competition-month-section";
 import { cn } from "@/shared/lib/cn";
+import { setNativeCompetitionHeaderTint } from "@/shared/lib/native-bridge";
 import { HeartIcon } from "@/shared/ui/icons";
 import { PRESS_BOUNCE } from "@/shared/ui/press-styles";
 
@@ -333,6 +334,7 @@ const PEEK_EYES: Record<
  */
 export function InterestBannerTint({ rank }: { rank: BeltRank }) {
   const color = TINT_COLOR[rank];
+  useNativeHeaderTint(color);
   return (
     <div
       aria-hidden
@@ -347,6 +349,75 @@ export function InterestBannerTint({ rank }: { rank: BeltRank }) {
 
 /** 그라데이션 높이와 멈춤 자리 — 아래 배경 그림과 앱 머리 색 계산이 같이 쓴다. */
 const TINT_HEIGHT = 180;
+
+/**
+ * 앱 머리(‘대회’ 제목 줄·상태바)를 웹 맨 윗색과 같게 칠한다 — 앱 머리와 웹 사이 이음매를 없앤다.
+ *
+ * 맨 위에 보이는 색 = 필터 줄의 반투명 바탕(60%) 너머로 비치는 그라데이션(40%)이라, 띠 색 비율도 그 40%만 친다.
+ * 스크롤로 그라데이션이 올라가면 맨 윗자리의 색도 옅어지니, 1% 단위로 바뀔 때만 다시 보낸다(끝까지 많아야 12번).
+ * 다 옅어지면, 그리고 화면을 떠나면 null로 앱 기본색으로 돌린다. 지원하지 않는 앱이면 아무것도 보내지 않는다.
+ */
+function useNativeHeaderTint(color: string) {
+  useEffect(() => {
+    const probe = document.createElement("span");
+    probe.style.display = "none";
+    document.body.appendChild(probe);
+    const hexOf = (percent: number) => {
+      probe.style.backgroundColor = `color-mix(in srgb, ${color} ${percent}%, var(--surface-container))`;
+      return toHex(getComputedStyle(probe).backgroundColor);
+    };
+
+    let sent: number | undefined;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const percent = Math.round(tintAt(window.scrollY) * 0.4);
+      if (percent === sent) return;
+      sent = percent;
+      setNativeCompetitionHeaderTint(percent > 0 ? hexOf(percent) : null);
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(frame);
+      probe.remove();
+      setNativeCompetitionHeaderTint(null);
+    };
+  }, [color]);
+}
+
+/** 그라데이션의 띠 색 비율(%) — 맨 위에서 y만큼 내려간 자리. 아래 linear-gradient의 멈춤(28→10→0)과 같다. */
+function tintAt(y: number) {
+  const mid = TINT_HEIGHT * 0.45;
+  if (y <= 0) return 28;
+  if (y < mid) return 28 - (18 * y) / mid;
+  if (y < TINT_HEIGHT) return 10 - (10 * (y - mid)) / (TINT_HEIGHT - mid);
+  return 0;
+}
+
+/** 계산된 색 문자열(rgb(…)·color(srgb …)) → "#RRGGBB". 읽지 못하면 null. */
+function toHex(value: string): string | null {
+  const srgb = value.match(/color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/);
+  const rgb = value.match(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/);
+  const channels = srgb
+    ? srgb.slice(1, 4).map((v) => Number(v) * 255)
+    : rgb
+      ? rgb.slice(1, 4).map(Number)
+      : null;
+  if (!channels) return null;
+  return `#${channels
+    .map((v) =>
+      Math.round(Math.min(255, Math.max(0, v)))
+        .toString(16)
+        .padStart(2, "0"),
+    )
+    .join("")
+    .toUpperCase()}`;
+}
 
 /** 그라데이션 색 — 프로필 머리의 띠 색 토큰을 쓴다. */
 const TINT_COLOR: Record<BeltRank, string> = {
