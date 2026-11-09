@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import { RefreshOnLogin } from "@/features/auth/presentation/refresh-on-login";
 import type { CommentList } from "@/features/community/domain/comment";
 import type { CommentSort, PostDetail } from "@/features/community/domain/post";
@@ -30,10 +32,13 @@ export function PostDetailView({
   post,
   comments,
   sort,
+  attachment,
 }: {
   post: PostDetail;
   comments: CommentList;
   sort: CommentSort;
+  /** 본문(이미지) 아래·태그 위에 붙는 카드 — 글이 고른 대회(#380). */
+  attachment?: ReactNode;
 }) {
   return (
     <CommentReplyProvider>
@@ -57,7 +62,11 @@ export function PostDetailView({
             />
           }
           // 외부 브라우저에서는 입력 바를 감춘다(#72) — 세션이 없어 전송이 반드시 실패한다.
-          footer={<PostDetailFooter inputBar={<CommentInputBar contentId={post.id} />} />}
+          footer={
+            <PostDetailFooter
+              inputBar={<CommentInputBar contentId={post.id} />}
+            />
+          }
         >
           <div>
             {/* 본문 영역: 헤더와 간격 24(pt-6), 좌우 여백 16(px-4), 섹션 간격 16(gap-4: 본문↔이미지 등, 작성자↔제목만 8) */}
@@ -84,6 +93,7 @@ export function PostDetailView({
                 // 여러 장일 때 스크롤 영역은 이 article의 px-4를 벗어나 화면 폭까지 넓어진다.
                 <PostDetailImages images={post.images} />
               ) : null}
+              {attachment}
               {/* 본문(또는 이미지) 아래 태그 24 = article gap-4(16) + mt-2(8) */}
               <PostTags tags={post.tags} className="mt-2" />
             </article>

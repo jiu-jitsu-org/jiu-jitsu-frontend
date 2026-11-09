@@ -1,10 +1,19 @@
 import { createGetInboxNotificationsUseCase } from "@/features/community/application/community-use-case-factory";
 import type { InboxNotification } from "@/features/community/domain/inbox-notification";
+import {
+  loadCompetitionAlertInbox,
+  type CompetitionAlertInbox,
+} from "@/features/competition/application/load-competition-alert-inbox";
 import { readSessionToken } from "@/shared/lib/auth";
 import { ApiErrorCode, toApiError } from "@/shared/lib/http";
 
 export type InboxPageDataResult =
-  | { ok: true; notifications: InboxNotification[] }
+  | {
+      ok: true;
+      notifications: InboxNotification[];
+      /** 함께 보여 줄 대회 마감 알림(#377). 대회 알림 API가 나오면 notifications에 섞여 올 수 있다. */
+      competition: CompetitionAlertInbox;
+    }
   // 비로그인 — 앱은 진입점이 없고(종 아이콘 미노출), URL 직접 진입이면 안내만 그린다.
   | { ok: false; reason: "guest" }
   // 만료 토큰 — 서버는 갱신 불가하니 클라이언트가 네이티브 갱신 후 SSR을 재실행한다.
@@ -16,15 +25,18 @@ export type InboxPageDataResult =
  *
  * 로그인 전용 API라 토큰이 없으면 호출 자체를 하지 않는다(401 확정 왕복 방지).
  * 만료 토큰(A0003) 처리는 내 커뮤니티 활동(get-my-activity-page-data)과 같다.
+ * 대회 마감 알림(#377)은 대회 feature에서 따로 읽어 함께 싣는다 — 섞는 순서는 화면이 정한다.
  */
 export async function getInboxPageData(): Promise<InboxPageDataResult> {
   const accessToken = await readSessionToken();
   if (!accessToken) return { ok: false, reason: "guest" };
 
   try {
-    const notifications =
-      await createGetInboxNotificationsUseCase(accessToken).execute();
-    return { ok: true, notifications };
+    const [notifications, competition] = await Promise.all([
+      createGetInboxNotificationsUseCase(accessToken).execute(),
+      loadCompetitionAlertInbox(),
+    ]);
+    return { ok: true, notifications, competition };
   } catch (error) {
     const apiError = toApiError(error);
 

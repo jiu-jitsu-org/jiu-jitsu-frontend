@@ -2,7 +2,7 @@ import {
   OutboundMessageType,
   type BridgeMessage,
   type InboundMessage,
-  type CompetitionInterestFirstAddedPayload,
+  type CompetitionAlertsEnabledPayload,
   type OpenCompetitionRecordPayload,
   type OpenSubviewPayload,
   type OpenUserProfilePayload,
@@ -117,15 +117,15 @@ export function openNativeUserProfile(payload: OpenUserProfilePayload): void {
 }
 
 /**
- * 이 기기에서 처음 대회 관심 등록이 성공했다고 알린다(#335). 앱은 이때 알림 권한을 묻는다.
+ * 관심 대회 알림을 켰다고 알린다(#375). 앱은 기기 알림이 꺼져 있으면 켜는 방법을 안내한다.
  * 브릿지가 없는 브라우저에서는 보내지 않는다 — 알림을 받을 앱이 없다.
  */
-export function notifyCompetitionInterestFirstAdded(
-  payload: CompetitionInterestFirstAddedPayload,
+export function notifyCompetitionAlertsEnabled(
+  payload: CompetitionAlertsEnabledPayload,
 ): void {
   if (!isNativeBridgeAvailable()) return;
   postToNative({
-    type: OutboundMessageType.COMPETITION_INTEREST_FIRST_ADDED,
+    type: OutboundMessageType.COMPETITION_ALERTS_ENABLED,
     payload,
   });
 }

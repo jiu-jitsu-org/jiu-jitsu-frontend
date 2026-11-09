@@ -22,6 +22,7 @@ import { useFeedRevalidate } from "@/features/community/presentation/use-feed-re
 import { usePostActions } from "@/features/community/presentation/use-post-actions";
 import type { PostSummary } from "@/features/community/domain/post-summary";
 import { FeedCard } from "@/features/community/presentation/feed/feed-card";
+import { PostCompetitionCard } from "@/features/competition/presentation/post-competition-card";
 import { FeedCardMenu } from "@/features/community/presentation/feed/feed-card-menu";
 import { FeedListEnd } from "@/features/community/presentation/feed/feed-list-end";
 import {
@@ -440,6 +441,11 @@ function FeedCardItem({
       liked={liked}
       bookmarked={bookmarked}
       hideAuthor={hideAuthor}
+      attachment={
+        post.competition ? (
+          <PostCompetitionCard card={post.competition} />
+        ) : undefined
+      }
       onPressAuthor={
         authorLink
           ? openAuthorProfile(post.author.userId, post.viewer.isOwner)
@@ -499,9 +505,7 @@ export function FeedLoadMoreError({
 }) {
   return (
     <div className="flex h-[69px] flex-col items-center justify-center gap-1 px-4 motion-safe:animate-fade-in">
-      <p className="text-body-s text-feed-card-body-text">
-        {message}
-      </p>
+      <p className="text-body-s text-feed-card-body-text">{message}</p>
       <button
         type="button"
         onClick={onRetry}

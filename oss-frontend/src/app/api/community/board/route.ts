@@ -6,6 +6,7 @@ import {
   toErrorResponse,
   validatePostBody,
 } from "@/app/api/community/_lib/community-route-helpers";
+import { attachPostCompetitions } from "@/features/community/application/attach-post-competitions";
 import {
   createCreatePostUseCase,
   createGetPostListUseCase,
@@ -53,7 +54,12 @@ export async function GET(request: NextRequest) {
   const accessToken = await readSessionToken();
 
   try {
-    const data = await createGetPostListUseCase(accessToken).execute(query);
+    const list = await createGetPostListUseCase(accessToken).execute(query);
+    // 고른 대회 카드(#379)를 첫 페이지와 같은 모양으로 붙인다.
+    const data: PostList = {
+      ...list,
+      items: await attachPostCompetitions(list.items, accessToken !== null),
+    };
 
     return NextResponse.json<ApiSuccessResponse<PostList>>({
       success: true,

@@ -34,3 +34,12 @@ export class GetPostCompetitionIdUseCase {
     return this.storyRepository.getPostCompetitionId(postId);
   }
 }
+
+/** 여러 글이 고른 대회 id(#379) — 피드 한 페이지의 대회 카드를 한 번에 붙인다. */
+export class GetPostCompetitionIdsUseCase {
+  constructor(private readonly storyRepository: CompetitionStoryRepository) {}
+
+  async execute(postIds: readonly number[]): Promise<Record<number, string>> {
+    return this.storyRepository.getPostCompetitionIds(postIds);
+  }
+}

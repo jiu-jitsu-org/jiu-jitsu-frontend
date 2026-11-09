@@ -15,4 +15,8 @@ export interface CompetitionStoryRepository {
   ): Promise<void>;
   /** 글이 고른 대회 id — 글 수정 화면이 처음 값으로 쓴다. 없으면 null. */
   getPostCompetitionId(postId: number): Promise<string | null>;
+  /** 여러 글이 고른 대회 id(#379) — 피드 한 페이지를 한 번에 읽는다. 대회를 고르지 않은 글은 빠진다. */
+  getPostCompetitionIds(
+    postIds: readonly number[],
+  ): Promise<Record<number, string>>;
 }

@@ -1,7 +1,17 @@
+import {
+  GetCompetitionAlertNotificationsUseCase,
+  MarkCompetitionAlertNotificationsReadUseCase,
+} from "@/features/competition/application/competition-alert-notifications";
+import {
+  GetCompetitionAlertSettingsUseCase,
+  SetCompetitionAlertMutedUseCase,
+  SetCompetitionAlertsEnabledUseCase,
+} from "@/features/competition/application/competition-alert-settings";
 import { GetCompetitionDetailUseCase } from "@/features/competition/application/get-competition-detail";
 import { GetCompetitionStoriesUseCase } from "@/features/competition/application/get-competition-stories";
 import {
   GetPostCompetitionIdUseCase,
+  GetPostCompetitionIdsUseCase,
   LinkPostCompetitionUseCase,
 } from "@/features/competition/application/link-post-competition";
 import { RecordCompetitionViewUseCase } from "@/features/competition/application/record-competition-view";
@@ -10,6 +20,7 @@ import { GetCompetitionInterestCountsUseCase } from "@/features/competition/appl
 import { GetCompetitionListUseCase } from "@/features/competition/application/get-competition-list";
 import { GetInterestedCompetitionIdsUseCase } from "@/features/competition/application/get-interested-competition-ids";
 import { SetCompetitionInterestUseCase } from "@/features/competition/application/set-competition-interest";
+import { FixtureCompetitionAlertRepository } from "@/features/competition/infrastructure/fixture-competition-alert-repository";
 import { FixtureCompetitionInterestRepository } from "@/features/competition/infrastructure/fixture-competition-interest-repository";
 import { FixtureCompetitionInfoReportRepository } from "@/features/competition/infrastructure/fixture-competition-info-report-repository";
 import { FixtureCompetitionRepository } from "@/features/competition/infrastructure/fixture-competition-repository";
@@ -19,7 +30,7 @@ import { FixtureCompetitionViewRepository } from "@/features/competition/infrast
 /**
  * 대회 feature 의존성 조립.
  *
- * 대회 목록·상세·관심 등록·조회수·대회 이야기·제보 API가 아직 없어 고정 데이터 저장소를 끼운다. API가 나오면 여기서
+ * 대회 목록·상세·관심 등록·마감 알림·조회수·대회 이야기·제보 API가 아직 없어 고정 데이터 저장소를 끼운다. API가 나오면 여기서
  * createServerHttpClient 기반 External 저장소로 바꾼다 — 위 계층은 그대로 둔다.
  */
 export function createGetCompetitionListUseCase(): GetCompetitionListUseCase {
@@ -50,11 +61,15 @@ export function createGetCompetitionDetailUseCase(): GetCompetitionDetailUseCase
 }
 
 export function createRecordCompetitionViewUseCase(): RecordCompetitionViewUseCase {
-  return new RecordCompetitionViewUseCase(new FixtureCompetitionViewRepository());
+  return new RecordCompetitionViewUseCase(
+    new FixtureCompetitionViewRepository(),
+  );
 }
 
 export function createGetCompetitionStoriesUseCase(): GetCompetitionStoriesUseCase {
-  return new GetCompetitionStoriesUseCase(new FixtureCompetitionStoryRepository());
+  return new GetCompetitionStoriesUseCase(
+    new FixtureCompetitionStoryRepository(),
+  );
 }
 
 export function createReportCompetitionInfoUseCase(): ReportCompetitionInfoUseCase {
@@ -72,5 +87,44 @@ export function createLinkPostCompetitionUseCase(): LinkPostCompetitionUseCase {
 }
 
 export function createGetPostCompetitionIdUseCase(): GetPostCompetitionIdUseCase {
-  return new GetPostCompetitionIdUseCase(new FixtureCompetitionStoryRepository());
+  return new GetPostCompetitionIdUseCase(
+    new FixtureCompetitionStoryRepository(),
+  );
+}
+
+export function createGetCompetitionAlertSettingsUseCase(): GetCompetitionAlertSettingsUseCase {
+  return new GetCompetitionAlertSettingsUseCase(
+    new FixtureCompetitionAlertRepository(),
+  );
+}
+
+export function createSetCompetitionAlertsEnabledUseCase(): SetCompetitionAlertsEnabledUseCase {
+  return new SetCompetitionAlertsEnabledUseCase(
+    new FixtureCompetitionAlertRepository(),
+  );
+}
+
+export function createSetCompetitionAlertMutedUseCase(): SetCompetitionAlertMutedUseCase {
+  return new SetCompetitionAlertMutedUseCase(
+    new FixtureCompetitionRepository(),
+    new FixtureCompetitionAlertRepository(),
+  );
+}
+
+export function createGetCompetitionAlertNotificationsUseCase(): GetCompetitionAlertNotificationsUseCase {
+  return new GetCompetitionAlertNotificationsUseCase(
+    new FixtureCompetitionAlertRepository(),
+  );
+}
+
+export function createMarkCompetitionAlertNotificationsReadUseCase(): MarkCompetitionAlertNotificationsReadUseCase {
+  return new MarkCompetitionAlertNotificationsReadUseCase(
+    new FixtureCompetitionAlertRepository(),
+  );
+}
+
+export function createGetPostCompetitionIdsUseCase(): GetPostCompetitionIdsUseCase {
+  return new GetPostCompetitionIdsUseCase(
+    new FixtureCompetitionStoryRepository(),
+  );
 }

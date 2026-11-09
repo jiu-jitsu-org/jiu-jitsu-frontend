@@ -4,6 +4,8 @@ import type { CommentSort } from "@/features/community/domain/post";
 import { DetailErrorState } from "@/features/community/presentation/detail-error-state";
 import { PostDetailGone } from "@/features/community/presentation/post-detail-gone";
 import { PostDetailView } from "@/features/community/presentation/post-detail-view";
+import { CompetitionAlertProvider } from "@/features/competition/presentation/competition-alert-provider";
+import { PostCompetitionCard } from "@/features/competition/presentation/post-competition-card";
 import { ApiErrorCode } from "@/shared/lib/http";
 import { Spinner } from "@/shared/ui/spinner";
 
@@ -30,9 +32,7 @@ export async function PostDetailScreen({
   if (!result.ok) {
     // 만료 토큰 → 클라이언트가 네이티브 갱신 후 이 화면을 재실행(router.refresh)해 인증 상태로 복구.
     if (result.reason === "session-expired") {
-      return (
-        <SessionExpiredRecovery loading={<PostDetailLoading />} />
-      );
+      return <SessionExpiredRecovery loading={<PostDetailLoading />} />;
     }
 
     // 열 수 없는 게시글(C0002 / 404) → 진입을 막고 목록으로 돌려보낸다(#41).
@@ -45,9 +45,30 @@ export async function PostDetailScreen({
     return <DetailErrorState title="게시글을 불러오지 못했습니다." />;
   }
 
-  const { post, comments } = result.data;
+  const { post, comments, competition } = result.data;
+  const view = (
+    <PostDetailView
+      post={post}
+      comments={comments}
+      sort={sort}
+      attachment={
+        competition ? (
+          <PostCompetitionCard card={competition.card} />
+        ) : undefined
+      }
+    />
+  );
+  if (!competition) return view;
 
-  return <PostDetailView post={post} comments={comments} sort={sort} />;
+  // 대회 카드 하트로 처음 관심 등록하면 마감 알림 시트를 띄운다(#375).
+  return (
+    <CompetitionAlertProvider
+      settings={competition.alertSettings}
+      today={competition.today}
+    >
+      {view}
+    </CompetitionAlertProvider>
+  );
 }
 
 /** 상세 복구(세션 갱신) 중 표시. */

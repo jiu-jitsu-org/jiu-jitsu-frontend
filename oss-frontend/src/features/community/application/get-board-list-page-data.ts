@@ -1,3 +1,4 @@
+import { attachPostCompetitions } from "@/features/community/application/attach-post-competitions";
 import { withSampleBelts } from "@/features/community/application/belt-avatar-sample";
 import { createGetPostListUseCase } from "@/features/community/application/community-use-case-factory";
 import type {
@@ -42,9 +43,16 @@ export async function getBoardListPageData(
   const accessToken = await readSessionToken();
 
   try {
-    const list = await createGetPostListUseCase(accessToken).execute(query);
+    const fetched = await createGetPostListUseCase(accessToken).execute(query);
+    const list = {
+      ...fetched,
+      items: await attachPostCompetitions(fetched.items, accessToken !== null),
+    };
     if (sampleBelts && isDevelopmentRuntime()) {
-      return { ok: true, data: { list: { ...list, items: withSampleBelts(list.items) } } };
+      return {
+        ok: true,
+        data: { list: { ...list, items: withSampleBelts(list.items) } },
+      };
     }
     return { ok: true, data: { list } };
   } catch (error) {

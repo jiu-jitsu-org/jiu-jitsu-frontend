@@ -48,10 +48,11 @@ export const OutboundMessageType = {
   // 없어 네이티브가 사진 선택 화면을 직접 연다. 결과(PHOTOS_PICKED)를 받아야 해서 requestId로 짝짓는다.
   // 구버전 앱은 이 메시지를 모르므로 지원 목록(AppBridgeCapabilities)에 있을 때만 보낸다 — 없으면 file input.
   PICK_PHOTOS: "PICK_PHOTOS",
-  // 대회 관심 첫 등록(#335 · jiu-jitsu-ios#243). 이 기기에서 처음 관심 등록이 성공하면 한 번 보낸다.
-  // 관심 등록은 마감 알림을 받는 기능이라, 앱이 이 순간에 알림 권한을 묻는다(이미 물었으면 앱이 판단).
-  // 결과 회신은 없다 — 권한을 거절해도 관심 등록 자체는 유지된다. 이 메시지를 모르는 구버전 앱은 무시한다.
-  COMPETITION_INTEREST_FIRST_ADDED: "COMPETITION_INTEREST_FIRST_ADDED",
+  // 관심 대회 알림 켬(jiu-jitsu-frontend#375 · jiu-jitsu-ios#257). 첫 관심 등록 시트에서 '알림 받기'를 고르면 보낸다.
+  // 앱은 기기 알림이 꺼져 있을 때만 켜는 방법을 안내한다(권한 요청은 로그인 직후 앱이 이미 한다).
+  // 결과 회신은 없다 — 기기 알림을 켜지 않아도 관심 대회 알림 설정은 켜진 채다. 이 메시지를 모르는 구버전 앱은 무시한다.
+  // #335의 COMPETITION_INTEREST_FIRST_ADDED(관심 첫 등록 때 권한 창)를 대신한다.
+  COMPETITION_ALERTS_ENABLED: "COMPETITION_ALERTS_ENABLED",
   // 홈 피드로 가기(jiu-jitsu-frontend#366 · jiu-jitsu-ios#250). 대회 상세의 "커뮤니티에서 더 보기"가 보낸다.
   // 피드는 앱 홈 탭이 띄우는 화면이라 웹이 서브뷰로 열면 탭 바·헤더 없는 피드가 쌓인다 — 앱이 열린 서브뷰를 닫고
   // 홈 탭으로 바꾼다. 구버전 앱은 모르므로 지원 목록에 있을 때만 보내고, 없으면 피드를 서브뷰로 연다.
@@ -197,8 +198,8 @@ export type ShareSheetPayload = {
   url: string;
 };
 
-/** `COMPETITION_INTEREST_FIRST_ADDED` payload — 처음 관심 등록한 대회. 앱이 안내 문구에 쓸 수 있다. */
-export type CompetitionInterestFirstAddedPayload = {
+/** `COMPETITION_ALERTS_ENABLED` payload — 알림을 켠 시트가 묻던 대회. 앱이 안내 문구에 쓸 수 있다. */
+export type CompetitionAlertsEnabledPayload = {
   competitionId: string;
 };
 
@@ -268,7 +269,10 @@ export type BridgeMessage<P = unknown> = {
  * 핸들러에서 `switch (message.type)`으로 안전하게 좁혀 쓰기 위함.
  */
 export type InboundMessage =
-  | { type: typeof InboundMessageType.AUTH_LOGIN_SUCCESS; payload: AuthLoginSuccessPayload }
+  | {
+      type: typeof InboundMessageType.AUTH_LOGIN_SUCCESS;
+      payload: AuthLoginSuccessPayload;
+    }
   | { type: typeof InboundMessageType.AUTH_LOGIN_CANCELLED }
   | { type: typeof InboundMessageType.AUTH_SESSION_EXPIRED }
   | { type: typeof InboundMessageType.AUTH_LOGOUT }
