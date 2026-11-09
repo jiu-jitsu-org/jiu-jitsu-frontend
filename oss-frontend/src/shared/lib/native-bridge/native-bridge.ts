@@ -3,6 +3,7 @@ import {
   type BridgeMessage,
   type InboundMessage,
   type CompetitionAlertsEnabledPayload,
+  type CompetitionHeaderTintPayload,
   type OpenCompetitionRecordPayload,
   type OpenSubviewPayload,
   type OpenUserProfilePayload,
@@ -150,6 +151,22 @@ export function openNativeCompetitionRecord(
   }
   postToNative({ type: OutboundMessageType.OPEN_COMPETITION_RECORD, payload });
   return true;
+}
+
+/**
+ * 앱의 대회 탭 머리(제목 줄·상태바)를 이 색으로 칠하도록 요청한다. null이면 앱 기본색으로 돌린다.
+ * 지원하지 않는 앱·브라우저에서는 보내지 않는다(머리는 앱 기본색 그대로).
+ */
+export function setNativeCompetitionHeaderTint(
+  color: CompetitionHeaderTintPayload["color"],
+): void {
+  if (!supportsNativeMessage(OutboundMessageType.COMPETITION_HEADER_TINT)) {
+    return;
+  }
+  postToNative({
+    type: OutboundMessageType.COMPETITION_HEADER_TINT,
+    payload: { color },
+  });
 }
 
 /**

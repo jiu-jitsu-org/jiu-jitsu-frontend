@@ -19,6 +19,7 @@ import { CompetitionCalendar } from "@/features/competition/presentation/competi
 import {
   CompetitionInterestBanner,
   InterestBannerTint,
+  useCompetitionHeaderTint,
 } from "@/features/competition/presentation/competition-interest-banner";
 import { RegistrationIcon } from "@/features/competition/presentation/competition-icons";
 import {
@@ -202,6 +203,10 @@ export function CompetitionListView({
           )
         : [],
     [interest.interestedIds, months, signedIn, today],
+  );
+  // 앱의 '대회' 머리를 맨 위 띠 색 그라데이션과 같은 색으로 — 배너가 없으면 앱 기본색.
+  useCompetitionHeaderTint(
+    interestedUpcoming.length > 0 ? (myBeltRank ?? "white") : null,
   );
 
   // 배너에서 누른 대회는 상세로 바로 연다(#361) — 목록 줄을 누른 것과 같다.

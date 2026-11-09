@@ -15,6 +15,11 @@ import {
   FlameIcon,
   RegistrationIcon,
 } from "@/features/competition/presentation/competition-icons";
+import {
+  REACTION_POP_MOTION,
+  REACTION_PRESS_MOTION,
+} from "@/features/community/presentation/comment-reaction-styles";
+import { usePopOnActivate } from "@/features/community/presentation/use-pop-on-activate";
 import type { CompetitionInterest } from "@/features/competition/presentation/use-competition-interest";
 import { cn } from "@/shared/lib/cn";
 import { HeartIcon } from "@/shared/ui/icons";
@@ -132,8 +137,7 @@ export function CompetitionRow({
   const interested = interest?.isInterested(competition.id) ?? false;
 
   return (
-    <li className="flex items-start gap-2"
-    >
+    <li className="flex items-start gap-2">
       {/* 날짜 칸은 면·테두리 없이 흰 바탕에 글자만 — 흰 바탕이 뒤의 세로 줄을 가려 날짜가 줄 위에 놓인 듯 보인다. */}
       <time
         dateTime={competition.date}
@@ -335,6 +339,7 @@ export function RegistrationChip({
  * 커뮤니티 글의 좋아요와 같은 하트·색 토큰을 쓴다: 등록 전 옅은 회색 선, 등록하면 빨강 채움.
  * 관심 수는 아무도 없으면 빼서 "0"이 줄마다 늘어서지 않게 한다. 누가 눌렀는지는 보여 주지 않는다.
  * 보이는 크기는 칩 줄 높이에 맞추고, 누를 자리는 음수 여백으로 44×44를 지킨다.
+ * 움직임도 커뮤니티 좋아요와 같다: 누르는 동안 살짝 눌렸다 놓으면 스프링으로 돌아오고, 켜지는 순간 하트가 톡 부푼다.
  */
 export function InterestButton({
   competitionName,
@@ -347,6 +352,7 @@ export function InterestButton({
   count: number;
   onToggle: () => void;
 }) {
+  const pop = usePopOnActivate(interested);
   return (
     <button
       type="button"
@@ -356,17 +362,20 @@ export function InterestButton({
       className={cn(
         "relative -my-2.5 -mr-2 flex min-h-11 min-w-11 flex-none items-center justify-center gap-1 rounded-10 px-2",
         SURFACE_PRESS,
+        REACTION_PRESS_MOTION,
       )}
     >
-      <HeartIcon
-        size={18}
-        filled={interested}
-        className={
-          interested
-            ? "text-reaction-bar-active-like-icon"
-            : "text-reaction-bar-default-icon"
-        }
-      />
+      <span className={cn("inline-flex", pop && REACTION_POP_MOTION)}>
+        <HeartIcon
+          size={18}
+          filled={interested}
+          className={
+            interested
+              ? "text-reaction-bar-active-like-icon"
+              : "text-reaction-bar-default-icon"
+          }
+        />
+      </span>
       {count > 0 ? (
         <span
           className={cn(
