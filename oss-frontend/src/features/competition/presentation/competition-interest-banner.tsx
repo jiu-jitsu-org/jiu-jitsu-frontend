@@ -273,7 +273,8 @@ const PEEK_EYES: Record<
 /**
  * 위에서 내려오는 내 띠 색 그라데이션 — 화면 맨 위(필터 줄 뒤)에서 은은하게 시작해 관심 대회 카드 위쪽에서
  * 바탕색으로 녹는다. 관심 대회 배너가 있을 때만 깐다. 흰띠는 회색, 검은띠는 끝 칸의 빨강으로 물들인다.
- * 바탕 뒤(-z)에 깔려 있어 부모가 쌓임 맥락(isolate)을 만들어야 보인다.
+ * 화면 맨 앞에 두고 z를 주지 않아, 뒤에 오는 필터 줄(sticky)·배너(relative)가 그 위에 그려진다.
+ * 음수 z + isolate로 깔면 같은 화면의 시트(fixed z-50)가 main 안에 갇혀 토스트 등과 순서가 바뀌어 쓰지 않는다.
  * 필터 줄이 반투명 바탕(60%)을 덮어 맨 위가 묽어지므로, 시안(16%)보다 진하게 시작한다.
  */
 export function InterestBannerTint({ rank }: { rank: BeltRank }) {
@@ -281,7 +282,7 @@ export function InterestBannerTint({ rank }: { rank: BeltRank }) {
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[180px]"
+      className="pointer-events-none absolute inset-x-0 top-0 h-[180px]"
       style={{
         background: `linear-gradient(180deg, color-mix(in srgb, ${color} 28%, var(--surface-container)) 0%, color-mix(in srgb, ${color} 10%, var(--surface-container)) 45%, var(--surface-container) 100%)`,
       }}

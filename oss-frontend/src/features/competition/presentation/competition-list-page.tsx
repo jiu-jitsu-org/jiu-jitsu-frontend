@@ -17,7 +17,7 @@ export function CompetitionListPage({
   data: CompetitionListPageData;
 }) {
   return (
-    <main className="isolate min-h-screen bg-surface-container">
+    <main className="relative min-h-screen bg-surface-container">
       {renderBody(data)}
     </main>
   );
