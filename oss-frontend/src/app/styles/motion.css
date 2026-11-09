@@ -201,6 +201,8 @@
   --animate-oss-wave: oss-wave 1000ms ease-out 320ms both;
   /* 알림 끄기 — 종이 움츠렸다 출렁이며 돌아온다. */
   --animate-bell-mute: bell-mute 500ms ease-out both;
+  /* 대회 상세 일정의 지금 단계 점 — 후광이 두 번 연달아 퍼지고(띠용띠용) 잠깐 쉰다. 점이 화면 밖이면 멈춘다. */
+  --animate-schedule-ripple: schedule-ripple 2400ms ease-out infinite;
   /* 밸런스 게임 접힌 바(#305) — 화면 구조의 일부라 출렁이지 않고 위에서 곧게 미끄러져 내려온다. */
   --animate-bar-slide-in: bar-slide-in 240ms var(--ease-smooth-out) both;
   /* 접힌 바 숨김 — 위로 곧게 걷힌다. */
@@ -422,6 +424,25 @@
     }
   }
 
+  @keyframes schedule-ripple {
+    0%,
+    30%,
+    60%,
+    100% {
+      transform: scale(1);
+      opacity: 0;
+    }
+    1%,
+    31% {
+      transform: scale(1);
+      opacity: 0.5;
+    }
+    29%,
+    59% {
+      transform: scale(2.6);
+      opacity: 0;
+    }
+  }
   @keyframes bell-mute {
     0% {
       transform: scale(1);
