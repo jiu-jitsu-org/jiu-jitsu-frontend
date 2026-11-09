@@ -1,6 +1,7 @@
 import type { CompetitionScheduleItem } from "@/features/competition/domain/competition-schedule";
 import { longDateLabel } from "@/features/competition/presentation/competition-detail-format";
 import { DetailSection } from "@/features/competition/presentation/competition-detail-sections";
+import { ScheduleCurrentDot } from "@/features/competition/presentation/competition-schedule-current-dot";
 import { cn } from "@/shared/lib/cn";
 
 type Step = CompetitionScheduleItem & {
@@ -34,7 +35,7 @@ function stateText(step: Step) {
  *
  * 왼쪽 점을 선으로 이어 순서를 보이고, 이름은 왼쪽 · 날짜는 오른쪽에 둔다.
  * 지나온 구간은 파란 실선 + 꽉 찬 점, 남은 구간은 점선 + 빈 원이라 "어디까지 왔는지"가 선 하나로 읽힌다.
- * 바로 다음 일정(지금 단계)만 후광 있는 점 · 굵은 이름 · D-day 꼬리표 · 파란 날짜로 띄워 지금 챙길 날을 먼저 보이게 한다.
+ * 바로 다음 일정(지금 단계)만 후광이 퍼지는 점 · 굵은 이름 · D-day 꼬리표 · 파란 날짜로 띄워 지금 챙길 날을 먼저 보이게 한다.
  * 모두 지났으면(끝난 대회) 선 전체가 실선이고 강조할 줄이 없다.
  */
 export function CompetitionScheduleSection({
@@ -77,7 +78,7 @@ export function CompetitionScheduleSection({
                 className="relative z-[1] flex w-5 flex-none items-center justify-center"
               >
                 {current ? (
-                  <span className="size-3 rounded-full bg-primary ring-4 ring-primary/25" />
+                  <ScheduleCurrentDot />
                 ) : done ? (
                   <span className="size-2 rounded-full bg-primary" />
                 ) : (
