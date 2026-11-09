@@ -38,7 +38,12 @@ export async function InboxScreen() {
 
 function renderContent(result: InboxPageDataResult): ReactNode {
   if (result.ok) {
-    return <InboxView initialNotifications={result.notifications} />;
+    return (
+      <InboxView
+        initialNotifications={result.notifications}
+        competition={result.competition}
+      />
+    );
   }
 
   if (result.reason === "guest") {
