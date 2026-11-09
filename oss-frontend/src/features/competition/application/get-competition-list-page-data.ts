@@ -1,4 +1,6 @@
+import type { BeltRank } from "@/features/community/domain/belt";
 import { loadCompetitionAlertSettings } from "@/features/competition/application/load-competition-alert-settings";
+import { loadMyBeltRank } from "@/features/competition/application/load-my-belt-rank";
 import {
   createGetCompetitionInterestCountsUseCase,
   createGetCompetitionListUseCase,
@@ -46,6 +48,8 @@ export type CompetitionListPageData =
       regionsWithCompetitions: CompetitionRegion[];
       /** 관심 대회 마감 알림 설정(#375). 비로그인이거나 못 읽으면 null — 첫 관심 등록 시트가 뜨지 않는다. */
       alertSettings: CompetitionAlertSettings | null;
+      /** 내 띠 — 관심 대회 머리의 캐릭터·그라데이션 색. 비로그인·미입력·실패면 null(흰띠로 그린다). */
+      myBeltRank: BeltRank | null;
     }
   | { ok: false };
 
@@ -64,13 +68,19 @@ export async function getCompetitionListPageData({
   signedIn: boolean;
 }): Promise<CompetitionListPageData> {
   try {
-    const [competitions, interestedIds, interestCounts, alertSettings] =
-      await Promise.all([
-        createGetCompetitionListUseCase().execute(),
-        signedIn ? loadInterestedIds() : Promise.resolve([]),
-        loadInterestCounts(),
-        signedIn ? loadCompetitionAlertSettings() : Promise.resolve(null),
-      ]);
+    const [
+      competitions,
+      interestedIds,
+      interestCounts,
+      alertSettings,
+      myBeltRank,
+    ] = await Promise.all([
+      createGetCompetitionListUseCase().execute(),
+      signedIn ? loadInterestedIds() : Promise.resolve([]),
+      loadInterestCounts(),
+      signedIn ? loadCompetitionAlertSettings() : Promise.resolve(null),
+      signedIn ? loadMyBeltRank() : Promise.resolve(null),
+    ]);
     const today = toKstDateKey(now);
     const months = groupUpcomingByMonth(competitions, today);
 
@@ -102,6 +112,7 @@ export async function getCompetitionListPageData({
         regions.has(region),
       ),
       alertSettings,
+      myBeltRank,
     };
   } catch {
     return { ok: false };
