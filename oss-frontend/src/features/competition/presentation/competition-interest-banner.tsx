@@ -50,7 +50,7 @@ export function CompetitionInterestBanner({
   onSelect: (item: InterestBannerItem) => void;
 }) {
   const listRef = useRef<HTMLUListElement>(null);
-  const current = useCurrentCard(listRef);
+  const current = useCurrentCard(listRef, items.length);
 
   if (items.length === 0) return null;
   const many = items.length > 1;
@@ -102,12 +102,17 @@ export function CompetitionInterestBanner({
  * 지금 왼쪽 끝에 멈춰 있는(또는 가장 가까운) 카드 번호. 처음 그릴 땐 -1이라 캐릭터가 다 숨어 있다가,
  * 화면에 붙은 다음 프레임에 0이 되어 첫 장 캐릭터가 한 번 올라온다.
  * 넘기는 도중 카드의 절반을 넘으면 바로 바뀐다 — 손을 떼기 전에 새 캐릭터가 마중 나온다.
+ * 카드 수가 바뀌면 다시 붙는다 — 관심이 0개라 넘김이 없다가 목록 하트로 첫 관심을 켜면 그때 넘김이 생긴다.
+ * 끝에서 고무줄처럼 더 당겨도 첫·마지막 장 밖으로 나가지 않게 묶고, 화면 폭이 바뀌면 다시 잰다.
  */
-function useCurrentCard(listRef: React.RefObject<HTMLUListElement | null>) {
+function useCurrentCard(
+  listRef: React.RefObject<HTMLUListElement | null>,
+  count: number,
+) {
   const [current, setCurrent] = useState(-1);
   useEffect(() => {
     const list = listRef.current;
-    if (!list) return;
+    if (!list || count === 0) return;
     let frame = 0;
     const measure = () => {
       frame = 0;
@@ -115,18 +120,21 @@ function useCurrentCard(listRef: React.RefObject<HTMLUListElement | null>) {
       if (!first) return;
       const step =
         first.offsetWidth + parseFloat(getComputedStyle(list).columnGap || "0");
-      setCurrent(step > 0 ? Math.round(list.scrollLeft / step) : 0);
+      const index = step > 0 ? Math.round(list.scrollLeft / step) : 0;
+      setCurrent(Math.min(count - 1, Math.max(0, index)));
     };
     const onScroll = () => {
       if (!frame) frame = requestAnimationFrame(measure);
     };
     frame = requestAnimationFrame(measure);
     list.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
     return () => {
       list.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
       cancelAnimationFrame(frame);
     };
-  }, [listRef]);
+  }, [listRef, count]);
   return current;
 }
 
@@ -334,7 +342,6 @@ const PEEK_EYES: Record<
  */
 export function InterestBannerTint({ rank }: { rank: BeltRank }) {
   const color = TINT_COLOR[rank];
-  useNativeHeaderTint(color);
   return (
     <div
       aria-hidden
@@ -356,9 +363,16 @@ const TINT_HEIGHT = 180;
  * 맨 위에 보이는 색 = 필터 줄의 반투명 바탕(60%) 너머로 비치는 그라데이션(40%)이라, 띠 색 비율도 그 40%만 친다.
  * 스크롤로 그라데이션이 올라가면 맨 윗자리의 색도 옅어지니, 1% 단위로 바뀔 때만 다시 보낸다(끝까지 많아야 12번).
  * 다 옅어지면, 그리고 화면을 떠나면 null로 앱 기본색으로 돌린다. 지원하지 않는 앱이면 아무것도 보내지 않는다.
+ * 배너가 없을 때(rank null)도 붙자마자 null을 한 번 보낸다 — 앱은 당겨서 새로고침 때 색을 지우지 않고 웹의 새 알림을 기다린다.
+ * 색을 계산하지 못하면(color-mix를 모르는 옛 WebKit 등) 보내지 않는다 — 그때는 웹 그라데이션도 그려지지 않는다.
  */
-function useNativeHeaderTint(color: string) {
+export function useCompetitionHeaderTint(rank: BeltRank | null) {
+  const color = rank ? TINT_COLOR[rank] : null;
   useEffect(() => {
+    if (!color) {
+      setNativeCompetitionHeaderTint(null);
+      return;
+    }
     const probe = document.createElement("span");
     probe.style.display = "none";
     document.body.appendChild(probe);
@@ -374,7 +388,12 @@ function useNativeHeaderTint(color: string) {
       const percent = Math.round(tintAt(window.scrollY) * 0.4);
       if (percent === sent) return;
       sent = percent;
-      setNativeCompetitionHeaderTint(percent > 0 ? hexOf(percent) : null);
+      if (percent === 0) {
+        setNativeCompetitionHeaderTint(null);
+        return;
+      }
+      const hex = hexOf(percent);
+      if (hex) setNativeCompetitionHeaderTint(hex);
     };
     const onScroll = () => {
       if (!frame) frame = requestAnimationFrame(update);
@@ -399,10 +418,17 @@ function tintAt(y: number) {
   return 0;
 }
 
-/** 계산된 색 문자열(rgb(…)·color(srgb …)) → "#RRGGBB". 읽지 못하면 null. */
+/** 계산된 색 문자열(rgb(…)·color(srgb …)) → "#RRGGBB". 읽지 못하거나 투명(대입이 무시됨)이면 null. */
 function toHex(value: string): string | null {
-  const srgb = value.match(/color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/);
-  const rgb = value.match(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/);
+  const num = String.raw`(-?[\d.]+(?:e-?\d+)?)`;
+  const srgb = value.match(
+    new RegExp(String.raw`color\(srgb\s+${num}\s+${num}\s+${num}`, "i"),
+  );
+  const rgb = value.match(
+    new RegExp(String.raw`rgba?\(\s*${num}[,\s]+${num}[,\s]+${num}`, "i"),
+  );
+  const alpha = value.match(/(?:rgba\([^)]*,|\/)\s*([\d.]+%?)\s*\)$/);
+  if (alpha && parseFloat(alpha[1]) === 0) return null;
   const channels = srgb
     ? srgb.slice(1, 4).map((v) => Number(v) * 255)
     : rgb
