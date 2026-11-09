@@ -10,10 +10,17 @@ import type { CommentSort, PostDetail } from "@/features/community/domain/post";
 import { isDevelopmentRuntime } from "@/config/env";
 import { readSessionToken } from "@/shared/lib/auth";
 import { ApiErrorCode, toApiError } from "@/shared/lib/http";
+import { readServerNow } from "@/shared/lib/time";
+import {
+  getPostCompetition,
+  type PostCompetition,
+} from "@/features/competition/application/get-post-competition-cards";
 
 export type PostDetailPageData = {
   post: PostDetail;
   comments: CommentList;
+  /** 글이 고른 대회 카드(#380). 고르지 않은 글이면 null. 글 상세 응답에 실려 오기 전까지 대회 feature가 붙인다. */
+  competition: PostCompetition | null;
 };
 
 export type PostDetailPageDataResult =
@@ -76,9 +83,17 @@ export async function getPostDetailPageData(
     const post = await loadPostDetail(postId, accessToken);
 
     // 댓글 목록 조회가 실패해도 게시글 상세는 보이도록 빈 목록으로 폴백(graceful degradation).
-    const comments = await createGetCommentsUseCase(accessToken)
-      .execute(postId, sort)
-      .catch(() => EMPTY_COMMENTS);
+    // 고른 대회 카드(#380)도 덧붙는 정보라 못 읽으면 빠질 뿐이다.
+    const [comments, competition] = await Promise.all([
+      createGetCommentsUseCase(accessToken)
+        .execute(postId, sort)
+        .catch(() => EMPTY_COMMENTS),
+      getPostCompetition({
+        postId,
+        now: readServerNow(),
+        signedIn: accessToken !== null,
+      }),
+    ]);
 
     // 게시글 작성자 본인이 단 댓글에 "작성자" 배지를 채운다(응답에 직접 필드가 없어 id 비교로 도출).
     const commentsWithAuthor: CommentList = {
@@ -90,10 +105,17 @@ export async function getPostDetailPageData(
       const sample = withSampleDetailBelts(post, commentsWithAuthor.items);
       return {
         ok: true,
-        data: { post: sample.post, comments: { ...commentsWithAuthor, items: sample.comments } },
+        data: {
+          post: sample.post,
+          comments: { ...commentsWithAuthor, items: sample.comments },
+          competition,
+        },
       };
     }
-    return { ok: true, data: { post, comments: commentsWithAuthor } };
+    return {
+      ok: true,
+      data: { post, comments: commentsWithAuthor, competition },
+    };
   } catch (error) {
     const apiError = toApiError(error);
 
