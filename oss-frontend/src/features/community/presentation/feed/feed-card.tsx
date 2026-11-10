@@ -29,8 +29,8 @@ import {
 import {
   REACTION_HIT_AREA,
   REACTION_ICON_SIZE,
-  REACTION_POP_MOTION,
   REACTION_PRESS_MOTION,
+  REACTION_WRAP_MOTION,
 } from "@/features/community/presentation/comment-reaction-styles";
 import { usePopOnActivate } from "@/features/community/presentation/use-pop-on-activate";
 import { cn } from "@/shared/lib/cn";
@@ -798,7 +798,7 @@ function ReactionButton({
       )}
     >
       {/* 팝은 아이콘만 — 버튼의 눌림(scale)과 transform이 겹치지 않게 감싼다. 색은 currentColor 상속. */}
-      <span className={cn("inline-flex", pop && REACTION_POP_MOTION)}>
+      <span className={cn("inline-flex", pop && REACTION_WRAP_MOTION)}>
         {icon}
       </span>
       {showCount ? (
