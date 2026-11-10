@@ -9,8 +9,8 @@ import {
   COMMENT_REACTION_ICON,
   COMMENT_REACTION_TEXT,
   COMMENT_REACTION_TEXT_ACTIVE,
-  REACTION_POP_MOTION,
   REACTION_PRESS_MOTION,
+  REACTION_WRAP_MOTION,
 } from "@/features/community/presentation/comment-reaction-styles";
 import { usePopOnActivate } from "@/features/community/presentation/use-pop-on-activate";
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
@@ -127,7 +127,7 @@ export function CommentLikeButton({
         liked ? "text-reaction-bar-active-like-icon" : COMMENT_REACTION_ICON,
       )}
     >
-      <span className={cn("inline-flex", pop && REACTION_POP_MOTION)}>
+      <span className={cn("inline-flex", pop && REACTION_WRAP_MOTION)}>
         <HeartIcon size={16} filled={liked} />
       </span>
       <span

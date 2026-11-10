@@ -43,8 +43,12 @@ export const REACTION_ICON_SIZE = 20;
 export const REACTION_HIT_AREA =
   "relative before:absolute before:inset-x-0 before:-inset-y-1.5 before:content-['']";
 
-/** 켜지는 순간(좋아요·저장) 아이콘이 톡 부풀었다 돌아온다 — usePopOnActivate와 함께. */
-export const REACTION_POP_MOTION = "motion-safe:animate-reaction-pop";
+/**
+ * 켜지는 순간(좋아요·저장) 띠가 아이콘 테두리를 한 바퀴 감고 연하게 채운 뒤 살짝 튕긴다(#392).
+ * 아이콘을 감싼 span에 붙인다 — 안쪽 svg의 `data-wrap-line` 패스가 감기고 svg가 튕긴다. usePopOnActivate와 함께.
+ */
+export const REACTION_WRAP_MOTION =
+  "motion-safe:[&_[data-wrap-line]]:animate-stroke-wrap motion-safe:[&_svg]:animate-wrap-settle";
 
 /** Active(내가 누른/단) 상태의 카운트 텍스트 색. */
 export const COMMENT_REACTION_TEXT_ACTIVE =
