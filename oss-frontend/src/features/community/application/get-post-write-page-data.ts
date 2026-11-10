@@ -23,6 +23,8 @@ const FALLBACK_POST_CATEGORIES: PostCategory[] = [
  * 새로 받는다(첫 요청만 기다린다). 폴백은 기억하지 않는다 — 장애가 풀리면 바로 서버 값을 쓰게.
  */
 const CATEGORY_CACHE_MS = 10 * 60 * 1000;
+/** 새로 받기에 실패하면 이만큼 뒤에 다시 시도한다 — 장애 동안 요청마다 백엔드를 두드리지 않게. */
+const CATEGORY_RETRY_MS = 30 * 1000;
 let cachedCategories: { value: PostCategory[]; at: number } | null = null;
 let inflight: Promise<PostCategory[] | null> | null = null;
 
@@ -38,6 +40,12 @@ function refreshCategories(
       return categories;
     })
     .catch((error: unknown) => {
+      if (cachedCategories) {
+        cachedCategories = {
+          ...cachedCategories,
+          at: Date.now() - CATEGORY_CACHE_MS + CATEGORY_RETRY_MS,
+        };
+      }
       console.error(
         "[community:post-write] 카테고리 조회 실패 — 폴백 사용:",
         error,
