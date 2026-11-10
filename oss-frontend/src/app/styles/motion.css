@@ -543,10 +543,15 @@
   }
 
   @keyframes stroke-wrap {
+    /* 둥근 선끝이 출발점에 점으로 찍히지 않게 첫 순간만 선을 감춘다. */
     0% {
       stroke-dasharray: 1;
       stroke-dashoffset: 1;
+      stroke-opacity: 0;
       fill-opacity: 0;
+    }
+    6% {
+      stroke-opacity: 1;
     }
     /* 채움은 선이 거의 다 감긴 뒤에 들어온다. */
     77% {

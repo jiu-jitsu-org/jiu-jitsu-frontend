@@ -3,6 +3,8 @@ import { DEFAULT_ICON_SIZE, type IconProps } from "./types";
 /**
  * 좋아요(하트) 아이콘 — 모서리를 둥글게 굴린 한 줄 하트(#392).
  *
+ * 그리는 칸은 24 격자에서 가장자리 1.5씩 잘라(21) 예전 16 아이콘과 같은 크기로 보이게 하고, 선 굵기도
+ * 예전 비율(1.33/16)에 맞췄다.
  * 색은 currentColor라 부모의 색 토큰(reaction-bar-* )을 따른다. `filled`(켜짐)면 선이 조금 굵어지고
  * 안쪽이 같은 색 20%로 연하게 채워진다.
  * 패스는 위 오목한 곳에서 출발해 시계 방향으로 한 바퀴 돈다 — 켜질 때 띠가 감기는 움직임
@@ -17,7 +19,7 @@ export function HeartIcon({
     <svg
       width={size}
       height={size}
-      viewBox="0 0 24 24"
+      viewBox="1.5 1.5 21 21"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden
@@ -30,7 +32,7 @@ export function HeartIcon({
         fill={filled ? "currentColor" : "none"}
         fillOpacity={filled ? 0.2 : undefined}
         stroke="currentColor"
-        strokeWidth={filled ? 2.4 : 2}
+        strokeWidth={filled ? 2.1 : 1.75}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
