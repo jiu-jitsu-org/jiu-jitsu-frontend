@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
+import { useAuth } from "@/features/auth/presentation/auth-provider";
 import { type BeltRank, parseBelt } from "@/features/community/domain/belt";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 
@@ -28,15 +29,22 @@ export function useMyBeltRank(
     setSeenServerRank(serverRank);
     if (serverRank !== null) setRank(serverRank);
   }
+  // 로그아웃하면 지난 사람의 띠를 지운다 — 같은 화면에서 다른 사람이 로그인해도 남지 않게.
+  if (!signedIn && rank !== null && serverRank === null) setRank(null);
 
   const needsClientRead = signedIn && serverRank === null;
+  // 로그인 확인 중(힌트만 보고 읽음)에 실패했으면, 로그인이 확정될 때 한 번 더 읽는다.
+  const { status: authStatus } = useAuth();
+  // 한 번 제대로 읽었으면 로그인 확정 때 다시 묻지 않는다.
+  const readDoneRef = useRef(false);
   useEffect(() => {
-    if (!needsClientRead) return;
+    if (!needsClientRead || readDoneRef.current) return;
     let cancelled = false;
     void (async () => {
       try {
         const response = await bffFetch(BELT_PATH);
         if (!response.ok) return;
+        readDoneRef.current = true;
         const body = (await response.json()) as {
           data?: { belt?: unknown };
         } | null;
@@ -50,7 +58,7 @@ export function useMyBeltRank(
     return () => {
       cancelled = true;
     };
-  }, [needsClientRead]);
+  }, [needsClientRead, authStatus]);
 
   return signedIn ? rank : null;
 }
