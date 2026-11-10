@@ -309,16 +309,18 @@ export function CompetitionListView({
                 접수 중
               </Chip>
             </div>
-            <IconButton
-              id={SEARCH_BUTTON_ID}
-              aria-label="대회 이름 검색"
-              aria-expanded={searchOpen}
-              aria-controls={searchOpen ? SEARCH_INPUT_ID : undefined}
-              onClick={() => (searchOpen ? closeSearch() : setSearchOpen(true))}
-              className={searchOpen ? "text-primary" : undefined}
-            >
-              <SearchIcon size={22} />
-            </IconButton>
+            {COMPETITION_SEARCH_ENABLED ? (
+              <IconButton
+                id={SEARCH_BUTTON_ID}
+                aria-label="대회 이름 검색"
+                aria-expanded={searchOpen}
+                aria-controls={searchOpen ? SEARCH_INPUT_ID : undefined}
+                onClick={() => (searchOpen ? closeSearch() : setSearchOpen(true))}
+                className={searchOpen ? "text-primary" : undefined}
+              >
+                <SearchIcon size={22} />
+              </IconButton>
+            ) : null}
             <IconButton
               aria-label={mode === "list" ? "달력으로 보기" : "목록으로 보기"}
               onClick={() => {
@@ -333,7 +335,7 @@ export function CompetitionListView({
               )}
             </IconButton>
           </div>
-          {searchOpen ? (
+          {COMPETITION_SEARCH_ENABLED && searchOpen ? (
             <CompetitionSearchField
               id={SEARCH_INPUT_ID}
               value={filter.nameQuery}
@@ -428,6 +430,8 @@ const FILTER_BAR_ID = "competition-filter-bar";
 /** 필터 줄에 이어 다는 달 머리 — 칩 줄 아래 여백 12에 위 4를 더해 칩과 16 간격. 높이는 위 4 + 글자 18 + 아래 12. */
 const PASSED_MONTH_TOP_GAP = 4;
 const PASSED_MONTH_HEIGHT = 34;
+// 이름 검색(#345)은 당분간 숨긴다(#387) — 검색 로직은 그대로 두고 돋보기·검색칸만 감춘다. 다시 켤 때 true.
+const COMPETITION_SEARCH_ENABLED = false;
 const SEARCH_INPUT_ID = "competition-name-search";
 const SEARCH_BUTTON_ID = "competition-name-search-toggle";
 
