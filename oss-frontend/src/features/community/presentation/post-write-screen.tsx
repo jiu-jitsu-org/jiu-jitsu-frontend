@@ -130,6 +130,12 @@ const SUBMIT_TOAST = {
   createFailed: "등록하지 못했어요. 잠시 후 다시 시도해주세요",
   /** 첨부 이미지가 서버에서 만료(C0000)돼 썸네일을 ↻로 되돌렸을 때(#147). FIXME: 기획 문구 확정 전 임시 문구. */
   createImageExpired: "사진을 다시 올려주세요",
+  /** 사진이 올라가는 중에 등록을 눌렀을 때(#390) — 다 올라가면 이어서 등록한다. */
+  waitingUpload: "사진을 올리는 중이에요. 다 올라가면 바로 등록할게요",
+  /** 못 올린 사진이 남아 등록할 수 없을 때(#390). */
+  uploadFailed: "올리지 못한 사진이 있어요. 다시 올리거나 지워 주세요",
+  /** 기다리는 사이 사진을 바꿔 이어서 등록하지 않았을 때(#390). */
+  uploadChanged: "사진이 바뀌었어요. 다시 등록을 눌러 주세요",
 } as const;
 /** 첨부 미리보기 썸네일 한 변(px, 정책 64×64). */
 const THUMBNAIL_SIZE = 64;
@@ -355,6 +361,27 @@ export function PostWriteScreen({
   const isSubmitLocked = edit
     ? submitting || !isDirty || !hasRequiredInput
     : !isUploadSettled || submitting || !hasRequiredInput;
+  // 사진이 올라가는 중에 등록을 눌렀으면 다 올라간 순간 이어서 등록한다(#390) — 예전엔 조용히 무시해 여러 번 누르며 기다렸다.
+  // 누른 때의 사진 묶음을 기억한다 — 기다리는 사이 사진을 지우거나 더했으면 이어서 등록하지 않는다.
+  const submitAfterUploadRef = useRef<string | null>(null);
+  // 전송 중 표시는 렌더를 기다리지 않고 바로 보는 값 — 이어서 등록과 사용자의 탭이 같은 순간 겹쳐도 한 번만 보낸다.
+  const submittingRef = useRef(false);
+  const attachmentKey = attachments.map((item) => item.localId).join(",");
+  const hasUploadingImage = attachments.some((item) => item.status === "uploading");
+  useEffect(() => {
+    const waitingKey = submitAfterUploadRef.current;
+    if (waitingKey === null || hasUploadingImage) return;
+    submitAfterUploadRef.current = null;
+    if (waitingKey !== attachmentKey) {
+      toast.show(SUBMIT_TOAST.uploadChanged, { tone: "info" });
+    } else if (isUploadSettled) {
+      void submit();
+    } else {
+      toast.show(SUBMIT_TOAST.uploadFailed, { tone: "warning" });
+    }
+    // submit·toast는 넣지 않는다 — 업로드가 끝난 그 렌더의 최신 입력으로 한 번만 보낸다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasUploadingImage, isUploadSettled, attachmentKey]);
 
   function handleTitleChange(value: string) {
     // 제목은 여러 줄로 보이되(자동 줄바꿈) 실제 줄바꿈 문자는 받지 않는다 — 붙여넣기의 개행은 공백으로.
@@ -785,7 +812,7 @@ export function PostWriteScreen({
   }
 
   async function submit() {
-    if (submitting) return;
+    if (submitting || submittingRef.current) return;
     // 입력 검사는 잠금보다 먼저 — 필수 입력이 비어 잠긴 상태여도 무엇이 빠졌는지는 알려야 한다(#303).
     const validationError = findValidationError();
     if (validationError !== null) {
@@ -796,8 +823,20 @@ export function PostWriteScreen({
       setTitleShort(validationError.field === "title");
       return;
     }
-    // 입력은 다 됐지만 첨부 업로드 중/실패이거나 수정 내용이 없는 잠금은 지금처럼 조용히 무시한다.
+    // 입력은 다 됐지만 사진이 아직 올라가는 중이면 알리고, 다 올라가면 이어서 등록한다(#390).
+    if (!edit && !isUploadSettled) {
+      if (hasUploadingImage) {
+        submitAfterUploadRef.current = attachmentKey;
+        toast.show(SUBMIT_TOAST.waitingUpload, { tone: "info" });
+      } else {
+        toast.show(SUBMIT_TOAST.uploadFailed, { tone: "warning" });
+      }
+      return;
+    }
+    // 수정 내용이 없는 잠금 등은 지금처럼 조용히 무시한다.
     if (isSubmitLocked || categoryId === null) return;
+    submitAfterUploadRef.current = null;
+    submittingRef.current = true;
     setSubmitting(true);
     // 확정되지 않은 입력 중인 태그는 등록 시 자동 확정(정책). setTags는 비동기라 전송 목록은 확정 결과를 그대로 쓴다.
     const finalTags = tagInput ? addTags([tagInput]) : tags;
@@ -850,6 +889,7 @@ export function PostWriteScreen({
       goToDetail(created.id, SUBMIT_TOAST.createDone);
     } catch (error) {
       // 실패 경로 — 절대 화면을 떠나지 않는다(입력 유지). 잠금은 여기서만 풀어 재시도할 수 있게 한다.
+      submittingRef.current = false;
       setSubmitting(false);
       console.error("[post-write] 게시글 저장 실패:", error);
       // 인증 만료(401)면 네이티브 로그인 유도, 그 외(생성/수정 실패)는 재시도 안내.

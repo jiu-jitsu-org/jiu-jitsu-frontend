@@ -34,6 +34,7 @@ import {
   useRefreshAfterDetail,
 } from "@/features/competition/presentation/competition-detail-link";
 import { useCompetitionInterest } from "@/features/competition/presentation/use-competition-interest";
+import { useMyBeltRank } from "@/features/competition/presentation/use-my-belt-rank";
 import {
   CalendarIcon,
   ChevronDownIcon,
@@ -90,6 +91,8 @@ export function CompetitionListView({
   const [passedMonthIndex, setPassedMonthIndex] = useState<number | null>(null);
 
   const signedIn = useIsSignedIn();
+  // 서버가 띠를 못 받아 흰띠로 그렸어도 화면에서 다시 읽어 내 띠로 바로잡는다(#388).
+  const beltRank = useMyBeltRank(myBeltRank, signedIn);
   const { guard } = useLoginGuard();
   const interest = useCompetitionInterest({ interestedIds, interestCounts });
   // 상세에서 관심을 바꾸고 돌아오면 그 값으로 다시 그린다(#362).
@@ -206,7 +209,7 @@ export function CompetitionListView({
   );
   // 앱의 '대회' 머리를 맨 위 띠 색 그라데이션과 같은 색으로 — 배너가 없으면 앱 기본색.
   useCompetitionHeaderTint(
-    interestedUpcoming.length > 0 ? (myBeltRank ?? "white") : null,
+    interestedUpcoming.length > 0 ? (beltRank ?? "white") : null,
   );
 
   // 배너에서 누른 대회는 상세로 바로 연다(#361) — 목록 줄을 누른 것과 같다.
@@ -235,7 +238,7 @@ export function CompetitionListView({
   return (
     <>
       {interestedUpcoming.length > 0 ? (
-        <InterestBannerTint rank={myBeltRank ?? "white"} />
+        <InterestBannerTint rank={beltRank ?? "white"} />
       ) : null}
       {/* 필터 줄: 좌우 16 · 칩 간격 8, 넘치면 가로 스크롤(스크롤바 숨김) — 글쓰기 카테고리 칩 줄과 같은 규격.
           목록 바탕색을 반투명(60%)으로 깔고 뒤를 흐려, 아래로 지나가는 카드가 비치되 글자는 읽히게 한다.
@@ -309,16 +312,18 @@ export function CompetitionListView({
                 접수 중
               </Chip>
             </div>
-            <IconButton
-              id={SEARCH_BUTTON_ID}
-              aria-label="대회 이름 검색"
-              aria-expanded={searchOpen}
-              aria-controls={searchOpen ? SEARCH_INPUT_ID : undefined}
-              onClick={() => (searchOpen ? closeSearch() : setSearchOpen(true))}
-              className={searchOpen ? "text-primary" : undefined}
-            >
-              <SearchIcon size={22} />
-            </IconButton>
+            {COMPETITION_SEARCH_ENABLED ? (
+              <IconButton
+                id={SEARCH_BUTTON_ID}
+                aria-label="대회 이름 검색"
+                aria-expanded={searchOpen}
+                aria-controls={searchOpen ? SEARCH_INPUT_ID : undefined}
+                onClick={() => (searchOpen ? closeSearch() : setSearchOpen(true))}
+                className={searchOpen ? "text-primary" : undefined}
+              >
+                <SearchIcon size={22} />
+              </IconButton>
+            ) : null}
             <IconButton
               aria-label={mode === "list" ? "달력으로 보기" : "목록으로 보기"}
               onClick={() => {
@@ -333,7 +338,7 @@ export function CompetitionListView({
               )}
             </IconButton>
           </div>
-          {searchOpen ? (
+          {COMPETITION_SEARCH_ENABLED && searchOpen ? (
             <CompetitionSearchField
               id={SEARCH_INPUT_ID}
               value={filter.nameQuery}
@@ -363,7 +368,7 @@ export function CompetitionListView({
         <CompetitionInterestBanner
           items={interestedUpcoming}
           currentYear={currentYear}
-          beltRank={myBeltRank}
+          beltRank={beltRank}
           onSelect={({ competition }) => openDetail(competition.id)}
         />
 
@@ -428,6 +433,8 @@ const FILTER_BAR_ID = "competition-filter-bar";
 /** 필터 줄에 이어 다는 달 머리 — 칩 줄 아래 여백 12에 위 4를 더해 칩과 16 간격. 높이는 위 4 + 글자 18 + 아래 12. */
 const PASSED_MONTH_TOP_GAP = 4;
 const PASSED_MONTH_HEIGHT = 34;
+// 이름 검색(#345)은 당분간 숨긴다(#387) — 검색 로직은 그대로 두고 돋보기·검색칸만 감춘다. 다시 켤 때 true.
+const COMPETITION_SEARCH_ENABLED = false;
 const SEARCH_INPUT_ID = "competition-name-search";
 const SEARCH_BUTTON_ID = "competition-name-search-toggle";
 
