@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 import type { Belt, BeltRank } from "@/features/community/domain/belt";
 import { BeltAvatar } from "@/features/community/presentation/belt-avatar";
 
+import { BELT_EMOTION_FACES, BELT_EMOTION_POSES } from "./design-system-belt-emotion-data";
+
 /**
  * /ds › 캐릭터 — 흩어져 있던 띠 캐릭터를 한곳에서 본다(#316).
  *
@@ -89,7 +91,7 @@ const MISSING = [
   "자세 몸통의 얼굴 — 자세 그림에는 눈·입이 없어 이대로는 캐릭터로 쓸 수 없다",
   "테이크다운 · 스윕 · 조르기 자세 — 최종 몸통에 없다. 스윕은 제미나이가 세 번 모두 거절했다",
   "입 그림 — 로그인 캐릭터는 눈만 있고 입은 따로 없다",
-  "띠 색 × 표정 조합 — 로그인 캐릭터는 색마다 눈이 하나로 고정이다",
+  "띠 색 × 표정 조합 — 로그인 캐릭터는 색마다 눈이 하나로 고정이고, 감정 몸짓은 흰 띠만 있다",
   "웹 화면의 띠 색별 캐릭터 — 웹에서 쓰는 캐릭터는 밸런스 게임 A·B와 프로필 띠 링뿐이다",
 ];
 
@@ -119,6 +121,70 @@ export function CharacterSection() {
               label={label}
               imageClassName="h-12"
             />
+          ))}
+        </Grid>
+      </Group>
+
+      <Group title="감정 몸짓" note="흰 띠 · 25자세 · 휘는 방향과 앞뒤 거리로 감정 · 기본 표정을 얹음(iOS BeltCharacter와 같은 자리)">
+        <Grid className="grid-cols-3 sm:grid-cols-5">
+          {BELT_EMOTION_POSES.map((pose) => {
+            const face = BELT_EMOTION_FACES.find(({ id }) => id === pose.face);
+            return (
+              <figure
+                key={pose.id}
+                className="flex flex-col items-center gap-2 rounded-12 bg-surface-field-subtle p-3"
+              >
+                <div className="flex h-40 w-full items-end justify-center">
+                  <div className="relative h-full max-w-full" style={{ aspectRatio: pose.aspect }}>
+                    <img
+                      src={`/images/characters/emotion/poses/${pose.id}.webp`}
+                      alt={pose.label}
+                      loading="lazy"
+                      className="size-full object-contain"
+                    />
+                    {face ? (
+                      <img
+                        src={`/images/characters/emotion/faces/${face.id}.webp`}
+                        alt=""
+                        loading="lazy"
+                        className="pointer-events-none absolute max-w-none"
+                        style={{
+                          left: `${pose.x * 100}%`,
+                          top: `${pose.y * 100}%`,
+                          width: `${pose.width * 110}%`,
+                          transform: `translate(-50%, -50%) rotate(${pose.angle}deg) scaleX(${pose.lean})`,
+                        }}
+                      />
+                    ) : null}
+                  </div>
+                </div>
+                <figcaption className="text-center text-label-m text-text-secondary">
+                  {pose.label}
+                  {face ? <span className="text-text-tertiary"> · {face.label}</span> : null}
+                </figcaption>
+              </figure>
+            );
+          })}
+        </Grid>
+      </Group>
+
+      <Group title="표정" note="눈·눈꺼풀·눈썹 · 26개 · 깜빡임 등 짧은 움직임 포함 · 검은 띠 위에 얹음">
+        <Grid className="grid-cols-3 sm:grid-cols-6">
+          {BELT_EMOTION_FACES.map(({ id, label }) => (
+            <figure
+              key={id}
+              className="flex flex-col items-center gap-2 rounded-12 bg-surface-field-subtle p-3"
+            >
+              <div className="flex h-16 w-full items-center justify-center rounded-10 bg-toast-strong-background p-2">
+                <img
+                  src={`/images/characters/emotion/faces/${id}.webp`}
+                  alt={label}
+                  loading="lazy"
+                  className="max-h-full w-full object-contain"
+                />
+              </div>
+              <figcaption className="text-center text-label-m text-text-secondary">{label}</figcaption>
+            </figure>
           ))}
         </Grid>
       </Group>
