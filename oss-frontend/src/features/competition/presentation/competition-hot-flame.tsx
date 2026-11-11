@@ -54,7 +54,8 @@ export function HotFlame({ size = 18 }: { size?: number }) {
  *
  * 불꽃 옆에 HOT을 늘 같이 두면 같은 뜻을 두 번 말하고 이름 줄 자리도 더 먹는다. 그래서 한 자리에 겹쳐 두고
  * 불꽃(약 2.4초)이 위로 빠지면 HOT(약 0.9초)이 아래에서 올라왔다가 다시 불꽃으로 돌아간다. 자리 폭은 둘 중 넓은 HOT에
- * 맞춰 고정하고 둘 다 왼쪽에 붙여, 바뀌는 동안 이름 줄이 흔들리지 않고 이름과의 틈도 같다. 화면 밖이거나 앱이 가려지면 멈추고,
+ * 맞춰 고정하고 둘 다 왼쪽에 붙여, 바뀌는 동안 이름 줄이 흔들리지 않는다. 불꽃 그림은 24칸 상자 안에서 왼쪽이 4.5칸 비어
+ * 있어(18px이면 약 3px) HOT 글자를 그만큼(pl 3px) 밀어, 이름 끝에서 눈에 보이는 틈이 둘 다 약 5px로 같다. 화면 밖이거나 앱이 가려지면 멈추고,
  * 동작 줄이기 설정이면 불꽃만 가만히 보인다. 읽어 주는 이름은 호출부가 따로 단다.
  */
 export function HotMark({ size = 18 }: { size?: number }) {
@@ -68,7 +69,7 @@ export function HotMark({ size = 18 }: { size?: number }) {
       <span className="[grid-area:1/1] motion-safe:animate-hot-swap-flame">
         <HotFlame size={size} />
       </span>
-      <span className="[grid-area:1/1] opacity-0 motion-safe:animate-hot-swap-text">
+      <span className="[grid-area:1/1] pl-[3px] opacity-0 motion-safe:animate-hot-swap-text">
         HOT
       </span>
     </span>
