@@ -12,6 +12,7 @@ import {
 import { POST_EDIT_FROM_DETAIL } from "@/features/community/presentation/post-edit-return";
 import { readSessionToken } from "@/shared/lib/auth";
 import { ApiErrorCode, toApiError } from "@/shared/lib/http";
+import { NativePageReady } from "@/shared/lib/native-bridge";
 import { readServerNow, toKstDateKey } from "@/shared/lib/time";
 
 import EditLoading from "./loading";
@@ -82,22 +83,26 @@ export default async function CommunityPostEditPage({
     include: competitionId,
   });
   return (
-    <PostWriteScreen
-      categories={categories}
-      competitionPicker={
-        competitionOptions.length > 0
-          ? {
-              options: competitionOptions,
-              initialId: competitionId,
-              currentYear: Number(toKstDateKey(now).slice(0, 4)),
-            }
-          : undefined
-      }
-      edit={{
-        postId,
-        initial,
-        returnToDetail: from === POST_EDIT_FROM_DETAIL,
-      }}
-    />
+    <>
+      <PostWriteScreen
+        categories={categories}
+        competitionPicker={
+          competitionOptions.length > 0
+            ? {
+                options: competitionOptions,
+                initialId: competitionId,
+                currentYear: Number(toKstDateKey(now).slice(0, 4)),
+              }
+            : undefined
+        }
+        edit={{
+          postId,
+          initial,
+          returnToDetail: from === POST_EDIT_FROM_DETAIL,
+        }}
+      />
+      {/* 수정 화면이 그려지면 앱이 로딩 덮개를 걷는다(jiu-jitsu-ios#261). 만료 복구 화면은 뒤로가기가 없어 보내지 않는다. */}
+      <NativePageReady />
+    </>
   );
 }

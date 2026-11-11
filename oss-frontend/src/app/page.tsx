@@ -18,6 +18,7 @@ import { CommunityFeedList } from "@/features/community/presentation/community-f
 import { FeedEmptyState } from "@/features/community/presentation/feed-empty-state";
 import { FeedErrorState } from "@/features/community/presentation/feed-error-state";
 import { FeedScrollTopOnReload } from "@/features/community/presentation/feed/feed-scroll-top-on-reload";
+import { NativePageReady } from "@/shared/lib/native-bridge";
 import { PostWriteFab } from "@/features/community/presentation/post-write-fab";
 import { isCompetitionPageEnabled } from "@/features/competition/application/is-competition-page-enabled";
 import { loadCompetitionAlertSettings } from "@/features/competition/application/load-competition-alert-settings";
@@ -85,6 +86,8 @@ export default async function Home({
           <main className="feed-bounce-scroll min-h-screen bg-surface-container">
             {/* 새로고침이면 이전 위치 대신 맨 위에서 시작한다(#260). */}
             <FeedScrollTopOnReload />
+            {/* 피드가 그려지면 앱이 사진을 다 받기 전에 로딩 덮개를 걷는다(jiu-jitsu-ios#261). */}
+            <NativePageReady />
             {renderFeed(result, balanceGame, balanceIntro)}
 
             {/* 게시글 작성 진입 FAB — 네이티브면 OPEN_SUBVIEW로 풀스크린 서브뷰, 웹 단독이면 라우터 이동. */}
