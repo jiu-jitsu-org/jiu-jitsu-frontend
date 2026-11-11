@@ -181,6 +181,10 @@
   --animate-tab-panel-in: tab-panel-in 300ms ease-out both;
   /* 글쓰기 버튼 — 놓을 때 연필이 좌우로 한 번 흔들린다. */
   --animate-pen-wiggle: pen-wiggle 500ms ease-out both;
+  /* 글쓰기 카테고리 줄 — 고르지 않고 등록을 누르면 옆으로 살짝 한 번 흔들려 "여기를 고르세요"를 알린다(#397).
+     같은 모양을 이름만 둘로 두고 누를 때마다 번갈아 건다 — 이름이 바뀌어야 처음부터 다시 재생된다. */
+  --animate-nudge-x: nudge-x 500ms ease-out;
+  --animate-nudge-x-alt: nudge-x-alt 500ms ease-out;
   /* 남은 시간 시계 — 초마다 째깍 기울었다(--tick-dir 방향) 출렁이며 제자리. 좌우를 번갈아 흔든다. */
   --animate-timer-tick: timer-tick 600ms ease-out both;
   /* 남은 시간 — 초가 바뀔 때마다 배지(상세)·줄(리스트)이 살짝 부풀었다 돌아온다.
@@ -517,6 +521,20 @@
       opacity: 1;
       transform: translateX(0);
     }
+  }
+
+  @keyframes nudge-x {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    45% { transform: translateX(5px); }
+    70% { transform: translateX(-3px); }
+  }
+
+  @keyframes nudge-x-alt {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    45% { transform: translateX(5px); }
+    70% { transform: translateX(-3px); }
   }
 
   @keyframes pen-wiggle {

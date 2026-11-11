@@ -181,8 +181,8 @@ const TAG_INPUT_TEXT_CLASS = "text-text-primary";
  * 스크롤된다(첨부 썸네일은 본문과 태그 사이). 사진·태그 툴바만 바닥(=키보드 위)에 고정.
  *
  * compose 패턴:
- * - 우측 체크는 필수 입력(카테고리·제목·본문)이 하나라도 비어 있으면 비활성처럼 보이고, 탭하면 빠진 항목을
- *   토스트로 알린다(카테고리면 칩 테두리도 오류 색, #303). 한 글자라도 적히면 활성(정책).
+ * - 우측 체크는 작성 중엔 늘 눌리는 모양이고(#397), 필수 입력(카테고리·제목·본문)이 비어 있으면 탭 시 빠진 항목을
+ *   일반 안내 토스트로 알린다(카테고리면 비선택 칩 테두리가 오류 색이 되고 칩 줄이 흔들린다, #303·#397).
  *   제목 최소 글자 수는 탭 시 검사해 토스트로 알리고, 제목 글자 수 카운터는 채워질 때까지 오류 색으로 둔다(#251).
  *   본문은 최소 글자 수가 없다(#246).
  *   첨부 업로드 중/실패·전송 중에도 잠근다(사진 정책).
@@ -234,9 +234,11 @@ export function PostWriteScreen({
   // 올리기를 눌렀는데 제목이 최소 글자 수 미달로 막혔는지(#251). 제목 카운터를 오류 색으로 바꿔 문제인 칸을
   // 보이게 한다 — 처음 쓰는 중에는 회색 그대로이고, 조건을 채우면 바로 풀린다. 본문은 최소 글자 수가 없다(#246).
   const [titleShort, setTitleShort] = useState(false);
-  // 올리기를 눌렀는데 카테고리가 비어 막혔는지(#303). 칩 테두리를 오류 색으로 바꿔 어디를 골라야 하는지
-  // 보이게 한다 — 들어왔을 때는 회색 그대로이고, 칩 하나를 고르면 바로 풀린다.
+  // 올리기를 눌렀는데 카테고리가 비어 막혔는지(#303). 비선택 칩 테두리를 오류 색으로 바꾸고 칩 줄을 살짝 흔들어
+  // 어디를 골라야 하는지 보인다 — 들어왔을 때는 회색 그대로이고, 칩 하나를 고르면 바로 풀린다.
   const [categoryMissing, setCategoryMissing] = useState(false);
+  // 칩 줄 흔들기 횟수 — 누를 때마다 애니메이션 이름을 번갈아 걸어 처음부터 다시 흔든다(0 = 아직 안 흔듦).
+  const [categoryNudge, setCategoryNudge] = useState(0);
   const { confirm, dialog } = useNativeDialog();
   // 카테고리: 작성은 미선택(null)으로 시작 → 사용자가 칩에서 고르기 전엔 등록 불가. 수정은 기존 값.
   const [categoryId, setCategoryId] = useState<number | null>(
@@ -364,6 +366,9 @@ export function PostWriteScreen({
   // 사진이 올라가는 중에 등록을 눌렀으면 다 올라간 순간 이어서 등록한다(#390) — 예전엔 조용히 무시해 여러 번 누르며 기다렸다.
   // 누른 때의 사진 묶음을 기억한다 — 기다리는 사이 사진을 지우거나 더했으면 이어서 등록하지 않는다.
   const submitAfterUploadRef = useRef<string | null>(null);
+  // ✓ 버튼이 비활성처럼 보일지(#397). 작성은 늘 눌리는 모양 — 빠진 항목·업로드 대기는 탭하면 안내한다.
+  // 수정은 바꾼 게 없을 때만 비활성 모양이다(저장할 것이 없다).
+  const looksDisabled = isEdit && !isDirty;
   // 전송 중 표시는 렌더를 기다리지 않고 바로 보는 값 — 이어서 등록과 사용자의 탭이 같은 순간 겹쳐도 한 번만 보낸다.
   const submittingRef = useRef(false);
   const attachmentKey = attachments.map((item) => item.localId).join(",");
@@ -817,9 +822,13 @@ export function PostWriteScreen({
     const validationError = findValidationError();
     if (validationError !== null) {
       // 토스트는 나중 것이 이전 것을 덮는다(ToastProvider.show) — 연타해도 마지막 안내만 보인다.
-      toast.show(validationError.message, { tone: "warning" });
-      // 오류 색은 토스트가 말하는 칸에만 — 카테고리 안내인데 제목 카운터까지 빨개지면 어디를 고칠지 흐려진다.
+      // 빠진 칸 안내는 노란 경고가 아니라 일반 안내(#397) — 쓰는 중인 사람에게 "틀렸다"가 아니라 "이것도 필요해요".
+      toast.show(validationError.message, { tone: "info" });
+      // 표시는 토스트가 말하는 칸에만 — 카테고리 안내인데 제목 카운터까지 빨개지면 어디를 고칠지 흐려진다.
       setCategoryMissing(validationError.field === "category");
+      if (validationError.field === "category") {
+        setCategoryNudge((turn) => turn + 1);
+      }
       setTitleShort(validationError.field === "title");
       return;
     }
@@ -963,7 +972,8 @@ export function PostWriteScreen({
           onClick={() => void submit()}
           // 네이티브 disabled는 onClick 자체가 안 불려 빠진 항목을 안내할 수 없으므로 aria-disabled로 상태만
           // 전달한다(#303 — 수정 모드 사진 버튼 #154와 같은 방식). 중복 전송은 submit의 submitting 검사가 막는다.
-          aria-disabled={isSubmitLocked}
+          aria-disabled={looksDisabled || submitting}
+          aria-busy={submitting}
           aria-label={isEdit ? "완료" : "등록"}
           style={{
             width: APP_BAR_BUTTON_SIZE,
@@ -972,9 +982,9 @@ export function PostWriteScreen({
           }}
           className={cn(
             "ml-auto inline-flex items-center justify-center rounded-10 transition-colors",
-            // 필수 입력이 모두 채워지면 브랜드 채움(button/filled) — 글자 수 미달은 탭 시 토스트.
-            // 필수 입력 비어 있음·첨부 업로드 중/실패·전송 중이면 비활성 채움 + 비활성 아이콘.
-            isSubmitLocked
+            // 작성은 늘 브랜드 채움(#397) — 비활성처럼 보이면 "왜 안 눌리지"가 되므로 눌리게 두고, 빠진 항목은 탭 시 안내.
+            // 수정은 바꾼 게 없을 때만 비활성 채움(저장할 것이 없다는 뜻).
+            looksDisabled
               ? "bg-button-filled-disabled-bg text-button-filled-disabled-text"
               : "bg-button-filled-default-bg text-button-filled-default-text active:bg-button-filled-pressed-bg",
           )}
@@ -988,25 +998,40 @@ export function PostWriteScreen({
           비선택 = 투명 배경 + 1px #CECFD1, 선택 = chip/selected/bg(#EDEFF0) + 1px #292A2E, 텍스트는 둘 다
           chip/default/text. 좌우 16(px-4)·좌우 패딩 12(px-3)·칩 간격 8(gap-2), 넘치면 가로 스크롤(스크롤바
           숨김). 스크롤 영역 밖(shrink-0)에 둬 본문을 아래로 길게 내려도 항상 헤더 아래 고정. */}
-      <div className="flex shrink-0 gap-2 overflow-x-auto px-4 pt-5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {categories.map((category) => {
-          const selected = category.id === categoryId;
-          return (
-            <Chip
-              key={category.id}
-              selected={selected}
-              // 미선택으로 등록이 막혔으면(#303) 모든 칩 테두리를 오류 색으로 — 고르는 순간 풀린다.
-              invalid={categoryMissing}
-              onClick={() => {
-                setCategoryId(category.id);
-                setCategoryMissing(false);
-              }}
-              aria-pressed={selected}
-            >
-              {category.name}
-            </Chip>
-          );
-        })}
+      {/* 빠진 채로 등록을 누르면 비선택 칩 테두리가 오류 색으로 바뀌고(#303) 칩 줄이 옆으로 살짝 한 번 흔들린다(#397). */}
+      <div className="shrink-0 overflow-x-auto px-4 pt-5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div
+          role="group"
+          aria-label="카테고리 (필수)"
+          className={cn(
+            "flex w-max gap-2",
+            categoryNudge > 0 &&
+              (categoryNudge % 2 === 1
+                ? "motion-safe:animate-nudge-x"
+                : "motion-safe:animate-nudge-x-alt"),
+          )}
+        >
+          {categories.map((category) => {
+            const selected = category.id === categoryId;
+            return (
+              <Chip
+                key={category.id}
+                selected={selected}
+                // 고른 칩은 파란 선·글자로 켜진다(#397 — 고른 게 한눈에 보이게, 대회 필터 칩과 같은 켜짐).
+                tone="primary"
+                // 미선택으로 등록이 막혔으면(#303) 비선택 칩 테두리를 오류 색으로 — 고르는 순간 풀린다.
+                invalid={categoryMissing}
+                onClick={() => {
+                  setCategoryId(category.id);
+                  setCategoryMissing(false);
+                }}
+                aria-pressed={selected}
+              >
+                {category.name}
+              </Chip>
+            );
+          })}
+        </div>
       </div>
 
       {/* '대회' 카테고리면 어떤 대회 이야기인지 고르는 칸(#367). 칩 줄과 같은 좌우 16, 칩 아래 12. */}
