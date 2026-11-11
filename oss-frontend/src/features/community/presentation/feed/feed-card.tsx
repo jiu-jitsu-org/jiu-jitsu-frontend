@@ -35,6 +35,11 @@ import {
 import { usePopOnActivate } from "@/features/community/presentation/use-pop-on-activate";
 import { cn } from "@/shared/lib/cn";
 import {
+  AVATAR_IMAGE_TRANSFORM,
+  FEED_IMAGE_TRANSFORM,
+  resizeImageKitUrl,
+} from "@/shared/lib/image-resize";
+import {
   BookmarkIcon,
   CommentIcon,
   HeartIcon,
@@ -264,7 +269,12 @@ function FeedCardAvatar({
         // eslint-disable-next-line @next/next/no-img-element
         <img
           ref={detectSettledImage}
-          src={avatarUrl}
+          // 24px로 보이는 사진을 1024px 원본(약 290KB)으로 받지 않게 줄여 받는다(jiu-jitsu-ios#261).
+          src={
+            avatarUrl
+              ? resizeImageKitUrl(avatarUrl, AVATAR_IMAGE_TRANSFORM)
+              : undefined
+          }
           alt=""
           // 남의 프로필 사진을 꾹 눌러 저장·공유하지 못하게 iOS 기본 메뉴와 끌기를 막는다(#306).
           draggable={false}
@@ -598,7 +608,16 @@ function FeedCardCover({
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         ref={detectSettledImage}
-        src={withRetryParam(image.url, attempt)}
+        // 카드 폭만큼만 받는다(jiu-jitsu-ios#261). 화면 밖 카드의 사진은 스크롤해 다가갈 때 받는다 —
+        // 앱은 첫 화면을 띄울 때 이 사진들까지 기다리지 않게 된다(lazy는 load 이벤트를 붙잡지 않는다).
+        // '다시 시도'부터는 원본 주소로 받는다 — 줄인 주소가 실패한 경우 같은 주소만 다시 부르면 끝내 못 받는다.
+        src={
+          attempt === 0
+            ? resizeImageKitUrl(image.url, FEED_IMAGE_TRANSFORM)
+            : withRetryParam(image.url, attempt)
+        }
+        loading="lazy"
+        decoding="async"
         alt={image.alt ?? ""}
         // 서버는 원본 치수를 내려주지 않고, 요청도 접었다(jiu-jitsu-org/jiu-jitsu-backend#116
         // — 기능 결함이 아니라 시프트 품질 문제라 감수하기로 확정). 그래서 실사용에서는 늘

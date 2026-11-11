@@ -7,6 +7,7 @@ import { PostDetailView } from "@/features/community/presentation/post-detail-vi
 import { CompetitionAlertProvider } from "@/features/competition/presentation/competition-alert-provider";
 import { PostCompetitionCard } from "@/features/competition/presentation/post-competition-card";
 import { ApiErrorCode } from "@/shared/lib/http";
+import { NativePageReady } from "@/shared/lib/native-bridge";
 import { Spinner } from "@/shared/ui/spinner";
 
 /**
@@ -47,16 +48,21 @@ export async function PostDetailScreen({
 
   const { post, comments, competition } = result.data;
   const view = (
-    <PostDetailView
-      post={post}
-      comments={comments}
-      sort={sort}
-      attachment={
-        competition ? (
-          <PostCompetitionCard card={competition.card} />
-        ) : undefined
-      }
-    />
+    <>
+      <PostDetailView
+        post={post}
+        comments={comments}
+        sort={sort}
+        attachment={
+          competition ? (
+            <PostCompetitionCard card={competition.card} />
+          ) : undefined
+        }
+      />
+      {/* 글이 그려지면 앱이 사진을 다 받기 전에 로딩 덮개를 걷는다(jiu-jitsu-ios#261).
+          만료 복구·오류 화면은 웹 뒤로가기가 없을 수 있어 보내지 않는다 — 그때는 load 때 걷힌다. */}
+      <NativePageReady />
+    </>
   );
   if (!competition) return view;
 

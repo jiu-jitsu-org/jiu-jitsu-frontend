@@ -13,6 +13,10 @@
 /** 웹 → 네이티브 (window.(webkit.messageHandlers.)AppBridge) */
 export const OutboundMessageType = {
   WEBVIEW_READY: "WEBVIEW_READY",
+  // 페이지 본문이 그려졌음(jiu-jitsu-ios#261). 앱은 이걸 받으면 그림까지 다 받기(load) 전에 로딩 덮개를 걷는다.
+  // WEBVIEW_READY는 공용 껍데기가 보내 로딩 뼈대 단계에서도 오므로 덮개 기준으로 쓸 수 없다(NativePageReady).
+  // 결과 회신이 없다. 모르는 구버전 앱은 무시한다.
+  PAGE_READY: "PAGE_READY",
   // 로그인 유도: 네이티브가 "로그인이 필요해요" 안내 알럿 → 사용자가 동의해야 로그인 모달 (소프트 유도).
   // 모달을 바로 여는 AUTH_LOGIN_MODAL과 웹 주도 로그아웃 AUTH_LOGOUT_REQUEST는 쓰는 화면이 없어 뺐다(#224).
   // 로그아웃은 앱 설정이 소유하고, 웹은 AUTH_LOGOUT을 받아 세션만 정리한다.

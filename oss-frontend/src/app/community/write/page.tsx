@@ -1,6 +1,7 @@
 import { getPostCategoriesOrFallback } from "@/features/community/application/get-post-write-page-data";
 import { PostWriteScreen } from "@/features/community/presentation/post-write-screen";
 import { getCompetitionPickerOptions } from "@/features/competition/application/get-competition-picker-options";
+import { NativePageReady } from "@/shared/lib/native-bridge";
 import { readServerNow, toKstDateKey } from "@/shared/lib/time";
 
 /**
@@ -17,17 +18,21 @@ export default async function CommunityWritePage() {
     getCompetitionPickerOptions({ now }),
   ]);
   return (
-    <PostWriteScreen
-      categories={categories}
-      competitionPicker={
-        competitionOptions.length > 0
-          ? {
-              options: competitionOptions,
-              initialId: null,
-              currentYear: Number(toKstDateKey(now).slice(0, 4)),
-            }
-          : undefined
-      }
-    />
+    <>
+      <PostWriteScreen
+        categories={categories}
+        competitionPicker={
+          competitionOptions.length > 0
+            ? {
+                options: competitionOptions,
+                initialId: null,
+                currentYear: Number(toKstDateKey(now).slice(0, 4)),
+              }
+            : undefined
+        }
+      />
+      {/* 글쓰기 화면이 그려지면 앱이 로딩 덮개를 걷는다(jiu-jitsu-ios#261). */}
+      <NativePageReady />
+    </>
   );
 }

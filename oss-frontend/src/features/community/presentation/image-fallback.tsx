@@ -41,7 +41,11 @@ export type SettledImage = "loaded" | "failed" | null;
  */
 export function readSettledImage(img: HTMLImageElement | null): SettledImage {
   if (!img?.complete) return null;
-  return img.naturalWidth === 0 ? "failed" : "loaded";
+  if (img.naturalWidth > 0) return "loaded";
+  // 늦게 받는(loading="lazy") 사진은 화면에 다가오기 전까지 요청 자체가 없어 currentSrc가 비어 있다.
+  // 엔진에 따라 이때도 complete를 참으로 줄 수 있어, 실패로 보면 받기도 전에 오류 칸으로 바뀐다.
+  // 진짜 실패는 요청이 나간 뒤라 currentSrc가 있고, 하이드레이션 뒤 실패는 onError가 잡는다.
+  return img.currentSrc === "" ? null : "failed";
 }
 
 /**
