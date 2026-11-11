@@ -1023,7 +1023,11 @@ export function PostWriteScreen({
 
       {/* 본문 영역: 제목 → 본문 → 태그 → 안내문이 한 덩어리로 스크롤된다(main 내부 스크롤).
           제목·본문 textarea는 자동으로 자라므로 스크롤은 이 main에서만 일어난다. */}
-      <main className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 pb-6">
+      {/* 위 16px은 옅게 사라지게(mask) — 긴 본문을 내려 읽을 때 제목·본문 글자가 칩 줄 아래에서 칼로 자른 듯
+          잘려 보이지 않게(#397). 맨 위에선 제목 위 여백(24) 안이라 글자에 닿지 않는다.
+          제목·본문 textarea는 shrink-0 — 세로 flex 안이라 줄어들 수 있으면 main을 넘치는 대신 칸 자체가 눌려
+          글이 칸 안에서 잘리고(제목 잘림) main은 스크롤되지 않았다(#397 "본문 스크롤이 안 먹는 느낌"의 원인). */}
+      <main className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 pb-6 [-webkit-mask-image:linear-gradient(to_bottom,transparent,black_16px)] [mask-image:linear-gradient(to_bottom,transparent,black_16px)]">
         {/* 제목: Display 1(30 · 행간 Auto → 40 고정 · 600), 여러 줄 허용(45자). 카테고리↔제목 간격 24(mt-6).
             색 textfield_display/filled/text, 플레이스홀더 default/placeholder-text, 커서 cursor(브랜드).
             첫 진입 시 제목에 자동 포커스 → 바로 타이핑 시작(정책). 키보드가 함께 올라오려면 WKWebView가
@@ -1048,7 +1052,7 @@ export function PostWriteScreen({
           placeholder="제목을 입력해주세요"
           aria-label="제목"
           className={cn(
-            "mt-6 w-full resize-none overflow-hidden text-display-1 outline-none",
+            "mt-6 w-full shrink-0 resize-none overflow-hidden text-display-1 outline-none",
             TEXTFIELD_TEXT_CLASS,
             TEXTFIELD_PLACEHOLDER_CLASS,
             TEXTFIELD_CARET_CLASS,
@@ -1077,7 +1081,7 @@ export function PostWriteScreen({
           placeholder="내용을 입력해주세요"
           aria-label="내용"
           className={cn(
-            "mt-6 w-full resize-none overflow-hidden text-title-1 outline-none",
+            "mt-6 w-full shrink-0 resize-none overflow-hidden text-title-1 outline-none",
             TEXTFIELD_TEXT_CLASS,
             TEXTFIELD_PLACEHOLDER_CLASS,
             TEXTFIELD_CARET_CLASS,
