@@ -141,7 +141,15 @@ export function BalanceHeroCommentLink({
         REACTION_PRESS_MOTION,
       )}
     >
-      <CommentIcon size={REACTION_ICON_SIZE} filled={game.commented} />
+      {/*
+        글자색(흰 80%)을 그대로 물려받으면, 채운 아이콘에서 면과 테두리가 겹치는 가장자리만 두 번 칠해져
+        테두리가 더 밝게 보인다. 불투명한 흰색으로 그리고 아이콘 전체에 80%를 한 번만 씌워 면·테두리 색을 같게 한다.
+      */}
+      <CommentIcon
+        size={REACTION_ICON_SIZE}
+        filled={game.commented}
+        className="text-[var(--bw-true-white)] opacity-80"
+      />
       <span className="text-body-s">
         {game.commentCount > 0
           ? `댓글 ${game.commentCount}개 보러가기`
