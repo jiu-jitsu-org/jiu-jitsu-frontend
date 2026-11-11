@@ -610,10 +610,12 @@ function FeedCardCover({
         ref={detectSettledImage}
         // 카드 폭만큼만 받는다(jiu-jitsu-ios#261). 화면 밖 카드의 사진은 스크롤해 다가갈 때 받는다 —
         // 앱은 첫 화면을 띄울 때 이 사진들까지 기다리지 않게 된다(lazy는 load 이벤트를 붙잡지 않는다).
-        src={withRetryParam(
-          resizeImageKitUrl(image.url, FEED_IMAGE_TRANSFORM),
-          attempt,
-        )}
+        // '다시 시도'부터는 원본 주소로 받는다 — 줄인 주소가 실패한 경우 같은 주소만 다시 부르면 끝내 못 받는다.
+        src={
+          attempt === 0
+            ? resizeImageKitUrl(image.url, FEED_IMAGE_TRANSFORM)
+            : withRetryParam(image.url, attempt)
+        }
         loading="lazy"
         decoding="async"
         alt={image.alt ?? ""}
