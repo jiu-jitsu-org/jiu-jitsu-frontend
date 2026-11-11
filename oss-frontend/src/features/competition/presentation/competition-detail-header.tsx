@@ -48,7 +48,8 @@ export function CompetitionDetailHeader({
           onClick={() => void shareCurrentPage()}
           aria-label="대회 공유하기"
         >
-          <ShareIcon size={24} />
+          {/* 24px에서 선이 2px이 되게(16 viewBox × 1.5) — 뒤로 가기·알림 종과 같은 굵기. */}
+          <ShareIcon size={24} strokeWidth={4 / 3} />
         </IconButton>
       </div>
     </AppBarShell>
