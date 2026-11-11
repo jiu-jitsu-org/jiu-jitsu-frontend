@@ -5,8 +5,8 @@ import type { ReactNode } from "react";
 import { cn } from "@/shared/lib/cn";
 
 import {
+  REACTION_POP_MOTION,
   REACTION_PRESS_MOTION,
-  REACTION_WRAP_MOTION,
 } from "./comment-reaction-styles";
 import { usePopOnActivate } from "./use-pop-on-activate";
 
@@ -67,7 +67,7 @@ export function ReactionBarButton({
         className={cn(
           "inline-flex text-reaction-bar-detail-default-icon group-active:text-reaction-bar-detail-pressed-icon",
           active && activeIconColorClass,
-          pop && REACTION_WRAP_MOTION,
+          pop && REACTION_POP_MOTION,
         )}
       >
         {icon}

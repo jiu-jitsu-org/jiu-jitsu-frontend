@@ -16,8 +16,8 @@ import {
   RegistrationIcon,
 } from "@/features/competition/presentation/competition-icons";
 import {
+  REACTION_POP_MOTION,
   REACTION_PRESS_MOTION,
-  REACTION_WRAP_MOTION,
 } from "@/features/community/presentation/comment-reaction-styles";
 import { usePopOnActivate } from "@/features/community/presentation/use-pop-on-activate";
 import type { CompetitionInterest } from "@/features/competition/presentation/use-competition-interest";
@@ -365,7 +365,7 @@ export function InterestButton({
         REACTION_PRESS_MOTION,
       )}
     >
-      <span className={cn("inline-flex", pop && REACTION_WRAP_MOTION)}>
+      <span className={cn("inline-flex", pop && REACTION_POP_MOTION)}>
         <HeartIcon
           size={18}
           filled={interested}
