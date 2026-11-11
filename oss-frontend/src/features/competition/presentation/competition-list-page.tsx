@@ -46,6 +46,7 @@ function renderBody(data: CompetitionListPageData) {
         interestCounts={data.interestCounts}
         regionsWithCompetitions={data.regionsWithCompetitions}
         myBeltRank={data.myBeltRank}
+        endedInterested={data.endedInterested}
       />
     </CompetitionAlertProvider>
   );

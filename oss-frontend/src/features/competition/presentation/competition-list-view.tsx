@@ -15,6 +15,7 @@ import {
 } from "@/features/competition/domain/competition-filter";
 import { deadlineSoonInterested } from "@/features/competition/domain/competition-interest-banner";
 import type { CompetitionRegion } from "@/features/competition/domain/competition-region";
+import type { ResultCardGroup } from "@/features/competition/domain/competition-result-prompt";
 import { CompetitionCalendar } from "@/features/competition/presentation/competition-calendar";
 import {
   CompetitionInterestBanner,
@@ -29,6 +30,10 @@ import {
   monthLabel,
 } from "@/features/competition/presentation/competition-month-section";
 import { CompetitionRegionSheet } from "@/features/competition/presentation/competition-region-sheet";
+import {
+  CompetitionResultCard,
+  useResultCardGroup,
+} from "@/features/competition/presentation/competition-result-card";
 import { CompetitionSearchField } from "@/features/competition/presentation/competition-search-field";
 import {
   useOpenCompetitionDetail,
@@ -68,6 +73,7 @@ export function CompetitionListView({
   interestCounts,
   regionsWithCompetitions,
   myBeltRank,
+  endedInterested,
 }: {
   months: CompetitionListMonth[];
   currentYear: number;
@@ -78,6 +84,8 @@ export function CompetitionListView({
   regionsWithCompetitions: CompetitionRegion[];
   /** 내 띠 — 관심 대회 머리 캐릭터·위 그라데이션 색. 없으면 흰띠. */
   myBeltRank: BeltRank | null;
+  /** 끝난 지 며칠 안 된 내 관심 대회 묶음(#403) — 맨 위 결과 남기기 카드. */
+  endedInterested: ResultCardGroup[];
 }) {
   const [filter, setFilter] = useState<CompetitionFilter>(
     EMPTY_COMPETITION_FILTER,
@@ -213,9 +221,18 @@ export function CompetitionListView({
   const deadlineBannerItem = useDeadlineBannerItem(deadlineSoon);
   // 달력에서는 배너를 걷는다 — 달력 칸이 첫 화면에 다 들어와야 날짜를 고를 수 있다.
   const showBanner = mode === "list" && deadlineBannerItem !== null;
+  // 결과 남기기 카드(#403)도 같은 자리에 한 번에 한 장 — 곧 마감이 있으면 마감을 먼저 띄운다.
+  // 마감을 놓치면 참가비가 오르지만, 결과는 끝난 뒤 며칠 안에 다시 물을 수 있다.
+  const resultGroup = useResultCardGroup(endedInterested);
+  const showResultCard =
+    mode === "list" && deadlineBannerItem === null && resultGroup !== null;
   // 후보를 모두 닫았으면 첫 카드 뒤에 캐릭터를 남겨 다시 열 수 있게 한다(목록이 있을 때만).
+  // 결과 카드가 그 자리를 쓰는 동안은 두지 않는다 — 맨 위에 하나씩만.
   const showBannerReopen =
-    mode === "list" && deadlineSoon.length > 0 && deadlineBannerItem === null;
+    mode === "list" &&
+    !showResultCard &&
+    deadlineSoon.length > 0 &&
+    deadlineBannerItem === null;
   // 앱의 '대회' 머리를 맨 위 띠 색 그라데이션과 같은 색으로 — 배너가 보일 때만, 아니면 앱 기본색.
   useCompetitionHeaderTint(showBanner ? (beltRank ?? "white") : null);
 
@@ -373,6 +390,9 @@ export function CompetitionListView({
           beltRank={beltRank}
           onSelect={({ competition }) => openDetail(competition.id)}
         />
+        {showResultCard && resultGroup ? (
+          <CompetitionResultCard group={resultGroup} />
+        ) : null}
 
         {mode === "calendar" ? (
           // 달력은 걸러서 비어도 그대로 둔다 — 달을 넘기며 다른 날을 볼 수 있어야 한다.

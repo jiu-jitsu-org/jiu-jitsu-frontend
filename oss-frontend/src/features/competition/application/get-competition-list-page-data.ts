@@ -12,6 +12,10 @@ import {
   type Competition,
 } from "@/features/competition/domain/competition";
 import {
+  recentlyEndedInterested,
+  type ResultCardGroup,
+} from "@/features/competition/domain/competition-result-prompt";
+import {
   COMPETITION_REGIONS,
   type CompetitionRegion,
 } from "@/features/competition/domain/competition-region";
@@ -50,6 +54,11 @@ export type CompetitionListPageData =
       alertSettings: CompetitionAlertSettings | null;
       /** 내 띠 — 관심 대회 머리의 캐릭터·그라데이션 색. 비로그인·미입력·실패면 null(흰띠로 그린다). */
       myBeltRank: BeltRank | null;
+      /**
+       * 끝난 지 며칠 안 된 내 관심 대회 묶음(#403) — 대회 탭 맨 위 결과 남기기 카드. 최근 순.
+       * 끝난 대회는 목록(months)에 없어 따로 싣는다. 비로그인이면 빈 배열.
+       */
+      endedInterested: ResultCardGroup[];
     }
   | { ok: false };
 
@@ -113,6 +122,11 @@ export async function getCompetitionListPageData({
       ),
       alertSettings,
       myBeltRank,
+      endedInterested: recentlyEndedInterested(
+        competitions,
+        new Set(interestedIds),
+        today,
+      ),
     };
   } catch {
     return { ok: false };

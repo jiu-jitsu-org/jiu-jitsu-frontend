@@ -29,6 +29,9 @@ const INITIAL_INTERESTED_IDS = [
   "seoul-open-championship",
   "busan-nogi-open",
   "jeju-open",
+  // 지난 주말(11/7 토·11/8 일)에 끝난 대회 — 대회 탭 결과 남기기 카드(#403)를 볼 수 있게.
+  "gwangju-championship",
+  "seoul-nogi-invitational",
 ];
 
 const STORE_KEY = Symbol.for("oss.fixture.competition-interest");
