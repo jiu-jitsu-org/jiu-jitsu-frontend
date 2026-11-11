@@ -1,17 +1,21 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 
 import type { BeltRank } from "@/features/community/domain/belt";
-import type { InterestBannerItem } from "@/features/competition/domain/competition-interest-banner";
+import type {
+  DeadlineSoonItem,
+  InterestBannerItem,
+} from "@/features/competition/domain/competition-interest-banner";
 import { shortDateLabel } from "@/features/competition/presentation/competition-detail-format";
 import {
-  deadlineLabel,
+  RegistrationChip,
   weekdayOf,
 } from "@/features/competition/presentation/competition-month-section";
 import { cn } from "@/shared/lib/cn";
 import { setNativeCompetitionHeaderTint } from "@/shared/lib/native-bridge";
-import { HeartIcon } from "@/shared/ui/icons";
+import { IconButton } from "@/shared/ui/icon-button";
+import { CloseIcon } from "@/shared/ui/icons";
 import { PRESS_BOUNCE } from "@/shared/ui/press-styles";
 
 /** 카드 위 그래픽 자리 높이 — 필터 줄의 아래 여백(12)과 합쳐 칩 줄 아래 80px. */
@@ -19,191 +23,165 @@ const HEAD_SPACE = 68;
 /** 카드 높이·모서리. 캐릭터 몸은 카드 아래 끝에서 모서리만큼 위에서 잘라 둥근 모서리 틈으로 비치지 않게 한다. */
 const CARD_HEIGHT = 78;
 const CARD_RADIUS = 20;
-/** 띠(검은 단) 가운데 자리 — 첫 카드 왼쪽에서 15, 카드 위에서 26. 머리는 카드 위로 약 58px 드러난다. */
+/** 띠(검은 단) 가운데 자리 — 카드 왼쪽에서 15, 카드 위에서 26. 머리는 카드 위로 약 58px 드러난다. */
 const BAND_X = 15;
 const BAND_ABOVE_CARD = 26;
-/** 숨은 캐릭터가 내려가 있는 거리 — 머리끝(카드 위 약 58px)이 카드 뒤로 다 들어가는 값. */
-const PEEK_HIDE = 64;
 
 /**
- * 관심 대회 배너 — 필터 줄 바로 아래, 내 관심 대회를 한 장씩 옆으로 넘겨 본다.
+ * 곧 마감 배너 (#396) — 필터 줄 바로 아래, 접수 마감이 일주일 안으로 다가온 내 관심 대회 한 장.
  *
- * 2026-11 시안 "Ⓓ 제목 앞 · 똑바로 서기": 지금 보는 카드 왼쪽 위로 내 띠 캐릭터가 곧게 서서 머리를 내밀고,
- * 그 옆에 '관심 대회 N'. 캐릭터는 카드마다 있어 카드와 같이 넘어가고, 다음 장으로 넘기면 앞 장의 캐릭터는
- * 카드 뒤로 쏙 들어가고 새 장의 캐릭터가 아래에서 튀어 오른다. 아랫몸은 카드 뒤에서 잘라 카드 밖으로 드러나지 않는다.
- * 어느 장이든 같은 자리(왼쪽 끝)에 멈추도록 마지막 장 뒤에 빈자리를 둔다 — 안 그러면 마지막 장이 오른쪽 끝에 붙어
- * 캐릭터가 제목 위로 겹친다.
- * 카드: 진한 면에 이름·하트, 아래 줄에 날짜(요일)·장소와 접수 소식 알약. 대회 날짜가 가까운 순이다.
- * 여러 장이면 다음 장이 오른쪽에 비쳐 넘길 수 있다는 걸 알린다(카드 폭 = 줄 폭 - 48, 간격 10).
- * 관심 대회가 없으면(비로그인 포함) 아무것도 그리지 않는다.
+ * 전에는 관심 대회 전부를 옆으로 넘겨 봤는데, 그건 하트 필터와 같은 목록이라 배너가 할 말이 없었다.
+ * 이제는 '지금 챙겨야 하는' 대회만, 가장 급한 한 장만 띄운다. 제목 '관심 대회 · 곧 마감'이 왜 떴는지 말한다.
+ * 모양(2026-11 시안 "Ⓓ 제목 앞 · 똑바로 서기")은 그대로: 카드 왼쪽 위로 내 띠 캐릭터가 곧게 서서 머리를 내밀고,
+ * 아랫몸은 카드 뒤에서 잘라 카드 밖으로 드러나지 않는다.
+ * 카드: 진한 면에 이름과 닫기(✕), 아래 줄에 날짜(요일)와 목록 줄과 같은 접수 칩. 카드를 누르면 상세가 열린다.
+ * ✕로 닫으면 이 기기에서 그 대회의 그 마감은 다시 뜨지 않고 다음으로 급한 대회가 뜬다. 띄울 대회가 없으면 아무것도 그리지 않는다.
  */
 export function CompetitionInterestBanner({
-  items,
+  item,
   currentYear,
   beltRank,
   onSelect,
 }: {
-  items: readonly InterestBannerItem[];
+  /** 띄울 한 장 — useDeadlineBannerItem이 닫은 대회를 걸러 고른다. 없으면 그리지 않는다. */
+  item: DeadlineSoonItem | null;
   currentYear: number;
   /** 내 띠. 없으면 흰띠로 그린다. */
   beltRank: BeltRank | null;
   onSelect: (item: InterestBannerItem) => void;
 }) {
-  const listRef = useRef<HTMLUListElement>(null);
-  const current = useCurrentCard(listRef, items.length);
-
-  if (items.length === 0) return null;
-  const many = items.length > 1;
+  if (!item) return null;
+  const { competition, registration } = item;
 
   return (
-    <section aria-label="관심 대회" className="relative mb-3">
-      {/* 제목은 넘김 밖에 고정 — 캐릭터 오른쪽(첫 카드 왼쪽 + 38), 카드 위 22px. */}
+    <section aria-label="곧 마감인 관심 대회" className="relative mb-3 px-4">
+      {/* 제목 — 캐릭터 오른쪽(카드 왼쪽 + 38), 카드 위 22px. */}
       <h2
         className="pointer-events-none absolute left-[54px] z-[2] text-[17px] leading-[22px] font-bold text-text-primary"
         style={{ top: HEAD_SPACE - 22 - 22 }}
       >
         관심 대회
-        <span className="ml-1.5 text-primary-text-subtle tabular-nums">
-          {items.length}
-        </span>
+        <span className="text-primary-text-subtle"> · 곧 마감</span>
       </h2>
-      <ul
-        className={cn(
-          "flex gap-2.5 overflow-x-auto px-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-          many &&
-            "snap-x snap-mandatory scroll-px-4 overscroll-x-contain after:w-[38px] after:flex-none after:content-['']",
-        )}
-        ref={listRef}
-        // 그래픽 자리까지 넘김 안에 넣는다 — 넘김 영역은 위아래도 잘라 내서, 밖으로 빼면 머리가 잘린다.
-        style={{ paddingTop: HEAD_SPACE }}
-      >
-        {items.map((item, index) => (
-          <li
-            key={item.competition.id}
+      <div className="relative" style={{ paddingTop: HEAD_SPACE }}>
+        {/* 닫고 다음 대회가 뜨면 key가 바뀌어 새 캐릭터가 다시 튀어 오른다. */}
+        <BeltPeek key={competition.id} rank={beltRank ?? "white"} />
+        <div className="relative z-[1]">
+          <button
+            type="button"
+            onClick={() => onSelect(item)}
             className={cn(
-              "relative flex-none snap-start",
-              many ? "w-[calc(100%-48px)]" : "w-full",
+              "flex w-full flex-col justify-between rounded-20 bg-[var(--cool-gray-900)] py-[14px] pr-12 pl-4 text-left text-text-on-dark",
+              PRESS_BOUNCE,
             )}
+            style={{ height: CARD_HEIGHT }}
           >
-            <BeltPeek rank={beltRank ?? "white"} up={index === current} />
-            <InterestCard
-              item={item}
-              currentYear={currentYear}
-              onSelect={onSelect}
-            />
-          </li>
-        ))}
-      </ul>
+            <span className="truncate text-[16px] leading-[22px] font-bold">
+              {competition.name}
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="flex-none text-[12px] leading-[16px] text-[var(--opacity-white-60)] tabular-nums">
+                {shortDateLabel(competition.date, currentYear)} (
+                {weekdayOf(competition.date).label})
+              </span>
+              {registration ? (
+                // 목록 줄과 같은 접수 칩 — 배너에 뜬 대회는 늘 관심 대회라 남은 날을 붙인다.
+                <RegistrationChip
+                  status={registration}
+                  dday
+                  currentYear={currentYear}
+                  size="s"
+                  surface="dark"
+                />
+              ) : null}
+            </span>
+          </button>
+          {/* 이름 줄 오른쪽 — 보이는 ✕는 20, 누를 자리는 44. 카드 버튼 밖 형제라 누르면 상세가 열리지 않는다. */}
+          <IconButton
+            size="l"
+            aria-label={`${competition.name} 마감 알림 닫기`}
+            onClick={() => dismissDeadlineBanner(dismissKey(item))}
+            className="absolute top-[3px] right-1 text-[var(--opacity-white-60)] active:bg-[var(--opacity-white-20)]"
+          >
+            <CloseIcon size={20} />
+          </IconButton>
+        </div>
+      </div>
     </section>
   );
 }
 
+const DISMISSED_KEY_PREFIX = "competition-deadline-banner-dismissed:";
+const DISMISS_EVENT = "oss:competition-deadline-banner-dismissed";
+
 /**
- * 지금 왼쪽 끝에 멈춰 있는(또는 가장 가까운) 카드 번호. 처음 그릴 땐 -1이라 캐릭터가 다 숨어 있다가,
- * 화면에 붙은 다음 프레임에 0이 되어 첫 장 캐릭터가 한 번 올라온다.
- * 넘기는 도중 카드의 절반을 넘으면 바로 바뀐다 — 손을 떼기 전에 새 캐릭터가 마중 나온다.
- * 카드 수가 바뀌면 다시 붙는다 — 관심이 0개라 넘김이 없다가 목록 하트로 첫 관심을 켜면 그때 넘김이 생긴다.
- * 끝에서 고무줄처럼 더 당겨도 첫·마지막 장 밖으로 나가지 않게 묶고, 화면 폭이 바뀌면 다시 잰다.
+ * 곧 마감 배너에 띄울 한 장 — 후보(마감이 가까운 순) 중 이 기기에서 닫지 않은 첫 대회. 없으면 null.
+ *
+ * 닫은 기록은 브라우저 저장소에만 있어 서버는 모른다. 서버 그림에는 첫 후보를 넣어 두고, 닫아 둔 기기에서만 걷어 낸다
+ * (결과 남기기 배너와 같은 방식) — 늦게 나타나면 아래 목록이 배너 높이만큼 밀려 내려간다.
+ * 스냅샷은 대회 id 문자열이라 값이 같으면 다시 그리지 않는다.
  */
-function useCurrentCard(
-  listRef: React.RefObject<HTMLUListElement | null>,
-  count: number,
-) {
-  const [current, setCurrent] = useState(-1);
-  useEffect(() => {
-    const list = listRef.current;
-    if (!list || count === 0) return;
-    let frame = 0;
-    const measure = () => {
-      frame = 0;
-      const first = list.firstElementChild as HTMLElement | null;
-      if (!first) return;
-      const step =
-        first.offsetWidth + parseFloat(getComputedStyle(list).columnGap || "0");
-      const index = step > 0 ? Math.round(list.scrollLeft / step) : 0;
-      setCurrent(Math.min(count - 1, Math.max(0, index)));
-    };
-    const onScroll = () => {
-      if (!frame) frame = requestAnimationFrame(measure);
-    };
-    frame = requestAnimationFrame(measure);
-    list.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    return () => {
-      list.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-      cancelAnimationFrame(frame);
-    };
-  }, [listRef, count]);
-  return current;
-}
-
-function InterestCard({
-  item,
-  currentYear,
-  onSelect,
-}: {
-  item: InterestBannerItem;
-  currentYear: number;
-  onSelect: (item: InterestBannerItem) => void;
-}) {
-  const { competition, registration } = item;
-  const news = registrationNews(registration, currentYear);
-
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect(item)}
-      className={cn(
-        "relative z-[1] flex w-full flex-col justify-between rounded-20 bg-[var(--cool-gray-900)] px-4 py-[14px] text-left text-text-on-dark",
-        PRESS_BOUNCE,
-      )}
-      style={{ height: CARD_HEIGHT }}
-    >
-      <span className="flex items-center gap-3">
-        <span className="min-w-0 flex-1 truncate text-[16px] leading-[22px] font-bold">
-          {competition.name}
-        </span>
-        {/* 이 줄은 늘 내 관심 대회라 채운 하트다. 해제는 목록 줄이나 상세에서 한다. */}
-        <HeartIcon
-          size={18}
-          filled
-          className="flex-none text-reaction-bar-active-like-icon"
-        />
-      </span>
-      <span className="flex items-center gap-3">
-        <span className="min-w-0 flex-1 truncate text-[12px] leading-[16px] text-[var(--opacity-white-60)] tabular-nums">
-          {shortDateLabel(competition.date, currentYear)} (
-          {weekdayOf(competition.date).label}) · {competition.place}
-        </span>
-        {news ? (
-          <span
-            className={cn(
-              "flex-none rounded-full px-2.5 py-1 text-[12px] leading-[16px] font-bold tabular-nums",
-              news.urgent
-                ? "bg-[color-mix(in_srgb,var(--error)_12%,var(--bw-white))] text-text-error"
-                : "bg-[var(--opacity-white-20)] text-[var(--opacity-white-80)]",
-            )}
-          >
-            {news.text}
-          </span>
-        ) : null}
-      </span>
-    </button>
+export function useDeadlineBannerItem(
+  candidates: readonly DeadlineSoonItem[],
+): DeadlineSoonItem | null {
+  const key = useSyncExternalStore(
+    subscribeDismissed,
+    () => {
+      const item = candidates.find(
+        (candidate) => !readDismissed(dismissKey(candidate)),
+      );
+      return item ? dismissKey(item) : null;
+    },
+    () => (candidates[0] ? dismissKey(candidates[0]) : null),
   );
+  return candidates.find((candidate) => dismissKey(candidate) === key) ?? null;
 }
 
 /**
- * 내 띠 캐릭터 — 곧게 서서 첫 카드 왼쪽 위로 머리만 내민다. 눈은 앱 로그인 화면과 같은 띠별 짝이다.
+ * 닫은 기록의 이름 — 대회와 마감 날짜를 함께 쓴다. 얼리버드 마감 알림을 닫아도 같은 대회의 접수 마감이
+ * 다가오면 다시 알려야 해서다(마감마다 따로 챙길 일이다).
+ */
+function dismissKey({ competition, deadline }: DeadlineSoonItem) {
+  return `${competition.id}:${deadline}`;
+}
+
+/** 저장소를 못 쓰는 환경(사생활 보호 모드)에서도 지금 화면에서는 닫히게 기억해 둔다. */
+const hiddenThisSession = new Set<string>();
+
+function readDismissed(key: string): boolean {
+  if (hiddenThisSession.has(key)) return true;
+  try {
+    return window.localStorage.getItem(DISMISSED_KEY_PREFIX + key) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function dismissDeadlineBanner(key: string) {
+  hiddenThisSession.add(key);
+  try {
+    window.localStorage.setItem(DISMISSED_KEY_PREFIX + key, "1");
+  } catch {
+    // 저장하지 못하면 다시 열었을 때 또 뜬다.
+  }
+  window.dispatchEvent(new Event(DISMISS_EVENT));
+}
+
+function subscribeDismissed(onChange: () => void) {
+  window.addEventListener(DISMISS_EVENT, onChange);
+  return () => window.removeEventListener(DISMISS_EVENT, onChange);
+}
+
+/**
+ * 내 띠 캐릭터 — 곧게 서서 카드 왼쪽 위로 머리만 내민다. 눈은 앱 로그인 화면과 같은 띠별 짝이다.
  *
  * 그림은 public/images/characters/stand — 앱 로그인 화면의 눈 없는 몸통·눈을 표시 크기의 3배로 줄인 것.
  * 흰·파란띠 몸통 원본은 휘어 있어서 곧은 보라 몸통의 색만 바꿔 만들었다.
  * 상자는 그래픽 자리 맨 위부터 카드 아래 끝 - 모서리까지다. 그 아래 몸은 잘려 카드 밖으로 나오지 않는다.
- * up이면 아래에서 띠용 튀어 올라 서 있고(500ms), 아니면 카드 뒤로 재빨리 숨는다(200ms).
- * 오르는 건 스프링 곡선 대신 키프레임으로 넘침을 8px로 묶는다 — 머리 위 여유가 10px라 스프링(25% 넘침)이면 머리끝이 잘린다.
- * 동작 줄이기 설정이면 움직이지 않고 바로 나타나고 사라진다.
+ * 나타날 때 아래에서 띠용 튀어 오른다(500ms). 오르는 건 스프링 곡선 대신 키프레임으로 넘침을 8px로 묶는다 —
+ * 머리 위 여유가 10px라 스프링(25% 넘침)이면 머리끝이 잘린다. 동작 줄이기 설정이면 움직이지 않고 바로 나타난다.
  */
-function BeltPeek({ rank, up }: { rank: BeltRank; up: boolean }) {
+function BeltPeek({ rank }: { rank: BeltRank }) {
   const body = PEEK_BODY[rank];
   const eyes = PEEK_EYES[rank];
   const bandY = HEAD_SPACE - BAND_ABOVE_CARD;
@@ -213,19 +191,11 @@ function BeltPeek({ rank, up }: { rank: BeltRank; up: boolean }) {
       aria-hidden
       className="pointer-events-none absolute inset-x-0 overflow-hidden"
       style={{
-        top: -HEAD_SPACE,
+        top: 0,
         height: HEAD_SPACE + CARD_HEIGHT - CARD_RADIUS,
       }}
     >
-      <span
-        className={cn(
-          "absolute inset-0",
-          up
-            ? "motion-safe:animate-peek-rise"
-            : "motion-safe:transition-transform motion-safe:duration-200 motion-safe:ease-in",
-        )}
-        style={{ transform: `translateY(${up ? 0 : PEEK_HIDE}px)` }}
-      >
+      <span className="absolute inset-0 motion-safe:animate-peek-rise">
         {/* eslint-disable-next-line @next/next/no-img-element -- 크기를 고정한 작은 장식 그림 */}
         <img
           src={body.src}
@@ -453,26 +423,3 @@ const TINT_COLOR: Record<BeltRank, string> = {
   brown: "var(--my-profile-header-bg-brown)",
   black: "var(--red-500)",
 };
-
-/** 카드 아래 접수 소식 — 목록 줄의 접수 칩과 같은 말을 쓴다. 마감이 가까우면 빨간 알약. */
-function registrationNews(
-  registration: InterestBannerItem["registration"],
-  currentYear: number,
-): { text: string; urgent: boolean } | null {
-  if (!registration) return null;
-  switch (registration.kind) {
-    case "closed":
-      return { text: "접수 마감", urgent: false };
-    case "upcoming":
-      return {
-        text: `접수 예정 · ${deadlineLabel(registration, currentYear).text}`,
-        urgent: false,
-      };
-    case "open": {
-      const deadline = deadlineLabel(registration, currentYear);
-      return deadline.urgent
-        ? deadline
-        : { text: `접수 중 · ${deadline.text}`, urgent: false };
-    }
-  }
-}

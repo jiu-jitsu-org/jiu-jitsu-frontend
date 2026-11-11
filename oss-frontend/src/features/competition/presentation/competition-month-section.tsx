@@ -8,13 +8,11 @@ import type {
   Competition,
   CompetitionDivision,
 } from "@/features/competition/domain/competition";
+import { HotFlame } from "@/features/competition/presentation/competition-hot-flame";
 import { isPopularCompetition } from "@/features/competition/domain/competition-popularity";
 import type { RegistrationStatus } from "@/features/competition/domain/competition-registration";
 import { CompetitionDetailLink } from "@/features/competition/presentation/competition-detail-link";
-import {
-  FlameIcon,
-  RegistrationIcon,
-} from "@/features/competition/presentation/competition-icons";
+import { RegistrationIcon } from "@/features/competition/presentation/competition-icons";
 import {
   REACTION_POP_MOTION,
   REACTION_PRESS_MOTION,
@@ -79,23 +77,39 @@ export function MonthSection({
   month,
   currentYear,
   interest,
+  hideHeading = false,
 }: {
   month: CompetitionListMonth;
   currentYear: number;
-  /** 넘기면 대회마다 칩 줄 끝에 관심(하트)과 관심 수를 단다(#335). */
+  /** 넘기면 대회마다 이름 줄 끝에 관심(하트)과 관심 수를 단다(#335). */
   interest?: CompetitionInterest;
+  /**
+   * 달 머리를 눈에서만 감춘다(#396) — 맨 위 필터 줄 왼쪽에 지금 달이 늘 떠 있어, 첫 달 머리를 두면 같은 달이 두 번 보인다.
+   * 섹션 이름(aria-labelledby)은 남겨 스크린리더는 그대로 달을 읽는다.
+   */
+  hideHeading?: boolean;
 }) {
   const headingId = `competition-month-${month.year}-${month.month}`;
 
   return (
-    <section aria-labelledby={headingId} className="relative px-4">
-      {/* 세로 줄 — 섹션 위아래 끝까지 이어 달이 바뀌어도 끊기지 않는다. */}
+    <section
+      aria-labelledby={headingId}
+      className={cn("relative px-4", hideHeading && "pt-1")}
+    >
+      {/* 세로 줄 — 섹션 위아래 끝까지 이어 달이 바뀌어도 끊기지 않는다. 머리를 감춘 첫 달은 첫 날짜에서 시작해
+          날짜 위로 줄 끄트머리가 삐져나오지 않게 한다. */}
       <span
         aria-hidden
-        className="absolute top-0 bottom-0 left-[33.5px] w-px bg-surface-secondary"
+        className={cn(
+          "absolute bottom-0 left-[33.5px] w-px bg-surface-secondary",
+          hideHeading ? "top-1" : "top-0",
+        )}
       />
-      {/* 스크롤해 이 머리가 위로 지나가면 필터 줄의 흐림 판이 같은 자리에 같은 모양으로 이어 보여 준다(목록 화면). */}
-      <h2 id={headingId} className={MONTH_HEADING_CLASS}>
+      {/* 스크롤해 이 머리가 필터 줄 밑으로 지나가면 필터 줄 왼쪽의 달 이름이 이 달로 바뀐다(목록 화면). */}
+      <h2
+        id={headingId}
+        className={hideHeading ? "sr-only" : MONTH_HEADING_CLASS}
+      >
         <MonthHeadingContent label={monthLabel(month, currentYear)} />
       </h2>
       <ul className="relative flex flex-col gap-3 pb-3">
@@ -115,7 +129,9 @@ export function MonthSection({
 /**
  * 대회 한 줄 (#348). 달력 보기의 그날 대회 목록도 같은 줄을 쓴다.
  *
- * 왼쪽 날짜·요일, 오른쪽 회색 박스 — 대회 이름(굵게) → "장소 · 부문 · 대상"(회색) → 상태 칩 · 관심(하트).
+ * 왼쪽 날짜·요일, 오른쪽 회색 박스 — 대회 이름(굵게)·HOT · 관심(하트) → "장소 · 부문 · 대상"(회색) → 접수 칩.
+ * 하트는 이름 줄 오른쪽 위에 둔다(#396) — 칩 줄 끝에 두면 접수 칩과 한 줄에서 다퉈, 이름에 붙은 '내 대회' 표시로 읽히게 올린다.
+ * HOT은 칩 면 없이 이름 바로 뒤 글자로 붙인다 — 면을 두면 접수 칩과 색 면이 둘이 된다. 긴 이름이면 함께 줄을 넘는다.
  * 박스 어디를 눌러도 대회 상세가 열린다(#361) — 관심 하트만 따로 눌린다.
  * 남은 날(D-day)은 내가 관심 등록한 대회에만 접수 칩 안에 작게 붙인다(2026-11) — 모든 대회에 큰 숫자를 두면
  * 이름 자리를 빼앗는데, 챙겨 볼 날짜는 관심 대회뿐이다.
@@ -158,43 +174,42 @@ export function CompetitionRow({
         </span>
       </time>
       <div className="relative min-w-0 flex-1 rounded-20 bg-surface-field px-4 pt-3.5 pb-3 transition-colors duration-120 has-[[data-detail-link]:active]:bg-surface-container-pressed">
-        <h3 className="text-[16px] leading-[22px] font-bold break-keep text-text-primary [overflow-wrap:anywhere]">
-          <CompetitionDetailLink competitionId={competition.id}>
-            {competition.name}
-          </CompetitionDetailLink>
-        </h3>
+        <div className="flex items-start gap-2">
+          <h3 className="min-w-0 flex-1 text-[16px] leading-[22px] font-bold break-keep text-text-primary [overflow-wrap:anywhere]">
+            <CompetitionDetailLink competitionId={competition.id}>
+              {competition.name}
+            </CompetitionDetailLink>
+            {popular ? (
+              <span className="ml-1.5 inline-flex items-center gap-0.5 align-[-1px] text-[13px] leading-none font-bold whitespace-nowrap text-text-error">
+                <HotFlame size={18} />
+                {/* 보이는 글자는 짧게 HOT, 읽어 주는 이름은 뜻 그대로. */}
+                <span aria-hidden>HOT</span>
+                <span className="sr-only">관심 많은 대회</span>
+              </span>
+            ) : null}
+          </h3>
+          {interest ? (
+            <InterestButton
+              competitionName={competition.name}
+              interested={interested}
+              count={interest.countOf(competition.id)}
+              onToggle={() => interest.toggle(competition)}
+            />
+          ) : null}
+        </div>
         {meta ? (
           <p className="mt-0.5 text-[14px] leading-[20px] text-text-secondary">
             {meta}
           </p>
         ) : null}
-        {registration || popular || interest ? (
-          <div className="mt-2.5 flex items-center gap-1.5">
-            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-              {registration ? (
-                <RegistrationChip
-                  status={registration}
-                  // 남은 날은 관심 대회에만 — 챙겨 볼 날짜만 숫자로 띄운다.
-                  dday={interested}
-                  currentYear={currentYear}
-                />
-              ) : null}
-              {popular ? (
-                <StatusChip tone="hot" icon={<FlameIcon size={16} />}>
-                  {/* 보이는 글자는 짧게 HOT, 읽어 주는 이름은 뜻 그대로. */}
-                  <span aria-hidden>HOT</span>
-                  <span className="sr-only">관심 많은 대회</span>
-                </StatusChip>
-              ) : null}
-            </div>
-            {interest ? (
-              <InterestButton
-                competitionName={competition.name}
-                interested={interested}
-                count={interest.countOf(competition.id)}
-                onToggle={() => interest.toggle(competition)}
-              />
-            ) : null}
+        {registration ? (
+          <div className="mt-2.5 flex">
+            <RegistrationChip
+              status={registration}
+              // 남은 날은 관심 대회에만 — 챙겨 볼 날짜만 숫자로 띄운다.
+              dday={interested}
+              currentYear={currentYear}
+            />
           </div>
         ) : null}
       </div>
@@ -240,21 +255,38 @@ export function StatusChip({
   icon,
   children,
   size = "m",
+  onDark,
 }: {
   tone: "primary" | "neutral" | "disabled" | "hot";
   icon: ReactNode;
   children: ReactNode;
   /** s: 글 속 축소 카드(#379·#380) — 높이 22 · 글자 12 · 아이콘 14. */
   size?: "m" | "s";
+  /**
+   * 진한 면 위(곧 마감 배너, #396) — 밝은 면 칩은 진한 카드에서 혼자 튀어, 반투명 흰 면 + 흰 글자로 얹는다.
+   * urgent(얼리버드 마감)는 목록처럼 빨강으로 읽히게 옅은 빨강 면 + 빨강 글자다.
+   */
+  onDark?: "plain" | "urgent";
 }) {
   return (
     <span
       className={cn(
         "inline-flex h-[26px] items-center gap-1 rounded-full pr-2.5 pl-1.5 text-[13px] leading-none font-semibold whitespace-nowrap",
-        tone === "primary" && "bg-surface-primary-subtle text-primary",
-        tone === "neutral" && "bg-surface-container text-text-secondary-strong",
-        tone === "disabled" && "bg-surface-container text-text-disabled",
-        tone === "hot" && "bg-surface-container font-bold text-text-error",
+        !onDark &&
+          tone === "primary" &&
+          "bg-surface-primary-subtle text-primary",
+        !onDark &&
+          tone === "neutral" &&
+          "bg-surface-container text-text-secondary-strong",
+        !onDark &&
+          tone === "disabled" &&
+          "bg-surface-container text-text-disabled",
+        !onDark &&
+          tone === "hot" &&
+          "bg-surface-container font-bold text-text-error",
+        onDark === "plain" && "bg-[var(--opacity-white-20)] text-text-on-dark",
+        onDark === "urgent" &&
+          "bg-[color-mix(in_srgb,var(--error)_12%,var(--bw-white))] text-text-error",
         // 작은 크기는 위 기본 크기를 덮어쓴다(cn이 뒤의 값을 남긴다).
         size === "s" && "h-[22px] gap-0.5 pr-2 pl-1 text-[12px] leading-none",
       )}
@@ -268,23 +300,28 @@ export function StatusChip({
 /**
  * 접수 상태 칩 — 접수 중(파랑 면) · 접수 예정(흰 면) · 접수 마감(흰 면, 흐린 글자).
  * `dday`면 칩 끝에 남은 날을 붙인다(가는 점으로 띄움). 얼리버드 마감은 칩 글자를 "얼리버드 D-2"로 바꾼다.
+ * `surface="dark"`면 진한 카드(곧 마감 배너) 위 모양으로 그린다 — 같은 말·같은 아이콘이라 목록 줄과 같은 칩으로 읽힌다.
  */
 export function RegistrationChip({
   status,
   dday,
   currentYear,
   size = "m",
+  surface = "light",
 }: {
   status: RegistrationStatus;
   dday: boolean;
   currentYear: number;
   size?: "m" | "s";
+  surface?: "light" | "dark";
 }) {
   const iconSize = size === "m" ? 16 : 14;
   const deadline =
     dday && status.kind !== "closed"
       ? deadlineLabel(status, currentYear)
       : null;
+  const onDark =
+    surface === "dark" ? (deadline?.urgent ? "urgent" : "plain") : undefined;
   const suffix = deadline ? (
     <>
       <span aria-hidden className="opacity-40">
@@ -298,6 +335,7 @@ export function RegistrationChip({
       return (
         <StatusChip
           size={size}
+          onDark={onDark}
           tone="neutral"
           icon={<RegistrationIcon stage="before" size={iconSize} />}
         >
@@ -309,6 +347,7 @@ export function RegistrationChip({
       return (
         <StatusChip
           size={size}
+          onDark={onDark}
           tone="disabled"
           icon={<RegistrationIcon stage="closed" size={iconSize} />}
         >
@@ -319,6 +358,7 @@ export function RegistrationChip({
       return (
         <StatusChip
           size={size}
+          onDark={onDark}
           tone="primary"
           icon={<RegistrationIcon stage="open" size={iconSize} />}
         >

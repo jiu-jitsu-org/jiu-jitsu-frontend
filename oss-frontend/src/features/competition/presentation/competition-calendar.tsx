@@ -17,7 +17,7 @@ type YearMonth = { year: number; month: number };
 /**
  * 대회 달력 보기 (#339) — 달 하나를 칸으로 펼치고, 날짜를 고르면 그날 대회를 목록과 같은 줄로 아래에 보여 준다.
  *
- * 대회가 있는 날은 숫자 아래 점 하나로 표시한다. 대회의 대부분이 토·일에 몰려 주말마다 2~4개가 겹치는데,
+ * 대회가 있는 날은 숫자 아래 점 하나로 표시한다. 내 관심 대회가 있는 날은 점을 관심 하트와 같은 빨강으로 칠한다(#396). 대회의 대부분이 토·일에 몰려 주말마다 2~4개가 겹치는데,
  * 칸마다 숫자를 적으면 주말 줄이 숫자로 빽빽해진다. 몇 개인지는 날짜를 누르면 바로 아래에 보인다.
  * 처음에는 오늘 이후 가장 가까운 대회 날을 골라 둔다 — 오늘을 고르면 평일엔 거의 늘 빈 목록부터 보인다.
  *
@@ -135,6 +135,13 @@ export function CompetitionCalendar({
                 date={date}
                 weekday={index % 7}
                 count={byDate.get(date)?.length ?? 0}
+                interested={
+                  byDate
+                    .get(date)
+                    ?.some(({ competition }) =>
+                      interest.isInterested(competition.id),
+                    ) ?? false
+                }
                 past={date < today}
                 isToday={date === today}
                 selected={date === selected}
@@ -181,12 +188,14 @@ export function CompetitionCalendar({
  * 날짜 칸 — 숫자 원 + 아래 점.
  *
  * 고른 날은 파랑 원 채움, 오늘은 옅은 파랑 원(고르지 않았을 때). 지난 날은 흐리게 막는다.
- * 점은 원 밖 아래에 둬 고른 날에도 같은 자리·같은 색으로 보인다.
+ * 점은 원 밖 아래에 둬 고른 날에도 같은 자리·같은 색으로 보인다. 관심 대회가 있는 날은 빨강 점 — 하트 필터를 켜지 않아도
+ * 달력에서 내 대회 날이 바로 보인다. 지난 날은 관심이어도 흐린 점이다.
  */
 function DayCell({
   date,
   weekday,
   count,
+  interested,
   past,
   isToday,
   selected,
@@ -195,6 +204,7 @@ function DayCell({
   date: string;
   weekday: number;
   count: number;
+  interested: boolean;
   past: boolean;
   isToday: boolean;
   selected: boolean;
@@ -207,7 +217,7 @@ function DayCell({
       onClick={onSelect}
       disabled={past}
       aria-pressed={selected}
-      aria-label={`${Number(date.slice(5, 7))}월 ${day}일${isToday ? " 오늘" : ""}${count > 0 ? `, 대회 ${count}개` : ""}`}
+      aria-label={`${Number(date.slice(5, 7))}월 ${day}일${isToday ? " 오늘" : ""}${count > 0 ? `, 대회 ${count}개` : ""}${interested ? ", 관심 대회 있음" : ""}`}
       className="flex h-11 flex-col items-center"
     >
       <span
@@ -230,7 +240,9 @@ function DayCell({
           count > 0
             ? past
               ? "bg-icon-disabled"
-              : "bg-primary"
+              : interested
+                ? "bg-reaction-bar-active-like-icon"
+                : "bg-primary"
             : "bg-transparent",
         )}
       />

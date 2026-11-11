@@ -61,17 +61,17 @@ export function RegistrationIcon({
  * 앱 아이콘의 통통한 'OSS' 글자처럼 끝을 다 둥글린 빨강 몸통 안에 노랑 속불을 둔다.
  * 색은 아이콘이 직접 정한다(바깥 error 빨강 · 속불 icon/flame-core 노랑) — 어디에 놓여도 같은 불꽃이다.
  */
+/** 불꽃 바깥(빨강)·속불(노랑) 모양 — 가만히 있는 FlameIcon과 움직이는 HotFlame이 같은 그림을 쓴다. */
+export const FLAME_PATH =
+  "M12 22a7.5 7.5 0 0 1-7.5-7.5c0-2.4 1-4.3 2.3-5.6a.9.9 0 0 1 1.5.4c.3 1.1.8 1.9 1.6 2.4-.1-3.4.6-6.1 2-8.5a.9.9 0 0 1 1.6 0c1.2 2.1 2.7 3.6 4 5 1.5 1.7 2.5 3.8 2.5 6.3A7.5 7.5 0 0 1 12 22Z";
+export const FLAME_CORE_PATH =
+  "M12.1 20.6a3.7 3.7 0 0 1-3.7-3.7c0-1.85 1.25-3.1 2.5-4.45.5-.6.9-1.25 1.15-2 1.25 1.5 3.75 3.6 3.75 6.45a3.7 3.7 0 0 1-3.7 3.7Z";
+
 export function FlameIcon(props: IconProps) {
   return (
     <IconBase {...props}>
-      <path
-        className="fill-error"
-        d="M12 22a7.5 7.5 0 0 1-7.5-7.5c0-2.4 1-4.3 2.3-5.6a.9.9 0 0 1 1.5.4c.3 1.1.8 1.9 1.6 2.4-.1-3.4.6-6.1 2-8.5a.9.9 0 0 1 1.6 0c1.2 2.1 2.7 3.6 4 5 1.5 1.7 2.5 3.8 2.5 6.3A7.5 7.5 0 0 1 12 22Z"
-      />
-      <path
-        className="fill-icon-flame-core"
-        d="M12.1 20.6a3.7 3.7 0 0 1-3.7-3.7c0-1.85 1.25-3.1 2.5-4.45.5-.6.9-1.25 1.15-2 1.25 1.5 3.75 3.6 3.75 6.45a3.7 3.7 0 0 1-3.7 3.7Z"
-      />
+      <path className="fill-error" d={FLAME_PATH} />
+      <path className="fill-icon-flame-core" d={FLAME_CORE_PATH} />
     </IconBase>
   );
 }

@@ -13,17 +13,17 @@ import {
   matchesCompetitionFilter,
   type CompetitionFilter,
 } from "@/features/competition/domain/competition-filter";
-import { upcomingInterested } from "@/features/competition/domain/competition-interest-banner";
+import { deadlineSoonInterested } from "@/features/competition/domain/competition-interest-banner";
 import type { CompetitionRegion } from "@/features/competition/domain/competition-region";
 import { CompetitionCalendar } from "@/features/competition/presentation/competition-calendar";
 import {
   CompetitionInterestBanner,
   InterestBannerTint,
   useCompetitionHeaderTint,
+  useDeadlineBannerItem,
 } from "@/features/competition/presentation/competition-interest-banner";
 import { RegistrationIcon } from "@/features/competition/presentation/competition-icons";
 import {
-  MonthHeadingContent,
   MonthSection,
   monthLabel,
 } from "@/features/competition/presentation/competition-month-section";
@@ -35,6 +35,7 @@ import {
 } from "@/features/competition/presentation/competition-detail-link";
 import { useCompetitionInterest } from "@/features/competition/presentation/use-competition-interest";
 import { useMyBeltRank } from "@/features/competition/presentation/use-my-belt-rank";
+import { cn } from "@/shared/lib/cn";
 import {
   CalendarIcon,
   ChevronDownIcon,
@@ -47,11 +48,13 @@ import { EmptyState } from "@/shared/ui/empty-state";
 import { IconButton } from "@/shared/ui/icon-button";
 
 /**
- * 대회 목록 + 위 필터 줄 (#334) — 관심(하트) · 지역 · 접수 중.
+ * 대회 목록 + 위 필터 줄 (#334·#396) — 지금 달 · 지역 · 접수 중 (+ 관심 하트 · 목록/달력).
  *
  * 목록은 서버가 한 번에 다 보내고 거르기는 여기서 한다 — 대회 수가 한 해 수백 건이라 칩을 누를 때마다
  * 서버를 다시 부르지 않는다. 필터 줄은 목록을 내려도 위에 붙어 있어 언제든 바꿀 수 있다.
  * 걸러서 대회가 하나도 없는 달은 달 이름까지 뺀다.
+ * 관심 하트와 목록 ↔ 달력은 화면 전체에 걸리는 동작이라 앱 '대회' 머리에 둔다(#396). 앱이 그 버튼을 모르면
+ * (구버전 앱·브라우저) 필터 줄 오른쪽 끝에 같은 버튼을 그린다.
  *
  * 관심은 로그인한 사용자만 갖는다. 비로그인이 누르면 다른 화면의 좋아요와 같은 로그인 안내를 띄우고
  * (외부 브라우저면 앱 안내), 필터는 켜지 않는다 — 켜 봐야 늘 빈 결과다.
@@ -86,6 +89,7 @@ export function CompetitionListView({
   // 이름 검색(#345)은 돋보기를 눌러야 열린다. 닫으면 검색어도 지운다 — 안 보이는 검색어로 걸러지지 않게.
   const [searchOpen, setSearchOpen] = useState(false);
   // 필터 줄(칩 + 열린 검색칸)과 목록 — 스크롤하며 어느 달 머리가 필터 줄 밑으로 지나갔는지 잰다.
+  // 지나간 마지막 달이 필터 줄 왼쪽의 '지금 달'이다. 아무 달도 안 지났으면(맨 위) 첫 달.
   const filterBarRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const [passedMonthIndex, setPassedMonthIndex] = useState<number | null>(null);
@@ -118,8 +122,8 @@ export function CompetitionListView({
     // 관심은 이 화면에서 누른 결과까지 반영한 값으로 거른다 — 관심만 보는 중에 해제하면 바로 빠진다.
   }, [activeFilter, interest.interestedIds, months]);
 
-  // 달 머리가 필터 줄 밑으로 지나가면 필터 줄 흐림 판 아래에 그 달 머리를 같은 자리·같은 모양으로 이어 단다.
-  // 따로 붙는 머리를 두면 흐림 판이 둘로 나뉘어 이음매가 보여, 한 판에 둘을 함께 얹는다.
+  // 달 머리가 필터 줄 밑으로 지나가면 필터 줄 왼쪽의 달 이름을 그 달로 바꾼다(#396).
+  // 전에는 지나간 달 머리를 필터 줄 아래에 한 줄 더 이어 달았는데, 위에 붙는 줄이 둘이 되어 한 줄로 합쳤다.
   useEffect(() => {
     const list = listRef.current;
     if (!list) return;
@@ -129,16 +133,13 @@ export function CompetitionListView({
       // 검색칸을 여닫으며 목록이 미끄러지는 동안은 옮겨 둔 자리라 재지 않는다 — 끝나면 다시 잰다.
       if (belowBarRef.current?.getAnimations().length) return;
       const barBottom = filterBarRef.current?.offsetHeight ?? 0;
-      // 목록 속 달 글자가 이어 단 머리의 글자 자리(필터 줄 아래 4)에 닿는 순간 바꿔, 겹친 채로 넘어가게 한다.
+      // 목록 속 달 글자가 필터 줄 아래 끝에 닿는 순간 바꾼다 — 그 달 머리가 줄 밑으로 들어가며 이름을 넘겨준다.
       const labels = Array.from(
         list.querySelectorAll("section > h2 [data-month-label]"),
       );
       let passed: number | null = null;
       for (const [index, label] of labels.entries()) {
-        if (
-          label.getBoundingClientRect().top <=
-          barBottom + PASSED_MONTH_TOP_GAP + 0.5
-        )
+        if (label.getBoundingClientRect().top <= barBottom + 0.5)
           passed = index;
       }
       setPassedMonthIndex(passed);
@@ -155,15 +156,16 @@ export function CompetitionListView({
       window.removeEventListener("resize", schedule);
     };
   }, [mode, visibleMonths, searchOpen]);
-  const passedMonth =
-    mode === "list" && passedMonthIndex !== null
-      ? visibleMonths[passedMonthIndex]
+  // 달력은 제 머리에 달을 크게 보여 주므로 필터 줄의 달 이름은 목록에서만 둔다.
+  const currentMonth =
+    mode === "list"
+      ? // 필터로 달이 줄면 잰 값이 다시 재기 전까지 범위를 벗어날 수 있다 — 그동안은 첫 달을 보인다.
+        (visibleMonths[passedMonthIndex ?? 0] ?? visibleMonths[0])
       : undefined;
 
-  // 검색칸이 열리고 닫히면 필터 줄 높이가 바뀌어 그 아래(이어 단 달 머리·배너·목록)가 한 번에 밀린다.
+  // 검색칸이 열리고 닫히면 필터 줄 높이가 바뀌어 그 아래(배너·목록)가 한 번에 밀린다.
   // 밀린 만큼 거꾸로 옮겨 놓고 제자리로 미끄러지게 해, 검색칸이 나타나는 0.5초 동안 함께 움직이게 한다.
   // 높이는 움직이지 않고 위치(transform)만 움직이며, 끝나면 아무것도 남기지 않는다.
-  const passedMonthRef = useRef<HTMLDivElement>(null);
   const belowBarRef = useRef<HTMLDivElement>(null);
   const lastBarHeight = useRef<number | null>(null);
   useLayoutEffect(() => {
@@ -176,8 +178,8 @@ export function CompetitionListView({
       getComputedStyle(document.documentElement)
         .getPropertyValue("--ease-smooth-out")
         .trim() || "cubic-bezier(0.2, 0.8, 0.2, 1)";
-    for (const element of [passedMonthRef.current, belowBarRef.current]) {
-      if (!element) continue;
+    const element = belowBarRef.current;
+    if (element) {
       // 미끄러지는 도중에 다시 여닫으면 지금 보이는 자리에서 이어 간다(처음 자리로 튀지 않게).
       const current = new DOMMatrixReadOnly(getComputedStyle(element).transform)
         .m42;
@@ -194,12 +196,12 @@ export function CompetitionListView({
     }
   }, [searchOpen]);
 
-  // 관심 대회 배너 — 필터와 무관하게 내 관심 대회 전체에서 고른다. 비로그인이면 관심이 없어 비어 있다.
-  // 접수 마감이 가까운 관심 대회(#344)도 이 배너의 접수 소식 줄로 알린다.
-  const interestedUpcoming = useMemo(
+  // 곧 마감 배너(#396) — 필터와 무관하게 내 관심 대회 전체에서 접수 마감이 일주일 안인 대회를 고른다.
+  // 비로그인이면 관심이 없어 비어 있다. 이 기기에서 ✕로 닫은 대회는 건너뛰고 가장 급한 한 장만 띄운다.
+  const deadlineSoon = useMemo(
     () =>
       signedIn
-        ? upcomingInterested(
+        ? deadlineSoonInterested(
             months.flatMap((month) => month.items),
             interest.interestedIds,
             today,
@@ -207,10 +209,11 @@ export function CompetitionListView({
         : [],
     [interest.interestedIds, months, signedIn, today],
   );
-  // 앱의 '대회' 머리를 맨 위 띠 색 그라데이션과 같은 색으로 — 배너가 없으면 앱 기본색.
-  useCompetitionHeaderTint(
-    interestedUpcoming.length > 0 ? (beltRank ?? "white") : null,
-  );
+  const deadlineBannerItem = useDeadlineBannerItem(deadlineSoon);
+  // 달력에서는 배너를 걷는다 — 달력 칸이 첫 화면에 다 들어와야 날짜를 고를 수 있다.
+  const showBanner = mode === "list" && deadlineBannerItem !== null;
+  // 앱의 '대회' 머리를 맨 위 띠 색 그라데이션과 같은 색으로 — 배너가 보일 때만, 아니면 앱 기본색.
+  useCompetitionHeaderTint(showBanner ? (beltRank ?? "white") : null);
 
   // 배너에서 누른 대회는 상세로 바로 연다(#361) — 목록 줄을 누른 것과 같다.
   const openDetail = useOpenCompetitionDetail();
@@ -219,6 +222,12 @@ export function CompetitionListView({
     setFilter((current) => ({ ...current, [key]: !current[key] }));
 
   const toggleInterested = () => toggle("interestedOnly");
+  // 비로그인이 누르면 필터는 켜지 않고 로그인 안내만 — 켜 봐야 늘 빈 결과다.
+  const pressInterested = signedIn
+    ? toggleInterested
+    : guard(toggleInterested, "관심 대회는 OSS 앱에서 로그인 후 볼 수 있어요.");
+  const toggleMode = () =>
+    setMode((current) => (current === "list" ? "calendar" : "list"));
 
   const setNameQuery = (nameQuery: string) =>
     setFilter((current) => ({ ...current, nameQuery }));
@@ -237,51 +246,35 @@ export function CompetitionListView({
 
   return (
     <>
-      {interestedUpcoming.length > 0 ? (
-        <InterestBannerTint rank={beltRank ?? "white"} />
-      ) : null}
+      {showBanner ? <InterestBannerTint rank={beltRank ?? "white"} /> : null}
       {/* 필터 줄: 좌우 16 · 칩 간격 8, 넘치면 가로 스크롤(스크롤바 숨김) — 글쓰기 카테고리 칩 줄과 같은 규격.
           목록 바탕색을 반투명(60%)으로 깔고 뒤를 흐려, 아래로 지나가는 카드가 비치되 글자는 읽히게 한다.
-          흐림 판은 아래 끝을 서서히 지워 선 없이 목록으로 녹아들게 한다. 달 머리도 같은 판 위에 얹어 이음매가 없다.
-          오른쪽 끝에 목록 ↔ 달력 전환(#339)을 고정해 둔다 — 칩이 늘어 가로로 밀어도 늘 같은 자리에 있게. */}
-      <div
-        className="sticky top-0 z-10 [overflow-anchor:none]"
-        // 이어 단 달 머리는 목록 속 머리 위에 겹쳐 놓일 뿐이라 자리를 차지하지 않게 그 높이만큼 당긴다.
-        style={passedMonth ? { marginBottom: -PASSED_MONTH_HEIGHT } : undefined}
-      >
+          흐림 판은 아래 끝을 서서히 지워 선 없이 목록으로 녹아들게 한다.
+          왼쪽 끝에 지금 달(#396), 앱이 머리 버튼을 모르면 오른쪽 끝에 관심 하트 · 목록 ↔ 달력(#339)을 고정해 둔다 —
+          칩이 늘어 가로로 밀어도 늘 같은 자리에 있게. */}
+      <div className="sticky top-0 z-10 [overflow-anchor:none]">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-x-0 top-0 -bottom-4 bg-surface-container/60 backdrop-blur-lg [mask-image:linear-gradient(to_bottom,black_calc(100%-28px),transparent)]"
         />
         <div id={FILTER_BAR_ID} ref={filterBarRef} className="relative">
           <div className="flex items-center">
-            <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto py-3 pr-2 pl-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {/* 관심은 글자 대신 하트 — 대회 줄의 관심 버튼과 같은 하트·같은 빨강이라 무엇을 거르는지 바로 읽힌다. */}
-              <Chip
-                tone="primary"
-                selected={activeFilter.interestedOnly}
-                aria-pressed={activeFilter.interestedOnly}
-                aria-label="관심 대회만 보기"
-                onClick={
-                  signedIn
-                    ? toggleInterested
-                    : guard(
-                        toggleInterested,
-                        "관심 대회는 OSS 앱에서 로그인 후 볼 수 있어요.",
-                      )
-                }
-                className="px-2.5"
+            {currentMonth ? (
+              // 목록 속 달 머리(h2)가 뜻을 맡으니 여기는 보이기만 한다. 달 머리 글자와 같은 모양.
+              <span
+                aria-hidden
+                className="flex-none pl-4 text-[13px] leading-[18px] font-semibold whitespace-nowrap text-text-secondary tabular-nums"
               >
-                <HeartIcon
-                  size={18}
-                  filled={activeFilter.interestedOnly}
-                  className={
-                    activeFilter.interestedOnly
-                      ? "text-reaction-bar-active-like-icon"
-                      : undefined
-                  }
-                />
-              </Chip>
+                {monthLabel(currentMonth, currentYear)}
+              </span>
+            ) : null}
+            <div
+              className={cn(
+                "flex min-w-0 flex-1 gap-2 overflow-x-auto py-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+                currentMonth ? "pl-3" : "pl-4",
+                "pr-2",
+              )}
+            >
               <Chip
                 tone="primary"
                 selected={filter.regions.length > 0}
@@ -318,17 +311,35 @@ export function CompetitionListView({
                 aria-label="대회 이름 검색"
                 aria-expanded={searchOpen}
                 aria-controls={searchOpen ? SEARCH_INPUT_ID : undefined}
-                onClick={() => (searchOpen ? closeSearch() : setSearchOpen(true))}
+                onClick={() =>
+                  searchOpen ? closeSearch() : setSearchOpen(true)
+                }
                 className={searchOpen ? "text-primary" : undefined}
               >
                 <SearchIcon size={22} />
               </IconButton>
             ) : null}
+            {/* 하트(관심만 보기)와 목록 ↔ 달력은 칩처럼 바로 아래 목록을 바꾸는 도구라 같은 줄 오른쪽 끝에 둔다.
+                앱 머리줄의 알림함은 다른 화면으로 가는 입구라 그쪽에 따로 남긴다. */}
+            {/* 관심은 대회 줄의 관심 버튼과 같은 하트·같은 빨강이라 무엇을 거르는지 바로 읽힌다. */}
+            <IconButton
+              aria-label="관심 대회만 보기"
+              aria-pressed={activeFilter.interestedOnly}
+              onClick={pressInterested}
+            >
+              <HeartIcon
+                size={22}
+                filled={activeFilter.interestedOnly}
+                className={
+                  activeFilter.interestedOnly
+                    ? "text-reaction-bar-active-like-icon"
+                    : undefined
+                }
+              />
+            </IconButton>
             <IconButton
               aria-label={mode === "list" ? "달력으로 보기" : "목록으로 보기"}
-              onClick={() => {
-                setMode(mode === "list" ? "calendar" : "list");
-              }}
+              onClick={toggleMode}
               className="mr-2"
             >
               {mode === "list" ? (
@@ -347,26 +358,13 @@ export function CompetitionListView({
             />
           ) : null}
         </div>
-        {passedMonth ? (
-          // 목록 속 진짜 머리(h2)가 뜻을 맡으니 여기는 보이기만 한다.
-          <div
-            ref={passedMonthRef}
-            aria-hidden
-            className="relative flex items-center gap-2 px-4 pt-1 pb-3"
-          >
-            <MonthHeadingContent
-              label={monthLabel(passedMonth, currentYear)}
-              onLine={false}
-            />
-          </div>
-        ) : null}
       </div>
 
       {/* 브라우저가 스크롤을 몰래 고쳐 목록을 제자리에 붙잡으면(크롬) 위 미끄러짐과 어긋나, 여기서는 끈다 —
           사파리처럼 늘 검색칸만큼 밀리고 그 밀림을 미끄러지게 보여 준다. */}
       <div ref={belowBarRef} className="[overflow-anchor:none]">
         <CompetitionInterestBanner
-          items={interestedUpcoming}
+          item={showBanner ? deadlineBannerItem : null}
           currentYear={currentYear}
           beltRank={beltRank}
           onSelect={({ competition }) => openDetail(competition.id)}
@@ -402,12 +400,14 @@ export function CompetitionListView({
           />
         ) : (
           <div ref={listRef} className="pb-6">
-            {visibleMonths.map((month) => (
+            {visibleMonths.map((month, index) => (
               <MonthSection
                 key={`${month.year}-${month.month}`}
                 month={month}
                 currentYear={currentYear}
                 interest={interest}
+                // 첫 달은 필터 줄 왼쪽에 늘 떠 있어 목록 속 머리는 감춘다 — 같은 달이 두 번 보이지 않게.
+                hideHeading={index === 0}
               />
             ))}
           </div>
@@ -430,9 +430,6 @@ export function CompetitionListView({
 }
 
 const FILTER_BAR_ID = "competition-filter-bar";
-/** 필터 줄에 이어 다는 달 머리 — 칩 줄 아래 여백 12에 위 4를 더해 칩과 16 간격. 높이는 위 4 + 글자 18 + 아래 12. */
-const PASSED_MONTH_TOP_GAP = 4;
-const PASSED_MONTH_HEIGHT = 34;
 // 이름 검색(#345)은 당분간 숨긴다(#387) — 검색 로직은 그대로 두고 돋보기·검색칸만 감춘다. 다시 켤 때 true.
 const COMPETITION_SEARCH_ENABLED = false;
 const SEARCH_INPUT_ID = "competition-name-search";

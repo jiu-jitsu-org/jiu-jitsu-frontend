@@ -86,6 +86,7 @@ export const semanticTokens: TokenEntry[] = [
   {"name":"icon-disabled-on-dark","alias":"opacity-white-40","hex":"#ffffff66"},
   {"name":"icon-on-inactive","alias":"bw-white","hex":"#fafafa"},
   {"name":"icon-on-inactive-2","alias":"bw-white","hex":"#fafafa"},
+  {"name":"icon-flame-mid","alias":"orange-500","hex":"#ff7a00"},
   {"name":"icon-flame-core","alias":"yellow-400","hex":"#ffc400"},
   {"name":"transparent","alias":null,"hex":"#ffffff00"},
   {"name":"border-default","alias":"cool-gray-200","hex":"#b7b9bd"},
