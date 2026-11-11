@@ -315,7 +315,10 @@ export function CompetitionListView({
                   setRegionSheetKey((key) => key + 1);
                   setRegionSheetOpen(true);
                 }}
-                className="gap-0.5 pr-2"
+                className={cn(
+                  "gap-0.5 pr-2",
+                  filter.regions.length > 0 ? null : CHIP_ON_TINT,
+                )}
               >
                 {regionLabel(filter.regions)}
                 <ChevronDownIcon size={16} />
@@ -325,7 +328,10 @@ export function CompetitionListView({
                 selected={filter.openOnly}
                 aria-pressed={filter.openOnly}
                 onClick={() => toggle("openOnly")}
-                className="gap-1 pl-2.5"
+                className={cn(
+                  "gap-1 pl-2.5",
+                  filter.openOnly ? null : CHIP_ON_TINT,
+                )}
               >
                 <RegistrationIcon stage="open" size={16} />
                 접수 중
@@ -470,6 +476,13 @@ const FILTER_BAR_ID = "competition-filter-bar";
 const FILTER_BAR_FADE =
   "linear-gradient(to bottom, black calc(100% - 16px), rgb(0 0 0 / 0.92) calc(100% - 13px), rgb(0 0 0 / 0.75) calc(100% - 10px), rgb(0 0 0 / 0.5) calc(100% - 7px), rgb(0 0 0 / 0.27) calc(100% - 5px), rgb(0 0 0 / 0.1) calc(100% - 2px), transparent)";
 
+/**
+ * 맨 위에 띠 색이 깔려 있는 동안(html[data-competition-tint]) 꺼진 필터 칩 — 파란 바탕 위 연회색 테두리 대신
+ * 반투명 흰 면(55%)으로 띄워 뒤의 띠 색이 비치게 한다. 켜진 칩은 제 파랑을 지키고, 띠 색이 다 옅어지면
+ * 원래 테두리 칩으로 돌아간다 — 흰 바탕 위에서는 반투명 흰 면이 보이지 않아 선이 있어야 칩 모양이 읽힌다.
+ */
+const CHIP_ON_TINT =
+  "[:root[data-competition-tint]_&]:border-transparent [:root[data-competition-tint]_&]:bg-[color-mix(in_srgb,var(--surface-container)_55%,transparent)]";
 // 이름 검색(#345)은 당분간 숨긴다(#387) — 검색 로직은 그대로 두고 돋보기·검색칸만 감춘다. 다시 켤 때 true.
 const COMPETITION_SEARCH_ENABLED = false;
 const SEARCH_INPUT_ID = "competition-name-search";

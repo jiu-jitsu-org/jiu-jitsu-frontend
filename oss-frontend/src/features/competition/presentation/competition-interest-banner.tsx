@@ -442,6 +442,14 @@ const TINT_MID = 6;
 
 /** 필터 줄 바탕이 쓰는 '지금 맨 윗자리 색' CSS 변수 — 없으면 목록 바탕색으로 돌아간다. */
 const TOP_TINT_VAR = "--competition-top-tint";
+/**
+ * 맨 위 띠 색이 충분히 진한 동안 html에 붙는 표시(data-competition-tint) — 필터 칩이 이걸 보고
+ * 회색 테두리 대신 반투명 흰 면으로 바뀐다(파란 바탕 위 연회색 선을 피해).
+ * 띠 색이 GLASS_CHIP_MIN(%) 아래로 옅어지면 떼어 원래 테두리 칩으로 돌린다 — 거의 흰 바탕 위에서는
+ * 반투명 흰 면이 묻혀 칩 모양이 사라진다.
+ */
+const TINT_FLAG = "competitionTint";
+const GLASS_CHIP_MIN = 4;
 
 /**
  * 앱 머리(‘대회’ 제목 줄·상태바)를 웹 맨 윗색과 같게 칠한다 — 앱 머리와 웹 사이 이음매를 없앤다.
@@ -462,7 +470,8 @@ export function useCompetitionHeaderTint(rank: BeltRank | null) {
     const probe = document.createElement("span");
     probe.style.display = "none";
     document.body.appendChild(probe);
-    const root = document.documentElement.style;
+    const html = document.documentElement;
+    const root = html.style;
     const mixOf = (percent: number) =>
       `color-mix(in srgb, ${color} ${percent}%, var(--surface-container))`;
     const hexOf = (percent: number) => {
@@ -479,12 +488,15 @@ export function useCompetitionHeaderTint(rank: BeltRank | null) {
       sent = percent;
       if (percent === 0) {
         root.removeProperty(TOP_TINT_VAR);
+        delete html.dataset[TINT_FLAG];
         setNativeCompetitionHeaderTint(null);
         return;
       }
       const hex = hexOf(percent);
       if (!hex) return;
       root.setProperty(TOP_TINT_VAR, mixOf(percent));
+      if (percent >= GLASS_CHIP_MIN) html.dataset[TINT_FLAG] = "";
+      else delete html.dataset[TINT_FLAG];
       setNativeCompetitionHeaderTint(hex);
     };
     const onScroll = () => {
@@ -497,6 +509,7 @@ export function useCompetitionHeaderTint(rank: BeltRank | null) {
       cancelAnimationFrame(frame);
       probe.remove();
       root.removeProperty(TOP_TINT_VAR);
+      delete html.dataset[TINT_FLAG];
       setNativeCompetitionHeaderTint(null);
     };
   }, [color]);
