@@ -31,7 +31,8 @@ export type ResultCardGroup = {
  * 카드에 올릴 묶음 — 내가 관심 등록한 대회 중 카드 기간 안에 끝난 대회를 한 날·같은 주말로 묶어 최근 순으로.
  *
  * 같은 주말에 관심 대회가 여럿 끝나면 한 장으로 묶는다 — 카드가 여러 장 쌓이면 피곤하고 헷갈린다.
- * 화면은 이 중 닫지 않은 첫 묶음 한 장만 띄운다. 날짜 값이 잘못된 대회는 빼낸다.
+ * 화면은 이 중 닫지 않은 첫 묶음 한 장만 띄운다. 날짜 값이 잘못된 대회(모양이 틀리거나 13월처럼 없는 날)는 빼낸다
+ * — 대회 하나의 틀린 값 때문에 대회 탭 전체가 실패 화면이 되지 않게.
  */
 export function recentlyEndedInterested(
   competitions: readonly Competition[],
@@ -45,7 +46,7 @@ export function recentlyEndedInterested(
         interestedIds.has(competition.id) &&
         isDateKey(competition.date) &&
         competition.date < today &&
-        today <= lastCardDay(competition.date),
+        isOnCardDay(competition.date, today),
     )
     .sort(
       (a, b) =>
@@ -74,9 +75,24 @@ export function recentlyEndedInterested(
   return [...groups.values()].sort((a, b) => a.daysAgo - b.daysAgo);
 }
 
-/** 카드를 보여 주는 마지막 날 — 대회일 + 5일, 토요일 대회면 + 6일(그 주 금요일). 일요일 대회는 + 5일이 금요일이다. */
-function lastCardDay(date: string): string {
-  return addDays(date, RESULT_CARD_DAYS + (weekdayOf(date) === 6 ? 1 : 0));
+/**
+ * 오늘이 카드를 보여 주는 마지막 날 이전인지 — 마지막 날은 대회일 + 5일, 토요일 대회면 + 6일(그 주 금요일).
+ * 일요일 대회는 + 5일이 금요일이다. 달력에 없는 날짜면 false.
+ */
+function isOnCardDay(date: string, today: string): boolean {
+  if (!isRealDate(date)) return false;
+  return (
+    today <= addDays(date, RESULT_CARD_DAYS + (weekdayOf(date) === 6 ? 1 : 0))
+  );
+}
+
+/** 모양만 맞고 달력에 없는 날(2026-13-01 · 2026-02-31)을 걸러 낸다 — 그대로 계산하면 날짜를 지어내거나 예외가 난다. */
+function isRealDate(date: string): boolean {
+  const parsed = new Date(`${date}T00:00:00Z`);
+  return (
+    !Number.isNaN(parsed.getTime()) &&
+    parsed.toISOString().slice(0, 10) === date
+  );
 }
 
 /** 토·일이면 그 주말의 토요일 날짜, 평일이면 null. */

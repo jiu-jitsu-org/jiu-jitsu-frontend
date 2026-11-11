@@ -19,11 +19,12 @@ import { CloseIcon } from "@/shared/ui/icons";
 
 /**
  * 대회 탭 맨 위 결과 남기기 카드에 띄울 한 장 (#403) — 최근 순 묶음 중 이 기기에서 닫지 않은 대회가 남은 첫 묶음.
- * 묶음 안에서 닫은 대회는 뺀다(상세에서 하나만 닫았을 수 있다). 없으면 null.
+ * 묶음 안에서 닫은 대회·지금은 관심이 아닌 대회는 뺀다(상세에서 하나만 닫거나 관심을 껐을 수 있다). 없으면 null.
  * 앱 밖 브라우저에서는 띄우지 않는다 — '내 기록에 남기기'가 앱 화면을 여는 일이라서다(상세 배너와 같다).
  */
 export function useResultCardGroup(
   groups: readonly ResultCardGroup[],
+  interestedIds: ReadonlySet<string>,
 ): ResultCardGroup | null {
   const externalBrowser = useIsExternalBrowser();
   const openIds = useOpenResultPromptIds(
@@ -32,7 +33,10 @@ export function useResultCardGroup(
   if (externalBrowser || !openIds) return null;
   const open = new Set(openIds.split(","));
   for (const group of groups) {
-    const competitions = group.competitions.filter(({ id }) => open.has(id));
+    // 서버가 그린 뒤 이 화면이나 상세에서 관심을 끈 대회는 묻지 않는다 — 지금 관심 목록과 한 번 더 맞춘다.
+    const competitions = group.competitions.filter(
+      ({ id }) => open.has(id) && interestedIds.has(id),
+    );
     const latest = competitions.at(-1);
     if (!latest) continue;
     // 묶음의 '며칠 전'은 가장 늦게 끝난 대회 기준이다. 그 대회를 닫아 빠졌으면 남은 마지막 대회로 다시 센다

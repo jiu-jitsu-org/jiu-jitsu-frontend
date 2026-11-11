@@ -223,7 +223,10 @@ export function CompetitionListView({
   const showBanner = mode === "list" && deadlineBannerItem !== null;
   // 결과 남기기 카드(#403)도 같은 자리에 한 번에 한 장 — 곧 마감이 있으면 마감을 먼저 띄운다.
   // 마감을 놓치면 참가비가 오르지만, 결과는 끝난 뒤 며칠 안에 다시 물을 수 있다.
-  const resultGroup = useResultCardGroup(endedInterested);
+  const resultGroup = useResultCardGroup(
+    endedInterested,
+    interest.interestedIds,
+  );
   const showResultCard =
     mode === "list" && deadlineBannerItem === null && resultGroup !== null;
   // 후보를 모두 닫았으면 첫 카드 뒤에 캐릭터를 남겨 다시 열 수 있게 한다(목록이 있을 때만).
