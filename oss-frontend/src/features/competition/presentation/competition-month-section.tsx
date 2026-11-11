@@ -180,8 +180,9 @@ export function CompetitionRow({
               {competition.name}
             </CompetitionDetailLink>
             {popular ? (
-              <span className="ml-1.5 inline-flex items-center align-[-1px] text-[13px] leading-none font-bold whitespace-nowrap text-text-error">
-                {/* 불꽃과 HOT 글자가 한 자리에서 번갈아 나온다. 읽어 주는 이름은 뜻 그대로. */}
+              <span className="ml-0.5 inline-flex items-center align-[-3px] text-[13px] leading-none font-bold whitespace-nowrap text-text-error">
+                {/* 불꽃과 HOT 글자가 한 자리에서 번갈아 나온다. 읽어 주는 이름은 뜻 그대로.
+                    align -3px = 18px 불꽃의 가운데를 16px 이름 글자의 가운데(실측)에 맞춘 값. */}
                 <HotMark size={18} />
                 <span className="sr-only">관심 많은 대회</span>
               </span>
