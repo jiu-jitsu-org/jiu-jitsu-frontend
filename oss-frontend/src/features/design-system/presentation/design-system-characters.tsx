@@ -4,7 +4,10 @@ import type { ReactNode } from "react";
 import type { Belt, BeltRank } from "@/features/community/domain/belt";
 import { BeltAvatar } from "@/features/community/presentation/belt-avatar";
 
-import { BELT_EMOTION_FACES, BELT_EMOTION_POSES } from "./design-system-belt-emotion-data";
+import {
+  BELT_EMOTION_FACES,
+  BELT_EMOTION_POSES,
+} from "./design-system-belt-emotion-data";
 
 /**
  * /ds › 캐릭터 — 흩어져 있던 띠 캐릭터를 한곳에서 본다(#316).
@@ -125,7 +128,10 @@ export function CharacterSection() {
         </Grid>
       </Group>
 
-      <Group title="감정 몸짓" note="흰 띠 · 25자세 · 휘는 방향과 앞뒤 거리로 감정 · 기본 표정을 얹음(iOS BeltCharacter와 같은 자리)">
+      <Group
+        title="감정 몸짓"
+        note="흰 띠 · 25자세 · 휘는 방향과 앞뒤 거리로 감정 · 기본 표정을 얹음(iOS BeltCharacter와 같은 자리)"
+      >
         <Grid className="grid-cols-3 sm:grid-cols-5">
           {BELT_EMOTION_POSES.map((pose) => {
             const face = BELT_EMOTION_FACES.find(({ id }) => id === pose.face);
@@ -135,7 +141,14 @@ export function CharacterSection() {
                 className="flex flex-col items-center gap-2 rounded-12 bg-surface-field-subtle p-3"
               >
                 <div className="flex h-40 w-full items-end justify-center">
-                  <div className="relative h-full max-w-full" style={{ aspectRatio: pose.aspect }}>
+                  {/* 높이가 아니라 폭으로 크기를 정해야 좁은 칸에서도 그림과 상자 비율이 같아 표정이 띠에 붙는다 */}
+                  <div
+                    className="relative"
+                    style={{
+                      aspectRatio: pose.aspect,
+                      width: `min(100%, ${160 * pose.aspect}px)`,
+                    }}
+                  >
                     <img
                       src={`/images/characters/emotion/poses/${pose.id}.webp`}
                       alt={pose.label}
@@ -160,7 +173,9 @@ export function CharacterSection() {
                 </div>
                 <figcaption className="text-center text-label-m text-text-secondary">
                   {pose.label}
-                  {face ? <span className="text-text-tertiary"> · {face.label}</span> : null}
+                  {face ? (
+                    <span className="text-text-tertiary"> · {face.label}</span>
+                  ) : null}
                 </figcaption>
               </figure>
             );
@@ -168,7 +183,10 @@ export function CharacterSection() {
         </Grid>
       </Group>
 
-      <Group title="표정" note="눈·눈꺼풀·눈썹 · 26개 · 깜빡임 등 짧은 움직임 포함 · 검은 띠 위에 얹음">
+      <Group
+        title="표정"
+        note="눈·눈꺼풀·눈썹 · 26개 · 깜빡임 등 짧은 움직임 포함 · 검은 띠 위에 얹음"
+      >
         <Grid className="grid-cols-3 sm:grid-cols-6">
           {BELT_EMOTION_FACES.map(({ id, label }) => (
             <figure
@@ -183,13 +201,18 @@ export function CharacterSection() {
                   className="max-h-full w-full object-contain"
                 />
               </div>
-              <figcaption className="text-center text-label-m text-text-secondary">{label}</figcaption>
+              <figcaption className="text-center text-label-m text-text-secondary">
+                {label}
+              </figcaption>
             </figure>
           ))}
         </Grid>
       </Group>
 
-      <Group title="메달 캐릭터" note="앱 대회 기록 완료 화면용(iOS #220) · 5색 × 금·은·동·참가 · 눈은 로그인 캐릭터와 같음">
+      <Group
+        title="메달 캐릭터"
+        note="앱 대회 기록 완료 화면용(iOS #220) · 5색 × 금·은·동·참가 · 눈은 로그인 캐릭터와 같음"
+      >
         <Grid className="grid-cols-3 sm:grid-cols-5">
           {MEDALS.flatMap((medal) =>
             RANKS.map((rank) => (
@@ -205,12 +228,18 @@ export function CharacterSection() {
         </Grid>
       </Group>
 
-      <Group title="자세 몸통" note="원본 보관 · 6색 × 6자세 · 회색 상대와 함께 · 얼굴 없음">
+      <Group
+        title="자세 몸통"
+        note="원본 보관 · 6색 × 6자세 · 회색 상대와 함께 · 얼굴 없음"
+      >
         <div className="overflow-x-auto">
           <div className="grid min-w-[720px] grid-cols-[64px_repeat(6,1fr)] items-center gap-2">
             <span />
             {POSES.map(({ id, label }) => (
-              <span key={id} className="text-center text-label-m text-text-tertiary">
+              <span
+                key={id}
+                className="text-center text-label-m text-text-tertiary"
+              >
                 {label}
               </span>
             ))}
@@ -279,7 +308,10 @@ export function CharacterSection() {
         </div>
       </Group>
 
-      <Group title="기본 프로필 선 아이콘" note="사진 없는 프로필 · 작업 중(#307)">
+      <Group
+        title="기본 프로필 선 아이콘"
+        note="사진 없는 프로필 · 작업 중(#307)"
+      >
         <div className="flex items-end gap-4">
           {[64, 24, 16].map((size) => (
             <div key={size} className="flex flex-col items-center gap-2">
@@ -293,7 +325,9 @@ export function CharacterSection() {
                   className="size-full"
                 />
               </div>
-              <span className="font-mono text-label-m text-text-tertiary">{size}</span>
+              <span className="font-mono text-label-m text-text-tertiary">
+                {size}
+              </span>
             </div>
           ))}
         </div>
@@ -381,7 +415,9 @@ function Tile({
       />
       <figcaption className="text-center text-label-m text-text-secondary">
         {label}
-        {caption ? <span className="text-text-tertiary"> · {caption}</span> : null}
+        {caption ? (
+          <span className="text-text-tertiary"> · {caption}</span>
+        ) : null}
       </figcaption>
     </figure>
   );
@@ -393,7 +429,9 @@ function RingSample({ belt, label }: { belt: Belt | null; label: string }) {
       <BeltAvatar belt={belt}>
         <div className="size-full rounded-full bg-surface-field-subtle" />
       </BeltAvatar>
-      <span className="text-center text-label-m text-text-tertiary">{label}</span>
+      <span className="text-center text-label-m text-text-tertiary">
+        {label}
+      </span>
     </div>
   );
 }
