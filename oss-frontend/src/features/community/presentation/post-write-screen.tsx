@@ -34,10 +34,10 @@ import {
   BackArrowIcon,
   CheckIcon,
   CloseIcon,
+  HashIcon,
   ImageIcon,
   LoadingIcon,
   RetryIcon,
-  TagIcon,
 } from "@/shared/ui/icons";
 
 import type {
@@ -112,6 +112,11 @@ const APP_BAR_TITLE_TOP = 13;
 const APP_BAR_TITLE_HEIGHT = 35;
 /** 하단 툴바 높이(px, safe-area 제외). 디자인 2026-09-16: 48. */
 const TOOLBAR_HEIGHT = 48;
+/** 툴바 사진·태그 버튼 아이콘 한 변(px) — 24는 화면 절반을 차지하던 큰 버튼 때 크기라 작은 버튼에 맞춰 줄인다(#397). */
+const TOOLBAR_ICON_SIZE = 18;
+/** 툴바 사진·태그 버튼 모양 — 높이 32 · radius 10 · 좌우 10 · 아이콘↔글자 4 · 옅은 면(상세 액션바 버튼과 같은 면). */
+const TOOLBAR_PILL_CLASS =
+  "inline-flex h-8 items-center gap-1 rounded-10 bg-reaction-bar-detail-default-bg px-2.5";
 /** 툴바 아이콘·텍스트 색(post-editor/toolbar/text). 아이콘은 currentColor를 상속하므로 버튼 색만 바꾸면 된다. */
 const TOOLBAR_TEXT_CLASS = "text-post-editor-toolbar-text";
 /**
@@ -1298,7 +1303,12 @@ export function PostWriteScreen({
             </ul>
           </>
         ) : null}
-        <div className="grid grid-cols-2" style={{ height: TOOLBAR_HEIGHT }}>
+        {/* 툴바(#397): 화면 절반씩 차지하던 큰 두 칸 대신 왼쪽에 작은 둥근 버튼 둘(높이 32 · 옅은 면 · 아이콘 18 ·
+            Label M). 상세 화면의 댓글쓰기·좋아요 버튼과 같은 면 어휘. */}
+        <div
+          className="flex items-center gap-2 px-4"
+          style={{ height: TOOLBAR_HEIGHT }}
+        >
           {/* 숨겨진 표준 file input 둘 — 웹뷰가 네이티브 피커를 열고 File을 돌려준다. 사진 선택창의 항목 탭이
               click()으로 연다(항목 탭 = 사용자 제스처, #250).
               앨범: 남은 슬롯이 1장이면 단일 선택으로 전환 → 마지막 한 장에서 초과 선택→잘림을 줄인다.
@@ -1339,19 +1349,19 @@ export function PostWriteScreen({
               isEdit ? "사진 추가 불가" : `사진 첨부 (최대 ${MAX_IMAGES}장)`
             }
             className={cn(
-              "inline-flex items-center justify-center gap-3",
+              TOOLBAR_PILL_CLASS,
               TOOLBAR_TEXT_CLASS,
-              // 칸이 넓어 둥근 면(rounded-xl)으로 눌림을 깐다. 수정 모드(비활성처럼 보임)는 눌림 면을 두지 않는다.
-              !isEdit && cn("rounded-xl", SURFACE_PRESS),
+              // 수정 모드(비활성처럼 보임)는 눌림 면을 두지 않는다.
+              !isEdit && SURFACE_PRESS,
             )}
           >
             <ImageIcon
-              size={24}
+              size={TOOLBAR_ICON_SIZE}
               className={isEdit ? TOOLBAR_ICON_DISABLED_CLASS : undefined}
             />
             <span
               className={cn(
-                "text-body-s",
+                "text-label-m",
                 isEdit && TOOLBAR_TEXT_DISABLED_CLASS,
               )}
             >
@@ -1362,14 +1372,11 @@ export function PostWriteScreen({
           <button
             type="button"
             onClick={focusTagInput}
-            className={cn(
-              "inline-flex items-center justify-center gap-3 rounded-xl",
-              TOOLBAR_TEXT_CLASS,
-              SURFACE_PRESS,
-            )}
+            className={cn(TOOLBAR_PILL_CLASS, TOOLBAR_TEXT_CLASS, SURFACE_PRESS)}
           >
-            <TagIcon size={24} />
-            <span className="text-body-s">태그</span>
+            {/* 본문 아래 태그 줄이 "#"으로 쓰이므로 같은 기호로 통일(#397, 예전엔 꼬리표 모양). */}
+            <HashIcon size={TOOLBAR_ICON_SIZE} />
+            <span className="text-label-m">태그</span>
           </button>
         </div>
       </div>
