@@ -19,6 +19,7 @@ export { SearchIcon } from "./search-icon";
 export { ChevronLeftIcon } from "./chevron-left-icon";
 export { EditIcon } from "./edit-icon";
 export { ImageIcon } from "./image-icon";
+export { InfoIcon } from "./info-icon";
 export { CameraIcon } from "./camera-icon";
 export { HashIcon } from "./hash-icon";
 export { ReplyBranchIcon } from "./reply-branch-icon";

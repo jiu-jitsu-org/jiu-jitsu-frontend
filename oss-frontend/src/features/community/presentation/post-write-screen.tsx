@@ -34,10 +34,11 @@ import {
   BackArrowIcon,
   CheckIcon,
   CloseIcon,
+  HashIcon,
   ImageIcon,
+  InfoIcon,
   LoadingIcon,
   RetryIcon,
-  TagIcon,
 } from "@/shared/ui/icons";
 
 import type {
@@ -112,6 +113,11 @@ const APP_BAR_TITLE_TOP = 13;
 const APP_BAR_TITLE_HEIGHT = 35;
 /** 하단 툴바 높이(px, safe-area 제외). 디자인 2026-09-16: 48. */
 const TOOLBAR_HEIGHT = 48;
+/** 툴바 사진·태그 버튼 아이콘 한 변(px) — 24는 화면 절반을 차지하던 큰 버튼 때 크기라 작은 버튼에 맞춰 줄인다(#397). */
+const TOOLBAR_ICON_SIZE = 18;
+/** 툴바 사진·태그 버튼 모양 — 높이 32 · radius 10 · 좌우 10 · 아이콘↔글자 4 · 옅은 면(상세 액션바 버튼과 같은 면). */
+const TOOLBAR_PILL_CLASS =
+  "inline-flex h-8 items-center gap-1 rounded-10 bg-reaction-bar-detail-default-bg px-2.5";
 /** 툴바 아이콘·텍스트 색(post-editor/toolbar/text). 아이콘은 currentColor를 상속하므로 버튼 색만 바꾸면 된다. */
 const TOOLBAR_TEXT_CLASS = "text-post-editor-toolbar-text";
 /**
@@ -163,10 +169,17 @@ const THUMBNAIL_REMOVE_BG_CLASS = "bg-image-delete-button-bg";
 const TEXTFIELD_TEXT_CLASS = "text-textfield-display-filled-text";
 const TEXTFIELD_PLACEHOLDER_CLASS = "placeholder:text-textfield-display-default-placeholder-text";
 const TEXTFIELD_CARET_CLASS = "caret-textfield-display-cursor";
-const COUNTER_TEXT_CLASS = "text-textfield-display-counter-text";
+/**
+ * 글자 수·커뮤니티 제한 안내는 입력 내용보다 한 단계 물러나 있어야 한다(#397) — 토큰(text/tertiary = Cool gray 300)보다
+ * 한 단계 옅은 Cool gray 200. 이 단계의 글자 토큰이 아직 없어 원시 색을 직접 쓴다.
+ */
+const QUIET_TEXT_CLASS = "text-[var(--cool-gray-200)]";
+const COUNTER_TEXT_CLASS = QUIET_TEXT_CLASS;
 const COUNTER_LIMIT_CLASS = "text-textfield-display-counter-text-limit";
 /** 안내문 색(post-editor/guide-text). */
 const NOTICE_TEXT_CLASS = "text-post-editor-guide-text";
+/** 커뮤니티 제한 안내 앞 아이콘 한 변(px) — 글자(12)와 같은 높이. */
+const NOTICE_ICON_SIZE = 12;
 /** 태그 입력줄 색(textfield_tag/filled/tag-text · focused/hash-text · default/placeholder-text). */
 const TAG_TEXT_CLASS = "text-textfield-tag-filled-tag-text";
 const TAG_HASH_FOCUSED_CLASS = "group-focus-within:text-textfield-tag-focused-hash-text";
@@ -181,8 +194,8 @@ const TAG_INPUT_TEXT_CLASS = "text-text-primary";
  * 스크롤된다(첨부 썸네일은 본문과 태그 사이). 사진·태그 툴바만 바닥(=키보드 위)에 고정.
  *
  * compose 패턴:
- * - 우측 체크는 필수 입력(카테고리·제목·본문)이 하나라도 비어 있으면 비활성처럼 보이고, 탭하면 빠진 항목을
- *   토스트로 알린다(카테고리면 칩 테두리도 오류 색, #303). 한 글자라도 적히면 활성(정책).
+ * - 우측 체크는 작성 중엔 늘 눌리는 모양이고(#397), 필수 입력(카테고리·제목·본문)이 비어 있으면 탭 시 빠진 항목을
+ *   일반 안내 토스트로 알린다(카테고리면 비선택 칩 테두리가 오류 색이 되고 칩 줄이 흔들린다, #303·#397).
  *   제목 최소 글자 수는 탭 시 검사해 토스트로 알리고, 제목 글자 수 카운터는 채워질 때까지 오류 색으로 둔다(#251).
  *   본문은 최소 글자 수가 없다(#246).
  *   첨부 업로드 중/실패·전송 중에도 잠근다(사진 정책).
@@ -234,9 +247,11 @@ export function PostWriteScreen({
   // 올리기를 눌렀는데 제목이 최소 글자 수 미달로 막혔는지(#251). 제목 카운터를 오류 색으로 바꿔 문제인 칸을
   // 보이게 한다 — 처음 쓰는 중에는 회색 그대로이고, 조건을 채우면 바로 풀린다. 본문은 최소 글자 수가 없다(#246).
   const [titleShort, setTitleShort] = useState(false);
-  // 올리기를 눌렀는데 카테고리가 비어 막혔는지(#303). 칩 테두리를 오류 색으로 바꿔 어디를 골라야 하는지
-  // 보이게 한다 — 들어왔을 때는 회색 그대로이고, 칩 하나를 고르면 바로 풀린다.
+  // 올리기를 눌렀는데 카테고리가 비어 막혔는지(#303). 비선택 칩 테두리를 오류 색으로 바꾸고 칩 줄을 살짝 흔들어
+  // 어디를 골라야 하는지 보인다 — 들어왔을 때는 회색 그대로이고, 칩 하나를 고르면 바로 풀린다.
   const [categoryMissing, setCategoryMissing] = useState(false);
+  // 칩 줄 흔들기 횟수 — 누를 때마다 애니메이션 이름을 번갈아 걸어 처음부터 다시 흔든다(0 = 아직 안 흔듦).
+  const [categoryNudge, setCategoryNudge] = useState(0);
   const { confirm, dialog } = useNativeDialog();
   // 카테고리: 작성은 미선택(null)으로 시작 → 사용자가 칩에서 고르기 전엔 등록 불가. 수정은 기존 값.
   const [categoryId, setCategoryId] = useState<number | null>(
@@ -364,6 +379,9 @@ export function PostWriteScreen({
   // 사진이 올라가는 중에 등록을 눌렀으면 다 올라간 순간 이어서 등록한다(#390) — 예전엔 조용히 무시해 여러 번 누르며 기다렸다.
   // 누른 때의 사진 묶음을 기억한다 — 기다리는 사이 사진을 지우거나 더했으면 이어서 등록하지 않는다.
   const submitAfterUploadRef = useRef<string | null>(null);
+  // ✓ 버튼이 비활성처럼 보일지(#397). 작성은 늘 눌리는 모양 — 빠진 항목·업로드 대기는 탭하면 안내한다.
+  // 수정은 바꾼 게 없을 때만 비활성 모양이다(저장할 것이 없다).
+  const looksDisabled = isEdit && !isDirty;
   // 전송 중 표시는 렌더를 기다리지 않고 바로 보는 값 — 이어서 등록과 사용자의 탭이 같은 순간 겹쳐도 한 번만 보낸다.
   const submittingRef = useRef(false);
   const attachmentKey = attachments.map((item) => item.localId).join(",");
@@ -817,9 +835,13 @@ export function PostWriteScreen({
     const validationError = findValidationError();
     if (validationError !== null) {
       // 토스트는 나중 것이 이전 것을 덮는다(ToastProvider.show) — 연타해도 마지막 안내만 보인다.
-      toast.show(validationError.message, { tone: "warning" });
-      // 오류 색은 토스트가 말하는 칸에만 — 카테고리 안내인데 제목 카운터까지 빨개지면 어디를 고칠지 흐려진다.
+      // 빠진 칸 안내는 노란 경고가 아니라 일반 안내(#397) — 쓰는 중인 사람에게 "틀렸다"가 아니라 "이것도 필요해요".
+      toast.show(validationError.message, { tone: "info" });
+      // 표시는 토스트가 말하는 칸에만 — 카테고리 안내인데 제목 카운터까지 빨개지면 어디를 고칠지 흐려진다.
       setCategoryMissing(validationError.field === "category");
+      if (validationError.field === "category") {
+        setCategoryNudge((turn) => turn + 1);
+      }
       setTitleShort(validationError.field === "title");
       return;
     }
@@ -963,7 +985,8 @@ export function PostWriteScreen({
           onClick={() => void submit()}
           // 네이티브 disabled는 onClick 자체가 안 불려 빠진 항목을 안내할 수 없으므로 aria-disabled로 상태만
           // 전달한다(#303 — 수정 모드 사진 버튼 #154와 같은 방식). 중복 전송은 submit의 submitting 검사가 막는다.
-          aria-disabled={isSubmitLocked}
+          aria-disabled={looksDisabled || submitting}
+          aria-busy={submitting}
           aria-label={isEdit ? "완료" : "등록"}
           style={{
             width: APP_BAR_BUTTON_SIZE,
@@ -972,9 +995,9 @@ export function PostWriteScreen({
           }}
           className={cn(
             "ml-auto inline-flex items-center justify-center rounded-10 transition-colors",
-            // 필수 입력이 모두 채워지면 브랜드 채움(button/filled) — 글자 수 미달은 탭 시 토스트.
-            // 필수 입력 비어 있음·첨부 업로드 중/실패·전송 중이면 비활성 채움 + 비활성 아이콘.
-            isSubmitLocked
+            // 작성은 늘 브랜드 채움(#397) — 비활성처럼 보이면 "왜 안 눌리지"가 되므로 눌리게 두고, 빠진 항목은 탭 시 안내.
+            // 수정은 바꾼 게 없을 때만 비활성 채움(저장할 것이 없다는 뜻).
+            looksDisabled
               ? "bg-button-filled-disabled-bg text-button-filled-disabled-text"
               : "bg-button-filled-default-bg text-button-filled-default-text active:bg-button-filled-pressed-bg",
           )}
@@ -988,25 +1011,40 @@ export function PostWriteScreen({
           비선택 = 투명 배경 + 1px #CECFD1, 선택 = chip/selected/bg(#EDEFF0) + 1px #292A2E, 텍스트는 둘 다
           chip/default/text. 좌우 16(px-4)·좌우 패딩 12(px-3)·칩 간격 8(gap-2), 넘치면 가로 스크롤(스크롤바
           숨김). 스크롤 영역 밖(shrink-0)에 둬 본문을 아래로 길게 내려도 항상 헤더 아래 고정. */}
-      <div className="flex shrink-0 gap-2 overflow-x-auto px-4 pt-5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {categories.map((category) => {
-          const selected = category.id === categoryId;
-          return (
-            <Chip
-              key={category.id}
-              selected={selected}
-              // 미선택으로 등록이 막혔으면(#303) 모든 칩 테두리를 오류 색으로 — 고르는 순간 풀린다.
-              invalid={categoryMissing}
-              onClick={() => {
-                setCategoryId(category.id);
-                setCategoryMissing(false);
-              }}
-              aria-pressed={selected}
-            >
-              {category.name}
-            </Chip>
-          );
-        })}
+      {/* 빠진 채로 등록을 누르면 비선택 칩 테두리가 오류 색으로 바뀌고(#303) 칩 줄이 옆으로 살짝 한 번 흔들린다(#397). */}
+      <div className="shrink-0 overflow-x-auto px-4 pt-5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div
+          role="group"
+          aria-label="카테고리 (필수)"
+          className={cn(
+            "flex w-max gap-2",
+            categoryNudge > 0 &&
+              (categoryNudge % 2 === 1
+                ? "motion-safe:animate-nudge-x"
+                : "motion-safe:animate-nudge-x-alt"),
+          )}
+        >
+          {categories.map((category) => {
+            const selected = category.id === categoryId;
+            return (
+              <Chip
+                key={category.id}
+                selected={selected}
+                // 고른 칩은 파란 선·글자로 켜진다(#397 — 고른 게 한눈에 보이게, 대회 필터 칩과 같은 켜짐).
+                tone="primary"
+                // 미선택으로 등록이 막혔으면(#303) 비선택 칩 테두리를 오류 색으로 — 고르는 순간 풀린다.
+                invalid={categoryMissing}
+                onClick={() => {
+                  setCategoryId(category.id);
+                  setCategoryMissing(false);
+                }}
+                aria-pressed={selected}
+              >
+                {category.name}
+              </Chip>
+            );
+          })}
+        </div>
       </div>
 
       {/* '대회' 카테고리면 어떤 대회 이야기인지 고르는 칸(#367). 칩 줄과 같은 좌우 16, 칩 아래 12. */}
@@ -1023,7 +1061,11 @@ export function PostWriteScreen({
 
       {/* 본문 영역: 제목 → 본문 → 태그 → 안내문이 한 덩어리로 스크롤된다(main 내부 스크롤).
           제목·본문 textarea는 자동으로 자라므로 스크롤은 이 main에서만 일어난다. */}
-      <main className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 pb-6">
+      {/* 위 16px은 옅게 사라지게(mask) — 긴 본문을 내려 읽을 때 제목·본문 글자가 칩 줄 아래에서 칼로 자른 듯
+          잘려 보이지 않게(#397). 맨 위에선 제목 위 여백(24) 안이라 글자에 닿지 않는다.
+          제목·본문 textarea는 shrink-0 — 세로 flex 안이라 줄어들 수 있으면 main을 넘치는 대신 칸 자체가 눌려
+          글이 칸 안에서 잘리고(제목 잘림) main은 스크롤되지 않았다(#397 "본문 스크롤이 안 먹는 느낌"의 원인). */}
+      <main className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 pb-6 [-webkit-mask-image:linear-gradient(to_bottom,transparent,black_16px)] [mask-image:linear-gradient(to_bottom,transparent,black_16px)]">
         {/* 제목: Display 1(30 · 행간 Auto → 40 고정 · 600), 여러 줄 허용(45자). 카테고리↔제목 간격 24(mt-6).
             색 textfield_display/filled/text, 플레이스홀더 default/placeholder-text, 커서 cursor(브랜드).
             첫 진입 시 제목에 자동 포커스 → 바로 타이핑 시작(정책). 키보드가 함께 올라오려면 WKWebView가
@@ -1048,7 +1090,7 @@ export function PostWriteScreen({
           placeholder="제목을 입력해주세요"
           aria-label="제목"
           className={cn(
-            "mt-6 w-full resize-none overflow-hidden text-display-1 outline-none",
+            "mt-6 w-full shrink-0 resize-none overflow-hidden text-display-1 outline-none",
             TEXTFIELD_TEXT_CLASS,
             TEXTFIELD_PLACEHOLDER_CLASS,
             TEXTFIELD_CARET_CLASS,
@@ -1077,7 +1119,7 @@ export function PostWriteScreen({
           placeholder="내용을 입력해주세요"
           aria-label="내용"
           className={cn(
-            "mt-6 w-full resize-none overflow-hidden text-title-1 outline-none",
+            "mt-6 w-full shrink-0 resize-none overflow-hidden text-title-1 outline-none",
             TEXTFIELD_TEXT_CLASS,
             TEXTFIELD_PLACEHOLDER_CLASS,
             TEXTFIELD_CARET_CLASS,
@@ -1145,9 +1187,18 @@ export function PostWriteScreen({
             (globals.css) 12 렌더가 같은 Label M(12/16/500)을 쓴다. "커뮤니티 제한 사항"은 밑줄(디자인) —
             연결 문서 확정 시 링크로 교체.
             FIXME: 커뮤니티 이용 제한 정책 페이지가 /policies에 아직 없다 — 페이지 생기면 <a href>로 연결. */}
-        <p className={cn("mt-6 text-label-m", NOTICE_TEXT_CLASS)}>
-          <span className="underline">커뮤니티 제한 사항</span> 위반 시 삭제될
-          수 있습니다.
+        {/* 앞에 작은 안내(i) 아이콘(#397), 글자·아이콘 모두 한 단계 옅게(QUIET). */}
+        <p
+          className={cn(
+            "mt-6 flex items-center gap-1 text-label-m",
+            QUIET_TEXT_CLASS,
+          )}
+        >
+          <InfoIcon size={NOTICE_ICON_SIZE} className="shrink-0" />
+          <span>
+            <span className="underline">커뮤니티 제한 사항</span> 위반 시
+            삭제될 수 있습니다.
+          </span>
         </p>
       </main>
 
@@ -1269,7 +1320,12 @@ export function PostWriteScreen({
             </ul>
           </>
         ) : null}
-        <div className="grid grid-cols-2" style={{ height: TOOLBAR_HEIGHT }}>
+        {/* 툴바(#397): 화면 절반씩 차지하던 큰 두 칸 대신 왼쪽에 작은 둥근 버튼 둘(높이 32 · 옅은 면 · 아이콘 18 ·
+            Label M). 상세 화면의 댓글쓰기·좋아요 버튼과 같은 면 어휘. */}
+        <div
+          className="flex items-center gap-2 px-4"
+          style={{ height: TOOLBAR_HEIGHT }}
+        >
           {/* 숨겨진 표준 file input 둘 — 웹뷰가 네이티브 피커를 열고 File을 돌려준다. 사진 선택창의 항목 탭이
               click()으로 연다(항목 탭 = 사용자 제스처, #250).
               앨범: 남은 슬롯이 1장이면 단일 선택으로 전환 → 마지막 한 장에서 초과 선택→잘림을 줄인다.
@@ -1310,19 +1366,19 @@ export function PostWriteScreen({
               isEdit ? "사진 추가 불가" : `사진 첨부 (최대 ${MAX_IMAGES}장)`
             }
             className={cn(
-              "inline-flex items-center justify-center gap-3",
+              TOOLBAR_PILL_CLASS,
               TOOLBAR_TEXT_CLASS,
-              // 칸이 넓어 둥근 면(rounded-xl)으로 눌림을 깐다. 수정 모드(비활성처럼 보임)는 눌림 면을 두지 않는다.
-              !isEdit && cn("rounded-xl", SURFACE_PRESS),
+              // 수정 모드(비활성처럼 보임)는 눌림 면을 두지 않는다.
+              !isEdit && SURFACE_PRESS,
             )}
           >
             <ImageIcon
-              size={24}
+              size={TOOLBAR_ICON_SIZE}
               className={isEdit ? TOOLBAR_ICON_DISABLED_CLASS : undefined}
             />
             <span
               className={cn(
-                "text-body-s",
+                "text-label-m",
                 isEdit && TOOLBAR_TEXT_DISABLED_CLASS,
               )}
             >
@@ -1333,14 +1389,11 @@ export function PostWriteScreen({
           <button
             type="button"
             onClick={focusTagInput}
-            className={cn(
-              "inline-flex items-center justify-center gap-3 rounded-xl",
-              TOOLBAR_TEXT_CLASS,
-              SURFACE_PRESS,
-            )}
+            className={cn(TOOLBAR_PILL_CLASS, TOOLBAR_TEXT_CLASS, SURFACE_PRESS)}
           >
-            <TagIcon size={24} />
-            <span className="text-body-s">태그</span>
+            {/* 본문 아래 태그 줄이 "#"으로 쓰이므로 같은 기호로 통일(#397, 예전엔 꼬리표 모양). */}
+            <HashIcon size={TOOLBAR_ICON_SIZE} />
+            <span className="text-label-m">태그</span>
           </button>
         </div>
       </div>
