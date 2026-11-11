@@ -33,12 +33,13 @@ export function CalendarIcon({
             strokeWidth={2}
             strokeLinecap="round"
           />
-          <path
-            d="M8 12.75h0M12 12.75h0M16 12.75h0M8 16.75h0M12 16.75h0M16 16.75h0"
-            stroke="black"
-            strokeWidth={2.6}
-            strokeLinecap="round"
-          />
+          {/* 날짜 점은 원으로 그린다 — 길이 0 선의 둥근 끝은 웹뷰마다 안 그려질 수 있다. */}
+          <circle cx="8" cy="12.75" r="1.3" fill="black" />
+          <circle cx="12" cy="12.75" r="1.3" fill="black" />
+          <circle cx="16" cy="12.75" r="1.3" fill="black" />
+          <circle cx="8" cy="16.75" r="1.3" fill="black" />
+          <circle cx="12" cy="16.75" r="1.3" fill="black" />
+          <circle cx="16" cy="16.75" r="1.3" fill="black" />
         </mask>
         <rect
           width="24"
