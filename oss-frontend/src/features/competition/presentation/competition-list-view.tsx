@@ -158,7 +158,10 @@ export function CompetitionListView({
   }, [mode, visibleMonths, searchOpen]);
   // 달력은 제 머리에 달을 크게 보여 주므로 필터 줄의 달 이름은 목록에서만 둔다.
   const currentMonth =
-    mode === "list" ? visibleMonths[passedMonthIndex ?? 0] : undefined;
+    mode === "list"
+      ? // 필터로 달이 줄면 잰 값이 다시 재기 전까지 범위를 벗어날 수 있다 — 그동안은 첫 달을 보인다.
+        (visibleMonths[passedMonthIndex ?? 0] ?? visibleMonths[0])
+      : undefined;
 
   // 검색칸이 열리고 닫히면 필터 줄 높이가 바뀌어 그 아래(배너·목록)가 한 번에 밀린다.
   // 밀린 만큼 거꾸로 옮겨 놓고 제자리로 미끄러지게 해, 검색칸이 나타나는 0.5초 동안 함께 움직이게 한다.
