@@ -36,6 +36,7 @@ import {
   CloseIcon,
   HashIcon,
   ImageIcon,
+  InfoIcon,
   LoadingIcon,
   RetryIcon,
 } from "@/shared/ui/icons";
@@ -168,10 +169,17 @@ const THUMBNAIL_REMOVE_BG_CLASS = "bg-image-delete-button-bg";
 const TEXTFIELD_TEXT_CLASS = "text-textfield-display-filled-text";
 const TEXTFIELD_PLACEHOLDER_CLASS = "placeholder:text-textfield-display-default-placeholder-text";
 const TEXTFIELD_CARET_CLASS = "caret-textfield-display-cursor";
-const COUNTER_TEXT_CLASS = "text-textfield-display-counter-text";
+/**
+ * 글자 수·커뮤니티 제한 안내는 입력 내용보다 한 단계 물러나 있어야 한다(#397) — 토큰(text/tertiary = Cool gray 300)보다
+ * 한 단계 옅은 Cool gray 200. 이 단계의 글자 토큰이 아직 없어 원시 색을 직접 쓴다.
+ */
+const QUIET_TEXT_CLASS = "text-[var(--cool-gray-200)]";
+const COUNTER_TEXT_CLASS = QUIET_TEXT_CLASS;
 const COUNTER_LIMIT_CLASS = "text-textfield-display-counter-text-limit";
 /** 안내문 색(post-editor/guide-text). */
 const NOTICE_TEXT_CLASS = "text-post-editor-guide-text";
+/** 커뮤니티 제한 안내 앞 아이콘 한 변(px) — 글자(12)와 같은 높이. */
+const NOTICE_ICON_SIZE = 12;
 /** 태그 입력줄 색(textfield_tag/filled/tag-text · focused/hash-text · default/placeholder-text). */
 const TAG_TEXT_CLASS = "text-textfield-tag-filled-tag-text";
 const TAG_HASH_FOCUSED_CLASS = "group-focus-within:text-textfield-tag-focused-hash-text";
@@ -1179,9 +1187,18 @@ export function PostWriteScreen({
             (globals.css) 12 렌더가 같은 Label M(12/16/500)을 쓴다. "커뮤니티 제한 사항"은 밑줄(디자인) —
             연결 문서 확정 시 링크로 교체.
             FIXME: 커뮤니티 이용 제한 정책 페이지가 /policies에 아직 없다 — 페이지 생기면 <a href>로 연결. */}
-        <p className={cn("mt-6 text-label-m", NOTICE_TEXT_CLASS)}>
-          <span className="underline">커뮤니티 제한 사항</span> 위반 시 삭제될
-          수 있습니다.
+        {/* 앞에 작은 안내(i) 아이콘(#397), 글자·아이콘 모두 한 단계 옅게(QUIET). */}
+        <p
+          className={cn(
+            "mt-6 flex items-center gap-1 text-label-m",
+            QUIET_TEXT_CLASS,
+          )}
+        >
+          <InfoIcon size={NOTICE_ICON_SIZE} className="shrink-0" />
+          <span>
+            <span className="underline">커뮤니티 제한 사항</span> 위반 시
+            삭제될 수 있습니다.
+          </span>
         </p>
       </main>
 
