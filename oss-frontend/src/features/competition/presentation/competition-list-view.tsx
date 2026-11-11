@@ -480,9 +480,10 @@ const FILTER_BAR_FADE =
  * 맨 위에 띠 색이 깔려 있는 동안(html[data-competition-tint]) 꺼진 필터 칩 — 파란 바탕 위 연회색 테두리 대신
  * 반투명 흰 면(55%)으로 띄워 뒤의 띠 색이 비치게 한다. 켜진 칩은 제 파랑을 지키고, 띠 색이 다 옅어지면
  * 원래 테두리 칩으로 돌아간다 — 흰 바탕 위에서는 반투명 흰 면이 보이지 않아 선이 있어야 칩 모양이 읽힌다.
+ * 눌림 면은 위 바탕 규칙에 덮이지 않게 같은 조건 아래 다시 적는다.
  */
 const CHIP_ON_TINT =
-  "[:root[data-competition-tint]_&]:border-transparent [:root[data-competition-tint]_&]:bg-[color-mix(in_srgb,var(--surface-container)_55%,transparent)]";
+  "[:root[data-competition-tint]_&]:border-transparent [:root[data-competition-tint]_&]:bg-[color-mix(in_srgb,var(--surface-container)_55%,transparent)] [:root[data-competition-tint]_&]:not-disabled:active:bg-surface-container-pressed";
 // 이름 검색(#345)은 당분간 숨긴다(#387) — 검색 로직은 그대로 두고 돋보기·검색칸만 감춘다. 다시 켤 때 true.
 const COMPETITION_SEARCH_ENABLED = false;
 const SEARCH_INPUT_ID = "competition-name-search";
