@@ -16,7 +16,6 @@ import { cn } from "@/shared/lib/cn";
 import { setNativeCompetitionHeaderTint } from "@/shared/lib/native-bridge";
 import { IconButton } from "@/shared/ui/icon-button";
 import { CloseIcon } from "@/shared/ui/icons";
-import { PRESS_BOUNCE } from "@/shared/ui/press-styles";
 
 /** 카드 위 그래픽 자리 높이 — 필터 줄의 아래 여백(12)과 합쳐 칩 줄 아래 80px. */
 const HEAD_SPACE = 68;
@@ -26,6 +25,12 @@ const CARD_RADIUS = 20;
 /** 띠(검은 단) 가운데 자리 — 카드 왼쪽에서 15, 카드 위에서 26. 머리는 카드 위로 약 58px 드러난다. */
 const BAND_X = 15;
 const BAND_ABOVE_CARD = 26;
+/**
+ * 카드를 누르는 동안 배너 전체가 0.96으로 눌렸다가(100ms) 놓으면 스프링으로 돌아온다(500ms) — PRESS_BOUNCE와 같은 박자.
+ * 눌림을 카드 버튼이 아니라 배너(section)에 걸어, 캐릭터가 카드와 같이 줄어든다.
+ */
+const BANNER_PRESS =
+  "motion-safe:[transition:scale_500ms_var(--ease-spring-wobbly)] motion-safe:has-[[data-banner-card]:active]:scale-96 motion-safe:has-[[data-banner-card]:active]:[transition:scale_100ms_ease-out]";
 
 /**
  * 곧 마감 배너 (#396) — 필터 줄 바로 아래, 접수 마감이 일주일 안으로 다가온 내 관심 대회 한 장.
@@ -54,7 +59,13 @@ export function CompetitionInterestBanner({
   const { competition, registration } = item;
 
   return (
-    <section aria-label="곧 마감인 관심 대회" className="relative mb-3 px-4">
+    // 카드를 누르면 제목·캐릭터·카드가 한 덩어리로 눌린다(카드 가운데 기준). 카드만 줄면 카드 뒤에 숨은 캐릭터의
+    // 잘린 아랫몸이 카드 왼쪽 밖으로 드러난다. ✕를 누를 때는 줄지 않는다.
+    <section
+      aria-label="곧 마감인 관심 대회"
+      className={cn("relative mb-3 px-4", BANNER_PRESS)}
+      style={{ transformOrigin: `50% ${HEAD_SPACE + CARD_HEIGHT / 2}px` }}
+    >
       {/* 제목 — 캐릭터 오른쪽(카드 왼쪽 + 38), 카드 위 22px. */}
       <h2
         className="pointer-events-none absolute left-[54px] z-[2] text-[17px] leading-[22px] font-bold text-text-primary"
@@ -69,11 +80,9 @@ export function CompetitionInterestBanner({
         <div className="relative z-[1]">
           <button
             type="button"
+            data-banner-card
             onClick={() => onSelect(item)}
-            className={cn(
-              "flex w-full flex-col justify-between rounded-20 bg-[var(--cool-gray-900)] py-[14px] pr-12 pl-4 text-left text-text-on-dark",
-              PRESS_BOUNCE,
-            )}
+            className="flex w-full flex-col justify-between rounded-20 bg-[var(--cool-gray-900)] py-[14px] pr-12 pl-4 text-left text-text-on-dark"
             style={{ height: CARD_HEIGHT }}
           >
             <span className="truncate text-[16px] leading-[22px] font-bold">
