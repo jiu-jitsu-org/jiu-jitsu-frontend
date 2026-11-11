@@ -35,9 +35,15 @@ export type InboxNotification = {
   id: number;
   /** 알 수 없는 pushType(서버가 새 종류를 추가했는데 FE가 아직 모름)이면 null — 서버 title로 그린다. */
   type: InboxNotificationType | null;
-  /** 서버 title. 디자인 문구와 달라 지금은 화면이 type으로 대체한다(카드 노출 정책 수정 예정). */
+  /**
+   * 서버 title. 댓글 계열은 디자인 문구와 달라 화면이 type으로 대체하고,
+   * 좋아요 계열은 지금 좋아요 수가 들어간 서버 문구를 그대로 쓴다("내 게시글에 좋아요가 7개 달렸어요", backend#196).
+   */
   title: string;
-  /** 서버 body. 카드 본문 노출 정책이 수정 예정이라 지금은 그대로 쓴다. */
+  /**
+   * 서버 body — 카드 본문 1줄로 그대로 쓴다(backend#177, #196).
+   * 댓글 · 게시글 좋아요 = 게시글 제목(밸런스 게임은 빈 값), 대댓글 = 대댓글이 달린 내 댓글, 댓글 좋아요 = 좋아요 받은 댓글.
+   */
   body: string;
   target: InboxNotificationTarget | null;
   /**
@@ -48,7 +54,10 @@ export type InboxNotification = {
    */
   gone: InboxGoneKind | null;
   isRead: boolean;
-  /** createdAt(ISO 8601, 오프셋 명시). 화면이 공통 상대 시간 규칙으로 표시한다(#188). */
+  /**
+   * createdAt(ISO 8601, 오프셋 명시). 화면이 공통 상대 시간 규칙으로 표시한다(#188).
+   * 좋아요 카드는 글 · 댓글마다 한 장이라 마지막으로 푸시가 간 시각이다(backend#196).
+   */
   createdAt: string;
 };
 

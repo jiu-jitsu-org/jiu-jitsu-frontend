@@ -134,7 +134,7 @@ export function InboxItemShell({
   );
 }
 
-/** 댓글 계열은 말풍선, 좋아요 계열은 하트(디자인에 없는 종류 — 노출 여부 기획 확인 중). */
+/** 댓글 계열은 말풍선, 좋아요 계열은 하트. */
 function InboxTypeIcon({ type }: { type: InboxNotification["type"] }) {
   if (type === "CONTENTS_LIKE" || type === "COMMENTS_LIKE") {
     return <HeartIcon size={20} />;
