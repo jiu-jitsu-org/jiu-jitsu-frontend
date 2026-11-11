@@ -272,14 +272,16 @@ export function CompetitionListView({
     <>
       {showBanner ? <InterestBannerTint rank={beltRank ?? "white"} /> : null}
       {/* 필터 줄: 좌우 16 · 칩 간격 8, 넘치면 가로 스크롤(스크롤바 숨김) — 글쓰기 카테고리 칩 줄과 같은 규격.
-          목록 바탕색을 반투명(60%)으로 깔고 뒤를 흐려, 아래로 지나가는 카드가 비치되 글자는 읽히게 한다.
-          흐림 판은 아래 끝을 서서히 지워 선 없이 목록으로 녹아들게 한다.
+          바탕은 꽉 채워(띠 색이 깔려 있으면 그 자리 색 TOP_TINT_VAR, 아니면 목록 바탕색) 아래로 지나가는 카드·배너가
+          줄 뒤로 깔끔히 숨게 하고, 줄 아래 끝 16px(줄 안 8 + 밖 8)에서만 완만하게(ease) 지워 선 없이 목록으로 녹아들게 한다.
+          반투명 + 흐림으로 비치게 하면 검은 배너가 지날 때 줄 뒤에 탁한 회색 띠가 남아 쓰지 않는다.
           왼쪽 끝에 지금 달(#396), 앱이 머리 버튼을 모르면 오른쪽 끝에 관심 하트 · 목록 ↔ 달력(#339)을 고정해 둔다 —
           칩이 늘어 가로로 밀어도 늘 같은 자리에 있게. */}
       <div className="sticky top-0 z-10 [overflow-anchor:none]">
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 -bottom-4 bg-surface-container/60 backdrop-blur-lg [mask-image:linear-gradient(to_bottom,black_calc(100%-28px),transparent)]"
+          className="pointer-events-none absolute inset-x-0 top-0 -bottom-2 bg-[var(--competition-top-tint,var(--surface-container))]"
+          style={{ maskImage: FILTER_BAR_FADE, WebkitMaskImage: FILTER_BAR_FADE }}
         />
         <div id={FILTER_BAR_ID} ref={filterBarRef} className="relative">
           <div className="flex items-center">
@@ -463,6 +465,11 @@ export function CompetitionListView({
 }
 
 const FILTER_BAR_ID = "competition-filter-bar";
+
+/** 필터 줄 바탕의 아래 끝 16px을 지우는 마스크 — 일정한 속도로 지우면 끝나는 자리가 줄처럼 보여 완만한 곡선(ease)으로 지운다. */
+const FILTER_BAR_FADE =
+  "linear-gradient(to bottom, black calc(100% - 16px), rgb(0 0 0 / 0.92) calc(100% - 13px), rgb(0 0 0 / 0.75) calc(100% - 10px), rgb(0 0 0 / 0.5) calc(100% - 7px), rgb(0 0 0 / 0.27) calc(100% - 5px), rgb(0 0 0 / 0.1) calc(100% - 2px), transparent)";
+
 // 이름 검색(#345)은 당분간 숨긴다(#387) — 검색 로직은 그대로 두고 돋보기·검색칸만 감춘다. 다시 켤 때 true.
 const COMPETITION_SEARCH_ENABLED = false;
 const SEARCH_INPUT_ID = "competition-name-search";

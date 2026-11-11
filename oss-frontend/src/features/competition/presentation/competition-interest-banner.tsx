@@ -418,7 +418,8 @@ const PEEK_EYES: Record<
  * 바탕색으로 녹는다. 관심 대회 배너가 있을 때만 깐다. 흰띠는 회색, 검은띠는 끝 칸의 빨강으로 물들인다.
  * 화면 맨 앞에 두고 z를 주지 않아, 뒤에 오는 필터 줄(sticky)·배너(relative)가 그 위에 그려진다.
  * 음수 z + isolate로 깔면 같은 화면의 시트(fixed z-50)가 main 안에 갇혀 토스트 등과 순서가 바뀌어 쓰지 않는다.
- * 필터 줄이 반투명 바탕(60%)을 덮어 맨 위가 묽어지므로, 시안(16%)보다 진하게 시작한다.
+ * 필터 줄 바탕은 흰 바탕 대신 지금 맨 윗자리 색(TOP_TINT_VAR)으로 칠해 그라데이션을 씻어 내지 않는다 —
+ * 그래서 앱 머리 → 필터 줄 → 아래 목록이 끊기지 않고 한 번에 옅어진다.
  */
 export function InterestBannerTint({ rank }: { rank: BeltRank }) {
   const color = TINT_COLOR[rank];
@@ -428,20 +429,25 @@ export function InterestBannerTint({ rank }: { rank: BeltRank }) {
       className="pointer-events-none absolute inset-x-0 top-0"
       style={{
         height: TINT_HEIGHT,
-        background: `linear-gradient(180deg, color-mix(in srgb, ${color} 28%, var(--surface-container)) 0%, color-mix(in srgb, ${color} 10%, var(--surface-container)) 45%, var(--surface-container) 100%)`,
+        background: `linear-gradient(180deg, color-mix(in srgb, ${color} ${TINT_TOP}%, var(--surface-container)) 0%, color-mix(in srgb, ${color} ${TINT_MID}%, var(--surface-container)) 45%, var(--surface-container) 100%)`,
       }}
     />
   );
 }
 
-/** 그라데이션 높이와 멈춤 자리 — 아래 배경 그림과 앱 머리 색 계산이 같이 쓴다. */
+/** 그라데이션 높이와 멈춤 자리(띠 색 %) — 아래 배경 그림과 앱 머리 색 계산이 같이 쓴다. */
 const TINT_HEIGHT = 180;
+const TINT_TOP = 14;
+const TINT_MID = 6;
+
+/** 필터 줄 바탕이 쓰는 '지금 맨 윗자리 색' CSS 변수 — 없으면 목록 바탕색으로 돌아간다. */
+const TOP_TINT_VAR = "--competition-top-tint";
 
 /**
  * 앱 머리(‘대회’ 제목 줄·상태바)를 웹 맨 윗색과 같게 칠한다 — 앱 머리와 웹 사이 이음매를 없앤다.
  *
- * 맨 위에 보이는 색 = 필터 줄의 반투명 바탕(60%) 너머로 비치는 그라데이션(40%)이라, 띠 색 비율도 그 40%만 친다.
- * 스크롤로 그라데이션이 올라가면 맨 윗자리의 색도 옅어지니, 1% 단위로 바뀔 때만 다시 보낸다(끝까지 많아야 12번).
+ * 같은 색을 필터 줄 바탕(TOP_TINT_VAR)에도 넣어, 줄 바탕이 그라데이션을 하얗게 덮어 이음매가 생기지 않게 한다.
+ * 스크롤로 그라데이션이 올라가면 맨 윗자리의 색도 옅어지니, 1% 단위로 바뀔 때만 다시 칠한다(끝까지 많아야 14번).
  * 다 옅어지면, 그리고 화면을 떠나면 null로 앱 기본색으로 돌린다. 지원하지 않는 앱이면 아무것도 보내지 않는다.
  * 배너가 없을 때(rank null)도 붙자마자 null을 한 번 보낸다 — 앱은 당겨서 새로고침 때 색을 지우지 않고 웹의 새 알림을 기다린다.
  * 색을 계산하지 못하면(color-mix를 모르는 옛 WebKit 등) 보내지 않는다 — 그때는 웹 그라데이션도 그려지지 않는다.
@@ -456,8 +462,11 @@ export function useCompetitionHeaderTint(rank: BeltRank | null) {
     const probe = document.createElement("span");
     probe.style.display = "none";
     document.body.appendChild(probe);
+    const root = document.documentElement.style;
+    const mixOf = (percent: number) =>
+      `color-mix(in srgb, ${color} ${percent}%, var(--surface-container))`;
     const hexOf = (percent: number) => {
-      probe.style.backgroundColor = `color-mix(in srgb, ${color} ${percent}%, var(--surface-container))`;
+      probe.style.backgroundColor = mixOf(percent);
       return toHex(getComputedStyle(probe).backgroundColor);
     };
 
@@ -465,15 +474,18 @@ export function useCompetitionHeaderTint(rank: BeltRank | null) {
     let frame = 0;
     const update = () => {
       frame = 0;
-      const percent = Math.round(tintAt(window.scrollY) * 0.4);
+      const percent = Math.round(tintAt(window.scrollY));
       if (percent === sent) return;
       sent = percent;
       if (percent === 0) {
+        root.removeProperty(TOP_TINT_VAR);
         setNativeCompetitionHeaderTint(null);
         return;
       }
       const hex = hexOf(percent);
-      if (hex) setNativeCompetitionHeaderTint(hex);
+      if (!hex) return;
+      root.setProperty(TOP_TINT_VAR, mixOf(percent));
+      setNativeCompetitionHeaderTint(hex);
     };
     const onScroll = () => {
       if (!frame) frame = requestAnimationFrame(update);
@@ -484,17 +496,19 @@ export function useCompetitionHeaderTint(rank: BeltRank | null) {
       window.removeEventListener("scroll", onScroll);
       cancelAnimationFrame(frame);
       probe.remove();
+      root.removeProperty(TOP_TINT_VAR);
       setNativeCompetitionHeaderTint(null);
     };
   }, [color]);
 }
 
-/** 그라데이션의 띠 색 비율(%) — 맨 위에서 y만큼 내려간 자리. 아래 linear-gradient의 멈춤(28→10→0)과 같다. */
+/** 그라데이션의 띠 색 비율(%) — 맨 위에서 y만큼 내려간 자리. 위 linear-gradient의 멈춤(TOP→MID→0)과 같다. */
 function tintAt(y: number) {
   const mid = TINT_HEIGHT * 0.45;
-  if (y <= 0) return 28;
-  if (y < mid) return 28 - (18 * y) / mid;
-  if (y < TINT_HEIGHT) return 10 - (10 * (y - mid)) / (TINT_HEIGHT - mid);
+  if (y <= 0) return TINT_TOP;
+  if (y < mid) return TINT_TOP - ((TINT_TOP - TINT_MID) * y) / mid;
+  if (y < TINT_HEIGHT)
+    return TINT_MID - (TINT_MID * (y - mid)) / (TINT_HEIGHT - mid);
   return 0;
 }
 
