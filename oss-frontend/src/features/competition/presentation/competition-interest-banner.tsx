@@ -16,7 +16,6 @@ import { cn } from "@/shared/lib/cn";
 import { setNativeCompetitionHeaderTint } from "@/shared/lib/native-bridge";
 import { IconButton } from "@/shared/ui/icon-button";
 import { CloseIcon } from "@/shared/ui/icons";
-import { PRESS_BOUNCE } from "@/shared/ui/press-styles";
 
 /** 카드 위 그래픽 자리 높이 — 필터 줄의 아래 여백(12)과 합쳐 칩 줄 아래 80px. */
 const HEAD_SPACE = 68;
@@ -26,6 +25,12 @@ const CARD_RADIUS = 20;
 /** 띠(검은 단) 가운데 자리 — 카드 왼쪽에서 15, 카드 위에서 26. 머리는 카드 위로 약 58px 드러난다. */
 const BAND_X = 15;
 const BAND_ABOVE_CARD = 26;
+/**
+ * 카드를 누르는 동안 배너 전체가 0.96으로 눌렸다가(100ms) 놓으면 스프링으로 돌아온다(500ms) — PRESS_BOUNCE와 같은 박자.
+ * 눌림을 카드 버튼이 아니라 배너(section)에 걸어, 캐릭터가 카드와 같이 줄어든다.
+ */
+const BANNER_PRESS =
+  "motion-safe:[transition:scale_500ms_var(--ease-spring-wobbly)] motion-safe:has-[[data-banner-card]:active]:scale-96 motion-safe:has-[[data-banner-card]:active]:[transition:scale_100ms_ease-out]";
 
 /**
  * 곧 마감 배너 (#396) — 필터 줄 바로 아래, 접수 마감이 일주일 안으로 다가온 내 관심 대회 한 장.
@@ -36,6 +41,7 @@ const BAND_ABOVE_CARD = 26;
  * 아랫몸은 카드 뒤에서 잘라 카드 밖으로 드러나지 않는다.
  * 카드: 진한 면에 이름과 닫기(✕), 아래 줄에 날짜(요일)와 목록 줄과 같은 접수 칩. 카드를 누르면 상세가 열린다.
  * ✕로 닫으면 이 기기에서 그 대회의 그 마감은 다시 뜨지 않고 다음으로 급한 대회가 뜬다. 띄울 대회가 없으면 아무것도 그리지 않는다.
+ * 후보를 모두 닫으면 그 자리에 DeadlineBannerReopen(첫 카드 뒤 캐릭터)이 남고, 누르면 다시 뜬다.
  */
 export function CompetitionInterestBanner({
   item,
@@ -54,7 +60,13 @@ export function CompetitionInterestBanner({
   const { competition, registration } = item;
 
   return (
-    <section aria-label="곧 마감인 관심 대회" className="relative mb-3 px-4">
+    // 카드를 누르면 제목·캐릭터·카드가 한 덩어리로 눌린다(카드 가운데 기준). 카드만 줄면 카드 뒤에 숨은 캐릭터의
+    // 잘린 아랫몸이 카드 왼쪽 밖으로 드러난다. ✕를 누를 때는 줄지 않는다.
+    <section
+      aria-label="곧 마감인 관심 대회"
+      className={cn("relative mb-3 px-4", BANNER_PRESS)}
+      style={{ transformOrigin: `50% ${HEAD_SPACE + CARD_HEIGHT / 2}px` }}
+    >
       {/* 제목 — 캐릭터 오른쪽(카드 왼쪽 + 38), 카드 위 22px. */}
       <h2
         className="pointer-events-none absolute left-[54px] z-[2] text-[17px] leading-[22px] font-bold text-text-primary"
@@ -69,11 +81,9 @@ export function CompetitionInterestBanner({
         <div className="relative z-[1]">
           <button
             type="button"
+            data-banner-card
             onClick={() => onSelect(item)}
-            className={cn(
-              "flex w-full flex-col justify-between rounded-20 bg-[var(--cool-gray-900)] py-[14px] pr-12 pl-4 text-left text-text-on-dark",
-              PRESS_BOUNCE,
-            )}
+            className="flex w-full flex-col justify-between rounded-20 bg-[var(--cool-gray-900)] py-[14px] pr-12 pl-4 text-left text-text-on-dark"
             style={{ height: CARD_HEIGHT }}
           >
             <span className="truncate text-[16px] leading-[22px] font-bold">
@@ -167,9 +177,109 @@ function dismissDeadlineBanner(key: string) {
   window.dispatchEvent(new Event(DISMISS_EVENT));
 }
 
+/** 닫아 둔 곧 마감 배너를 다시 연다 — 지금 후보들의 닫은 기록을 모두 지운다. 가장 급한 한 장이 다시 뜬다. */
+function reopenDeadlineBanner(candidates: readonly DeadlineSoonItem[]) {
+  for (const candidate of candidates) {
+    const key = dismissKey(candidate);
+    hiddenThisSession.delete(key);
+    try {
+      window.localStorage.removeItem(DISMISSED_KEY_PREFIX + key);
+    } catch {
+      // 저장소를 못 쓰면 지금 화면 기억만 지워도 다시 뜬다.
+    }
+  }
+  window.dispatchEvent(new Event(DISMISS_EVENT));
+  // 누른 캐릭터는 사라지니, 키보드·화면 읽기 사용자가 길을 잃지 않게 다시 뜬 배너 카드로 초점을 옮긴다.
+  requestAnimationFrame(() =>
+    document
+      .querySelector<HTMLElement>("[data-banner-card]")
+      ?.focus({ preventScroll: true }),
+  );
+}
+
 function subscribeDismissed(onChange: () => void) {
   window.addEventListener(DISMISS_EVENT, onChange);
   return () => window.removeEventListener(DISMISS_EVENT, onChange);
+}
+
+/** 다시 열기 캐릭터 자리 — 필터 줄 아래 빈자리 높이와, 캐릭터 가운데가 첫 카드 오른쪽 끝에서 들어온 거리. */
+const REOPEN_SPACE = 66;
+const REOPEN_FROM_RIGHT = 80;
+/** 띠 가운데가 첫 카드 위 끝보다 26px 위 — 배너 캐릭터와 같이 띠까지 다 보인다. 머리는 카드 위로 약 58px. */
+const REOPEN_BAND_ABOVE_CARD = 26;
+/** 첫 카드는 목록 맨 위에서 4px 아래(달 묶음의 위 여백)에서 시작한다. */
+const LIST_TOP_TO_CARD = 4;
+/** 캐릭터 상자를 카드 위 끝 아래로 얼마나 내려 자를지 — 그 아래 몸은 카드에 가려진다. */
+const REOPEN_CLIP_BELOW = 14;
+
+/**
+ * 곧 마감 배너를 닫았을 때 그 자리를 대신하는 내 띠 캐릭터 — 첫 대회 카드 뒤 오른쪽에서 머리만 내민다.
+ *
+ * 꾸밈 요소이자 배너를 다시 여는 손잡이다. 누르면 닫아 둔 배너가 다시 뜬다(캐릭터가 배너 쪽으로 옮겨 가 다시 튀어 오른다).
+ * 닫은 대회의 마감이 다 지나 후보가 없어지면 함께 사라진다. 목록이 비었거나 달력이면 그리지 않는다(호출부가 정한다).
+ * 바로 아래 목록의 첫 카드(불투명)가 DOM에서 뒤에 오니, 캐릭터 상자를 카드 위 끝 아래까지 내려도 몸은 카드 뒤에 가려진다.
+ * 상자는 머리끝보다 10px 위에서 시작해 띠용 튀어 오를 때(넘침 8px) 머리가 잘리지 않는다.
+ */
+export function DeadlineBannerReopen({
+  candidates,
+  beltRank,
+}: {
+  candidates: readonly DeadlineSoonItem[];
+  beltRank: BeltRank | null;
+}) {
+  const rank = beltRank ?? "white";
+  const body = PEEK_BODY[rank];
+  const eyes = PEEK_EYES[rank];
+  const cardTop = REOPEN_SPACE + LIST_TOP_TO_CARD;
+  const bandY = cardTop - REOPEN_BAND_ABOVE_CARD;
+  const headTop = bandY - body.bandY;
+  const boxTop = headTop - 10;
+  const bandYInBox = bandY - boxTop;
+
+  return (
+    <div className="relative" style={{ height: REOPEN_SPACE }}>
+      <button
+        type="button"
+        aria-label="닫은 곧 마감 알림 다시 보기"
+        onClick={() => reopenDeadlineBanner(candidates)}
+        className="absolute w-11 overflow-hidden"
+        style={{
+          top: boxTop,
+          right: 16 + REOPEN_FROM_RIGHT - 22,
+          height: cardTop + REOPEN_CLIP_BELOW - boxTop,
+        }}
+      >
+        <span
+          aria-hidden
+          className="absolute inset-0 motion-safe:animate-peek-rise"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- 크기를 고정한 작은 장식 그림 */}
+          <img
+            src={body.src}
+            alt=""
+            width={body.width}
+            height={body.height}
+            className="absolute max-w-none"
+            style={{ left: 22 - body.bandX, top: bandYInBox - body.bandY }}
+          />
+          {/* eslint-disable-next-line @next/next/no-img-element -- 크기를 고정한 작은 장식 그림 */}
+          <img
+            src={eyes.src}
+            alt=""
+            width={eyes.width}
+            height={eyes.height}
+            className="absolute max-w-none"
+            style={{
+              left: 22 - eyes.width / 2,
+              top: bandYInBox - eyes.height / 2,
+              width: eyes.width,
+              height: eyes.height,
+            }}
+          />
+        </span>
+      </button>
+    </div>
+  );
 }
 
 /**

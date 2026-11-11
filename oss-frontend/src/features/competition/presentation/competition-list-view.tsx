@@ -18,6 +18,7 @@ import type { CompetitionRegion } from "@/features/competition/domain/competitio
 import { CompetitionCalendar } from "@/features/competition/presentation/competition-calendar";
 import {
   CompetitionInterestBanner,
+  DeadlineBannerReopen,
   InterestBannerTint,
   useCompetitionHeaderTint,
   useDeadlineBannerItem,
@@ -212,6 +213,9 @@ export function CompetitionListView({
   const deadlineBannerItem = useDeadlineBannerItem(deadlineSoon);
   // 달력에서는 배너를 걷는다 — 달력 칸이 첫 화면에 다 들어와야 날짜를 고를 수 있다.
   const showBanner = mode === "list" && deadlineBannerItem !== null;
+  // 후보를 모두 닫았으면 첫 카드 뒤에 캐릭터를 남겨 다시 열 수 있게 한다(목록이 있을 때만).
+  const showBannerReopen =
+    mode === "list" && deadlineSoon.length > 0 && deadlineBannerItem === null;
   // 앱의 '대회' 머리를 맨 위 띠 색 그라데이션과 같은 색으로 — 배너가 보일 때만, 아니면 앱 기본색.
   useCompetitionHeaderTint(showBanner ? (beltRank ?? "white") : null);
 
@@ -400,6 +404,12 @@ export function CompetitionListView({
           />
         ) : (
           <div ref={listRef} className="pb-6">
+            {showBannerReopen ? (
+              <DeadlineBannerReopen
+                candidates={deadlineSoon}
+                beltRank={beltRank}
+              />
+            ) : null}
             {visibleMonths.map((month, index) => (
               <MonthSection
                 key={`${month.year}-${month.month}`}

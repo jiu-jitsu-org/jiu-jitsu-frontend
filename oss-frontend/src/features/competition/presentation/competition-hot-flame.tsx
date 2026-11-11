@@ -48,3 +48,29 @@ export function HotFlame({ size = 18 }: { size?: number }) {
     </span>
   );
 }
+
+/**
+ * 대회 줄의 HOT 표시 — 불꽃과 'HOT' 글자가 같은 자리에서 번갈아 나온다(4초에 한 번).
+ *
+ * 불꽃 옆에 HOT을 늘 같이 두면 같은 뜻을 두 번 말하고 이름 줄 자리도 더 먹는다. 그래서 한 자리에 겹쳐 두고
+ * 불꽃(약 2.4초)이 위로 빠지면 HOT(약 0.9초)이 아래에서 올라왔다가 다시 불꽃으로 돌아간다. 자리 폭은 둘 중 넓은 HOT에
+ * 맞춰 고정하고 둘 다 왼쪽에 붙여, 바뀌는 동안 이름 줄이 흔들리지 않고 이름과의 틈도 같다. 화면 밖이거나 앱이 가려지면 멈추고,
+ * 동작 줄이기 설정이면 불꽃만 가만히 보인다. 읽어 주는 이름은 호출부가 따로 단다.
+ */
+export function HotMark({ size = 18 }: { size?: number }) {
+  const ref = usePauseMotionWhenHidden<HTMLSpanElement>();
+  return (
+    <span
+      ref={ref}
+      aria-hidden
+      className="inline-grid flex-none items-center justify-items-start data-[motion-paused]:[&_*]:[animation-play-state:paused]"
+    >
+      <span className="[grid-area:1/1] motion-safe:animate-hot-swap-flame">
+        <HotFlame size={size} />
+      </span>
+      <span className="[grid-area:1/1] opacity-0 motion-safe:animate-hot-swap-text">
+        HOT
+      </span>
+    </span>
+  );
+}

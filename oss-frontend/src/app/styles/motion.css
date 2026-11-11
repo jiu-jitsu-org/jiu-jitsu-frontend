@@ -214,6 +214,10 @@
   --animate-flame-sway: flame-sway 1600ms ease-in-out infinite;
   --animate-flame-flicker: flame-flicker 1100ms ease-in-out infinite;
   --animate-flame-glow: flame-glow 2300ms ease-in-out infinite;
+  /* 대회 줄 HOT 표시 — 한 자리에 겹친 불꽃(약 2.4초)과 HOT 글자(약 0.9초)가 위로 넘기듯 번갈아 나온다.
+     둘이 같은 4초 박자를 나눠 써서 언제나 하나만 보인다. 자리가 화면 밖이면 멈춘다. */
+  --animate-hot-swap-flame: hot-swap-flame 4000ms ease-in-out infinite;
+  --animate-hot-swap-text: hot-swap-text 4000ms ease-in-out infinite;
   /* 밸런스 게임 접힌 바(#305) — 화면 구조의 일부라 출렁이지 않고 위에서 곧게 미끄러져 내려온다. */
   --animate-bar-slide-in: bar-slide-in 240ms var(--ease-smooth-out) both;
   /* 접힌 바 숨김 — 위로 곧게 걷힌다. */
@@ -494,6 +498,43 @@
     }
     75% {
       transform: translateX(0.6px) scale(0.92, 1.16);
+    }
+  }
+  @keyframes hot-swap-flame {
+    0%,
+    60% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    66% {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    66.01%,
+    94% {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes hot-swap-text {
+    0%,
+    60% {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    66%,
+    88% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    94%,
+    100% {
+      opacity: 0;
+      transform: translateY(-6px);
     }
   }
   @keyframes flame-glow {
