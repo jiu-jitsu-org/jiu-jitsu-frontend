@@ -8,7 +8,7 @@ import type {
   Competition,
   CompetitionDivision,
 } from "@/features/competition/domain/competition";
-import { HotFlame } from "@/features/competition/presentation/competition-hot-flame";
+import { HotMark } from "@/features/competition/presentation/competition-hot-flame";
 import { isPopularCompetition } from "@/features/competition/domain/competition-popularity";
 import type { RegistrationStatus } from "@/features/competition/domain/competition-registration";
 import { CompetitionDetailLink } from "@/features/competition/presentation/competition-detail-link";
@@ -180,10 +180,9 @@ export function CompetitionRow({
               {competition.name}
             </CompetitionDetailLink>
             {popular ? (
-              <span className="ml-1.5 inline-flex items-center gap-0.5 align-[-1px] text-[13px] leading-none font-bold whitespace-nowrap text-text-error">
-                <HotFlame size={18} />
-                {/* 보이는 글자는 짧게 HOT, 읽어 주는 이름은 뜻 그대로. */}
-                <span aria-hidden>HOT</span>
+              <span className="ml-1.5 inline-flex items-center align-[-1px] text-[13px] leading-none font-bold whitespace-nowrap text-text-error">
+                {/* 불꽃과 HOT 글자가 한 자리에서 번갈아 나온다. 읽어 주는 이름은 뜻 그대로. */}
+                <HotMark size={18} />
                 <span className="sr-only">관심 많은 대회</span>
               </span>
             ) : null}

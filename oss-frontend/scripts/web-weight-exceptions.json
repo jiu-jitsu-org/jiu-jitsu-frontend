@@ -30,6 +30,8 @@
     "src/app/styles/motion.css::infinite:schedule-ripple": "대회 상세 일정의 지금 단계 점 후광. transform·opacity만 움직이고 점이 화면 밖이거나 앱이 가려지면 멈춘다(usePauseMotionWhenHidden).",
     "src/app/styles/motion.css::infinite:flame-sway": "대회 줄 HOT 불꽃이 일렁이고 빨강 ↔ 주황을 오간다. transform·opacity만 움직이고 SVG 안쪽이 아니라 SVG·감싼 상자를 통째로 움직이며, 불꽃이 화면 밖이거나 앱이 가려지면 멈춘다(usePauseMotionWhenHidden).",
     "src/app/styles/motion.css::infinite:flame-flicker": "대회 줄 HOT 불꽃이 일렁이고 빨강 ↔ 주황을 오간다. transform·opacity만 움직이고 SVG 안쪽이 아니라 SVG·감싼 상자를 통째로 움직이며, 불꽃이 화면 밖이거나 앱이 가려지면 멈춘다(usePauseMotionWhenHidden).",
+    "src/app/styles/motion.css::infinite:hot-swap-flame": "대회 줄 HOT 표시에서 불꽃과 HOT 글자가 한 자리에서 번갈아 나온다. transform·opacity만 움직이고 글자·SVG를 감싼 상자를 통째로 움직이며, 자리가 화면 밖이거나 앱이 가려지면 멈춘다(usePauseMotionWhenHidden).",
+    "src/app/styles/motion.css::infinite:hot-swap-text": "대회 줄 HOT 표시에서 불꽃과 HOT 글자가 한 자리에서 번갈아 나온다. transform·opacity만 움직이고 글자·SVG를 감싼 상자를 통째로 움직이며, 자리가 화면 밖이거나 앱이 가려지면 멈춘다(usePauseMotionWhenHidden).",
     "src/app/styles/motion.css::infinite:flame-glow": "대회 줄 HOT 불꽃이 일렁이고 빨강 ↔ 주황을 오간다. transform·opacity만 움직이고 SVG 안쪽이 아니라 SVG·감싼 상자를 통째로 움직이며, 불꽃이 화면 밖이거나 앱이 가려지면 멈춘다(usePauseMotionWhenHidden)."
   }
 }
