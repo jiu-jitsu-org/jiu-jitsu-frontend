@@ -626,6 +626,28 @@
         }
       }
     },
+    "icon-flame-mid": {
+      "$type": "color",
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          1.0,
+          0.47843137254901963,
+          0.0
+        ],
+        "alpha": 1,
+        "hex": "#FF7A00"
+      },
+      "$extensions": {
+        "com.figma.scopes": [
+          "ALL_SCOPES"
+        ],
+        "com.figma.aliasData": {
+          "targetVariableName": "Color/Orange/500",
+          "targetVariableSetName": "Primitive"
+        }
+      }
+    },
     "icon-flame-core": {
       "$type": "color",
       "$value": {

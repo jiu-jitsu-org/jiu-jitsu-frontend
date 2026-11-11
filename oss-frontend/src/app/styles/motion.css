@@ -204,6 +204,12 @@
   --animate-bell-mute: bell-mute 500ms ease-out both;
   /* 대회 상세 일정의 지금 단계 점 — 후광이 두 번 연달아 퍼지고(띠용띠용) 잠깐 쉰다. 점이 화면 밖이면 멈춘다. */
   --animate-schedule-ripple: schedule-ripple 2400ms ease-out infinite;
+  /* 대회 줄 HOT 불꽃 — 불꽃 전체가 밑동을 축으로 일렁이고, 노란 속불은 다른 박자로 깜빡이고, 위에 겹친 주황 불꽃이
+     옅어졌다 짙어져 빨강 ↔ 주황 사이를 오간다. 세 박자가 어긋나 같은 모양이 되풀이되지 않는다.
+     색은 겹친 불꽃의 투명도만 움직여 바꾼다(채우기 색을 움직이면 매 프레임 다시 칠한다). 불꽃이 화면 밖이면 멈춘다. */
+  --animate-flame-sway: flame-sway 1600ms ease-in-out infinite;
+  --animate-flame-flicker: flame-flicker 1100ms ease-in-out infinite;
+  --animate-flame-glow: flame-glow 2300ms ease-in-out infinite;
   /* 밸런스 게임 접힌 바(#305) — 화면 구조의 일부라 출렁이지 않고 위에서 곧게 미끄러져 내려온다. */
   --animate-bar-slide-in: bar-slide-in 240ms var(--ease-smooth-out) both;
   /* 접힌 바 숨김 — 위로 곧게 걷힌다. */
@@ -454,6 +460,45 @@
     59% {
       transform: scale(2.6);
       opacity: 0;
+    }
+  }
+  @keyframes flame-sway {
+    0%,
+    100% {
+      transform: rotate(0deg) scale(1, 1);
+    }
+    25% {
+      transform: rotate(-8deg) scale(1.05, 0.93);
+    }
+    55% {
+      transform: rotate(6deg) scale(0.95, 1.1);
+    }
+    80% {
+      transform: rotate(-3deg) scale(1.02, 0.98);
+    }
+  }
+  @keyframes flame-flicker {
+    0%,
+    100% {
+      transform: scale(1, 1);
+    }
+    25% {
+      transform: translateX(-0.6px) scale(0.86, 1.2);
+    }
+    50% {
+      transform: scale(1.08, 0.84);
+    }
+    75% {
+      transform: translateX(0.6px) scale(0.92, 1.16);
+    }
+  }
+  @keyframes flame-glow {
+    0%,
+    100% {
+      opacity: 0;
+    }
+    50% {
+      opacity: 0.75;
     }
   }
   @keyframes bell-mute {

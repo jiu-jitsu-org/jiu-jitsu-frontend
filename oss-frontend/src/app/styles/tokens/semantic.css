@@ -27,6 +27,7 @@
   --icon-disabled-on-dark: var(--opacity-white-40);
   --icon-on-inactive: var(--bw-white);
   --icon-on-inactive-2: var(--bw-white);
+  --icon-flame-mid: var(--orange-500);
   --icon-flame-core: var(--yellow-400);
   --transparent: #ffffff00;
   --border-default: var(--cool-gray-200);
