@@ -41,6 +41,7 @@ const BANNER_PRESS =
  * 아랫몸은 카드 뒤에서 잘라 카드 밖으로 드러나지 않는다.
  * 카드: 진한 면에 이름과 닫기(✕), 아래 줄에 날짜(요일)와 목록 줄과 같은 접수 칩. 카드를 누르면 상세가 열린다.
  * ✕로 닫으면 이 기기에서 그 대회의 그 마감은 다시 뜨지 않고 다음으로 급한 대회가 뜬다. 띄울 대회가 없으면 아무것도 그리지 않는다.
+ * 후보를 모두 닫으면 그 자리에 DeadlineBannerReopen(첫 카드 뒤 캐릭터)이 남고, 누르면 다시 뜬다.
  */
 export function CompetitionInterestBanner({
   item,
@@ -176,9 +177,103 @@ function dismissDeadlineBanner(key: string) {
   window.dispatchEvent(new Event(DISMISS_EVENT));
 }
 
+/** 닫아 둔 곧 마감 배너를 다시 연다 — 지금 후보들의 닫은 기록을 모두 지운다. 가장 급한 한 장이 다시 뜬다. */
+function reopenDeadlineBanner(candidates: readonly DeadlineSoonItem[]) {
+  for (const candidate of candidates) {
+    const key = dismissKey(candidate);
+    hiddenThisSession.delete(key);
+    try {
+      window.localStorage.removeItem(DISMISSED_KEY_PREFIX + key);
+    } catch {
+      // 저장소를 못 쓰면 지금 화면 기억만 지워도 다시 뜬다.
+    }
+  }
+  window.dispatchEvent(new Event(DISMISS_EVENT));
+}
+
 function subscribeDismissed(onChange: () => void) {
   window.addEventListener(DISMISS_EVENT, onChange);
   return () => window.removeEventListener(DISMISS_EVENT, onChange);
+}
+
+/** 다시 열기 캐릭터 자리 — 필터 줄 아래 빈자리 높이와, 캐릭터 가운데가 첫 카드 오른쪽 끝에서 들어온 거리. */
+const REOPEN_SPACE = 66;
+const REOPEN_FROM_RIGHT = 80;
+/** 띠 가운데가 첫 카드 위 끝보다 26px 위 — 배너 캐릭터와 같이 띠까지 다 보인다. 머리는 카드 위로 약 58px. */
+const REOPEN_BAND_ABOVE_CARD = 26;
+/** 첫 카드는 목록 맨 위에서 4px 아래(달 묶음의 위 여백)에서 시작한다. */
+const LIST_TOP_TO_CARD = 4;
+/** 캐릭터 상자를 카드 위 끝 아래로 얼마나 내려 자를지 — 그 아래 몸은 카드에 가려진다. */
+const REOPEN_CLIP_BELOW = 14;
+
+/**
+ * 곧 마감 배너를 닫았을 때 그 자리를 대신하는 내 띠 캐릭터 — 첫 대회 카드 뒤 오른쪽에서 머리만 내민다.
+ *
+ * 꾸밈 요소이자 배너를 다시 여는 손잡이다. 누르면 닫아 둔 배너가 다시 뜬다(캐릭터가 배너 쪽으로 옮겨 가 다시 튀어 오른다).
+ * 닫은 대회의 마감이 다 지나 후보가 없어지면 함께 사라진다. 목록이 비었거나 달력이면 그리지 않는다(호출부가 정한다).
+ * 바로 아래 목록의 첫 카드(불투명)가 DOM에서 뒤에 오니, 캐릭터 상자를 카드 위 끝 아래까지 내려도 몸은 카드 뒤에 가려진다.
+ * 상자는 머리끝보다 10px 위에서 시작해 띠용 튀어 오를 때(넘침 8px) 머리가 잘리지 않는다.
+ */
+export function DeadlineBannerReopen({
+  candidates,
+  beltRank,
+}: {
+  candidates: readonly DeadlineSoonItem[];
+  beltRank: BeltRank | null;
+}) {
+  const rank = beltRank ?? "white";
+  const body = PEEK_BODY[rank];
+  const eyes = PEEK_EYES[rank];
+  const cardTop = REOPEN_SPACE + LIST_TOP_TO_CARD;
+  const bandY = cardTop - REOPEN_BAND_ABOVE_CARD;
+  const headTop = bandY - body.bandY;
+  const boxTop = headTop - 10;
+  const bandYInBox = bandY - boxTop;
+
+  return (
+    <div className="relative" style={{ height: REOPEN_SPACE }}>
+      <button
+        type="button"
+        aria-label="닫은 곧 마감 알림 다시 보기"
+        onClick={() => reopenDeadlineBanner(candidates)}
+        className="absolute w-11 overflow-hidden"
+        style={{
+          top: boxTop,
+          right: 16 + REOPEN_FROM_RIGHT - 22,
+          height: cardTop + REOPEN_CLIP_BELOW - boxTop,
+        }}
+      >
+        <span
+          aria-hidden
+          className="absolute inset-0 motion-safe:animate-peek-rise"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- 크기를 고정한 작은 장식 그림 */}
+          <img
+            src={body.src}
+            alt=""
+            width={body.width}
+            height={body.height}
+            className="absolute max-w-none"
+            style={{ left: 22 - body.bandX, top: bandYInBox - body.bandY }}
+          />
+          {/* eslint-disable-next-line @next/next/no-img-element -- 크기를 고정한 작은 장식 그림 */}
+          <img
+            src={eyes.src}
+            alt=""
+            width={eyes.width}
+            height={eyes.height}
+            className="absolute max-w-none"
+            style={{
+              left: 22 - eyes.width / 2,
+              top: bandYInBox - eyes.height / 2,
+              width: eyes.width,
+              height: eyes.height,
+            }}
+          />
+        </span>
+      </button>
+    </div>
+  );
 }
 
 /**
