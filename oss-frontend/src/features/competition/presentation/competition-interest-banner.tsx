@@ -189,6 +189,12 @@ function reopenDeadlineBanner(candidates: readonly DeadlineSoonItem[]) {
     }
   }
   window.dispatchEvent(new Event(DISMISS_EVENT));
+  // 누른 캐릭터는 사라지니, 키보드·화면 읽기 사용자가 길을 잃지 않게 다시 뜬 배너 카드로 초점을 옮긴다.
+  requestAnimationFrame(() =>
+    document
+      .querySelector<HTMLElement>("[data-banner-card]")
+      ?.focus({ preventScroll: true }),
+  );
 }
 
 function subscribeDismissed(onChange: () => void) {
