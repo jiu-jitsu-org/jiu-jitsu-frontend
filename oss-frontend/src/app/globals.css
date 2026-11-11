@@ -131,8 +131,8 @@ html:has(.toast-inset-comment-bar) {
   --toast-bottom-inset: 85px;
 }
 
-/* 커뮤니티 메인 피드 리스트에서만 오버스크롤 바운스 허용.
-   피드는 문서 레벨로 스크롤되므로 해당 페이지가 떠 있을 때만 html/body의 차단을 해제한다. */
+/* 앱의 당겨서 새로고침이 붙는 목록(커뮤니티 메인 피드·대회 탭)에서만 오버스크롤 바운스 허용.
+   목록은 문서 레벨로 스크롤되므로 해당 페이지가 떠 있을 때만 html/body의 차단을 해제한다. */
 html:has(.feed-bounce-scroll),
 body:has(.feed-bounce-scroll) {
   overscroll-behavior: auto;

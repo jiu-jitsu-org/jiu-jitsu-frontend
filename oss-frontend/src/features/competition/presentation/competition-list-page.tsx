@@ -17,7 +17,8 @@ export function CompetitionListPage({
   data: CompetitionListPageData;
 }) {
   return (
-    <main className="relative min-h-screen bg-surface-container">
+    // 홈 피드처럼 맨 위에서 당기면 앱의 당겨서 새로고침이 걸리게 바운스를 연다(feed-bounce-scroll, globals.css).
+    <main className="feed-bounce-scroll relative min-h-screen bg-surface-container">
       {renderBody(data)}
     </main>
   );
