@@ -11,7 +11,7 @@ import {
   openNativeHomeFeed,
   openNativeSubview,
 } from "@/shared/lib/native-bridge";
-import { ChevronLeftIcon } from "@/shared/ui/icons";
+import { ChevronLeftIcon, PeopleIcon } from "@/shared/ui/icons";
 import { SURFACE_PRESS } from "@/shared/ui/press-styles";
 import { RelativeTime } from "@/shared/ui/relative-time";
 
@@ -31,7 +31,7 @@ export function CompetitionStories({
   const empty = stories.length === 0;
 
   return (
-    <DetailSection title="대회 이야기">
+    <DetailSection title="대회 이야기" icon={<PeopleIcon size={20} />}>
       {empty ? (
         <div className="py-4 text-center">
           <p className="text-[15px] leading-[21px] font-semibold text-text-primary">

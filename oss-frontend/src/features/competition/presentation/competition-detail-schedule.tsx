@@ -3,6 +3,7 @@ import { longDateLabel } from "@/features/competition/presentation/competition-d
 import { DetailSection } from "@/features/competition/presentation/competition-detail-sections";
 import { ScheduleCurrentDot } from "@/features/competition/presentation/competition-schedule-current-dot";
 import { cn } from "@/shared/lib/cn";
+import { CalendarIcon } from "@/shared/ui/icons";
 
 type Step = CompetitionScheduleItem & {
   phase: "done" | "current" | "upcoming";
@@ -50,7 +51,7 @@ export function CompetitionScheduleSection({
   const currentIndex = steps.findIndex((step) => step.phase === "current");
 
   return (
-    <DetailSection title="일정">
+    <DetailSection title="일정" icon={<CalendarIcon size={20} filled />}>
       <ol className="flex flex-col py-1">
         {steps.map((step, index) => {
           const current = step.phase === "current";

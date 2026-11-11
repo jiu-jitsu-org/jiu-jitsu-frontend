@@ -83,7 +83,7 @@ export function CompetitionInfoBasis({
       <p>
         {verifiedOn
           ? "대회 공지 기준이에요. 바뀔 수 있어요."
-          : "아직 대회 공지와 맞춰 보지 못한 정보예요. 신청 전에 대회 공지에서 꼭 확인해 주세요."}
+          : "아직 확인 전인 정보라 대회 공지를 꼭 봐 주세요."}
       </p>
       <div className="mt-0.5 flex items-center gap-1">
         {verifiedOn ? (

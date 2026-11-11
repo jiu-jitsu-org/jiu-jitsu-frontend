@@ -14,6 +14,8 @@ export { MoreVerticalIcon } from "./more-vertical-icon";
 export { ShareIcon } from "./share-icon";
 export { ChevronDownIcon } from "./chevron-down-icon";
 export { CalendarIcon } from "./calendar-icon";
+export { WonCoinIcon } from "./won-coin-icon";
+export { PeopleIcon } from "./people-icon";
 export { ListIcon } from "./list-icon";
 export { SearchIcon } from "./search-icon";
 export { ChevronLeftIcon } from "./chevron-left-icon";

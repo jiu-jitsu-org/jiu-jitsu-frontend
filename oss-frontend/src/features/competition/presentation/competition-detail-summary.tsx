@@ -64,7 +64,11 @@ export function CompetitionDetailSummary({
             onClick={() => interest.toggle(target)}
             aria-pressed={on}
             aria-label={`관심 등록${count > 0 ? `, 관심 ${count}명` : ""}`}
-            className="gap-1 rounded-full pr-3.5 pl-3"
+            // 누르기 전은 아래 정보 상자와 같은 옅은 회색 면 — 기본 회색 버튼 면은 이 자리에서 너무 짙어 보였다.
+            className={cn(
+              "gap-1 rounded-full pr-3.5 pl-3",
+              !on && "bg-surface-field",
+            )}
           >
             <HeartIcon
               size={18}
