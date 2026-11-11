@@ -10,6 +10,10 @@ import {
   revealOnLoad,
 } from "@/features/community/presentation/image-fallback";
 import { cn } from "@/shared/lib/cn";
+import {
+  AVATAR_IMAGE_TRANSFORM,
+  resizeImageKitUrl,
+} from "@/shared/lib/image-resize";
 import { PersonIcon } from "@/shared/ui/icons";
 
 /**
@@ -58,7 +62,8 @@ export function Avatar({
         // eslint-disable-next-line @next/next/no-img-element
         <img
           ref={detectSettledImage}
-          src={src ?? undefined}
+          // 보이는 크기만큼만 받는다 — 원본은 1024px 약 290KB(jiu-jitsu-ios#261).
+          src={src ? resizeImageKitUrl(src, AVATAR_IMAGE_TRANSFORM) : undefined}
           alt=""
           // 남의 프로필 사진을 꾹 눌러 저장·공유하지 못하게 iOS 기본 메뉴와 끌기를 막는다(#306).
           draggable={false}
