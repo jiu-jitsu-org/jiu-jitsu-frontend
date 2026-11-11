@@ -10,25 +10,34 @@ import {
 import { divisionLabels } from "@/features/competition/presentation/competition-month-section";
 import { isDateKey } from "@/features/competition/domain/competition-registration";
 import { cn } from "@/shared/lib/cn";
+import { WonCoinIcon } from "@/shared/ui/icons";
 
 /**
  * 상세 덩어리 하나 — 제목 + 회색 박스. 목록 줄과 같은 회색 박스(rounded-20)로 묶고, 덩어리 사이는 선 없이 간격으로 나눈다.
  * 글자 위계: 대회 이름 24 → 덩어리 제목 18 → 본문 15 → 보조 13. 덩어리 사이(32)를 제목과 박스 사이(12)보다 넓게 둬
  * 제목이 아래 박스에 붙어 읽히게 한다.
+ * 제목 왼쪽 아이콘은 20px · 채운 모양 · 옅은 회색으로, 제목보다 눈에 덜 띄게 무엇에 관한 덩어리인지만 알린다.
  */
 export function DetailSection({
   title,
+  icon,
   children,
   className,
 }: {
   title?: string;
+  icon?: ReactNode;
   children: ReactNode;
   className?: string;
 }) {
   return (
     <section className={cn("px-4 pt-8", className)}>
       {title ? (
-        <h2 className="mb-3 px-1 text-[18px] leading-[26px] font-bold text-text-primary">
+        <h2 className="mb-3 flex items-center gap-1.5 px-1 text-[18px] leading-[26px] font-bold text-text-primary">
+          {icon ? (
+            <span aria-hidden className="inline-flex text-icon-tertiary">
+              {icon}
+            </span>
+          ) : null}
           {title}
         </h2>
       ) : null}
@@ -117,7 +126,7 @@ export function CompetitionFeeSection({
 }) {
   if (fees.length === 0) return null;
   return (
-    <DetailSection title="참가비">
+    <DetailSection title="참가비" icon={<WonCoinIcon size={20} />}>
       <ul className="flex flex-col">
         {fees.map((fee, index) => (
           <li
