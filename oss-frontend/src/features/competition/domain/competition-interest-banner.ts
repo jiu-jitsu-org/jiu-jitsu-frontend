@@ -24,11 +24,14 @@ export const DEADLINE_SOON_DAYS = 7;
  * '곧 마감'이라 부르지 않는다. 마감이 가까운 순, 같으면 이름순.
  * 필터와 무관하다: 지역·접수 중 필터를 켜 둬도 곧 마감인 내 대회는 위에 뜬다.
  */
+/** 곧 마감 후보 — 어느 마감(얼리버드·접수)이 다가와 뽑혔는지(`deadline`, "YYYY-MM-DD")를 함께 든다. */
+export type DeadlineSoonItem = InterestBannerItem & { deadline: string };
+
 export function deadlineSoonInterested(
   items: readonly InterestBannerItem[],
   interestedIds: ReadonlySet<string>,
   today: string,
-): InterestBannerItem[] {
+): DeadlineSoonItem[] {
   return items
     .flatMap((item) => {
       if (!interestedIds.has(item.competition.id)) return [];
@@ -44,7 +47,7 @@ export function deadlineSoonInterested(
         a.deadline.localeCompare(b.deadline) ||
         a.item.competition.name.localeCompare(b.item.competition.name, "ko"),
     )
-    .map(({ item }) => item);
+    .map(({ item, deadline }) => ({ ...item, deadline }));
 }
 
 /**

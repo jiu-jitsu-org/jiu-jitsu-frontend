@@ -3,7 +3,10 @@
 import { useEffect, useSyncExternalStore } from "react";
 
 import type { BeltRank } from "@/features/community/domain/belt";
-import type { InterestBannerItem } from "@/features/competition/domain/competition-interest-banner";
+import type {
+  DeadlineSoonItem,
+  InterestBannerItem,
+} from "@/features/competition/domain/competition-interest-banner";
 import { shortDateLabel } from "@/features/competition/presentation/competition-detail-format";
 import {
   RegistrationChip,
@@ -32,7 +35,7 @@ const BAND_ABOVE_CARD = 26;
  * 모양(2026-11 시안 "Ⓓ 제목 앞 · 똑바로 서기")은 그대로: 카드 왼쪽 위로 내 띠 캐릭터가 곧게 서서 머리를 내밀고,
  * 아랫몸은 카드 뒤에서 잘라 카드 밖으로 드러나지 않는다.
  * 카드: 진한 면에 이름과 닫기(✕), 아래 줄에 날짜(요일)와 목록 줄과 같은 접수 칩. 카드를 누르면 상세가 열린다.
- * ✕로 닫으면 이 기기에서 그 대회는 다시 뜨지 않고 다음으로 급한 대회가 뜬다. 띄울 대회가 없으면 아무것도 그리지 않는다.
+ * ✕로 닫으면 이 기기에서 그 대회의 그 마감은 다시 뜨지 않고 다음으로 급한 대회가 뜬다. 띄울 대회가 없으면 아무것도 그리지 않는다.
  */
 export function CompetitionInterestBanner({
   item,
@@ -41,7 +44,7 @@ export function CompetitionInterestBanner({
   onSelect,
 }: {
   /** 띄울 한 장 — useDeadlineBannerItem이 닫은 대회를 걸러 고른다. 없으면 그리지 않는다. */
-  item: InterestBannerItem | null;
+  item: DeadlineSoonItem | null;
   currentYear: number;
   /** 내 띠. 없으면 흰띠로 그린다. */
   beltRank: BeltRank | null;
@@ -97,7 +100,7 @@ export function CompetitionInterestBanner({
           <IconButton
             size="l"
             aria-label={`${competition.name} 마감 알림 닫기`}
-            onClick={() => dismissDeadlineBanner(competition.id)}
+            onClick={() => dismissDeadlineBanner(dismissKey(item))}
             className="absolute top-[3px] right-1 text-[var(--opacity-white-60)] active:bg-[var(--opacity-white-20)]"
           >
             <CloseIcon size={20} />
@@ -119,36 +122,45 @@ const DISMISS_EVENT = "oss:competition-deadline-banner-dismissed";
  * 스냅샷은 대회 id 문자열이라 값이 같으면 다시 그리지 않는다.
  */
 export function useDeadlineBannerItem(
-  candidates: readonly InterestBannerItem[],
-): InterestBannerItem | null {
-  const id = useSyncExternalStore(
+  candidates: readonly DeadlineSoonItem[],
+): DeadlineSoonItem | null {
+  const key = useSyncExternalStore(
     subscribeDismissed,
-    () =>
-      candidates.find(({ competition }) => !readDismissed(competition.id))
-        ?.competition.id ?? null,
-    () => candidates[0]?.competition.id ?? null,
+    () => {
+      const item = candidates.find(
+        (candidate) => !readDismissed(dismissKey(candidate)),
+      );
+      return item ? dismissKey(item) : null;
+    },
+    () => (candidates[0] ? dismissKey(candidates[0]) : null),
   );
-  return candidates.find(({ competition }) => competition.id === id) ?? null;
+  return candidates.find((candidate) => dismissKey(candidate) === key) ?? null;
+}
+
+/**
+ * 닫은 기록의 이름 — 대회와 마감 날짜를 함께 쓴다. 얼리버드 마감 알림을 닫아도 같은 대회의 접수 마감이
+ * 다가오면 다시 알려야 해서다(마감마다 따로 챙길 일이다).
+ */
+function dismissKey({ competition, deadline }: DeadlineSoonItem) {
+  return `${competition.id}:${deadline}`;
 }
 
 /** 저장소를 못 쓰는 환경(사생활 보호 모드)에서도 지금 화면에서는 닫히게 기억해 둔다. */
 const hiddenThisSession = new Set<string>();
 
-function readDismissed(competitionId: string): boolean {
-  if (hiddenThisSession.has(competitionId)) return true;
+function readDismissed(key: string): boolean {
+  if (hiddenThisSession.has(key)) return true;
   try {
-    return (
-      window.localStorage.getItem(DISMISSED_KEY_PREFIX + competitionId) === "1"
-    );
+    return window.localStorage.getItem(DISMISSED_KEY_PREFIX + key) === "1";
   } catch {
     return false;
   }
 }
 
-function dismissDeadlineBanner(competitionId: string) {
-  hiddenThisSession.add(competitionId);
+function dismissDeadlineBanner(key: string) {
+  hiddenThisSession.add(key);
   try {
-    window.localStorage.setItem(DISMISSED_KEY_PREFIX + competitionId, "1");
+    window.localStorage.setItem(DISMISSED_KEY_PREFIX + key, "1");
   } catch {
     // 저장하지 못하면 다시 열었을 때 또 뜬다.
   }
