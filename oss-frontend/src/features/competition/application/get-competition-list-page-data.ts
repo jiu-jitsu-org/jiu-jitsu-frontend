@@ -1,132 +1,127 @@
 import type { BeltRank } from "@/features/community/domain/belt";
+import { createGetCompetitionListUseCase } from "@/features/competition/application/competition-use-case-factory";
 import { loadCompetitionAlertSettings } from "@/features/competition/application/load-competition-alert-settings";
 import { loadMyBeltRank } from "@/features/competition/application/load-my-belt-rank";
 import {
-  createGetCompetitionInterestCountsUseCase,
-  createGetCompetitionListUseCase,
-  createGetInterestedCompetitionIdsUseCase,
-} from "@/features/competition/application/competition-use-case-factory";
+  COMPETITION_FULL_PAGE_SIZE,
+  COMPETITION_LIST_PAGE_SIZE,
+  type Competition,
+  type CompetitionListQuery,
+  type CompetitionPage,
+  type MonthGroup,
+} from "@/features/competition/domain/competition";
 import type { CompetitionAlertSettings } from "@/features/competition/domain/competition-alert";
 import {
-  groupUpcomingByMonth,
-  type Competition,
-} from "@/features/competition/domain/competition";
+  addDays,
+  registrationStatusOf,
+  type RegistrationStatus,
+} from "@/features/competition/domain/competition-registration";
 import {
+  RESULT_CARD_DAYS,
   recentlyEndedInterested,
   type ResultCardGroup,
 } from "@/features/competition/domain/competition-result-prompt";
-import {
-  COMPETITION_REGIONS,
-  type CompetitionRegion,
-} from "@/features/competition/domain/competition-region";
-import {
-  registrationStatusOn,
-  type RegistrationStatus,
-} from "@/features/competition/domain/competition-registration";
-import { toKstDateKey } from "@/shared/lib/time";
+import { readSessionToken } from "@/shared/lib/auth";
+import { ApiErrorCode, toApiError } from "@/shared/lib/http";
+import { readServerNow, toKstDateKey } from "@/shared/lib/time";
 
 export type CompetitionListItem = {
   competition: Competition;
-  /** 접수 일정이 공지되지 않았거나 일정 값이 잘못된 대회는 null */
+  /** 보여 줄 접수 날짜를 모르는 대회는 null */
   registration: RegistrationStatus | null;
 };
 
-export type CompetitionListMonth = {
-  year: number;
-  month: number;
+export type CompetitionListMonth = MonthGroup<CompetitionListItem>;
+
+/** 목록 한 페이지 — 날짜순. 아래로 이어 받을 커서가 없으면 null. */
+export type CompetitionListChunk = {
+  /** 서버가 본 오늘 — 한국 날짜 "YYYY-MM-DD" */
+  today: string;
   items: CompetitionListItem[];
+  nextCursor: string | null;
 };
 
 export type CompetitionListPageData =
   | {
       ok: true;
-      months: CompetitionListMonth[];
+      /** 오늘(포함) 이후 대회 첫 페이지 — 필터 없이. */
+      list: CompetitionListChunk;
       currentYear: number;
-      /** 오늘 — 한국 날짜 "YYYY-MM-DD". 달력(#339)이 지난 날짜를 흐리게 하고 첫 달을 정할 때 쓴다. */
+      /** 오늘 — 응답의 today. 달력(#339)이 지난 날짜를 흐리게 하고 첫 달을 정할 때 쓴다. */
       today: string;
-      /** 내가 관심 등록한 대회 id. 비로그인이면 빈 배열. */
-      interestedIds: string[];
-      /** 대회별 익명 관심 수(#335). 없는 대회는 0. 읽기 실패면 빈 객체 — 숫자만 안 보인다. */
-      interestCounts: Record<string, number>;
-      /** 예정 대회가 하나라도 있는 시·도 — 지역 시트에서 나머지는 고를 수 없게 둔다. 표준 순서. */
-      regionsWithCompetitions: CompetitionRegion[];
+      /** 접수 중인 내 관심 대회(#396) — 곧 마감 배너 후보. 비로그인·실패면 빈 배열. */
+      interestedOpen: CompetitionListItem[];
       /** 관심 대회 마감 알림 설정(#375). 비로그인이거나 못 읽으면 null — 첫 관심 등록 시트가 뜨지 않는다. */
       alertSettings: CompetitionAlertSettings | null;
       /** 내 띠 — 관심 대회 머리의 캐릭터·그라데이션 색. 비로그인·미입력·실패면 null(흰띠로 그린다). */
       myBeltRank: BeltRank | null;
       /**
        * 끝난 지 며칠 안 된 내 관심 대회 묶음(#403) — 대회 탭 맨 위 결과 남기기 카드. 최근 순.
-       * 끝난 대회는 목록(months)에 없어 따로 싣는다. 비로그인이면 빈 배열.
+       * 끝난 대회는 목록에 없어 따로 싣는다. 비로그인이면 빈 배열.
        */
       endedInterested: ResultCardGroup[];
     }
   | { ok: false };
 
 /**
- * 대회 탭 목록 화면 데이터 — 오늘(한국 날짜) 이후 대회를 월별로 묶어 가까운 날짜부터,
- * 대회마다 오늘 기준 접수 상태를 붙여서. 필터(#334)에 쓸 관심 목록·시·도도 함께 싣는다.
+ * 대회 탭 목록 화면 데이터 — 오늘(서버 기준) 이후 대회를 날짜순으로, 대회마다 접수 상태를 붙여서(#419).
  *
- * now는 요청 시각(readServerNow). "오늘"과 "올해"를 서버 시각 하나로 정해 기기 시계와 어긋나지 않게 한다.
- * signedIn은 요청 쿠키로 본 로그인 여부 — 비로그인이면 관심 목록을 부르지 않는다.
+ * 필터·다음 페이지는 화면이 Server Action(loadCompetitionListChunk)으로 이어 받는다.
+ * 로그인이면 곧 마감 배너(관심 + 접수 중)와 결과 남기기 카드(관심 + 종료, 며칠 전부터)를 함께 읽는다 —
+ * 둘은 덧붙는 정보라 못 읽어도 목록을 막지 않는다.
  */
-export async function getCompetitionListPageData({
-  now,
-  signedIn,
-}: {
-  now: number;
-  signedIn: boolean;
-}): Promise<CompetitionListPageData> {
+export async function getCompetitionListPageData(): Promise<CompetitionListPageData> {
+  const accessToken = await readSessionToken();
+  // 끝난 관심 대회를 받기 시작할 날 — 정확한 오늘은 응답의 today로 다시 거른다(토요일 대회는 하루 더).
+  const endedFrom = addDays(
+    toKstDateKey(readServerNow()),
+    -(RESULT_CARD_DAYS + 2),
+  );
   try {
-    const [
-      competitions,
-      interestedIds,
-      interestCounts,
-      alertSettings,
-      myBeltRank,
-    ] = await Promise.all([
-      createGetCompetitionListUseCase().execute(),
-      signedIn ? loadInterestedIds() : Promise.resolve([]),
-      loadInterestCounts(),
-      signedIn ? loadCompetitionAlertSettings() : Promise.resolve(null),
-      signedIn ? loadMyBeltRank() : Promise.resolve(null),
-    ]);
-    const today = toKstDateKey(now);
-    const months = groupUpcomingByMonth(competitions, today);
-
-    const regions = new Set(
-      months.flatMap((month) =>
-        month.competitions.flatMap((competition) =>
-          competition.region ? [competition.region] : [],
-        ),
-      ),
-    );
+    const [page, interestedOpen, interestedEnded, alertSettings, myBeltRank] =
+      await Promise.all([
+        fetchPage({ size: COMPETITION_LIST_PAGE_SIZE }, accessToken),
+        accessToken
+          ? fetchPage(
+              {
+                interested: true,
+                statuses: ["open"],
+                size: COMPETITION_FULL_PAGE_SIZE,
+              },
+              accessToken,
+            ).catch(() => null)
+          : null,
+        accessToken
+          ? fetchPage(
+              {
+                interested: true,
+                statuses: ["ended"],
+                date: endedFrom,
+                size: COMPETITION_FULL_PAGE_SIZE,
+              },
+              accessToken,
+            ).catch(() => null)
+          : null,
+        accessToken ? loadCompetitionAlertSettings() : null,
+        accessToken ? loadMyBeltRank() : null,
+      ]);
+    const today = page.today;
 
     return {
       ok: true,
-      months: months.map((month) => ({
-        year: month.year,
-        month: month.month,
-        items: month.competitions.map((competition) => ({
-          competition,
-          registration: competition.registration
-            ? registrationStatusOn(competition.registration, today)
-            : null,
-        })),
-      })),
+      list: toChunk(page),
       currentYear: Number(today.slice(0, 4)),
       today,
-      interestedIds,
-      interestCounts,
-      regionsWithCompetitions: COMPETITION_REGIONS.filter((region) =>
-        regions.has(region),
-      ),
+      interestedOpen: interestedOpen ? toChunk(interestedOpen).items : [],
       alertSettings,
       myBeltRank,
-      endedInterested: recentlyEndedInterested(
-        competitions,
-        new Set(interestedIds),
-        today,
-      ),
+      endedInterested: interestedEnded
+        ? recentlyEndedInterested(
+            interestedEnded.competitions,
+            new Set(interestedEnded.competitions.map(({ id }) => id)),
+            today,
+          )
+        : [],
     };
   } catch {
     return { ok: false };
@@ -134,22 +129,55 @@ export async function getCompetitionListPageData({
 }
 
 /**
- * 관심 목록을 못 읽어도 대회 목록은 보여 준다 — 관심 필터 하나 때문에 탭 전체가 실패 화면이 되지 않게.
- * 이때 관심 필터는 결과가 비어 "조건에 맞는 대회가 없어요"로 보인다.
+ * 필터를 건 첫 페이지·다음 페이지·달력 한 달(#419) — 화면의 Server Action이 부른다.
+ * 관심만 보기는 로그인해야 한다 — 비로그인이면 부르지 않고 실패로 돌려준다.
  */
-async function loadInterestedIds(): Promise<string[]> {
+export async function loadCompetitionListChunk(
+  query: CompetitionListQuery,
+): Promise<
+  | { ok: true; chunk: CompetitionListChunk }
+  | { ok: false; reason: "unauthenticated" | "failed" }
+> {
+  const accessToken = await readSessionToken();
+  if (query.interested && !accessToken) {
+    return { ok: false, reason: "unauthenticated" };
+  }
   try {
-    return await createGetInterestedCompetitionIdsUseCase().execute();
+    return { ok: true, chunk: toChunk(await fetchPage(query, accessToken)) };
   } catch {
-    return [];
+    return { ok: false, reason: "failed" };
   }
 }
 
-/** 관심 수도 목록을 막지 않는다 — 못 읽으면 숫자만 빠진다. */
-async function loadInterestCounts(): Promise<Record<string, number>> {
+/**
+ * 로그인 토큰이 만료됐으면 익명으로 다시 읽는다 — 서버는 토큰을 갱신할 수 없고, 목록 자체는 익명으로도 볼 수 있다.
+ * 관심만 보기는 익명으로 읽을 수 없어 그대로 실패한다.
+ */
+async function fetchPage(
+  query: CompetitionListQuery,
+  accessToken: string | null,
+): Promise<CompetitionPage> {
   try {
-    return await createGetCompetitionInterestCountsUseCase().execute();
-  } catch {
-    return {};
+    return await createGetCompetitionListUseCase(accessToken).execute(query);
+  } catch (error) {
+    if (
+      accessToken &&
+      !query.interested &&
+      toApiError(error).code === ApiErrorCode.EXPIRED_TOKEN
+    ) {
+      return createGetCompetitionListUseCase(null).execute(query);
+    }
+    throw error;
   }
+}
+
+function toChunk(page: CompetitionPage): CompetitionListChunk {
+  return {
+    today: page.today,
+    items: page.competitions.map((competition) => ({
+      competition,
+      registration: registrationStatusOf(competition, page.today),
+    })),
+    nextCursor: page.nextCursor,
+  };
 }

@@ -1,21 +1,39 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { useIsSignedIn } from "@/features/auth/presentation/auth-provider";
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
 import type { BeltRank } from "@/features/community/domain/belt";
-import type { CompetitionListMonth } from "@/features/competition/application/get-competition-list-page-data";
+import type {
+  CompetitionListChunk,
+  CompetitionListItem,
+} from "@/features/competition/application/get-competition-list-page-data";
+import {
+  COMPETITION_LIST_PAGE_SIZE,
+  groupByMonth,
+  type Competition,
+} from "@/features/competition/domain/competition";
 import {
   EMPTY_COMPETITION_FILTER,
+  competitionListQueryOf,
   hasNameQuery,
   isCompetitionFilterEmpty,
-  matchesCompetitionFilter,
   type CompetitionFilter,
 } from "@/features/competition/domain/competition-filter";
 import { bannerSlotQueue } from "@/features/competition/domain/competition-banner-slot";
 import { deadlineSoonInterested } from "@/features/competition/domain/competition-interest-banner";
-import type { CompetitionRegion } from "@/features/competition/domain/competition-region";
+import {
+  COMPETITION_REGIONS,
+  type CompetitionRegion,
+} from "@/features/competition/domain/competition-region";
 import type { ResultCardGroup } from "@/features/competition/domain/competition-result-prompt";
 import {
   CompetitionBannerSlot,
@@ -39,6 +57,7 @@ import {
   useOpenCompetitionDetail,
   useRefreshAfterDetail,
 } from "@/features/competition/presentation/competition-detail-link";
+import { loadCompetitionListAction } from "@/features/competition/presentation/actions/load-competition-list-action";
 import { useCompetitionInterest } from "@/features/competition/presentation/use-competition-interest";
 import { useMyBeltRank } from "@/features/competition/presentation/use-my-belt-rank";
 import { cn } from "@/shared/lib/cn";
@@ -48,6 +67,7 @@ import {
   HeartIcon,
   ListIcon,
   SearchIcon,
+  useToast,
 } from "@/shared/ui";
 import { Chip } from "@/shared/ui/chip";
 import { EmptyState } from "@/shared/ui/empty-state";
@@ -56,9 +76,9 @@ import { IconButton } from "@/shared/ui/icon-button";
 /**
  * 대회 목록 + 위 필터 줄 (#334·#396) — 지금 달 · 지역 · 접수 중 (+ 관심 하트 · 목록/달력).
  *
- * 목록은 서버가 한 번에 다 보내고 거르기는 여기서 한다 — 대회 수가 한 해 수백 건이라 칩을 누를 때마다
- * 서버를 다시 부르지 않는다. 필터 줄은 목록을 내려도 위에 붙어 있어 언제든 바꿀 수 있다.
- * 걸러서 대회가 하나도 없는 달은 달 이름까지 뺀다.
+ * 거르기는 서버가 한다(#419) — 칩을 바꾸면 그 조건의 첫 페이지를 Server Action으로 받고, 받기 전까지는 앞 결과를 둔다.
+ * 아래 끝에 닿으면 다음 페이지를 이어 받는다. 필터 줄은 목록을 내려도 위에 붙어 있어 언제든 바꿀 수 있다.
+ * 대회가 하나도 없는 달은 달 이름까지 뺀다. 고른 지역에 대회가 없으면 빈 목록 안내를 띄운다.
  * 관심 하트와 목록 ↔ 달력은 화면 전체에 걸리는 동작이라 앱 '대회' 머리에 둔다(#396). 앱이 그 버튼을 모르면
  * (구버전 앱·브라우저) 필터 줄 오른쪽 끝에 같은 버튼을 그린다.
  *
@@ -66,22 +86,20 @@ import { IconButton } from "@/shared/ui/icon-button";
  * (외부 브라우저면 앱 안내), 필터는 켜지 않는다 — 켜 봐야 늘 빈 결과다.
  */
 export function CompetitionListView({
-  months,
+  list,
   currentYear,
   today,
-  interestedIds,
-  interestCounts,
-  regionsWithCompetitions,
+  interestedOpen,
   myBeltRank,
   endedInterested,
 }: {
-  months: CompetitionListMonth[];
+  /** 필터 없이 받은 오늘 이후 대회 첫 페이지 */
+  list: CompetitionListChunk;
   currentYear: number;
-  /** 한국 날짜 "YYYY-MM-DD" — 달력 보기용. */
+  /** 한국 날짜 "YYYY-MM-DD" — 응답의 today. */
   today: string;
-  interestedIds: string[];
-  interestCounts: Record<string, number>;
-  regionsWithCompetitions: CompetitionRegion[];
+  /** 접수 중인 내 관심 대회 — 곧 마감 배너 후보(#396). */
+  interestedOpen: CompetitionListItem[];
   /** 내 띠 — 위 그라데이션 색. 없으면 흰띠. */
   myBeltRank: BeltRank | null;
   /** 끝난 지 며칠 안 된 내 관심 대회 묶음(#403) — 배너 자리의 결과 남기기 배너. */
@@ -108,29 +126,151 @@ export function CompetitionListView({
   // 서버가 띠를 못 받아 흰띠로 그렸어도 화면에서 다시 읽어 내 띠로 바로잡는다(#388).
   const beltRank = useMyBeltRank(myBeltRank, signedIn);
   const { guard } = useLoginGuard();
-  const interest = useCompetitionInterest({ interestedIds, interestCounts });
+  const toast = useToast();
+
+  // 관심 상태의 서버 값 — 첫 그림의 대회들에 이어 받은 페이지·달력 달의 대회를 더해 간다.
+  const [known, setKnown] = useState(() =>
+    knownInterestOf(initialCompetitions(list, interestedOpen, endedInterested)),
+  );
+  // 필터 없는 목록(첫 페이지 + 이어 받은 페이지)과 마지막으로 받은 필터 결과.
+  const [base, setBase] = useState<ListState>(() => toListState(EMPTY_KEY, list));
+  const [filtered, setFiltered] = useState<ListState | null>(null);
+  const [interestResetKey, setInterestResetKey] = useState(list);
+  const absorb = useCallback((competitions: Competition[]) => {
+    if (competitions.length > 0) {
+      setKnown((current) => mergeKnownInterest(current, competitions));
+    }
+  }, []);
+  const interest = useCompetitionInterest({
+    interestedIds: known.ids,
+    interestCounts: known.counts,
+    resetKey: interestResetKey,
+  });
+  // 서버가 다시 그리면(상세에서 돌아옴 등) 이어 받은 페이지·필터 결과는 그대로 두고 관심 값만 맞춘다 —
+  // 이 화면에서 누른 결과를 먼저 접어 넣고 새 서버 값으로 덮는다. 필터를 켠 채 돌아와도 거르지 않은 목록이 깜빡이지 않는다.
+  // 로그인 상태가 바뀌었으면 관심 값이 통째로 달라져 처음부터 다시 모은다.
+  const [seen, setSeen] = useState({ list, signedIn });
+  if (seen.list !== list || seen.signedIn !== signedIn) {
+    const fresh = initialCompetitions(list, interestedOpen, endedInterested);
+    if (seen.signedIn !== signedIn) {
+      setKnown(knownInterestOf(fresh));
+      setBase(toListState(EMPTY_KEY, list));
+      setFiltered(null);
+    } else {
+      setKnown((current) =>
+        mergeKnownInterest(foldInterest(current, interest), fresh),
+      );
+    }
+    setSeen({ list, signedIn });
+    setInterestResetKey(list);
+  }
   // 상세에서 관심을 바꾸고 돌아오면 그 값으로 다시 그린다(#362).
   useRefreshAfterDetail();
 
   // 로그아웃했거나 세션이 만료돼 비로그인으로 판정되면 켜 두었던 관심 필터는 풀린 것으로 본다 —
-  // 남겨 두면 이전 관심 목록으로 거르거나 늘 빈 결과만 보인다.
+  // 남겨 두면 이전 관심 목록으로 거르거나(서버가 막는다) 늘 빈 결과만 보인다.
   const activeFilter = useMemo(
     () => (signedIn ? filter : { ...filter, interestedOnly: false }),
     [filter, signedIn],
   );
+  const serverQuery = useMemo(
+    () => competitionListQueryOf(activeFilter),
+    [activeFilter],
+  );
+  const queryKey = isCompetitionFilterEmpty(activeFilter)
+    ? EMPTY_KEY
+    : JSON.stringify(serverQuery);
+  // 받기 전에는 앞 결과를 그대로 둔다 — 칩을 누를 때마다 목록이 비었다 차지 않게.
+  const shown = queryKey === EMPTY_KEY ? base : (filtered ?? base);
+  const shownSettled = shown.key === queryKey;
+
+  // 마지막으로 받은 필터 — 받기에 실패하면 칩을 이 값으로 되돌린다. 필터를 비우면 바로 그 값이 된다.
+  const [appliedFilter, setAppliedFilter] = useState(filter);
+  if (queryKey === EMPTY_KEY && appliedFilter !== filter) setAppliedFilter(filter);
+  useEffect(() => {
+    // 달력은 달마다 따로 받는다 — 목록 결과는 목록으로 돌아왔을 때 받는다.
+    if (mode === "calendar") return;
+    if (queryKey === EMPTY_KEY || filtered?.key === queryKey) return;
+    let cancelled = false;
+    void loadCompetitionListAction({
+      ...serverQuery,
+      size: COMPETITION_LIST_PAGE_SIZE,
+    }).then((result) => {
+      if (cancelled) return;
+      if (!result.ok) {
+        toast.show("대회를 불러오지 못했어요. 다시 시도해 주세요", {
+          tone: "error",
+        });
+        setFilter(appliedFilter);
+        return;
+      }
+      absorb(result.chunk.items.map(({ competition }) => competition));
+      setFiltered(toListState(queryKey, result.chunk));
+      setAppliedFilter(filter);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // serverQuery·filter는 queryKey가 바뀔 때만 다시 본다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queryKey, filtered?.key, mode]);
+
+  // 아래 끝에 닿으면 다음 페이지를 이어 받는다 — 지금 보는 조건 그대로, date 없이 커서만.
+  // 실패한 커서는 다시 부르지 않는다 — 끝 표시가 계속 보여 끝없이 다시 부르게 된다(새로 그리면 다시 시도한다).
+  const loadingMore = useRef(false);
+  const [failedCursor, setFailedCursor] = useState<string | null>(null);
+  const loadMore = useCallback(() => {
+    if (!shownSettled || !shown.nextCursor || loadingMore.current) return;
+    if (shown.nextCursor === failedCursor) return;
+    const key = shown.key;
+    const cursor = shown.nextCursor;
+    loadingMore.current = true;
+    void loadCompetitionListAction({
+      ...serverQuery,
+      cursor,
+      size: COMPETITION_LIST_PAGE_SIZE,
+    }).then((result) => {
+      loadingMore.current = false;
+      if (!result.ok) {
+        setFailedCursor(cursor);
+        return;
+      }
+      absorb(result.chunk.items.map(({ competition }) => competition));
+      const append = (current: ListState | null) =>
+        current && current.key === key && current.nextCursor === cursor
+          ? {
+              key,
+              items: [...current.items, ...result.chunk.items],
+              nextCursor: result.chunk.nextCursor,
+            }
+          : current;
+      if (key === EMPTY_KEY) setBase((current) => append(current) ?? current);
+      else setFiltered(append);
+    });
+  }, [absorb, failedCursor, serverQuery, shown, shownSettled]);
+  const moreRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const sentinel = moreRef.current;
+    if (!sentinel || !shown.nextCursor) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) loadMore();
+      },
+      { rootMargin: "600px 0px" },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [loadMore, shown.nextCursor]);
 
   const visibleMonths = useMemo(() => {
-    if (isCompetitionFilterEmpty(activeFilter)) return months;
-    return months
-      .map((month) => ({
-        ...month,
-        items: month.items.filter((item) =>
-          matchesCompetitionFilter(item, activeFilter, interest.interestedIds),
-        ),
-      }))
-      .filter((month) => month.items.length > 0);
-    // 관심은 이 화면에서 누른 결과까지 반영한 값으로 거른다 — 관심만 보는 중에 해제하면 바로 빠진다.
-  }, [activeFilter, interest.interestedIds, months]);
+    // 관심만 보는 중에 이 화면에서 해제하면 바로 뺀다(서버 결과는 누르기 전 값이다).
+    const items = activeFilter.interestedOnly
+      ? shown.items.filter(({ competition }) =>
+          interest.interestedIds.has(competition.id),
+        )
+      : shown.items;
+    return groupByMonth(items, ({ competition }) => competition.date);
+  }, [activeFilter.interestedOnly, interest.interestedIds, shown.items]);
 
   // 달 머리가 필터 줄 밑으로 지나가면 필터 줄 왼쪽의 달 이름을 그 달로 바꾼다(#396).
   // 전에는 지나간 달 머리를 필터 줄 아래에 한 줄 더 이어 달았는데, 위에 붙는 줄이 둘이 되어 한 줄로 합쳤다.
@@ -187,13 +327,27 @@ export function CompetitionListView({
         ),
       }))
       .filter((group) => group.competitions.length > 0);
+    // 접수 중인 관심 대회 + 목록에서 이 화면에서 관심 등록한 대회 — 필터와 무관하다.
+    const candidates = new Map<number, CompetitionListItem>();
+    for (const item of [...interestedOpen, ...base.items]) {
+      if (!candidates.has(item.competition.id)) {
+        candidates.set(item.competition.id, item);
+      }
+    }
     const deadlines = deadlineSoonInterested(
-      months.flatMap((month) => month.items),
+      [...candidates.values()],
       interest.interestedIds,
       today,
     );
     return bannerSlotQueue(results, deadlines);
-  }, [endedInterested, interest.interestedIds, months, signedIn, today]);
+  }, [
+    base.items,
+    endedInterested,
+    interest.interestedIds,
+    interestedOpen,
+    signedIn,
+    today,
+  ]);
   const bannerSlot = useBannerSlot(bannerQueue);
   const bannerDecided = bannerSlot.item !== null;
   // 배너는 목록보다 반 박자 늦게 들어온다 — 목록이 다 보인 뒤 배너 자리가 열리며 내려와 눈이 그리로 간다.
@@ -532,14 +686,24 @@ export function CompetitionListView({
         {mode === "calendar" ? (
           // 달력은 걸러서 비어도 그대로 둔다 — 달을 넘기며 다른 날을 볼 수 있어야 한다.
           <CompetitionCalendar
-            months={visibleMonths}
-            lastMonth={months.at(-1) ?? { year: currentYear, month: 12 }}
+            // 조건이 바뀌면 처음 고를 날도 새 목록으로 다시 정한다.
+            key={queryKey}
+            query={serverQuery}
+            // 이 조건의 목록을 아직 받지 않았으면(달력에서 필터를 바꿈) 달력이 받은 달에서 첫 대회 날을 찾는다.
+            initialDate={
+              shownSettled
+                ? (visibleMonths[0]?.items[0]?.competition.date ?? today)
+                : today
+            }
+            seekFirstDay={!shownSettled}
             today={today}
             currentYear={currentYear}
             interest={interest}
+            interestedOnly={activeFilter.interestedOnly}
             filtered={!isCompetitionFilterEmpty(activeFilter)}
+            onLoad={absorb}
           />
-        ) : visibleMonths.length === 0 ? (
+        ) : visibleMonths.length === 0 && shownSettled ? (
           <EmptyState
             title={
               emptyBySearchOnly
@@ -569,6 +733,8 @@ export function CompetitionListView({
                 hideHeading={index === 0}
               />
             ))}
+            {/* 아래 끝 표시 — 닿으면 다음 페이지를 받는다. */}
+            {shown.nextCursor ? <div ref={moreRef} aria-hidden /> : null}
           </div>
         )}
       </div>
@@ -577,7 +743,8 @@ export function CompetitionListView({
         key={regionSheetKey}
         open={regionSheetOpen}
         selected={filter.regions}
-        available={regionsWithCompetitions}
+        // 대회가 있는 지역 API(backend#205) 전까지는 17개 모두 고를 수 있다 — 대회가 없으면 빈 목록 안내.
+        available={COMPETITION_REGIONS}
         onDismiss={() => setRegionSheetOpen(false)}
         onApply={(regions) => {
           setFilter((current) => ({ ...current, regions }));
@@ -589,6 +756,68 @@ export function CompetitionListView({
 }
 
 const FILTER_BAR_ID = "competition-filter-bar";
+
+/** 필터 없는 목록의 이름 */
+const EMPTY_KEY = "";
+
+/** 한 조건으로 받은 목록 — key는 조건 이름(필터 없음은 EMPTY_KEY). */
+type ListState = {
+  key: string;
+  items: CompetitionListItem[];
+  nextCursor: string | null;
+};
+
+function toListState(key: string, chunk: CompetitionListChunk): ListState {
+  return { key, items: chunk.items, nextCursor: chunk.nextCursor };
+}
+
+type KnownInterest = { ids: number[]; counts: Record<number, number> };
+
+function initialCompetitions(
+  list: CompetitionListChunk,
+  interestedOpen: readonly CompetitionListItem[],
+  endedInterested: readonly ResultCardGroup[],
+): Competition[] {
+  return [
+    ...interestedOpen.map(({ competition }) => competition),
+    ...endedInterested.flatMap((group) => group.competitions),
+    ...list.items.map(({ competition }) => competition),
+  ];
+}
+
+/** 이 화면에서 누른 결과를 서버 값처럼 접어 넣는다 — 관심 덮어쓰기가 비워지기 전에. */
+function foldInterest(
+  current: KnownInterest,
+  interest: { isInterested: (id: number) => boolean; countOf: (id: number) => number },
+): KnownInterest {
+  const ids: number[] = [];
+  const counts: Record<number, number> = {};
+  for (const key of Object.keys(current.counts)) {
+    const id = Number(key);
+    counts[id] = interest.countOf(id);
+    if (interest.isInterested(id)) ids.push(id);
+  }
+  return { ids, counts };
+}
+
+function knownInterestOf(competitions: readonly Competition[]): KnownInterest {
+  return mergeKnownInterest({ ids: [], counts: {} }, competitions);
+}
+
+/** 새로 받은 대회의 관심 값으로 덮는다 — 늦게 받은 값이 더 새 값이다. */
+function mergeKnownInterest(
+  current: KnownInterest,
+  competitions: readonly Competition[],
+): KnownInterest {
+  const ids = new Set(current.ids);
+  const counts = { ...current.counts };
+  for (const competition of competitions) {
+    counts[competition.id] = competition.interestCount;
+    if (competition.interested) ids.add(competition.id);
+    else ids.delete(competition.id);
+  }
+  return { ids: [...ids], counts };
+}
 
 /** 필터 줄 바탕이 줄 밖으로 내려와 지우는 길이(px) — 스크롤해 목록이 줄 밑을 지날 때만 내려온다. */
 const FILTER_BAR_FADE_OUTSIDE = 8;

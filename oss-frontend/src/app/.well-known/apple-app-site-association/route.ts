@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 
-import { isCompetitionPageEnabled } from "@/features/competition/application/is-competition-page-enabled";
+import { isCompetitionEnabled } from "@/features/competition/application/is-competition-enabled";
 
 /**
  * Apple App Site Association (유니버설 링크)
  * - Apple은 `/.well-known/apple-app-site-association`를 확장자 없는 경로로 요청하고
  *   리다이렉트 없는 200 + `Content-Type: application/json` 응답을 요구한다.
  *   public/ 정적 파일로 두면 확장자가 없어 MIME 타입을 보장할 수 없어, 라우트 핸들러로 헤더를 직접 제어한다.
- * - 요청 때 만든다 — 대회 상세(/competition/*)는 대회 화면을 여는 환경(로컬·개발 서버)에서만 앱으로 넘긴다.
- *   운영은 대회 상세가 아직 404라, 앱에 넘기면 열 화면이 없다. 빌드 때 그려 두면 빌드 환경 값으로 굳어 버린다.
+ * - 요청 때 만든다 — 대회 상세(/competition/*)는 대회 화면을 여는 배포(COMPETITION_ENABLED)에서만 앱으로 넘긴다.
+ *   꺼진 배포는 대회 상세가 404라, 앱에 넘기면 열 화면이 없다. 빌드 때 그려 두면 빌드 환경 값으로 굳어 버린다.
  */
 export const dynamic = "force-dynamic";
 
@@ -28,7 +28,7 @@ function appleAppSiteAssociation() {
                     components: [
                         { "/": "/community/write", exclude: true },
                         { "/": "/community/*" },
-                        ...(isCompetitionPageEnabled()
+                        ...(isCompetitionEnabled()
                             ? [{ "/": "/competition/*" }]
                             : []),
                     ],

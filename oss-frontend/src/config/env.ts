@@ -18,6 +18,13 @@ type ServerEnv = {
    * NODE_ENV가 production이면 어떤 경우에도 false → 운영 노출 원천 차단.
    */
   apiDebugLog: boolean;
+  /**
+   * 대회 화면(대회 탭·상세·글 속 대회 카드·글쓰기 대회 고르기·알림함 대회 줄)을 열지.
+   * COMPETITION_ENABLED가 "true"/"false"면 그 값을 따른다. 비어 있으면 대회 API(backend#193)가 있는
+   * 곳에서만 켠다 — 로컬 개발 서버이거나 dev-api를 바라볼 때. 배포 환경 값은 저장소 밖이라, 비워 둬도
+   * 개발 웹은 켜지고 운영은 꺼진다. 운영 백엔드에 대회 API가 올라가면 운영에 "true"를 넣는다.
+   */
+  competitionEnabled: boolean;
 };
 
 type ImageKitClientEnv = {
@@ -62,6 +69,10 @@ export function getServerEnv(): ServerEnv {
     apiDebugLog:
       process.env.NODE_ENV !== "production" &&
       process.env.API_DEBUG_LOG === "true",
+    competitionEnabled: resolveCompetitionEnabled(
+      process.env.COMPETITION_ENABLED,
+      process.env.INTERNAL_API_BASE_URL ?? process.env.API_BASE_URL,
+    ),
   };
 
   return cachedEnv;
@@ -90,6 +101,15 @@ export function getImageKitClientEnv(): ImageKitClientEnv {
  * (dev 전용) 로컬 개발 서버(next dev)에서 도는지 — 화면 확인용 예시 데이터 같은 개발 편의 분기에 쓴다.
  * production 빌드에서는 항상 false라 그 분기는 운영에서 동작하지 않는다.
  */
+function resolveCompetitionEnabled(
+  flag: string | undefined,
+  apiBaseUrl: string | undefined,
+): boolean {
+  if (flag === "true") return true;
+  if (flag === "false") return false;
+  return isDevelopmentRuntime() || (apiBaseUrl ?? "").includes("dev-api");
+}
+
 export function isDevelopmentRuntime(): boolean {
   return process.env.NODE_ENV === "development";
 }

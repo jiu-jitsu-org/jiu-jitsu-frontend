@@ -27,7 +27,7 @@ export function CompetitionListPage({
 function renderBody(data: CompetitionListPageData) {
   // 불러오기 실패는 홈 피드와 같은 화면(안내 + 재시도)을 쓴다 — 탭마다 실패 모양이 다르지 않게.
   if (!data.ok) return <FeedErrorState />;
-  if (data.months.length === 0) {
+  if (data.list.items.length === 0) {
     return (
       <EmptyState
         title="예정된 대회가 없어요"
@@ -40,12 +40,10 @@ function renderBody(data: CompetitionListPageData) {
     // 처음 관심 등록하면 마감 알림을 받을지 묻는 시트(#375)를 이 아래 어디서든 띄운다.
     <CompetitionAlertProvider settings={data.alertSettings} today={data.today}>
       <CompetitionListView
-        months={data.months}
+        list={data.list}
         currentYear={data.currentYear}
         today={data.today}
-        interestedIds={data.interestedIds}
-        interestCounts={data.interestCounts}
-        regionsWithCompetitions={data.regionsWithCompetitions}
+        interestedOpen={data.interestedOpen}
         myBeltRank={data.myBeltRank}
         endedInterested={data.endedInterested}
       />

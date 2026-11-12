@@ -36,7 +36,7 @@ export type ResultCardGroup = {
  */
 export function recentlyEndedInterested(
   competitions: readonly Competition[],
-  interestedIds: ReadonlySet<string>,
+  interestedIds: ReadonlySet<number>,
   today: string,
 ): ResultCardGroup[] {
   const groups = new Map<string, ResultCardGroup>();

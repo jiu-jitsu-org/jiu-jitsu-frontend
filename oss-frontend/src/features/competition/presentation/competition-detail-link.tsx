@@ -10,8 +10,8 @@ import {
 import { cn } from "@/shared/lib/cn";
 
 /** 대회 상세 웹 경로(#361). */
-export function competitionDetailPath(competitionId: string): string {
-  return `/competition/${encodeURIComponent(competitionId)}`;
+export function competitionDetailPath(competitionId: number): string {
+  return `/competition/${competitionId}`;
 }
 
 /** 같은 화면에서 상세를 다시 열 수 있게 되기까지(ms) — 빠르게 두 번 누르면 앱에 상세가 두 겹 쌓인다. */
@@ -46,7 +46,7 @@ function takeDetailOpened(): boolean {
 export function useOpenCompetitionDetail() {
   const router = useRouter();
   const lockedUntil = useRef(0);
-  return (competitionId: string) => {
+  return (competitionId: number) => {
     const now = Date.now();
     if (now < lockedUntil.current) return;
     lockedUntil.current = now + OPEN_LOCK_MS;
@@ -70,7 +70,7 @@ export function CompetitionDetailLink({
   children,
   className,
 }: {
-  competitionId: string;
+  competitionId: number;
   children: ReactNode;
   className?: string;
 }) {
