@@ -28,19 +28,24 @@ export function KeyboardAwareShell({
   children: ReactNode;
 }) {
   const rect = useViewportRect();
+  // 맨 위에서 당기면(앱의 당겨서 새로고침, #432) 문서가 아래로 늘어나며 offsetTop이 음수가 된다.
+  // fixed 셸은 그 사이 화면에 붙어 있어 그대로 따르면 거꾸로 위로 밀려 띠가 헤더를 덮으므로,
+  // 당긴 만큼 아래로 내려 피드처럼 띠 밑에 화면이 따라 내려오게 한다.
+  const top = rect ? Math.abs(rect.top) : 0;
 
   return (
     <div
-      className="fixed left-0 right-0 flex flex-col overflow-hidden bg-[var(--bw-true-white)]"
+      className="detail-pull-refresh fixed left-0 right-0 flex flex-col overflow-hidden bg-[var(--bw-true-white)]"
       style={
         rect
-          ? { top: rect.top, height: rect.height }
+          ? { top, height: rect.height }
           : { top: 0, height: "100dvh" }
       }
     >
       {header ? <div className="shrink-0">{header}</div> : null}
-      {/* overscroll-contain: 내부 스크롤이 끝에서 문서(네이티브가 0으로 락)로 체이닝되지 않게. */}
-      <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+      {/* 세로 체이닝은 연다: 맨 위에서 더 당기면 문서가 당겨져 앱의 당겨서 새로고침 띠가 보인다(#432).
+          아래 끝에서 넘친 스크롤은 앱이 문서를 0으로 묶어 되돌린다. */}
+      <main className="min-h-0 flex-1 overflow-y-auto overscroll-x-contain overscroll-y-auto">
         {children}
       </main>
       {footer ? <div className="shrink-0">{footer}</div> : null}
