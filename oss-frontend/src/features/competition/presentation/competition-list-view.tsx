@@ -253,6 +253,8 @@ export function CompetitionListView({
       dismissBannerSlotItem(item);
       return;
     }
+    // 접히는 중에 ✕를 또 누르면 무시한다(움직임이 겹쳐 쌓이지 않게).
+    if (closingKey === item.key) return;
     setClosingKey(item.key);
     collapsingRef.current = true;
     const timing = {
@@ -262,13 +264,22 @@ export function CompetitionListView({
     } as const;
     for (const running of element.getAnimations()) running.cancel();
     slot.animate([{ opacity: 1 }, { opacity: 0 }], timing);
-    element.animate(
+    const collapse = element.animate(
       [
         { transform: "none" },
         { transform: `translateY(${-slot.offsetHeight}px)` },
       ],
       timing,
-    ).onfinish = () => dismissBannerSlotItem(item);
+    );
+    // 다 접혀도, 접히는 도중 검색칸·달력 전환으로 움직임이 끊겨도 닫은 기록은 꼭 남긴다.
+    let dismissed = false;
+    const dismiss = () => {
+      if (dismissed) return;
+      dismissed = true;
+      dismissBannerSlotItem(item);
+    };
+    collapse.onfinish = dismiss;
+    collapse.oncancel = dismiss;
   };
 
   // 배너에서 누른 대회는 상세로 바로 연다(#361) — 목록 줄을 누른 것과 같다.

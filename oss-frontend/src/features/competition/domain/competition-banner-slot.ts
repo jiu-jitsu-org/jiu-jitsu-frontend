@@ -37,7 +37,8 @@ export function bannerSlotQueue(
     ...results.flatMap(splitGroup).map(
       (group): BannerSlotItem => ({
         kind: "result",
-        key: `result:${group.key}`,
+        // 대회 id로 부른다 — 묶음이 바뀌어도(관심을 끄거나 새로 받아 오면) 같은 대회는 같은 이름이다.
+        key: `result:${group.competitions[0]?.id ?? group.key}`,
         group,
       }),
     ),

@@ -116,7 +116,15 @@ function slotSnapshot(queue: readonly BannerSlotItem[]): string {
 }
 
 function decideKey(queue: readonly BannerSlotItem[]): string | null {
-  if (decided) return decided.key;
+  // 정한 배너가 대기열에서 빠졌거나(관심을 끔·다른 계정), 띄울 게 없었는데 새 배너가 생기면 다시 정한다.
+  if (decided) {
+    const kept =
+      decided.key === null
+        ? !queue.some(isOpen)
+        : queue.some((item) => item.key === decided?.key);
+    if (kept) return decided.key;
+    decided = null;
+  }
   // 관심 목록이 아직 비어 있으면(로그인 판정 전 등) 정하지 않고 다음 그림에서 다시 본다.
   if (queue.length === 0) return null;
   const byKey = new Map(queue.map((item) => [item.key, item]));
