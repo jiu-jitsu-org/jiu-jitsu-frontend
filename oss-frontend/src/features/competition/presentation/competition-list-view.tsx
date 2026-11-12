@@ -38,7 +38,6 @@ import type { ResultCardGroup } from "@/features/competition/domain/competition-
 import {
   CompetitionBannerSlot,
   dismissBannerSlotItem,
-  isReloadedDocument,
   useBannerSlot,
 } from "@/features/competition/presentation/competition-banner-slot";
 import { CompetitionCalendar } from "@/features/competition/presentation/competition-calendar";
@@ -401,15 +400,12 @@ export function CompetitionListView({
   // 달력에서는 배너를 걷는다 — 달력 칸이 첫 화면에 다 들어와야 날짜를 고를 수 있다.
   const decidedBanner = mode === "list" ? bannerSlot.item : null;
   const banner = bannerEntered ? decidedBanner : null;
-  // ✕를 눌러 접히는 중인 배너 — 접히는 0.5초 동안 그대로 그려 두고, 위 그라데이션은 그동안 옅어진다.
+  // ✕를 눌러 접히는 중인 배너 — 접히는 0.5초 동안 그대로 그려 둔다.
   const [closingKey, setClosingKey] = useState<string | null>(null);
-  // 위 그라데이션은 배너와 함께 옅게 들어온다. 당겨서 새로고침이면 앞 배너의 그라데이션이 이미 깔려 있어
-  // (앱 머리도 그 색이다) 걷지 않고 그대로 두고, 배너만 반 박자 늦게 바뀌어 들어온다.
-  const tintShown = bannerSlot.ready
-    ? decidedBanner !== null &&
-      (bannerEntered || isReloadedDocument()) &&
-      decidedBanner.key !== closingKey
-    : null;
+  // 위 그라데이션(내 띠 색, 로그인 전·띠를 모르면 흰띠 색)은 배너가 없어도 늘 깐다 — 관심 대회가 없어도
+  // 대회 탭 맨 위는 같은 얼굴이다. 배너 자리가 정해진 뒤(서버 그림·첫 그림이 지난 뒤) 한 번 옅게 들어오고,
+  // 배너를 닫거나 달력으로 바꿔도 걷지 않는다.
+  const tintShown = bannerSlot.ready ? true : null;
 
   // 배너 자리·검색칸 높이가 바뀌면 그 아래(배너·목록)가 한 번에 밀린다. 밀린 만큼 거꾸로 옮겨 놓고 제자리로
   // 미끄러지게 해(0.5초) 함께 움직이게 한다 — 배너가 처음 뜨면 필터 줄 밑에서 내려오며 목록을 밀어낸다.
