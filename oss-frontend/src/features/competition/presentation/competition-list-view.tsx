@@ -20,6 +20,7 @@ import type { ResultCardGroup } from "@/features/competition/domain/competition-
 import {
   CompetitionBannerSlot,
   dismissBannerSlotItem,
+  isReloadedDocument,
   useBannerSlot,
 } from "@/features/competition/presentation/competition-banner-slot";
 import { CompetitionCalendar } from "@/features/competition/presentation/competition-calendar";
@@ -194,12 +195,46 @@ export function CompetitionListView({
     return bannerSlotQueue(results, deadlines);
   }, [endedInterested, interest.interestedIds, months, signedIn, today]);
   const bannerSlot = useBannerSlot(bannerQueue);
+  const bannerDecided = bannerSlot.item !== null;
+  // 배너는 목록보다 반 박자 늦게 들어온다 — 목록이 다 보인 뒤 배너 자리가 열리며 내려와 눈이 그리로 간다.
+  // 화면이 실제로 보일 때부터 센다: 앱은 대회 탭 웹을 안 보이는 채로 미리 불러 두고(#271), 처음 불러올 때는
+  // 로딩 덮개가 0.5초에 걸쳐 걷힌다(#261) — 그 뒤에 내려와야 눈에 보인다. 당겨서 새로고침도 같은 박자다.
+  const [bannerEntered, setBannerEntered] = useState(false);
+  useEffect(() => {
+    if (bannerEntered || !bannerDecided) return;
+    // 움직임 줄이기를 켰으면 기다리지 않는다.
+    const delay = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? 0
+      : BANNER_ENTRANCE_DELAY;
+    let timer = 0;
+    const start = () => {
+      if (document.visibilityState !== "visible" || timer) return;
+      timer = window.setTimeout(() => setBannerEntered(true), delay);
+    };
+    // 세는 도중 탭을 떠나면 멈췄다가 돌아오면 처음부터 다시 센다.
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") return start();
+      window.clearTimeout(timer);
+      timer = 0;
+    };
+    start();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [bannerEntered, bannerDecided]);
   // 달력에서는 배너를 걷는다 — 달력 칸이 첫 화면에 다 들어와야 날짜를 고를 수 있다.
-  const banner = mode === "list" ? bannerSlot.item : null;
+  const decidedBanner = mode === "list" ? bannerSlot.item : null;
+  const banner = bannerEntered ? decidedBanner : null;
   // ✕를 눌러 접히는 중인 배너 — 접히는 0.5초 동안 그대로 그려 두고, 위 그라데이션은 그동안 옅어진다.
   const [closingKey, setClosingKey] = useState<string | null>(null);
+  // 위 그라데이션은 배너와 함께 옅게 들어온다. 당겨서 새로고침이면 앞 배너의 그라데이션이 이미 깔려 있어
+  // (앱 머리도 그 색이다) 걷지 않고 그대로 두고, 배너만 반 박자 늦게 바뀌어 들어온다.
   const tintShown = bannerSlot.ready
-    ? banner !== null && banner.key !== closingKey
+    ? decidedBanner !== null &&
+      (bannerEntered || isReloadedDocument()) &&
+      decidedBanner.key !== closingKey
     : null;
 
   // 배너 자리·검색칸 높이가 바뀌면 그 아래(배너·목록)가 한 번에 밀린다. 밀린 만큼 거꾸로 옮겨 놓고 제자리로
@@ -232,13 +267,18 @@ export function CompetitionListView({
     const current = new DOMMatrixReadOnly(getComputedStyle(element).transform)
       .m42;
     for (const running of element.getAnimations()) running.cancel();
+    const timing = { duration: 500, easing: smoothOutEasing() };
     const animation = element.animate(
       [
         { transform: `translateY(${shift + current}px)` },
         { transform: "none" },
       ],
-      { duration: 500, easing: smoothOutEasing() },
+      timing,
     );
+    // 배너가 새로 들어오면 필터 줄 밑에서 내려오며 함께 짙어진다(한 동작).
+    if (shift < 0 && bannerKey !== null && slotRef.current) {
+      slotRef.current.animate([{ opacity: 0 }, { opacity: 1 }], timing);
+    }
     // 움직이는 동안 잰 달 머리 위치는 옮겨 둔 자리라, 끝나면 다시 잰다.
     animation.onfinish = () => window.dispatchEvent(new Event("scroll"));
   }, [searchOpen, bannerKey, mode]);
@@ -542,6 +582,9 @@ const FILTER_BAR_ID = "competition-filter-bar";
 
 /** 필터 줄 바탕이 줄 밖으로 내려와 지우는 길이(px) — 스크롤해 목록이 줄 밑을 지날 때만 내려온다. */
 const FILTER_BAR_FADE_OUTSIDE = 8;
+
+/** 목록이 보이고 나서 배너가 들어오기까지(ms) — 반 박자. 처음 불러올 때 앱 로딩 덮개(0.5초)가 걷힌 뒤다. */
+const BANNER_ENTRANCE_DELAY = 600;
 
 /** 필터 줄 바탕의 아래 끝 16px을 지우는 마스크 — 일정한 속도로 지우면 끝나는 자리가 줄처럼 보여 완만한 곡선(ease)으로 지운다. */
 const FILTER_BAR_FADE =

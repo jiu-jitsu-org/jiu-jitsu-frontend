@@ -128,14 +128,16 @@ function decideKey(queue: readonly BannerSlotItem[]): string | null {
   // 관심 목록이 아직 비어 있으면(로그인 판정 전 등) 정하지 않고 다음 그림에서 다시 본다.
   if (queue.length === 0) return null;
   const byKey = new Map(queue.map((item) => [item.key, item]));
-  const key = (!isReload() && randomOpenResult(queue)) || nextBannerSlotKey(
-    queue.map((item) => item.key),
-    (candidate) => {
-      const item = byKey.get(candidate);
-      return item ? isOpen(item) : false;
-    },
-    isReload() ? readRotation() : null,
-  );
+  const key =
+    (!isReloadedDocument() && randomOpenResult(queue)) ||
+    nextBannerSlotKey(
+      queue.map((item) => item.key),
+      (candidate) => {
+        const item = byKey.get(candidate);
+        return item ? isOpen(item) : false;
+      },
+      isReloadedDocument() ? readRotation() : null,
+    );
   decided = { key };
   writeRotation(key);
   return key;
@@ -182,10 +184,12 @@ function openGroup(group: ResultCardGroup, openIds: string[]): ResultCardGroup {
 }
 
 /** 이 문서가 새로고침으로 열렸는지 — 앱의 당겨서 새로고침은 웹뷰를 다시 불러온다. */
-function isReload(): boolean {
+export function isReloadedDocument(): boolean {
   try {
     const [entry] = performance.getEntriesByType("navigation");
-    return (entry as PerformanceNavigationTiming | undefined)?.type === "reload";
+    return (
+      (entry as PerformanceNavigationTiming | undefined)?.type === "reload"
+    );
   } catch {
     return false;
   }
