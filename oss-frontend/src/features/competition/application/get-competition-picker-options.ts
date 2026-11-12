@@ -1,8 +1,10 @@
-import { createGetCompetitionPickerUseCase } from "@/features/competition/application/competition-use-case-factory";
+import {
+  createGetCompetitionDetailUseCase,
+  createGetCompetitionPickerUseCase,
+} from "@/features/competition/application/competition-use-case-factory";
 import { isCompetitionEnabled } from "@/features/competition/application/is-competition-enabled";
 import type { Competition } from "@/features/competition/domain/competition";
 import { daysBetween } from "@/features/competition/domain/competition-registration";
-import { readSessionToken } from "@/shared/lib/auth";
 
 /** 글쓰기 대회 고르기의 한 줄(#367). */
 export type CompetitionPickerOption = {
@@ -39,8 +41,8 @@ export async function getCompetitionPickerOptions({
   if (!isCompetitionEnabled()) return [];
   let options: CompetitionPickerOption[] = [];
   try {
-    const accessToken = await readSessionToken();
-    const page = await createGetCompetitionPickerUseCase(accessToken).execute();
+    // 고르기 목록은 내 관심 등 로그인 값을 쓰지 않는다 — 익명으로 읽어 토큰이 만료돼도 목록이 빠지지 않게.
+    const page = await createGetCompetitionPickerUseCase(null).execute();
     options = page.competitions
       .filter(
         (competition) =>
@@ -66,15 +68,42 @@ export async function getCompetitionPickerOptions({
   return [kept, ...options.filter((option) => option.id !== kept.id)];
 }
 
+/**
+ * 새 글쓰기의 대회 고르기(#433) — 대회 이야기의 "첫 글 남기기"로 들어오면 그 대회를 미리 골라 둔다.
+ *
+ * 미리 고를 대회가 고르기 목록에 없으면 상세로 읽어 맨 위에 넣는다(20개 밖·오래 지난 대회도 고를 수 있게).
+ * 대회 화면이 꺼진 배포이거나, 없는·미공개 대회이거나, 읽기에 실패하면 미리 고르지 않는다(빈 글쓰기).
+ */
+export async function getCompetitionPickerForWrite(
+  preselectId: number | null,
+): Promise<{ options: CompetitionPickerOption[]; initialId: number | null }> {
+  const options = await getCompetitionPickerOptions();
+  if (preselectId === null || !isCompetitionEnabled()) {
+    return { options, initialId: null };
+  }
+  if (options.some((option) => option.id === preselectId)) {
+    return { options, initialId: preselectId };
+  }
+  try {
+    const detail =
+      await createGetCompetitionDetailUseCase(null).execute(preselectId);
+    if (!detail) return { options, initialId: null };
+    return {
+      options: [toPickerOption(detail.competition), ...options],
+      initialId: preselectId,
+    };
+  } catch {
+    return { options, initialId: null };
+  }
+}
+
 /** 이름으로 찾기(#421) — 지난 대회도 찾는다. 서버 순서 그대로, 최대 20개. 실패면 null. */
 export async function searchCompetitionPickerOptions(
   keyword: string,
 ): Promise<CompetitionPickerOption[] | null> {
   if (!isCompetitionEnabled()) return null;
   try {
-    const accessToken = await readSessionToken();
-    const page =
-      await createGetCompetitionPickerUseCase(accessToken).execute(keyword);
+    const page = await createGetCompetitionPickerUseCase(null).execute(keyword);
     return page.competitions.map(toPickerOption);
   } catch {
     return null;

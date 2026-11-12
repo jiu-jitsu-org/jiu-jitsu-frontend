@@ -96,7 +96,10 @@ export function CompetitionDetailPage({
               verifiedOn={competition.verifiedOn}
             />
             {data.stories ? (
-              <CompetitionStories stories={data.stories} />
+              <CompetitionStories
+                competitionId={competition.id}
+                stories={data.stories}
+              />
             ) : null}
           </div>
         </SubviewScrollShell>

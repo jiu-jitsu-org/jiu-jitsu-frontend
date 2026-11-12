@@ -242,13 +242,26 @@ export function PostWriteScreen({
   const [categoryNudge, setCategoryNudge] = useState(0);
   const { confirm, dialog } = useNativeDialog();
   // 카테고리: 작성은 미선택(null)으로 시작 → 사용자가 칩에서 고르기 전엔 등록 불가. 수정은 기존 값.
+  // 새 글에 미리 고른 대회가 있으면(대회 이야기의 "첫 글 남기기", #433) '대회' 카테고리로 시작한다 — 사용자는 바꿀 수 있다.
+  const prefillCategoryId =
+    !edit && competitionPicker?.initialId != null
+      ? (categories.find(
+          (category) => category.name === COMPETITION_CATEGORY_NAME,
+        )?.id ?? null)
+      : null;
+  const initialCategoryId = edit?.initial.categoryId ?? prefillCategoryId;
   const [categoryId, setCategoryId] = useState<number | null>(
-    edit?.initial.categoryId ?? null,
+    initialCategoryId,
   );
   // 고른 대회(#367). '대회' 카테고리일 때만 뜻이 있다 — 다른 카테고리로 바꾸면 보내지 않는다(고른 값은 남겨 둬
   // 다시 '대회'로 돌아오면 그대로 보인다).
   // 수정은 글 상세 응답의 competitionId로 시작한다(#417) — 고르기 칸이 없거나 대회를 건드리지 않았으면 그 값을 그대로 다시 보낸다.
-  const initialCompetitionId = edit?.initial.competitionId ?? null;
+  // 새 글은 미리 고른 대회(#433)로 시작한다 — '대회' 카테고리를 찾지 못했으면 고르지 않은 채로 둔다.
+  const initialCompetitionId = edit
+    ? (edit.initial.competitionId ?? null)
+    : prefillCategoryId !== null
+      ? (competitionPicker?.initialId ?? null)
+      : null;
   const [competitionId, setCompetitionId] = useState<number | null>(
     initialCompetitionId,
   );
@@ -347,6 +360,7 @@ export function PostWriteScreen({
   const thumbnailLeave = useLeavingKeys<string>();
 
   // 작성: 한 글자라도 적었거나 카테고리/이미지를 골랐으면 "작성 중" → 닫기 시 이탈 가드를 띄운다.
+  //   미리 고른 카테고리·대회(#433)로 열린 채 아무것도 안 했으면 작성 중이 아니다.
   // 수정: 기존 값과 하나라도 다르면 "변경됨" — 완료 버튼 활성·이탈 가드의 근거. 미확정 태그 입력도 변경으로 본다.
   const isDirty = edit
     ? categoryId !== edit.initial.categoryId ||
@@ -357,7 +371,8 @@ export function PostWriteScreen({
       existingImages.map((image) => image.id).join(",") !==
         edit.initial.images.map((image) => image.id).join(",") ||
       linkedCompetitionId !== initialLinkedCompetitionId
-    : categoryId !== null ||
+    : categoryId !== initialCategoryId ||
+      competitionId !== initialCompetitionId ||
       title.trim().length > 0 ||
       body.trim().length > 0 ||
       tags.length > 0 ||
