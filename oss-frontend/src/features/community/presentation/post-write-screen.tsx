@@ -147,6 +147,9 @@ const SUBMIT_TOAST = {
 const THUMBNAIL_SIZE = 64;
 /** 썸네일 컨테이너 높이(px) — 상하 여백 16 + 썸네일 64. 툴바 위에 고정. */
 const THUMBNAIL_STRIP_HEIGHT = 96;
+/** 키보드가 떠 있을 때 썸네일 줄을 함께 띄울 최소 보이는 높이(px). 위 고정부(약 108) + 썸네일 96 + 툴바 48 위에
+ *  본문이 몇 줄 남도록 잡았다(#426). SE 세로(약 400)는 보이고, 가로 화면(약 175)은 예전처럼 숨긴다. */
+const THUMBNAILS_WITH_KEYBOARD_MIN_HEIGHT = 360;
 /** 썸네일 사이 간격(px) — 스트립의 gap-3. 지워지는 칸이 접힐 때 이만큼 음수 마진으로 같이 접는다. */
 const THUMBNAIL_GAP = 12;
 /**
@@ -1206,6 +1209,8 @@ export function PostWriteScreen({
           키보드가 떠도 썸네일 컨테이너는 그대로 보인다(#426, 디자인 2026-11-12 — 입력 중에도 첨부 사진이 보이게.
           2026-09-17의 '키보드 중엔 숨김'을 대체). 셸이 visualViewport에 맞춰 줄어들고 본문 영역(main)이 남는 높이를
           흡수하므로 [썸네일 96 + 툴바 48]만 키보드 위에 붙는다. 키보드 중엔 compact를 위해 편집 유도 안내 줄만 뺀다.
+          단 키보드 위 보이는 높이가 THUMBNAILS_WITH_KEYBOARD_MIN_HEIGHT 미만(가로 화면 등)이면 썸네일까지 넣으면 툴바가
+          키보드 뒤로 밀리므로 그때만 예전처럼 썸네일을 숨긴다.
           편집 유도 안내: 상단 4 · 줄 높이 14 · 아래 0 → 노출 시 썸네일 컨테이너 위로 18 추가(디자인 2026-09-28).
           Label M(12)의 크기·굵기는 그대로 두고 행간만 14로 덮는다 — 14 행간은 여기뿐이라 타이포 토큰은 두지 않는다.
           썸네일: 64 · radius 16 · 간격 12 · 컨테이너 상하좌우 여백 16 · 가로 스크롤. ✕는 24 원, 모서리에서 8 삐져나옴
@@ -1222,7 +1227,7 @@ export function PostWriteScreen({
           rect?.keyboardOpen ? "pb-0" : "pb-[env(safe-area-inset-bottom)]",
         )}
       >
-        {hasThumbnails ? (
+        {hasThumbnails && (!rect?.keyboardOpen || rect.height >= THUMBNAILS_WITH_KEYBOARD_MIN_HEIGHT) ? (
           <>
             {!isEdit && hasOutOfAspect && !rect?.keyboardOpen ? (
               <p className={cn("px-4 pt-1 text-label-m leading-3.5", NOTICE_TEXT_CLASS)}>
