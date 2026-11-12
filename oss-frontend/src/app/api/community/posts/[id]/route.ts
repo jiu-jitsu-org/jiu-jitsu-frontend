@@ -79,7 +79,7 @@ export async function DELETE(
 /**
  * PUT /api/community/posts/{id} — 게시글 수정(인증 필요).
  *
- * body: { categoryId, title, body, imageFileIdList, tags } — 생성과 같은 형태. 업스트림 PUT /board/{id}로
+ * body: { categoryId, title, body, imageFileIdList, tags, competitionId } — 생성과 같은 형태. competitionId는 null·생략이면 대회 연결을 푼다(#417). 업스트림 PUT /board/{id}로
  * 위임하며 imageFileIdList·tags는 "남길 전체 목록"(서버가 목록을 통째로 교체). 본인 게시글 권한은 업스트림이
  * 최종 검사한다.
  */

@@ -21,6 +21,10 @@ import {
 } from "@/features/community/infrastructure/comment-dto";
 import { type AuthorBeltDto, toBelt } from "@/features/community/infrastructure/belt-dto";
 import { type AuthorRoleDto, toIsCoach } from "@/features/community/infrastructure/author-role-dto";
+import {
+  toCompetition,
+  type CompetitionListItemDto,
+} from "@/features/competition/infrastructure/competition-dto";
 import type { HttpClient } from "@/shared/lib/http";
 import { toKstIso } from "@/shared/lib/time";
 
@@ -125,6 +129,10 @@ type BoardDetailDto = {
     AuthorRoleDto;
   /** 본인 게시글 여부(viewer.isOwner). */
   isAuthor: boolean;
+  /** 고른 대회 id(#417). 대회가 미공개로 바뀌어도 온다. */
+  competitionId?: number | null;
+  /** 고른 대회 카드(#380). 미공개면 null. */
+  competition?: CompetitionListItemDto | null;
   /** 조회수. */
   viewCount?: number;
   /** 저장(북마크) 수. */
@@ -176,6 +184,8 @@ type BoardSummaryDto = {
   } & AuthorBeltDto &
     AuthorRoleDto;
   isAuthor: boolean;
+  /** 고른 대회 카드(#379). 고르지 않았거나 미공개면 null. */
+  competition?: CompetitionListItemDto | null;
 };
 
 /** GET /board 성공 응답 DTO(봉투 data 안의 Spring Page 형태). 화면이 쓰는 메타만 선언. */
@@ -218,6 +228,7 @@ function toPostSummary(dto: BoardSummaryDto): PostSummary {
     createdAt: toKstIso(dto.createdAt),
     updatedAt: dto.updatedAt ? toKstIso(dto.updatedAt) : null,
     edited: dto.isUpdated ?? false,
+    ...(dto.competition ? { competition: toCompetition(dto.competition) } : {}),
   };
 }
 
@@ -264,6 +275,8 @@ function toPostDetail(dto: BoardDetailDto): PostDetail {
     updatedAt: dto.updatedAt ? toKstIso(dto.updatedAt) : null,
     edited: dto.isUpdated,
     noticeEnabled: dto.noticeEnabled ?? false,
+    competitionId: dto.competitionId ?? null,
+    ...(dto.competition ? { competition: toCompetition(dto.competition) } : {}),
   };
 }
 

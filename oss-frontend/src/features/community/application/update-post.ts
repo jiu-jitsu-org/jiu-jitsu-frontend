@@ -27,6 +27,7 @@ export class UpdatePostUseCase {
       body,
       imageFileIdList: input.imageFileIdList,
       tags: input.tags,
+      competitionId: input.competitionId,
     });
   }
 }
