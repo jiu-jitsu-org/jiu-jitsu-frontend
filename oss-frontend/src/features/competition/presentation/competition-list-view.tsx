@@ -199,7 +199,10 @@ export function CompetitionListView({
   // 배너는 목록보다 반 박자 늦게 들어온다 — 목록이 다 보인 뒤 배너 자리가 열리며 내려와 눈이 그리로 간다.
   // 화면이 실제로 보일 때부터 센다: 앱은 대회 탭 웹을 안 보이는 채로 미리 불러 두고(#271), 처음 불러올 때는
   // 로딩 덮개가 0.5초에 걸쳐 걷힌다(#261) — 그 뒤에 내려와야 눈에 보인다. 당겨서 새로고침도 같은 박자다.
-  const [bannerEntered, setBannerEntered] = useState(false);
+  // 이 문서에서 한 번 들어왔으면(웹에서 상세에 갔다 돌아와 목록을 다시 그릴 때) 다시 기다리지 않는다.
+  const [bannerEntered, setBannerEntered] = useState(
+    () => bannerEnteredInDocument,
+  );
   useEffect(() => {
     if (bannerEntered || !bannerDecided) return;
     // 움직임 줄이기를 켰으면 기다리지 않는다.
@@ -209,7 +212,10 @@ export function CompetitionListView({
     let timer = 0;
     const start = () => {
       if (document.visibilityState !== "visible" || timer) return;
-      timer = window.setTimeout(() => setBannerEntered(true), delay);
+      timer = window.setTimeout(() => {
+        bannerEnteredInDocument = true;
+        setBannerEntered(true);
+      }, delay);
     };
     // 세는 도중 탭을 떠나면 멈췄다가 돌아오면 처음부터 다시 센다.
     const onVisibility = () => {
@@ -243,6 +249,7 @@ export function CompetitionListView({
   const belowBarRef = useRef<HTMLDivElement>(null);
   const slotRef = useRef<HTMLDivElement>(null);
   const lastBelowBarTop = useRef<{ top: number; mode: string } | null>(null);
+  const lastBannerKey = useRef<string | null>(null);
   const collapsingRef = useRef(false);
   const bannerKey = banner?.key ?? null;
   useLayoutEffect(() => {
@@ -252,6 +259,9 @@ export function CompetitionListView({
     // 처음에는 배너 없이 그린 것으로 본다 — 첫 그림 뒤에 배너가 뜨면 내려오게.
     const last = lastBelowBarTop.current ?? { top: barHeight, mode };
     lastBelowBarTop.current = { top, mode };
+    // 배너가 새로 들어온 그림인지 — 검색칸이 열려 밀릴 때는 배너를 다시 옅게 하지 않는다.
+    const bannerArrived = lastBannerKey.current === null && bannerKey !== null;
+    lastBannerKey.current = bannerKey;
     if (!element) return;
     // ✕로 접은 뒤 — 접히는 동안 이미 위로 옮겨 두었으니 그 옮김만 걷어 낸다(그림 직전이라 튀지 않는다).
     if (collapsingRef.current) {
@@ -276,7 +286,7 @@ export function CompetitionListView({
       timing,
     );
     // 배너가 새로 들어오면 필터 줄 밑에서 내려오며 함께 짙어진다(한 동작).
-    if (shift < 0 && bannerKey !== null && slotRef.current) {
+    if (bannerArrived && slotRef.current) {
       slotRef.current.animate([{ opacity: 0 }, { opacity: 1 }], timing);
     }
     // 움직이는 동안 잰 달 머리 위치는 옮겨 둔 자리라, 끝나면 다시 잰다.
@@ -582,6 +592,9 @@ const FILTER_BAR_ID = "competition-filter-bar";
 
 /** 필터 줄 바탕이 줄 밖으로 내려와 지우는 길이(px) — 스크롤해 목록이 줄 밑을 지날 때만 내려온다. */
 const FILTER_BAR_FADE_OUTSIDE = 8;
+
+/** 이 문서에서 배너가 이미 들어왔는지 — 문서를 다시 불러오면(당겨서 새로고침) 처음부터 다시 기다린다. */
+let bannerEnteredInDocument = false;
 
 /** 목록이 보이고 나서 배너가 들어오기까지(ms) — 반 박자. 처음 불러올 때 앱 로딩 덮개(0.5초)가 걷힌 뒤다. */
 const BANNER_ENTRANCE_DELAY = 600;
