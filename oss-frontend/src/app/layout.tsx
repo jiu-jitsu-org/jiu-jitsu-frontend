@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 
 import { AuthProvider } from "@/features/auth/presentation/auth-provider";
+import { MyBeltWatcher } from "@/features/community/presentation/my-belt-watcher";
 import { OpenInAppPromptProvider, ToastProvider } from "@/shared/ui";
 import {
   SITE_DESCRIPTION,
@@ -54,6 +55,8 @@ export default function RootLayout({
         <OpenInAppPromptProvider>
           {/* 전역 인증/세션 + 네이티브 브릿지 소유자 / 전역 토스트 */}
           <AuthProvider>
+            {/* 앱에서 띠를 바꾸면 떠 있던 화면을 새로 그린다(#413) */}
+            <MyBeltWatcher />
             <ToastProvider>{children}</ToastProvider>
           </AuthProvider>
         </OpenInAppPromptProvider>
