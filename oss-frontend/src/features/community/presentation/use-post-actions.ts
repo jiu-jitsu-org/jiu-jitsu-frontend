@@ -51,11 +51,12 @@ export function usePostActions(postId: number, initial: PostActionsSeed) {
   });
 
   // 렌더 중 상태 조정(React 공식 "props 변경 시 state 리셋" 패턴) — effect로 하면 옛 값이 한 번
-  // 그려진 뒤 덮여 깜빡인다. 진행 중인 토글이 있으면 건드리지 않는다(낙관적 반영을 되돌리지 않도록).
+  // 그려진 뒤 덮여 깜빡인다. 진행 중인 토글이 있으면 화면 상태는 건드리지 않는다(낙관적 반영을 되돌리지 않도록).
+  // 기준 시드는 진행 중에도 갱신한다 — 안 그러면 요청이 끝난 뒤 그사이 받은 낡은 시드로 화면이 되돌아간다.
   const [seed, setSeed] = useState(initial);
-  if (!isSameSeed(seed, initial) && !pending.like && !pending.bookmark) {
+  if (!isSameSeed(seed, initial)) {
     setSeed(initial);
-    setState(toState(initial));
+    if (!pending.like && !pending.bookmark) setState(toState(initial));
   }
 
   // 연타 대응 — 탭마다 화면은 바로 뒤집고, 서버 요청은 종류별로 한 번에 하나씩만 보낸다.
@@ -91,7 +92,11 @@ export function usePostActions(postId: number, initial: PostActionsSeed) {
 
     try {
       while (desiredRef.current[kind] !== serverActive) {
-        const response = await bffFetch(ENDPOINT[kind](postId), { method: "POST" });
+        // 응답이 오지 않으면 루프가 영원히 막혀 이후 탭이 서버로 가지 않는다 — 15초 뒤 실패로 보고 되돌린다.
+        const response = await bffFetch(ENDPOINT[kind](postId), {
+          method: "POST",
+          signal: AbortSignal.timeout(15_000),
+        });
 
         if (!response.ok) {
           if (response.status === 401) {
