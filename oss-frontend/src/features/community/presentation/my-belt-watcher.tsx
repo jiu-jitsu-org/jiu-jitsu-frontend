@@ -35,17 +35,39 @@ export function MyBeltWatcher() {
     }
 
     let cancelled = false;
+    // 한 번에 하나만 읽는다. 읽는 중에 또 불리면(visibilitychange·pageshow·PROFILE_UPDATED가 겹침) 끝난 뒤 한 번 더.
+    let running = false;
+    let again = false;
+    let attempts = 0;
 
     async function check() {
-      const key = await readMyBeltKey();
-      if (cancelled || key === null) return;
+      if (running) {
+        again = true;
+        return;
+      }
+      running = true;
+      try {
+        do {
+          again = false;
+          const isFirst = attempts === 0;
+          attempts += 1;
+          const key = await readMyBeltKey();
+          if (cancelled) return;
+          if (key === null) continue;
 
-      const previous = lastKeyRef.current;
-      lastKeyRef.current = key;
-      if (previous === null || previous === key) return;
+          const previous = lastKeyRef.current;
+          lastKeyRef.current = key;
+          if (previous === key) continue;
+          // 처음 읽기는 기준값만 잡는다(이 화면은 방금 최신 띠로 그려졌다).
+          // 처음 읽기가 실패해 기준값이 없던 채로 늦게 읽혔다면, 그사이 바뀌었을 수 있어 한 번 새로 그린다.
+          if (previous === null && isFirst) continue;
 
-      router.refresh();
-      window.dispatchEvent(new Event(MY_BELT_CHANGED_EVENT));
+          router.refresh();
+          window.dispatchEvent(new Event(MY_BELT_CHANGED_EVENT));
+        } while (again && !cancelled);
+      } finally {
+        running = false;
+      }
     }
 
     function handleVisible() {
