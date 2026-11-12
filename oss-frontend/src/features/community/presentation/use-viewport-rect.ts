@@ -28,8 +28,10 @@ export function useViewportRect(): ViewportRect | null {
       // overlay 모드(레이아웃 뷰포트는 그대로, 키보드만 덮음)에선 innerHeight−visualViewport.height가
       // 키보드 높이 → 키보드 떠 있음을 잡는다. 프레임 축소 모드에선 둘이 같이 줄어 ~0(이 경우 env가
       // 자동 0이라 패딩 토글이 불필요하므로 false여도 무방).
+      // 앱의 당겨서 새로고침(#432)으로 문서가 아래로 늘어나면 offsetTop이 음수가 된다 — 키보드로 잘못
+      // 읽지 않게 0 아래는 자른다.
       const covered =
-        window.innerHeight - viewport.height - viewport.offsetTop;
+        window.innerHeight - viewport.height - Math.max(0, viewport.offsetTop);
       setRect({
         top: Math.round(viewport.offsetTop),
         height: Math.round(viewport.height),
