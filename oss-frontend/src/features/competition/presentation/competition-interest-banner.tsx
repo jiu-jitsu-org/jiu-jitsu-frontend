@@ -3,7 +3,11 @@
 import { useEffect, useRef, type RefObject } from "react";
 
 import type { BeltRank } from "@/features/community/domain/belt";
-import type { DeadlineSoonItem } from "@/features/competition/domain/competition-interest-banner";
+import type { Competition } from "@/features/competition/domain/competition";
+import type {
+  DeadlineSoonItem,
+  EventSoonItem,
+} from "@/features/competition/domain/competition-interest-banner";
 import { daysBetween } from "@/features/competition/domain/competition-registration";
 import { setNativeCompetitionHeaderTint } from "@/shared/lib/native-bridge";
 import { IconButton } from "@/shared/ui/icon-button";
@@ -11,31 +15,38 @@ import { CloseIcon } from "@/shared/ui/icons";
 
 /**
  * 곧 마감 배너 (#396) — 접수 마감이 일주일 안으로 다가온 내 관심 대회 한 장. 대회 탭 배너 자리에 뜬다.
+ * 곧 열려요 배너 — 대회 날이 일주일 안으로 다가온 내 관심 대회(접수 상태 무관). 같은 자리·같은 모양에 문구만 다르다.
  *
- * 작은 진한 카드: 왼쪽에 남은 날 네모(D-n), 오른쪽에 작은 글 '관심 대회 접수가 곧 끝나요'와 굵은 대회 이름.
- * 카드를 누르면 상세가 열린다. ✕로 닫으면 이 기기에서 그 대회의 그 마감은 다시 뜨지 않는다(닫기는 호출부가 한다).
+ * 작은 진한 카드: 왼쪽에 남은 날 네모(D-n, 당일은 '오늘'), 오른쪽에 작은 글(종류별 문구)과 굵은 대회 이름.
+ * 카드를 누르면 상세가 열린다. ✕로 닫으면 이 기기에서 그 대회의 그 날짜 배너는 다시 뜨지 않는다(닫기는 호출부가 한다).
  * 결과 남기기 배너와 모서리·안쪽 여백·✕ 자리가 같다.
  */
 export function DeadlineSoonBanner({
-  item,
+  kind = "deadline",
+  competition,
+  date,
   today,
   onSelect,
   onClose,
 }: {
-  item: DeadlineSoonItem;
+  /** deadline: 곧 마감(접수 마감일) · event: 곧 열려요(대회 날) */
+  kind?: "deadline" | "event";
+  competition: Competition;
+  /** 남은 날을 셀 날 — 곧 마감이면 마감일, 곧 열려요면 대회 날. "YYYY-MM-DD" */
+  date: string;
   /** 한국 날짜 "YYYY-MM-DD" — 남은 날을 센다. */
   today: string;
-  onSelect: (item: DeadlineSoonItem) => void;
+  onSelect: (competition: Competition) => void;
   onClose: () => void;
 }) {
-  const { competition } = item;
-  const daysLeft = daysBetween(today, item.deadline);
+  const daysLeft = daysBetween(today, date);
+  const copy = BANNER_COPY[kind];
 
   return (
-    <section aria-label="곧 마감인 관심 대회" className="relative">
+    <section aria-label={copy.label} className="relative">
       <button
         type="button"
-        onClick={() => onSelect(item)}
+        onClick={() => onSelect(competition)}
         className="flex w-full items-center gap-3 rounded-20 bg-[var(--cool-gray-900)] py-3 pr-12 pl-4 text-left text-text-on-dark"
       >
         <span className="flex size-11 flex-none items-center justify-center rounded-10 bg-[var(--opacity-white-20)] text-[13px] leading-[18px] font-bold tabular-nums">
@@ -43,7 +54,7 @@ export function DeadlineSoonBanner({
         </span>
         <span className="flex min-w-0 flex-col">
           <span className="text-[12px] leading-[16px] text-[var(--opacity-white-60)]">
-            관심 대회 접수가 곧 끝나요
+            {copy.lead}
           </span>
           <span className="truncate text-[16px] leading-[22px] font-bold">
             {competition.name}
@@ -53,7 +64,7 @@ export function DeadlineSoonBanner({
       {/* 오른쪽 위 — 보이는 ✕는 20, 누를 자리는 44. 카드 버튼 밖 형제라 누르면 상세가 열리지 않는다. */}
       <IconButton
         size="l"
-        aria-label={`${competition.name} 마감 알림 닫기`}
+        aria-label={`${competition.name} ${copy.close}`}
         onClick={onClose}
         className={`${BANNER_CLOSE_POSITION} text-[var(--opacity-white-60)] active:bg-[var(--opacity-white-20)]`}
       >
@@ -62,6 +73,19 @@ export function DeadlineSoonBanner({
     </section>
   );
 }
+
+const BANNER_COPY = {
+  deadline: {
+    label: "곧 마감인 관심 대회",
+    lead: "관심 대회 접수가 곧 끝나요",
+    close: "마감 알림 닫기",
+  },
+  event: {
+    label: "곧 열리는 관심 대회",
+    lead: "관심 대회가 곧 열려요",
+    close: "곧 열려요 알림 닫기",
+  },
+} as const;
 
 /** 배너 ✕ 자리 — 곧 마감·결과 남기기 배너가 함께 쓴다(오른쪽 위, 44 누를 자리). */
 export const BANNER_CLOSE_POSITION = "absolute top-0.5 right-1";
@@ -72,16 +96,21 @@ const DISMISS_EVENT = "oss:competition-deadline-banner-dismissed";
 /**
  * 닫은 기록의 이름 — 대회와 마감 날짜를 함께 쓴다. 얼리버드 마감 알림을 닫아도 같은 대회의 접수 마감이
  * 다가오면 다시 알려야 해서다(마감마다 따로 챙길 일이다).
+ * 곧 열려요는 대회 + 종류(event) + 대회 날짜 — 곧 마감을 닫은 기록과 섞이지 않는다.
  */
-function dismissKey({ competition, deadline }: DeadlineSoonItem) {
-  return `${competition.id}:${deadline}`;
+function dismissKey(item: DeadlineSoonItem | EventSoonItem) {
+  return "eventDate" in item
+    ? `${item.competition.id}:event:${item.eventDate}`
+    : `${item.competition.id}:${item.deadline}`;
 }
 
 /** 저장소를 못 쓰는 환경(사생활 보호 모드)에서도 지금 화면에서는 닫히게 기억해 둔다. */
 const hiddenThisSession = new Set<string>();
 
-/** 이 곧 마감 배너를 이 기기에서 닫았는지. 기록은 브라우저 저장소에만 있어 서버는 모른다. */
-export function isDeadlineBannerDismissed(item: DeadlineSoonItem): boolean {
+/** 이 곧 마감·곧 열려요 배너를 이 기기에서 닫았는지. 기록은 브라우저 저장소에만 있어 서버는 모른다. */
+export function isDeadlineBannerDismissed(
+  item: DeadlineSoonItem | EventSoonItem,
+): boolean {
   const key = dismissKey(item);
   if (hiddenThisSession.has(key)) return true;
   try {
@@ -91,7 +120,7 @@ export function isDeadlineBannerDismissed(item: DeadlineSoonItem): boolean {
   }
 }
 
-export function dismissDeadlineBanner(item: DeadlineSoonItem) {
+export function dismissDeadlineBanner(item: DeadlineSoonItem | EventSoonItem) {
   const key = dismissKey(item);
   hiddenThisSession.add(key);
   try {

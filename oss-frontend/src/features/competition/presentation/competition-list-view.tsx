@@ -29,7 +29,10 @@ import {
   type CompetitionFilter,
 } from "@/features/competition/domain/competition-filter";
 import { bannerSlotQueue } from "@/features/competition/domain/competition-banner-slot";
-import { deadlineSoonInterested } from "@/features/competition/domain/competition-interest-banner";
+import {
+  deadlineSoonInterested,
+  eventSoonInterested,
+} from "@/features/competition/domain/competition-interest-banner";
 import {
   COMPETITION_REGIONS,
   type CompetitionRegion,
@@ -91,7 +94,7 @@ export function CompetitionListView({
   list,
   currentYear,
   today,
-  interestedOpen,
+  interestedUpcoming,
   myBeltRank,
   endedInterested,
 }: {
@@ -100,8 +103,8 @@ export function CompetitionListView({
   currentYear: number;
   /** 한국 날짜 "YYYY-MM-DD" — 응답의 today. */
   today: string;
-  /** 접수 중인 내 관심 대회 — 곧 마감 배너 후보(#396). */
-  interestedOpen: CompetitionListItem[];
+  /** 다가오는(접수 중·접수 마감) 내 관심 대회 — 곧 마감·곧 열려요 배너 후보(#396). */
+  interestedUpcoming: CompetitionListItem[];
   /** 내 띠 — 위 그라데이션 색. 없으면 흰띠. */
   myBeltRank: BeltRank | null;
   /** 끝난 지 며칠 안 된 내 관심 대회 묶음(#403) — 배너 자리의 결과 남기기 배너. */
@@ -132,7 +135,9 @@ export function CompetitionListView({
 
   // 관심 상태의 서버 값 — 첫 그림의 대회들에 이어 받은 페이지·달력 달의 대회를 더해 간다.
   const [known, setKnown] = useState(() =>
-    knownInterestOf(initialCompetitions(list, interestedOpen, endedInterested)),
+    knownInterestOf(
+      initialCompetitions(list, interestedUpcoming, endedInterested),
+    ),
   );
   // 필터 없는 목록(첫 페이지 + 이어 받은 페이지)과 마지막으로 받은 필터 결과.
   const [base, setBase] = useState<ListState>(() =>
@@ -155,7 +160,11 @@ export function CompetitionListView({
   // 로그인 상태가 바뀌었으면 관심 값이 통째로 달라져 처음부터 다시 모은다.
   const [seen, setSeen] = useState({ list, signedIn });
   if (seen.list !== list || seen.signedIn !== signedIn) {
-    const fresh = initialCompetitions(list, interestedOpen, endedInterested);
+    const fresh = initialCompetitions(
+      list,
+      interestedUpcoming,
+      endedInterested,
+    );
     if (seen.signedIn !== signedIn) {
       setKnown(knownInterestOf(fresh));
       setBase(toListState(EMPTY_KEY, list));
@@ -340,9 +349,9 @@ export function CompetitionListView({
         ),
       }))
       .filter((group) => group.competitions.length > 0);
-    // 접수 중인 관심 대회 + 목록에서 이 화면에서 관심 등록한 대회 — 필터와 무관하다.
+    // 다가오는(접수 중·접수 마감) 관심 대회 + 목록에서 이 화면에서 관심 등록한 대회 — 필터와 무관하다.
     const candidates = new Map<number, CompetitionListItem>();
-    for (const item of [...interestedOpen, ...base.items]) {
+    for (const item of [...interestedUpcoming, ...base.items]) {
       if (!candidates.has(item.competition.id)) {
         candidates.set(item.competition.id, item);
       }
@@ -352,12 +361,19 @@ export function CompetitionListView({
       interest.interestedIds,
       today,
     );
-    return bannerSlotQueue(results, deadlines);
+    // 곧 열려요 — 같은 대회의 곧 마감이 있으면 그게 먼저라 뺀다.
+    const events = eventSoonInterested(
+      [...candidates.values()],
+      interest.interestedIds,
+      today,
+      new Set(deadlines.map(({ competition }) => competition.id)),
+    );
+    return bannerSlotQueue(results, deadlines, events);
   }, [
     base.items,
     endedInterested,
     interest.interestedIds,
-    interestedOpen,
+    interestedUpcoming,
     signedIn,
     today,
   ]);
@@ -687,7 +703,7 @@ export function CompetitionListView({
             <CompetitionBannerSlot
               item={banner}
               today={today}
-              onSelectDeadline={({ competition }) => openDetail(competition.id)}
+              onSelectCompetition={(competition) => openDetail(competition.id)}
               onClose={() => closeBanner(banner)}
             />
           </div>
@@ -785,11 +801,11 @@ type KnownInterest = { ids: number[]; counts: Record<number, number> };
 
 function initialCompetitions(
   list: CompetitionListChunk,
-  interestedOpen: readonly CompetitionListItem[],
+  interestedUpcoming: readonly CompetitionListItem[],
   endedInterested: readonly ResultCardGroup[],
 ): Competition[] {
   return [
-    ...interestedOpen.map(({ competition }) => competition),
+    ...interestedUpcoming.map(({ competition }) => competition),
     ...endedInterested.flatMap((group) => group.competitions),
     ...list.items.map(({ competition }) => competition),
   ];

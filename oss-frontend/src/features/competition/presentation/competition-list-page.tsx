@@ -43,7 +43,7 @@ function renderBody(data: CompetitionListPageData) {
         list={data.list}
         currentYear={data.currentYear}
         today={data.today}
-        interestedOpen={data.interestedOpen}
+        interestedUpcoming={data.interestedUpcoming}
         myBeltRank={data.myBeltRank}
         endedInterested={data.endedInterested}
       />

@@ -6,7 +6,7 @@ import {
   nextBannerSlotKey,
   type BannerSlotItem,
 } from "@/features/competition/domain/competition-banner-slot";
-import type { DeadlineSoonItem } from "@/features/competition/domain/competition-interest-banner";
+import type { Competition } from "@/features/competition/domain/competition";
 import { daysBetween } from "@/features/competition/domain/competition-registration";
 import type { ResultCardGroup } from "@/features/competition/domain/competition-result-prompt";
 import {
@@ -27,12 +27,13 @@ import { isNativeBridgeAvailable } from "@/shared/lib/native-bridge";
 export function CompetitionBannerSlot({
   item,
   today,
-  onSelectDeadline,
+  onSelectCompetition,
   onClose,
 }: {
   item: BannerSlotItem;
   today: string;
-  onSelectDeadline: (item: DeadlineSoonItem) => void;
+  /** 곧 마감·곧 열려요 배너를 누르면 그 대회 상세를 연다. */
+  onSelectCompetition: (competition: Competition) => void;
   onClose: () => void;
 }) {
   switch (item.kind) {
@@ -41,9 +42,21 @@ export function CompetitionBannerSlot({
     case "deadline":
       return (
         <DeadlineSoonBanner
-          item={item.deadline}
+          competition={item.deadline.competition}
+          date={item.deadline.deadline}
           today={today}
-          onSelect={onSelectDeadline}
+          onSelect={onSelectCompetition}
+          onClose={onClose}
+        />
+      );
+    case "event":
+      return (
+        <DeadlineSoonBanner
+          kind="event"
+          competition={item.event.competition}
+          date={item.event.eventDate}
+          today={today}
+          onSelect={onSelectCompetition}
           onClose={onClose}
         />
       );
@@ -58,6 +71,9 @@ export function dismissBannerSlotItem(item: BannerSlotItem) {
       return;
     case "deadline":
       dismissDeadlineBanner(item.deadline);
+      return;
+    case "event":
+      dismissDeadlineBanner(item.event);
       return;
   }
 }
@@ -91,7 +107,10 @@ export function useBannerSlot(queue: readonly BannerSlotItem[]): {
   if (item.kind !== "result") return { ready: true, item };
   return {
     ready: true,
-    item: { ...item, group: openGroup(item.group, openIds.split(",").map(Number)) },
+    item: {
+      ...item,
+      group: openGroup(item.group, openIds.split(",").map(Number)),
+    },
   };
 }
 
@@ -156,6 +175,8 @@ function isOpen(item: BannerSlotItem): boolean {
       return openResultIds(item.group).length > 0;
     case "deadline":
       return !isDeadlineBannerDismissed(item.deadline);
+    case "event":
+      return !isDeadlineBannerDismissed(item.event);
   }
 }
 

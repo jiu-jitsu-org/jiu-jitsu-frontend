@@ -1,4 +1,7 @@
-import type { DeadlineSoonItem } from "@/features/competition/domain/competition-interest-banner";
+import type {
+  DeadlineSoonItem,
+  EventSoonItem,
+} from "@/features/competition/domain/competition-interest-banner";
 import { daysBetween } from "@/features/competition/domain/competition-registration";
 import type { ResultCardGroup } from "@/features/competition/domain/competition-result-prompt";
 
@@ -6,7 +9,8 @@ import type { ResultCardGroup } from "@/features/competition/domain/competition-
  * 대회 탭 맨 위 배너 자리 — 필터 줄 바로 아래에 한 번에 한 장만 띄운다.
  *
  * 띄울 수 있는 배너를 한 줄로 세워 두고(대기열), 앱에서 당겨서 새로고침할 때마다 다음 장으로 넘긴다.
- * 종류: 결과 남기기(끝난 지 며칠 안 된 관심 대회, #403) · 곧 마감(접수 마감이 일주일 안인 관심 대회, #396).
+ * 종류: 곧 마감(접수 마감이 일주일 안인 관심 대회, #396) · 곧 열려요(대회 날이 일주일 안인 관심 대회) ·
+ * 결과 남기기(끝난 지 며칠 안 된 관심 대회, #403).
  * 새 종류(광고·혜택 등)는 BannerSlotItem에 갈래를 하나 더하고 bannerSlotQueue에 자리를 정해 넣는다.
  */
 export type BannerSlotItem =
@@ -20,35 +24,43 @@ export type BannerSlotItem =
       kind: "deadline";
       key: string;
       deadline: DeadlineSoonItem;
+    }
+  | {
+      kind: "event";
+      key: string;
+      event: EventSoonItem;
     };
 
 /**
  * 배너 대기열 — 처음 들어오면 앞에서부터 띄운다.
  *
- * 결과 남기기를 먼저 둔다: 끝난 직후 며칠만 물을 수 있어 놓치면 다시 묻기 어렵다.
- * 결과 남기기는 대회마다 한 장이다 — 같은 주말에 끝난 대회도 한 장에 줄줄이 묶지 않는다(배너는 한 가지만 말한다).
+ * 순서: 곧 마감 → 곧 열려요 → 결과 남기기. 처음 들어올 때 결과 남기기를 먼저 띄우는 규칙은 화면(useBannerSlot)이 따로 지킨다.
  * 곧 마감은 대회마다 한 장씩, 마감이 가까운 순(deadlineSoonInterested가 정한 순서 그대로).
+ * 곧 열려요는 대회 날이 가까운 순(eventSoonInterested가 정한 순서) — 같은 대회의 곧 마감이 있으면 이미 빠져 있다.
+ * 결과 남기기는 대회마다 한 장이다 — 같은 주말에 끝난 대회도 한 장에 줄줄이 묶지 않는다(배너는 한 가지만 말한다).
  */
 export function bannerSlotQueue(
   results: readonly ResultCardGroup[],
   deadlines: readonly DeadlineSoonItem[],
+  events: readonly EventSoonItem[],
 ): BannerSlotItem[] {
   return [
-    ...results.flatMap(splitGroup).map(
-      (group): BannerSlotItem => ({
-        kind: "result",
-        // 대회 id로 부른다 — 묶음이 바뀌어도(관심을 끄거나 새로 받아 오면) 같은 대회는 같은 이름이다.
-        key: `result:${group.competitions[0]?.id ?? group.key}`,
-        group,
-      }),
-    ),
-    ...deadlines.map(
-      (deadline): BannerSlotItem => ({
-        kind: "deadline",
-        key: `deadline:${deadline.competition.id}:${deadline.deadline}`,
-        deadline,
-      }),
-    ),
+    ...deadlines.map((deadline): BannerSlotItem => ({
+      kind: "deadline",
+      key: `deadline:${deadline.competition.id}:${deadline.deadline}`,
+      deadline,
+    })),
+    ...events.map((event): BannerSlotItem => ({
+      kind: "event",
+      key: `event:${event.competition.id}:${event.eventDate}`,
+      event,
+    })),
+    ...results.flatMap(splitGroup).map((group): BannerSlotItem => ({
+      kind: "result",
+      // 대회 id로 부른다 — 묶음이 바뀌어도(관심을 끄거나 새로 받아 오면) 같은 대회는 같은 이름이다.
+      key: `result:${group.competitions[0]?.id ?? group.key}`,
+      group,
+    })),
   ];
 }
 

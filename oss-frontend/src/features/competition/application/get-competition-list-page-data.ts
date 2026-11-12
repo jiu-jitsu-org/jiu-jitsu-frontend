@@ -49,8 +49,11 @@ export type CompetitionListPageData =
       currentYear: number;
       /** 오늘 — 응답의 today. 달력(#339)이 지난 날짜를 흐리게 하고 첫 달을 정할 때 쓴다. */
       today: string;
-      /** 접수 중인 내 관심 대회(#396) — 곧 마감 배너 후보. 비로그인·실패면 빈 배열. */
-      interestedOpen: CompetitionListItem[];
+      /**
+       * 다가오는 내 관심 대회(접수 중·접수 마감) — 곧 마감(#396)·곧 열려요 배너 후보. 비로그인·실패면 빈 배열.
+       * 접수 마감 대회도 싣는 것은 대회 날이 다가오면 '곧 열려요'로 알리기 위해서다.
+       */
+      interestedUpcoming: CompetitionListItem[];
       /** 관심 대회 마감 알림 설정(#375). 비로그인이거나 못 읽으면 null — 첫 관심 등록 시트가 뜨지 않는다. */
       alertSettings: CompetitionAlertSettings | null;
       /** 내 띠 — 관심 대회 머리의 캐릭터·그라데이션 색. 비로그인·미입력·실패면 null(흰띠로 그린다). */
@@ -67,7 +70,7 @@ export type CompetitionListPageData =
  * 대회 탭 목록 화면 데이터 — 오늘(서버 기준) 이후 대회를 날짜순으로, 대회마다 접수 상태를 붙여서(#419).
  *
  * 필터·다음 페이지는 화면이 Server Action(loadCompetitionListChunk)으로 이어 받는다.
- * 로그인이면 곧 마감 배너(관심 + 접수 중)와 결과 남기기 카드(관심 + 종료, 며칠 전부터)를 함께 읽는다 —
+ * 로그인이면 곧 마감·곧 열려요 배너(관심 + 접수 중·접수 마감)와 결과 남기기 카드(관심 + 종료, 며칠 전부터)를 함께 읽는다 —
  * 둘은 덧붙는 정보라 못 읽어도 목록을 막지 않는다.
  */
 export async function getCompetitionListPageData(): Promise<CompetitionListPageData> {
@@ -78,33 +81,38 @@ export async function getCompetitionListPageData(): Promise<CompetitionListPageD
     -(RESULT_CARD_DAYS + 2),
   );
   try {
-    const [page, interestedOpen, interestedEnded, alertSettings, myBeltRank] =
-      await Promise.all([
-        fetchPage({ size: COMPETITION_LIST_PAGE_SIZE }, accessToken),
-        accessToken
-          ? fetchPage(
-              {
-                interested: true,
-                statuses: ["open"],
-                size: COMPETITION_FULL_PAGE_SIZE,
-              },
-              accessToken,
-            ).catch(() => null)
-          : null,
-        accessToken
-          ? fetchPage(
-              {
-                interested: true,
-                statuses: ["ended"],
-                date: endedFrom,
-                size: COMPETITION_FULL_PAGE_SIZE,
-              },
-              accessToken,
-            ).catch(() => null)
-          : null,
-        accessToken ? loadCompetitionAlertSettings() : null,
-        accessToken ? loadMyBeltRank() : null,
-      ]);
+    const [
+      page,
+      interestedUpcoming,
+      interestedEnded,
+      alertSettings,
+      myBeltRank,
+    ] = await Promise.all([
+      fetchPage({ size: COMPETITION_LIST_PAGE_SIZE }, accessToken),
+      accessToken
+        ? fetchPage(
+            {
+              interested: true,
+              statuses: ["open", "closed"],
+              size: COMPETITION_FULL_PAGE_SIZE,
+            },
+            accessToken,
+          ).catch(() => null)
+        : null,
+      accessToken
+        ? fetchPage(
+            {
+              interested: true,
+              statuses: ["ended"],
+              date: endedFrom,
+              size: COMPETITION_FULL_PAGE_SIZE,
+            },
+            accessToken,
+          ).catch(() => null)
+        : null,
+      accessToken ? loadCompetitionAlertSettings() : null,
+      accessToken ? loadMyBeltRank() : null,
+    ]);
     const today = page.today;
 
     return {
@@ -112,7 +120,9 @@ export async function getCompetitionListPageData(): Promise<CompetitionListPageD
       list: toChunk(page),
       currentYear: Number(today.slice(0, 4)),
       today,
-      interestedOpen: interestedOpen ? toChunk(interestedOpen).items : [],
+      interestedUpcoming: interestedUpcoming
+        ? toChunk(interestedUpcoming).items
+        : [],
       alertSettings,
       myBeltRank,
       endedInterested: interestedEnded
