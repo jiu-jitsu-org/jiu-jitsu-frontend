@@ -12,6 +12,7 @@ import type { ResultCardGroup } from "@/features/competition/domain/competition-
 import {
   DeadlineSoonBanner,
   dismissDeadlineBanner,
+  isReloadedDocument,
   isDeadlineBannerDismissed,
   subscribeDeadlineBannerDismissed,
 } from "@/features/competition/presentation/competition-interest-banner";
@@ -202,18 +203,6 @@ function openGroup(group: ResultCardGroup, openIds: number[]): ResultCardGroup {
     competitions,
     daysAgo: group.daysAgo + daysBetween(latest.date, original.date),
   };
-}
-
-/** 이 문서가 새로고침으로 열렸는지 — 앱의 당겨서 새로고침은 웹뷰를 다시 불러온다. */
-export function isReloadedDocument(): boolean {
-  try {
-    const [entry] = performance.getEntriesByType("navigation");
-    return (
-      (entry as PerformanceNavigationTiming | undefined)?.type === "reload"
-    );
-  } catch {
-    return false;
-  }
 }
 
 function readRotation(): string | null {

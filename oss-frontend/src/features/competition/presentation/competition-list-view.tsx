@@ -46,6 +46,7 @@ import {
 import { CompetitionCalendar } from "@/features/competition/presentation/competition-calendar";
 import {
   CompetitionTopTint,
+  isDeadlineBannerDismissed,
   smoothOutEasing,
 } from "@/features/competition/presentation/competition-interest-banner";
 import { RegistrationIcon } from "@/features/competition/presentation/competition-icons";
@@ -103,7 +104,7 @@ export function CompetitionListView({
   currentYear: number;
   /** 한국 날짜 "YYYY-MM-DD" — 응답의 today. */
   today: string;
-  /** 다가오는(접수 중·접수 마감) 내 관심 대회 — 곧 마감·곧 열려요 배너 후보(#396). */
+  /** 다가오는(접수 예정·접수 중·접수 마감) 내 관심 대회 — 곧 마감·곧 열려요 배너 후보(#396). */
   interestedUpcoming: CompetitionListItem[];
   /** 내 띠 — 위 그라데이션 색. 없으면 흰띠. */
   myBeltRank: BeltRank | null;
@@ -349,7 +350,7 @@ export function CompetitionListView({
         ),
       }))
       .filter((group) => group.competitions.length > 0);
-    // 다가오는(접수 중·접수 마감) 관심 대회 + 목록에서 이 화면에서 관심 등록한 대회 — 필터와 무관하다.
+    // 다가오는(접수 예정·접수 중·접수 마감) 관심 대회 + 목록에서 이 화면에서 관심 등록한 대회 — 필터와 무관하다.
     const candidates = new Map<number, CompetitionListItem>();
     for (const item of [...interestedUpcoming, ...base.items]) {
       if (!candidates.has(item.competition.id)) {
@@ -361,12 +362,16 @@ export function CompetitionListView({
       interest.interestedIds,
       today,
     );
-    // 곧 열려요 — 같은 대회의 곧 마감이 있으면 그게 먼저라 뺀다.
+    // 곧 열려요 — 같은 대회의 곧 마감이 떠 있으면 그게 먼저라 뺀다. 곧 마감을 ✕로 닫은 대회는 곧 열려요로 다시 알린다.
     const events = eventSoonInterested(
       [...candidates.values()],
       interest.interestedIds,
       today,
-      new Set(deadlines.map(({ competition }) => competition.id)),
+      new Set(
+        deadlines
+          .filter((deadline) => !isDeadlineBannerDismissed(deadline))
+          .map(({ competition }) => competition.id),
+      ),
     );
     return bannerSlotQueue(results, deadlines, events);
   }, [
@@ -416,7 +421,7 @@ export function CompetitionListView({
   // 달력에서는 배너를 걷는다 — 달력 칸이 첫 화면에 다 들어와야 날짜를 고를 수 있다.
   const decidedBanner = mode === "list" ? bannerSlot.item : null;
   const banner = bannerEntered ? decidedBanner : null;
-  // ✕를 눌러 접히는 중인 배너 — 접히는 0.5초 동안 그대로 그려 둔다.
+  // ✕를 눌러 접히는 중인 배너 — 접히는 0.5초 동안 ✕를 또 눌러도 움직임이 겹치지 않게 막는다(그라데이션과는 무관).
   const [closingKey, setClosingKey] = useState<string | null>(null);
   // 위 그라데이션(내 띠 색, 로그인 전·띠를 모르면 흰띠 색)은 배너가 없어도 늘 깐다 — 관심 대회가 없어도
   // 대회 탭 맨 위는 같은 얼굴이다. 배너 자리가 정해진 뒤(서버 그림·첫 그림이 지난 뒤) 한 번 옅게 들어오고,
