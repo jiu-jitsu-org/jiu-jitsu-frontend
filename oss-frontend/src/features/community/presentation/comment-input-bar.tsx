@@ -58,6 +58,9 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
   // 앱의 당겨서 새로고침(#432)은 페이지를 다시 불러온다. 키보드를 내린 채 당겨도 쓰던 댓글이 남게
   // 이 웹뷰가 살아 있는 동안만(sessionStorage) 들고 있다가 되살린다. 등록하면 비워진다.
   const draftKey = `oss:comment-draft:${contentId}`;
+  // 첫 커밋에선 되살리기(setValue)가 아직 반영되기 전이라 저장 쪽이 빈 값으로 초안을 지운다 —
+  // 저장은 첫 실행을 건너뛰고 되살린 값이 들어온 다음부터 한다.
+  const draftSaveReadyRef = useRef(false);
   useEffect(() => {
     try {
       const saved = sessionStorage.getItem(draftKey);
@@ -68,6 +71,10 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
     }
   }, [draftKey]);
   useEffect(() => {
+    if (!draftSaveReadyRef.current) {
+      draftSaveReadyRef.current = true;
+      return;
+    }
     try {
       if (value) sessionStorage.setItem(draftKey, value);
       else sessionStorage.removeItem(draftKey);
