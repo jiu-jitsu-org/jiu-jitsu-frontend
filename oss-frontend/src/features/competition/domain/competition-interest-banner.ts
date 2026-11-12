@@ -51,6 +51,41 @@ export function deadlineSoonInterested(
     .map(({ item, deadline }) => ({ ...item, deadline }));
 }
 
+/** 곧 열려요 후보 — 대회 날짜(`eventDate`, "YYYY-MM-DD")가 오늘부터 DEADLINE_SOON_DAYS일 안인 관심 대회. */
+export type EventSoonItem = InterestBannerItem & { eventDate: string };
+
+/**
+ * 곧 열리는 관심 대회 — 내가 관심 등록한 대회 중 대회 날이 오늘부터 7일 안(D-7 ~ 당일)이고 끝나지 않은 대회.
+ *
+ * 접수 상태와 무관하다 — 접수가 끝난(마감) 대회는 곧 마감 배너에서 빠지니, 신청을 마친 사람에게는 대회가 다가온다는 것이
+ * 지금 챙길 일이다. 같은 대회의 곧 마감 항목이 있으면(deadlineIds) 그쪽이 먼저라 여기서는 뺀다 — 배너는 한 가지만 말한다.
+ * 대회 날이 가까운 순, 같으면 이름순. 필터와 무관하다.
+ */
+export function eventSoonInterested(
+  items: readonly InterestBannerItem[],
+  interestedIds: ReadonlySet<number>,
+  today: string,
+  deadlineIds: ReadonlySet<number>,
+): EventSoonItem[] {
+  return items
+    .flatMap((item) => {
+      const { competition } = item;
+      if (!interestedIds.has(competition.id)) return [];
+      if (deadlineIds.has(competition.id)) return [];
+      if (competition.status === "ended" || !isDateKey(competition.date)) {
+        return [];
+      }
+      const days = daysBetween(today, competition.date);
+      if (days < 0 || days > DEADLINE_SOON_DAYS) return [];
+      return [{ ...item, eventDate: competition.date }];
+    })
+    .sort(
+      (a, b) =>
+        a.eventDate.localeCompare(b.eventDate) ||
+        a.competition.name.localeCompare(b.competition.name, "ko"),
+    );
+}
+
 /**
  * 오늘(포함) 이후 처음 오는 접수 마감일. 얼리버드 마감이 아직 남았으면 그날, 아니면 접수 마감일.
  * 이미 접수가 끝났거나 날짜 값이 잘못됐으면 null.

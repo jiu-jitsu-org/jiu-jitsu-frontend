@@ -3,7 +3,11 @@
 import { useEffect, useRef, type RefObject } from "react";
 
 import type { BeltRank } from "@/features/community/domain/belt";
-import type { DeadlineSoonItem } from "@/features/competition/domain/competition-interest-banner";
+import type { Competition } from "@/features/competition/domain/competition";
+import type {
+  DeadlineSoonItem,
+  EventSoonItem,
+} from "@/features/competition/domain/competition-interest-banner";
 import { daysBetween } from "@/features/competition/domain/competition-registration";
 import { setNativeCompetitionHeaderTint } from "@/shared/lib/native-bridge";
 import { IconButton } from "@/shared/ui/icon-button";
@@ -11,31 +15,38 @@ import { CloseIcon } from "@/shared/ui/icons";
 
 /**
  * 곧 마감 배너 (#396) — 접수 마감이 일주일 안으로 다가온 내 관심 대회 한 장. 대회 탭 배너 자리에 뜬다.
+ * 곧 열려요 배너 — 대회 날이 일주일 안으로 다가온 내 관심 대회(접수 상태 무관). 같은 자리·같은 모양에 문구만 다르다.
  *
- * 작은 진한 카드: 왼쪽에 남은 날 네모(D-n), 오른쪽에 작은 글 '관심 대회 접수가 곧 끝나요'와 굵은 대회 이름.
- * 카드를 누르면 상세가 열린다. ✕로 닫으면 이 기기에서 그 대회의 그 마감은 다시 뜨지 않는다(닫기는 호출부가 한다).
+ * 작은 진한 카드: 왼쪽에 남은 날 네모(D-n, 당일은 '오늘'), 오른쪽에 작은 글(종류별 문구)과 굵은 대회 이름.
+ * 카드를 누르면 상세가 열린다. ✕로 닫으면 이 기기에서 그 대회의 그 날짜 배너는 다시 뜨지 않는다(닫기는 호출부가 한다).
  * 결과 남기기 배너와 모서리·안쪽 여백·✕ 자리가 같다.
  */
 export function DeadlineSoonBanner({
-  item,
+  kind = "deadline",
+  competition,
+  date,
   today,
   onSelect,
   onClose,
 }: {
-  item: DeadlineSoonItem;
+  /** deadline: 곧 마감(접수 마감일) · event: 곧 열려요(대회 날) */
+  kind?: "deadline" | "event";
+  competition: Competition;
+  /** 남은 날을 셀 날 — 곧 마감이면 마감일, 곧 열려요면 대회 날. "YYYY-MM-DD" */
+  date: string;
   /** 한국 날짜 "YYYY-MM-DD" — 남은 날을 센다. */
   today: string;
-  onSelect: (item: DeadlineSoonItem) => void;
+  onSelect: (competition: Competition) => void;
   onClose: () => void;
 }) {
-  const { competition } = item;
-  const daysLeft = daysBetween(today, item.deadline);
+  const daysLeft = daysBetween(today, date);
+  const copy = BANNER_COPY[kind];
 
   return (
-    <section aria-label="곧 마감인 관심 대회" className="relative">
+    <section aria-label={copy.label} className="relative">
       <button
         type="button"
-        onClick={() => onSelect(item)}
+        onClick={() => onSelect(competition)}
         className="flex w-full items-center gap-3 rounded-20 bg-[var(--cool-gray-900)] py-3 pr-12 pl-4 text-left text-text-on-dark"
       >
         <span className="flex size-11 flex-none items-center justify-center rounded-10 bg-[var(--opacity-white-20)] text-[13px] leading-[18px] font-bold tabular-nums">
@@ -43,7 +54,7 @@ export function DeadlineSoonBanner({
         </span>
         <span className="flex min-w-0 flex-col">
           <span className="text-[12px] leading-[16px] text-[var(--opacity-white-60)]">
-            관심 대회 접수가 곧 끝나요
+            {copy.lead}
           </span>
           <span className="truncate text-[16px] leading-[22px] font-bold">
             {competition.name}
@@ -53,7 +64,7 @@ export function DeadlineSoonBanner({
       {/* 오른쪽 위 — 보이는 ✕는 20, 누를 자리는 44. 카드 버튼 밖 형제라 누르면 상세가 열리지 않는다. */}
       <IconButton
         size="l"
-        aria-label={`${competition.name} 마감 알림 닫기`}
+        aria-label={`${competition.name} ${copy.close}`}
         onClick={onClose}
         className={`${BANNER_CLOSE_POSITION} text-[var(--opacity-white-60)] active:bg-[var(--opacity-white-20)]`}
       >
@@ -62,6 +73,19 @@ export function DeadlineSoonBanner({
     </section>
   );
 }
+
+const BANNER_COPY = {
+  deadline: {
+    label: "곧 마감인 관심 대회",
+    lead: "관심 대회 접수가 곧 끝나요",
+    close: "마감 알림 닫기",
+  },
+  event: {
+    label: "곧 열리는 관심 대회",
+    lead: "관심 대회가 곧 열려요",
+    close: "곧 열려요 알림 닫기",
+  },
+} as const;
 
 /** 배너 ✕ 자리 — 곧 마감·결과 남기기 배너가 함께 쓴다(오른쪽 위, 44 누를 자리). */
 export const BANNER_CLOSE_POSITION = "absolute top-0.5 right-1";
@@ -72,16 +96,21 @@ const DISMISS_EVENT = "oss:competition-deadline-banner-dismissed";
 /**
  * 닫은 기록의 이름 — 대회와 마감 날짜를 함께 쓴다. 얼리버드 마감 알림을 닫아도 같은 대회의 접수 마감이
  * 다가오면 다시 알려야 해서다(마감마다 따로 챙길 일이다).
+ * 곧 열려요는 대회 + 종류(event) + 대회 날짜 — 곧 마감을 닫은 기록과 섞이지 않는다.
  */
-function dismissKey({ competition, deadline }: DeadlineSoonItem) {
-  return `${competition.id}:${deadline}`;
+function dismissKey(item: DeadlineSoonItem | EventSoonItem) {
+  return "eventDate" in item
+    ? `${item.competition.id}:event:${item.eventDate}`
+    : `${item.competition.id}:${item.deadline}`;
 }
 
 /** 저장소를 못 쓰는 환경(사생활 보호 모드)에서도 지금 화면에서는 닫히게 기억해 둔다. */
 const hiddenThisSession = new Set<string>();
 
-/** 이 곧 마감 배너를 이 기기에서 닫았는지. 기록은 브라우저 저장소에만 있어 서버는 모른다. */
-export function isDeadlineBannerDismissed(item: DeadlineSoonItem): boolean {
+/** 이 곧 마감·곧 열려요 배너를 이 기기에서 닫았는지. 기록은 브라우저 저장소에만 있어 서버는 모른다. */
+export function isDeadlineBannerDismissed(
+  item: DeadlineSoonItem | EventSoonItem,
+): boolean {
   const key = dismissKey(item);
   if (hiddenThisSession.has(key)) return true;
   try {
@@ -91,7 +120,7 @@ export function isDeadlineBannerDismissed(item: DeadlineSoonItem): boolean {
   }
 }
 
-export function dismissDeadlineBanner(item: DeadlineSoonItem) {
+export function dismissDeadlineBanner(item: DeadlineSoonItem | EventSoonItem) {
   const key = dismissKey(item);
   hiddenThisSession.add(key);
   try {
@@ -107,10 +136,22 @@ export function subscribeDeadlineBannerDismissed(onChange: () => void) {
   return () => window.removeEventListener(DISMISS_EVENT, onChange);
 }
 
+/** 이 문서가 새로고침으로 열렸는지 — 앱의 당겨서 새로고침은 웹뷰를 다시 불러온다. */
+export function isReloadedDocument(): boolean {
+  try {
+    const [entry] = performance.getEntriesByType("navigation");
+    return (
+      (entry as PerformanceNavigationTiming | undefined)?.type === "reload"
+    );
+  } catch {
+    return false;
+  }
+}
+
 /**
  * 위에서 내려오는 내 띠 색 그라데이션 — 화면 맨 위(필터 줄 뒤)에서 은은하게 시작해 배너 아래에서 바탕색으로 녹는다.
- * 배너 자리에 배너가 떠 있을 때만 보이고, 배너와 함께 0.5초에 걸쳐 짙어지며, 배너를 닫아 자리가 접히면 0.5초에 걸쳐 옅어진다.
- * 흰띠는 회색, 검은띠는 끝 칸의 빨강으로 물들인다.
+ * 배너가 있든 없든 늘 깐다. 배너 자리가 정해지면 0.5초에 걸쳐 옅게 들어오고(당겨서 새로고침이면 앱 머리에 이미 색이 깔려 있어
+ * 바로 칠한다), `shown`이 꺼지면 0.5초에 걸쳐 옅어진다. 흰띠는 회색, 검은띠는 끝 칸의 빨강으로 물들인다.
  *
  * 화면 맨 앞에 두고 z를 주지 않아, 뒤에 오는 필터 줄(sticky)·배너(relative)가 그 위에 그려진다.
  * 음수 z + isolate로 깔면 같은 화면의 시트(fixed z-50)가 main 안에 갇혀 토스트 등과 순서가 바뀌어 쓰지 않는다.
@@ -140,8 +181,8 @@ export function CompetitionTopTint({
   const ready = shown !== null;
   const decidedOnceRef = useRef(false);
 
-  // 배너가 들어올 때 함께 0.5초에 걸쳐 짙어지고, 자리가 접히면 0.5초에 걸쳐 옅어진다.
-  // 처음 정해질 때 이미 보일 차례면(당겨서 새로고침 — 앞 배너의 색이 앱 머리에 깔려 있다) 움직이지 않고 바로 칠한다.
+  // 처음 정해질 때 0.5초에 걸쳐 짙어지고, 꺼지면 0.5초에 걸쳐 옅어진다.
+  // 당겨서 새로고침이면(앞 그림의 색이 앱 머리에 깔려 있다) 움직이지 않고 바로 칠한다 — 머리와 어긋나 깜빡이지 않게.
   // 아래 칠하기보다 먼저 둔다 — 처음 정해질 때 투명한 채로 칠해 앱 머리에 '색 없음'을 먼저 보내지 않게.
   useEffect(() => {
     const layer = layerRef.current;
@@ -149,11 +190,16 @@ export function CompetitionTopTint({
     const first = !decidedOnceRef.current;
     decidedOnceRef.current = true;
     const visible = layer.style.opacity === "1";
+    // 같은 값으로 다시 불리면(개발 모드의 효과 두 번 실행 등) 들어오던 페이드를 끊지 않는다.
+    if (!first && visible === shown) {
+      requestUpdateRef.current();
+      return;
+    }
     for (const running of layer.getAnimations()) running.cancel();
     layer.style.opacity = shown ? "1" : "0";
+    const fade = first ? shown && !isReloadedDocument() : true;
     if (
-      !first &&
-      visible !== shown &&
+      fade &&
       !window.matchMedia("(prefers-reduced-motion: reduce)").matches
     ) {
       layer.animate(
@@ -250,20 +296,29 @@ export function smoothOutEasing() {
   );
 }
 
-/** 그라데이션 높이 — 배너 아래까지 내려가 거기서 천천히 사라지게 넉넉히 잡는다. */
-const TINT_HEIGHT = 260;
 /**
- * 그라데이션 곡선 — [높이 비율, 띠 색 %]. 위에서는 천천히, 아래로 갈수록 완만하게 잦아드는 ease-out 모양.
+ * 그라데이션 높이 — 배너가 없어도 첫 카드 줄을 지나 세 번째 카드 언저리까지 이어져, 칩 줄 아래에서
+ * 띠처럼 끊겨 보이지 않게 넉넉히 잡는다.
+ */
+const TINT_HEIGHT = 420;
+/**
+ * 그라데이션 곡선 — [높이 비율, 띠 색 %]. smoothstep(3t²−2t³)을 12칸으로 나눈 값이라 맨 위와 맨 끝이 둘 다
+ * 평평하다 — 끝에서 꺾이는 자리가 없어 어디서 사라졌는지 눈에 걸리지 않는다.
  * 바탕 그림·필터 줄 바탕·앱 머리 색이 모두 이 곡선(tintAt)을 따라 같은 자리에서 같은 색이 된다.
  */
 const TINT_STOPS: readonly (readonly [number, number])[] = [
   [0, 16],
-  [0.14, 14],
-  [0.3, 11],
-  [0.48, 7.5],
-  [0.64, 4.2],
-  [0.8, 1.8],
-  [0.92, 0.5],
+  [0.083, 15.69],
+  [0.167, 14.81],
+  [0.25, 13.5],
+  [0.333, 11.85],
+  [0.417, 9.98],
+  [0.5, 8],
+  [0.583, 6.02],
+  [0.667, 4.15],
+  [0.75, 2.5],
+  [0.833, 1.19],
+  [0.917, 0.31],
   [1, 0],
 ];
 
