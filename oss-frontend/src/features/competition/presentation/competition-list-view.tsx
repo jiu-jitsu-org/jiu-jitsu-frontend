@@ -233,7 +233,10 @@ export function CompetitionListView({
       .m42;
     for (const running of element.getAnimations()) running.cancel();
     const animation = element.animate(
-      [{ transform: `translateY(${shift + current}px)` }, { transform: "none" }],
+      [
+        { transform: `translateY(${shift + current}px)` },
+        { transform: "none" },
+      ],
       { duration: 500, easing: smoothOutEasing() },
     );
     // 움직이는 동안 잰 달 머리 위치는 옮겨 둔 자리라, 끝나면 다시 잰다.
@@ -282,6 +285,24 @@ export function CompetitionListView({
     collapse.oncancel = dismiss;
   };
 
+  // 필터 줄 바탕은 줄 아래로 8px 더 내려와 지나가는 카드를 옅게 지운다. 맨 위에 서 있을 때는 그 8px이
+  // 바로 아래 배너 윗부분을 덮어 검은 배너 위로 회색 막이 비쳐, 스크롤한 만큼만(최대 8px) 내려오게 한다.
+  useEffect(() => {
+    const background = filterBarBackgroundRef.current;
+    if (!background) return;
+    const update = () => {
+      const reach = Math.min(
+        Math.max(window.scrollY, 0),
+        FILTER_BAR_FADE_OUTSIDE,
+      );
+      background.style.bottom = `${-reach}px`;
+    };
+    update();
+    // 위 그라데이션이 같은 스크롤에서 줄 바탕을 다시 칠하기 전에(다음 프레임) 높이를 먼저 맞춘다.
+    window.addEventListener("scroll", update, { passive: true });
+    return () => window.removeEventListener("scroll", update);
+  }, []);
+
   // 배너에서 누른 대회는 상세로 바로 연다(#361) — 목록 줄을 누른 것과 같다.
   const openDetail = useOpenCompetitionDetail();
 
@@ -328,8 +349,11 @@ export function CompetitionListView({
         <div
           aria-hidden
           ref={filterBarBackgroundRef}
-          className="pointer-events-none absolute inset-x-0 top-0 -bottom-2 bg-surface-container"
-          style={{ maskImage: FILTER_BAR_FADE, WebkitMaskImage: FILTER_BAR_FADE }}
+          className="pointer-events-none absolute inset-x-0 top-0 bottom-0 bg-surface-container"
+          style={{
+            maskImage: FILTER_BAR_FADE,
+            WebkitMaskImage: FILTER_BAR_FADE,
+          }}
         />
         <div id={FILTER_BAR_ID} ref={filterBarRef} className="relative">
           <div className="flex items-center">
@@ -449,9 +473,7 @@ export function CompetitionListView({
             <CompetitionBannerSlot
               item={banner}
               today={today}
-              onSelectDeadline={({ competition }) =>
-                openDetail(competition.id)
-              }
+              onSelectDeadline={({ competition }) => openDetail(competition.id)}
               onClose={() => closeBanner(banner)}
             />
           </div>
@@ -517,6 +539,9 @@ export function CompetitionListView({
 }
 
 const FILTER_BAR_ID = "competition-filter-bar";
+
+/** 필터 줄 바탕이 줄 밖으로 내려와 지우는 길이(px) — 스크롤해 목록이 줄 밑을 지날 때만 내려온다. */
+const FILTER_BAR_FADE_OUTSIDE = 8;
 
 /** 필터 줄 바탕의 아래 끝 16px을 지우는 마스크 — 일정한 속도로 지우면 끝나는 자리가 줄처럼 보여 완만한 곡선(ease)으로 지운다. */
 const FILTER_BAR_FADE =
