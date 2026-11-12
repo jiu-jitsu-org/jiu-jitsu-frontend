@@ -35,10 +35,10 @@ export function CompetitionStories({
   const openFeed = useOpenFeed();
   const openPostWrite = useOpenPostWrite({ competitionId });
   const openWrite = () => {
-    markWriteOpened();
+    markWriteOpened(competitionId);
     openPostWrite();
   };
-  useRefreshAfterWrite();
+  useRefreshAfterWrite(competitionId);
   const empty = stories.length === 0;
 
   return (
@@ -100,27 +100,35 @@ function useOpenFeed() {
   const router = useRouter();
   return () => {
     if (isNativeBridgeAvailable()) {
-      if (!openNativeHomeFeed()) openNativeSubview(`${window.location.origin}/`);
+      if (!openNativeHomeFeed())
+        openNativeSubview(`${window.location.origin}/`);
       return;
     }
     router.push("/");
   };
 }
 
-/** 이 상세에서 글쓰기를 열었는지 — 돌아왔을 때 대회 이야기를 다시 읽을지 정한다(#433). */
+/**
+ * 어느 대회 상세에서 글쓰기를 열었는지 — 돌아왔을 때 대회 이야기를 다시 읽을지 정한다(#433).
+ * 대회 id를 값으로 남겨, 다른 대회 상세가 이 표시를 가져가 헛되이 다시 읽지 않게 한다.
+ */
 const WRITE_OPENED_KEY = "oss.competition.write-opened";
 
-function markWriteOpened() {
+function markWriteOpened(competitionId: number) {
   try {
-    window.sessionStorage.setItem(WRITE_OPENED_KEY, "1");
+    window.sessionStorage.setItem(WRITE_OPENED_KEY, String(competitionId));
   } catch {
     // 저장소를 못 쓰면 돌아와도 다시 읽지 않는다 — 새 글은 다음에 상세를 열 때 보인다.
   }
 }
 
-function takeWriteOpened(): boolean {
+function takeWriteOpened(competitionId: number): boolean {
   try {
-    if (!window.sessionStorage.getItem(WRITE_OPENED_KEY)) return false;
+    if (
+      window.sessionStorage.getItem(WRITE_OPENED_KEY) !== String(competitionId)
+    ) {
+      return false;
+    }
     window.sessionStorage.removeItem(WRITE_OPENED_KEY);
     return true;
   } catch {
@@ -133,12 +141,12 @@ function takeWriteOpened(): boolean {
  * 앱은 작성 서브뷰가 닫히면 상세 웹뷰가 다시 보이며 visibilitychange가 오고, 웹은 뒤로 가기로 상세가 다시 그려질 때
  * (마운트·pageshow) 확인한다. 목록의 상세 복귀 갱신(useRefreshAfterDetail)과 같은 방식이다.
  */
-function useRefreshAfterWrite() {
+function useRefreshAfterWrite(competitionId: number) {
   const router = useRouter();
   useEffect(() => {
     const refreshIfReturned = () => {
       if (document.visibilityState !== "visible") return;
-      if (takeWriteOpened()) router.refresh();
+      if (takeWriteOpened(competitionId)) router.refresh();
     };
     refreshIfReturned();
     document.addEventListener("visibilitychange", refreshIfReturned);
@@ -147,5 +155,5 @@ function useRefreshAfterWrite() {
       document.removeEventListener("visibilitychange", refreshIfReturned);
       window.removeEventListener("pageshow", refreshIfReturned);
     };
-  }, [router]);
+  }, [competitionId, router]);
 }
