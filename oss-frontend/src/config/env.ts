@@ -98,18 +98,23 @@ export function getImageKitClientEnv(): ImageKitClientEnv {
 }
 
 /**
- * (dev 전용) 로컬 개발 서버(next dev)에서 도는지 — 화면 확인용 예시 데이터 같은 개발 편의 분기에 쓴다.
- * production 빌드에서는 항상 false라 그 분기는 운영에서 동작하지 않는다.
+ * 대회 화면을 열지(ServerEnv.competitionEnabled) — COMPETITION_ENABLED가 "true"/"false"(대소문자·앞뒤 공백 무시)면
+ * 그 값을, 비어 있으면 로컬 개발 서버이거나 dev-api를 바라볼 때만 켠다.
  */
 function resolveCompetitionEnabled(
   flag: string | undefined,
   apiBaseUrl: string | undefined,
 ): boolean {
-  if (flag === "true") return true;
-  if (flag === "false") return false;
+  const value = flag?.trim().toLowerCase();
+  if (value === "true") return true;
+  if (value === "false") return false;
   return isDevelopmentRuntime() || (apiBaseUrl ?? "").includes("dev-api");
 }
 
+/**
+ * (dev 전용) 로컬 개발 서버(next dev)에서 도는지 — 화면 확인용 예시 데이터 같은 개발 편의 분기에 쓴다.
+ * production 빌드에서는 항상 false라 그 분기는 운영에서 동작하지 않는다.
+ */
 export function isDevelopmentRuntime(): boolean {
   return process.env.NODE_ENV === "development";
 }

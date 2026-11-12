@@ -100,8 +100,9 @@ export type CreatePostInput = {
   /**
    * 고른 대회(#421) — '대회' 카테고리만. 없으면 null.
    * 수정(PUT)에서는 보낸 값으로 바꾸고 null이면 연결을 푼다 — 수정 화면은 그 글의 값을 늘 다시 보낸다(#417).
+   * 생략하면 요청에 싣지 않는다 — 대회 화면이 꺼진 배포의 BFF가 뺀다.
    */
-  competitionId: number | null;
+  competitionId?: number | null;
 };
 
 /**

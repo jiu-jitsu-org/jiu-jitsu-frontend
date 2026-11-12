@@ -56,9 +56,12 @@ export function CompetitionPicker({
     if (!searching) return;
     let cancelled = false;
     const timer = window.setTimeout(() => {
-      void searchCompetitionPickerAction(query).then((result) => {
-        if (!cancelled && result) setFound({ query, options: result });
-      });
+      // 찾기에 실패하면(연결 끊김 포함) 펼친 목록 안에서 거른 결과를 그대로 둔다.
+      void searchCompetitionPickerAction(query)
+        .catch(() => null)
+        .then((result) => {
+          if (!cancelled && result) setFound({ query, options: result });
+        });
     }, SEARCH_DELAY_MS);
     return () => {
       cancelled = true;
@@ -69,7 +72,9 @@ export function CompetitionPicker({
     () =>
       found && found.query === query
         ? found.options
-        : options.filter((option) => matchesCompetitionName(option.name, query)),
+        : options.filter((option) =>
+            matchesCompetitionName(option.name, query),
+          ),
     [found, options, query],
   );
 
@@ -101,7 +106,10 @@ export function CompetitionPicker({
             </span>
           )}
           {selected ? null : (
-            <ChevronDownIcon size={18} className="flex-none text-icon-secondary" />
+            <ChevronDownIcon
+              size={18}
+              className="flex-none text-icon-secondary"
+            />
           )}
         </button>
         {selected ? (

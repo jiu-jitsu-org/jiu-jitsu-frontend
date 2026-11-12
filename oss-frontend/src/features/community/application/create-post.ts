@@ -29,7 +29,10 @@ export class CreatePostUseCase {
       body,
       imageFileIdList: input.imageFileIdList,
       tags: input.tags,
-      competitionId: input.competitionId,
+      // 생략된 값(대회 화면이 꺼진 배포)은 요청에 싣지 않는다.
+      ...(input.competitionId !== undefined
+        ? { competitionId: input.competitionId }
+        : {}),
     });
   }
 }

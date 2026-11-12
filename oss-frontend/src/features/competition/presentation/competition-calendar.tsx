@@ -11,7 +11,10 @@ import {
   type Competition,
   type CompetitionListQuery,
 } from "@/features/competition/domain/competition";
-import { loadCompetitionListAction } from "@/features/competition/presentation/actions/load-competition-list-action";
+import {
+  loadCompetitionListAction,
+  type LoadCompetitionListResult,
+} from "@/features/competition/presentation/actions/load-competition-list-action";
 import { CompetitionRow } from "@/features/competition/presentation/competition-month-section";
 import type { CompetitionInterest } from "@/features/competition/presentation/use-competition-interest";
 import { cn } from "@/shared/lib/cn";
@@ -85,19 +88,25 @@ export function CompetitionCalendar({
       ...query,
       date: monthStart,
       size: COMPETITION_FULL_PAGE_SIZE,
-    }).then((result) => {
-      if (cancelled) return;
-      if (!result.ok) {
-        // 못 받은 달은 실패로 남겨 다시 받기를 보여 준다 — 빈 달로 굳지 않게.
-        setMonths((current) => ({ ...current, [monthKey]: { failed: true } }));
-        return;
-      }
-      onLoad(result.chunk.items.map(({ competition }) => competition));
-      setMonths((current) => ({
-        ...current,
-        [monthKey]: toMonthData(result.chunk, view),
-      }));
-    });
+    })
+      // 연결이 끊겨 호출 자체가 실패해도(오프라인·웹뷰 끊김) 같은 실패 갈래로 처리한다.
+      .catch((): LoadCompetitionListResult => ({ ok: false, reason: "failed" }))
+      .then((result) => {
+        if (cancelled) return;
+        if (!result.ok) {
+          // 못 받은 달은 실패로 남겨 다시 받기를 보여 준다 — 빈 달로 굳지 않게.
+          setMonths((current) => ({
+            ...current,
+            [monthKey]: { failed: true },
+          }));
+          return;
+        }
+        onLoad(result.chunk.items.map(({ competition }) => competition));
+        setMonths((current) => ({
+          ...current,
+          [monthKey]: toMonthData(result.chunk, view),
+        }));
+      });
     return () => {
       cancelled = true;
     };
@@ -109,10 +118,7 @@ export function CompetitionCalendar({
     const map = new Map<string, CompetitionListItem[]>();
     for (const item of monthData && !monthData.failed ? monthData.items : []) {
       if (item.competition.date < today) continue;
-      if (
-        interestedOnly &&
-        !interest.interestedIds.has(item.competition.id)
-      ) {
+      if (interestedOnly && !interest.interestedIds.has(item.competition.id)) {
         continue;
       }
       const list = map.get(item.competition.date);

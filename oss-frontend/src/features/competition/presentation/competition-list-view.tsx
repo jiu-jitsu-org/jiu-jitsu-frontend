@@ -57,7 +57,10 @@ import {
   useOpenCompetitionDetail,
   useRefreshAfterDetail,
 } from "@/features/competition/presentation/competition-detail-link";
-import { loadCompetitionListAction } from "@/features/competition/presentation/actions/load-competition-list-action";
+import {
+  loadCompetitionListAction,
+  type LoadCompetitionListResult,
+} from "@/features/competition/presentation/actions/load-competition-list-action";
 import { useCompetitionInterest } from "@/features/competition/presentation/use-competition-interest";
 import { useMyBeltRank } from "@/features/competition/presentation/use-my-belt-rank";
 import { cn } from "@/shared/lib/cn";
@@ -133,7 +136,9 @@ export function CompetitionListView({
     knownInterestOf(initialCompetitions(list, interestedOpen, endedInterested)),
   );
   // 필터 없는 목록(첫 페이지 + 이어 받은 페이지)과 마지막으로 받은 필터 결과.
-  const [base, setBase] = useState<ListState>(() => toListState(EMPTY_KEY, list));
+  const [base, setBase] = useState<ListState>(() =>
+    toListState(EMPTY_KEY, list),
+  );
   const [filtered, setFiltered] = useState<ListState | null>(null);
   const [interestResetKey, setInterestResetKey] = useState(list);
   const absorb = useCallback((competitions: Competition[]) => {
@@ -186,7 +191,8 @@ export function CompetitionListView({
 
   // 마지막으로 받은 필터 — 받기에 실패하면 칩을 이 값으로 되돌린다. 필터를 비우면 바로 그 값이 된다.
   const [appliedFilter, setAppliedFilter] = useState(filter);
-  if (queryKey === EMPTY_KEY && appliedFilter !== filter) setAppliedFilter(filter);
+  if (queryKey === EMPTY_KEY && appliedFilter !== filter)
+    setAppliedFilter(filter);
   useEffect(() => {
     // 달력은 달마다 따로 받는다 — 목록 결과는 목록으로 돌아왔을 때 받는다.
     if (mode === "calendar") return;
@@ -195,19 +201,22 @@ export function CompetitionListView({
     void loadCompetitionListAction({
       ...serverQuery,
       size: COMPETITION_LIST_PAGE_SIZE,
-    }).then((result) => {
-      if (cancelled) return;
-      if (!result.ok) {
-        toast.show("대회를 불러오지 못했어요. 다시 시도해 주세요", {
-          tone: "error",
-        });
-        setFilter(appliedFilter);
-        return;
-      }
-      absorb(result.chunk.items.map(({ competition }) => competition));
-      setFiltered(toListState(queryKey, result.chunk));
-      setAppliedFilter(filter);
-    });
+    })
+      // 연결이 끊겨 호출 자체가 실패해도(오프라인·웹뷰 끊김) 같은 실패 갈래로 처리한다.
+      .catch((): LoadCompetitionListResult => ({ ok: false, reason: "failed" }))
+      .then((result) => {
+        if (cancelled) return;
+        if (!result.ok) {
+          toast.show("대회를 불러오지 못했어요. 다시 시도해 주세요", {
+            tone: "error",
+          });
+          setFilter(appliedFilter);
+          return;
+        }
+        absorb(result.chunk.items.map(({ competition }) => competition));
+        setFiltered(toListState(queryKey, result.chunk));
+        setAppliedFilter(filter);
+      });
     return () => {
       cancelled = true;
     };
@@ -229,24 +238,29 @@ export function CompetitionListView({
       ...serverQuery,
       cursor,
       size: COMPETITION_LIST_PAGE_SIZE,
-    }).then((result) => {
-      loadingMore.current = false;
-      if (!result.ok) {
-        setFailedCursor(cursor);
-        return;
-      }
-      absorb(result.chunk.items.map(({ competition }) => competition));
-      const append = (current: ListState | null) =>
-        current && current.key === key && current.nextCursor === cursor
-          ? {
-              key,
-              items: [...current.items, ...result.chunk.items],
-              nextCursor: result.chunk.nextCursor,
-            }
-          : current;
-      if (key === EMPTY_KEY) setBase((current) => append(current) ?? current);
-      else setFiltered(append);
-    });
+    })
+      // 연결이 끊겨 호출 자체가 실패해도(오프라인·웹뷰 끊김) 같은 실패 갈래로 처리한다.
+      .catch((): LoadCompetitionListResult => ({ ok: false, reason: "failed" }))
+      .then((result) => {
+        if (!result.ok) {
+          setFailedCursor(cursor);
+          return;
+        }
+        absorb(result.chunk.items.map(({ competition }) => competition));
+        const append = (current: ListState | null) =>
+          current && current.key === key && current.nextCursor === cursor
+            ? {
+                key,
+                items: [...current.items, ...result.chunk.items],
+                nextCursor: result.chunk.nextCursor,
+              }
+            : current;
+        if (key === EMPTY_KEY) setBase((current) => append(current) ?? current);
+        else setFiltered(append);
+      })
+      .finally(() => {
+        loadingMore.current = false;
+      });
   }, [absorb, failedCursor, serverQuery, shown, shownSettled]);
   const moreRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -788,7 +802,10 @@ function initialCompetitions(
 /** 이 화면에서 누른 결과를 서버 값처럼 접어 넣는다 — 관심 덮어쓰기가 비워지기 전에. */
 function foldInterest(
   current: KnownInterest,
-  interest: { isInterested: (id: number) => boolean; countOf: (id: number) => number },
+  interest: {
+    isInterested: (id: number) => boolean;
+    countOf: (id: number) => number;
+  },
 ): KnownInterest {
   const ids: number[] = [];
   const counts: Record<number, number> = {};
