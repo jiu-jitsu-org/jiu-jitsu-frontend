@@ -13,16 +13,19 @@ import {
   matchesCompetitionFilter,
   type CompetitionFilter,
 } from "@/features/competition/domain/competition-filter";
+import { bannerSlotQueue } from "@/features/competition/domain/competition-banner-slot";
 import { deadlineSoonInterested } from "@/features/competition/domain/competition-interest-banner";
 import type { CompetitionRegion } from "@/features/competition/domain/competition-region";
 import type { ResultCardGroup } from "@/features/competition/domain/competition-result-prompt";
+import {
+  CompetitionBannerSlot,
+  dismissBannerSlotItem,
+  useBannerSlot,
+} from "@/features/competition/presentation/competition-banner-slot";
 import { CompetitionCalendar } from "@/features/competition/presentation/competition-calendar";
 import {
-  CompetitionInterestBanner,
-  DeadlineBannerReopen,
-  InterestBannerTint,
-  useCompetitionHeaderTint,
-  useDeadlineBannerItem,
+  CompetitionTopTint,
+  smoothOutEasing,
 } from "@/features/competition/presentation/competition-interest-banner";
 import { RegistrationIcon } from "@/features/competition/presentation/competition-icons";
 import {
@@ -30,10 +33,6 @@ import {
   monthLabel,
 } from "@/features/competition/presentation/competition-month-section";
 import { CompetitionRegionSheet } from "@/features/competition/presentation/competition-region-sheet";
-import {
-  CompetitionResultCard,
-  useResultCardGroup,
-} from "@/features/competition/presentation/competition-result-card";
 import { CompetitionSearchField } from "@/features/competition/presentation/competition-search-field";
 import {
   useOpenCompetitionDetail,
@@ -82,9 +81,9 @@ export function CompetitionListView({
   interestedIds: string[];
   interestCounts: Record<string, number>;
   regionsWithCompetitions: CompetitionRegion[];
-  /** 내 띠 — 관심 대회 머리 캐릭터·위 그라데이션 색. 없으면 흰띠. */
+  /** 내 띠 — 위 그라데이션 색. 없으면 흰띠. */
   myBeltRank: BeltRank | null;
-  /** 끝난 지 며칠 안 된 내 관심 대회 묶음(#403) — 맨 위 결과 남기기 카드. */
+  /** 끝난 지 며칠 안 된 내 관심 대회 묶음(#403) — 배너 자리의 결과 남기기 배너. */
   endedInterested: ResultCardGroup[];
 }) {
   const [filter, setFilter] = useState<CompetitionFilter>(
@@ -100,6 +99,7 @@ export function CompetitionListView({
   // 필터 줄(칩 + 열린 검색칸)과 목록 — 스크롤하며 어느 달 머리가 필터 줄 밑으로 지나갔는지 잰다.
   // 지나간 마지막 달이 필터 줄 왼쪽의 '지금 달'이다. 아무 달도 안 지났으면(맨 위) 첫 달.
   const filterBarRef = useRef<HTMLDivElement>(null);
+  const filterBarBackgroundRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const [passedMonthIndex, setPassedMonthIndex] = useState<number | null>(null);
 
@@ -172,72 +172,104 @@ export function CompetitionListView({
         (visibleMonths[passedMonthIndex ?? 0] ?? visibleMonths[0])
       : undefined;
 
-  // 검색칸이 열리고 닫히면 필터 줄 높이가 바뀌어 그 아래(배너·목록)가 한 번에 밀린다.
-  // 밀린 만큼 거꾸로 옮겨 놓고 제자리로 미끄러지게 해, 검색칸이 나타나는 0.5초 동안 함께 움직이게 한다.
+  // 배너 자리 — 필터 줄 바로 아래에 한 번에 한 장(결과 남기기 · 곧 마감). 당겨서 새로고침할 때마다 다음 장으로 넘긴다.
+  // 곧 마감(#396)은 필터와 무관하게 내 관심 대회 전체에서 접수 마감이 일주일 안인 대회, 대회마다 한 장.
+  // 결과 남기기(#403)는 끝난 지 며칠 안 된 관심 대회 묶음 — 서버가 그린 뒤 관심을 끈 대회는 뺀다.
+  // 비로그인이면 관심이 없어 둘 다 비어 있다.
+  const bannerQueue = useMemo(() => {
+    if (!signedIn) return [];
+    const results = endedInterested
+      .map((group) => ({
+        ...group,
+        competitions: group.competitions.filter(({ id }) =>
+          interest.interestedIds.has(id),
+        ),
+      }))
+      .filter((group) => group.competitions.length > 0);
+    const deadlines = deadlineSoonInterested(
+      months.flatMap((month) => month.items),
+      interest.interestedIds,
+      today,
+    );
+    return bannerSlotQueue(results, deadlines);
+  }, [endedInterested, interest.interestedIds, months, signedIn, today]);
+  const bannerSlot = useBannerSlot(bannerQueue);
+  // 달력에서는 배너를 걷는다 — 달력 칸이 첫 화면에 다 들어와야 날짜를 고를 수 있다.
+  const banner = mode === "list" ? bannerSlot.item : null;
+  // ✕를 눌러 접히는 중인 배너 — 접히는 0.5초 동안 그대로 그려 두고, 위 그라데이션은 그동안 옅어진다.
+  const [closingKey, setClosingKey] = useState<string | null>(null);
+  const tintShown = bannerSlot.ready
+    ? banner !== null && banner.key !== closingKey
+    : null;
+
+  // 배너 자리·검색칸 높이가 바뀌면 그 아래(배너·목록)가 한 번에 밀린다. 밀린 만큼 거꾸로 옮겨 놓고 제자리로
+  // 미끄러지게 해(0.5초) 함께 움직이게 한다 — 배너가 처음 뜨면 필터 줄 밑에서 내려오며 목록을 밀어낸다.
   // 높이는 움직이지 않고 위치(transform)만 움직이며, 끝나면 아무것도 남기지 않는다.
   const belowBarRef = useRef<HTMLDivElement>(null);
-  const lastBarHeight = useRef<number | null>(null);
+  const slotRef = useRef<HTMLDivElement>(null);
+  const lastBelowBarTop = useRef<{ top: number; mode: string } | null>(null);
+  const collapsingRef = useRef(false);
+  const bannerKey = banner?.key ?? null;
   useLayoutEffect(() => {
-    const height = filterBarRef.current?.offsetHeight ?? 0;
-    const shift = (lastBarHeight.current ?? height) - height;
-    lastBarHeight.current = height;
-    if (shift === 0) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const easing =
-      getComputedStyle(document.documentElement)
-        .getPropertyValue("--ease-smooth-out")
-        .trim() || "cubic-bezier(0.2, 0.8, 0.2, 1)";
     const element = belowBarRef.current;
-    if (element) {
-      // 미끄러지는 도중에 다시 여닫으면 지금 보이는 자리에서 이어 간다(처음 자리로 튀지 않게).
-      const current = new DOMMatrixReadOnly(getComputedStyle(element).transform)
-        .m42;
+    const barHeight = filterBarRef.current?.offsetHeight ?? 0;
+    const top = barHeight + (slotRef.current?.offsetHeight ?? 0);
+    // 처음에는 배너 없이 그린 것으로 본다 — 첫 그림 뒤에 배너가 뜨면 내려오게.
+    const last = lastBelowBarTop.current ?? { top: barHeight, mode };
+    lastBelowBarTop.current = { top, mode };
+    if (!element) return;
+    // ✕로 접은 뒤 — 접히는 동안 이미 위로 옮겨 두었으니 그 옮김만 걷어 낸다(그림 직전이라 튀지 않는다).
+    if (collapsingRef.current) {
+      collapsingRef.current = false;
       for (const running of element.getAnimations()) running.cancel();
-      const animation = element.animate(
-        [
-          { transform: `translateY(${shift + current}px)` },
-          { transform: "none" },
-        ],
-        { duration: 500, easing },
-      );
-      // 움직이는 동안 잰 달 머리 위치는 옮겨 둔 자리라, 끝나면 다시 잰다.
-      animation.onfinish = () => window.dispatchEvent(new Event("scroll"));
+      return;
     }
-  }, [searchOpen]);
+    // 목록 ↔ 달력은 화면이 통째로 바뀌어 미끄러지지 않는다.
+    const shift = last.top - top;
+    if (shift === 0 || last.mode !== mode) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // 미끄러지는 도중에 다시 바뀌면 지금 보이는 자리에서 이어 간다(처음 자리로 튀지 않게).
+    const current = new DOMMatrixReadOnly(getComputedStyle(element).transform)
+      .m42;
+    for (const running of element.getAnimations()) running.cancel();
+    const animation = element.animate(
+      [{ transform: `translateY(${shift + current}px)` }, { transform: "none" }],
+      { duration: 500, easing: smoothOutEasing() },
+    );
+    // 움직이는 동안 잰 달 머리 위치는 옮겨 둔 자리라, 끝나면 다시 잰다.
+    animation.onfinish = () => window.dispatchEvent(new Event("scroll"));
+  }, [searchOpen, bannerKey, mode]);
 
-  // 곧 마감 배너(#396) — 필터와 무관하게 내 관심 대회 전체에서 접수 마감이 일주일 안인 대회를 고른다.
-  // 비로그인이면 관심이 없어 비어 있다. 이 기기에서 ✕로 닫은 대회는 건너뛰고 가장 급한 한 장만 띄운다.
-  const deadlineSoon = useMemo(
-    () =>
-      signedIn
-        ? deadlineSoonInterested(
-            months.flatMap((month) => month.items),
-            interest.interestedIds,
-            today,
-          )
-        : [],
-    [interest.interestedIds, months, signedIn, today],
-  );
-  const deadlineBannerItem = useDeadlineBannerItem(deadlineSoon);
-  // 달력에서는 배너를 걷는다 — 달력 칸이 첫 화면에 다 들어와야 날짜를 고를 수 있다.
-  const showBanner = mode === "list" && deadlineBannerItem !== null;
-  // 결과 남기기 카드(#403)도 같은 자리에 한 번에 한 장 — 곧 마감이 있으면 마감을 먼저 띄운다.
-  // 마감을 놓치면 참가비가 오르지만, 결과는 끝난 뒤 며칠 안에 다시 물을 수 있다.
-  const resultGroup = useResultCardGroup(
-    endedInterested,
-    interest.interestedIds,
-  );
-  const showResultCard =
-    mode === "list" && deadlineBannerItem === null && resultGroup !== null;
-  // 후보를 모두 닫았으면 첫 카드 뒤에 캐릭터를 남겨 다시 열 수 있게 한다(목록이 있을 때만).
-  // 결과 카드가 그 자리를 쓰는 동안은 두지 않는다 — 맨 위에 하나씩만.
-  const showBannerReopen =
-    mode === "list" &&
-    !showResultCard &&
-    deadlineSoon.length > 0 &&
-    deadlineBannerItem === null;
-  // 앱의 '대회' 머리를 맨 위 띠 색 그라데이션과 같은 색으로 — 배너가 보일 때만, 아니면 앱 기본색.
-  useCompetitionHeaderTint(showBanner ? (beltRank ?? "white") : null);
+  // ✕ — 배너가 필터 줄 밑으로 올라가며 옅어지고 목록이 따라 올라온다(0.5초). 다 접히면 닫은 기록을 남겨
+  // 자리를 비운다. 다음 새로고침에서 다음 장이 뜬다.
+  const closeBanner = (item: NonNullable<typeof banner>) => {
+    const element = belowBarRef.current;
+    const slot = slotRef.current;
+    if (
+      !element ||
+      !slot ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      dismissBannerSlotItem(item);
+      return;
+    }
+    setClosingKey(item.key);
+    collapsingRef.current = true;
+    const timing = {
+      duration: 500,
+      easing: smoothOutEasing(),
+      fill: "forwards",
+    } as const;
+    for (const running of element.getAnimations()) running.cancel();
+    slot.animate([{ opacity: 1 }, { opacity: 0 }], timing);
+    element.animate(
+      [
+        { transform: "none" },
+        { transform: `translateY(${-slot.offsetHeight}px)` },
+      ],
+      timing,
+    ).onfinish = () => dismissBannerSlotItem(item);
+  };
 
   // 배너에서 누른 대회는 상세로 바로 연다(#361) — 목록 줄을 누른 것과 같다.
   const openDetail = useOpenCompetitionDetail();
@@ -270,9 +302,13 @@ export function CompetitionListView({
 
   return (
     <>
-      {showBanner ? <InterestBannerTint rank={beltRank ?? "white"} /> : null}
+      <CompetitionTopTint
+        rank={beltRank ?? "white"}
+        shown={tintShown}
+        barRef={filterBarBackgroundRef}
+      />
       {/* 필터 줄: 좌우 16 · 칩 간격 8, 넘치면 가로 스크롤(스크롤바 숨김) — 글쓰기 카테고리 칩 줄과 같은 규격.
-          바탕은 꽉 채워(띠 색이 깔려 있으면 그 자리 색 TOP_TINT_VAR, 아니면 목록 바탕색) 아래로 지나가는 카드·배너가
+          바탕은 꽉 채워(띠 색이 깔려 있으면 그 자리의 그라데이션 구간 — CompetitionTopTint가 칠한다, 아니면 목록 바탕색) 아래로 지나가는 카드·배너가
           줄 뒤로 깔끔히 숨게 하고, 줄 아래 끝 16px(줄 안 8 + 밖 8)에서만 완만하게(ease) 지워 선 없이 목록으로 녹아들게 한다.
           반투명 + 흐림으로 비치게 하면 검은 배너가 지날 때 줄 뒤에 탁한 회색 띠가 남아 쓰지 않는다.
           왼쪽 끝에 지금 달(#396), 앱이 머리 버튼을 모르면 오른쪽 끝에 관심 하트 · 목록 ↔ 달력(#339)을 고정해 둔다 —
@@ -280,7 +316,8 @@ export function CompetitionListView({
       <div className="sticky top-0 z-10 [overflow-anchor:none]">
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 -bottom-2 bg-[var(--competition-top-tint,var(--surface-container))]"
+          ref={filterBarBackgroundRef}
+          className="pointer-events-none absolute inset-x-0 top-0 -bottom-2 bg-surface-container"
           style={{ maskImage: FILTER_BAR_FADE, WebkitMaskImage: FILTER_BAR_FADE }}
         />
         <div id={FILTER_BAR_ID} ref={filterBarRef} className="relative">
@@ -395,14 +432,18 @@ export function CompetitionListView({
       {/* 브라우저가 스크롤을 몰래 고쳐 목록을 제자리에 붙잡으면(크롬) 위 미끄러짐과 어긋나, 여기서는 끈다 —
           사파리처럼 늘 검색칸만큼 밀리고 그 밀림을 미끄러지게 보여 준다. */}
       <div ref={belowBarRef} className="[overflow-anchor:none]">
-        <CompetitionInterestBanner
-          item={showBanner ? deadlineBannerItem : null}
-          currentYear={currentYear}
-          beltRank={beltRank}
-          onSelect={({ competition }) => openDetail(competition.id)}
-        />
-        {showResultCard && resultGroup ? (
-          <CompetitionResultCard group={resultGroup} />
+        {banner ? (
+          // 한 번에 한 장. 아래 여백까지 자리 높이에 넣어, 접히고 펼쳐질 때 목록이 그만큼 움직인다.
+          <div ref={slotRef} className="px-4 pb-3">
+            <CompetitionBannerSlot
+              item={banner}
+              today={today}
+              onSelectDeadline={({ competition }) =>
+                openDetail(competition.id)
+              }
+              onClose={() => closeBanner(banner)}
+            />
+          </div>
         ) : null}
 
         {mode === "calendar" ? (
@@ -435,12 +476,6 @@ export function CompetitionListView({
           />
         ) : (
           <div ref={listRef} className="pb-6">
-            {showBannerReopen ? (
-              <DeadlineBannerReopen
-                candidates={deadlineSoon}
-                beltRank={beltRank}
-              />
-            ) : null}
             {visibleMonths.map((month, index) => (
               <MonthSection
                 key={`${month.year}-${month.month}`}

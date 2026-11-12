@@ -19,7 +19,7 @@ const hiddenThisSession = new Set<string>();
 /** 이 대회의 결과 남기기 안내를 닫았는지. 서버 그림에서는 늘 false. */
 export function useResultPromptDismissed(competitionId: string): boolean {
   return useSyncExternalStore(
-    subscribeDismissed,
+    subscribeResultPromptDismissed,
     () => isResultPromptDismissed(competitionId),
     () => false,
   );
@@ -31,7 +31,7 @@ export function useResultPromptDismissed(competitionId: string): boolean {
  */
 export function useOpenResultPromptIds(competitionIds: readonly string[]) {
   return useSyncExternalStore(
-    subscribeDismissed,
+    subscribeResultPromptDismissed,
     () => competitionIds.filter((id) => !isResultPromptDismissed(id)).join(","),
     () => competitionIds.join(","),
   );
@@ -60,7 +60,8 @@ export function dismissResultPrompt(competitionIds: readonly string[]) {
   window.dispatchEvent(new Event(DISMISS_EVENT));
 }
 
-function subscribeDismissed(onChange: () => void) {
+/** 어디서든 결과 남기기 안내를 닫으면 알린다 — 대회 탭 배너 자리가 같이 듣는다. */
+export function subscribeResultPromptDismissed(onChange: () => void) {
   window.addEventListener(DISMISS_EVENT, onChange);
   return () => window.removeEventListener(DISMISS_EVENT, onChange);
 }
