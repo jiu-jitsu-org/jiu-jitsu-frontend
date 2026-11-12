@@ -1,8 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 import { useOpenPostDetail } from "@/features/community/presentation/use-open-post-detail";
+import { useOpenPostWrite } from "@/features/community/presentation/use-open-post-write";
 import type { CompetitionStory } from "@/features/competition/domain/competition-story";
 import { DetailSection } from "@/features/competition/presentation/competition-detail-sections";
 import { cn } from "@/shared/lib/cn";
@@ -18,16 +20,25 @@ import { RelativeTime } from "@/shared/ui/relative-time";
 /**
  * 대회 이야기 (#366) — 커뮤니티에서 이 대회를 고른 글, 서버가 고른 최대 5개를 서버 순서대로(#421).
  *
- * 글을 누르면 게시글 상세가 열린다(피드 카드와 같은 길). 아래 버튼은 글이 있든 없든 전체 피드로 보내고 문구만 다르다 —
- * 없을 때는 "첫 글 남기기"로 커뮤니티에 글을 쓰러 가게 한다.
+ * 글을 누르면 게시글 상세가 열린다(피드 카드와 같은 길). 글이 있으면 아래 버튼은 전체 피드로 보낸다.
+ * 없으면 "첫 글 남기기"가 글쓰기를 연다 — '대회' 카테고리와 이 대회가 미리 골라져 있다(#433, 피드 글쓰기와 같은 길:
+ * 비로그인은 로그인 안내, 앱은 서브뷰, 웹은 이동). 글을 올리고 상세로 돌아오면 상세가 다시 읽어 새 글이 보인다.
  */
 export function CompetitionStories({
+  competitionId,
   stories,
 }: {
+  competitionId: number;
   stories: CompetitionStory[];
 }) {
   const openPost = useOpenPostDetail();
   const openFeed = useOpenFeed();
+  const openPostWrite = useOpenPostWrite({ competitionId });
+  const openWrite = () => {
+    markWriteOpened(competitionId);
+    openPostWrite();
+  };
+  useRefreshAfterWrite(competitionId);
   const empty = stories.length === 0;
 
   return (
@@ -68,7 +79,7 @@ export function CompetitionStories({
       )}
       <button
         type="button"
-        onClick={openFeed}
+        onClick={empty ? openWrite : openFeed}
         className={cn(
           "-mx-2 mt-1 flex min-h-11 w-[calc(100%+16px)] items-center justify-center gap-0.5 rounded-10 text-[14px] leading-[20px] font-semibold text-text-secondary",
           SURFACE_PRESS,
@@ -89,9 +100,60 @@ function useOpenFeed() {
   const router = useRouter();
   return () => {
     if (isNativeBridgeAvailable()) {
-      if (!openNativeHomeFeed()) openNativeSubview(`${window.location.origin}/`);
+      if (!openNativeHomeFeed())
+        openNativeSubview(`${window.location.origin}/`);
       return;
     }
     router.push("/");
   };
+}
+
+/**
+ * 어느 대회 상세에서 글쓰기를 열었는지 — 돌아왔을 때 대회 이야기를 다시 읽을지 정한다(#433).
+ * 대회 id를 값으로 남겨, 다른 대회 상세가 이 표시를 가져가 헛되이 다시 읽지 않게 한다.
+ */
+const WRITE_OPENED_KEY = "oss.competition.write-opened";
+
+function markWriteOpened(competitionId: number) {
+  try {
+    window.sessionStorage.setItem(WRITE_OPENED_KEY, String(competitionId));
+  } catch {
+    // 저장소를 못 쓰면 돌아와도 다시 읽지 않는다 — 새 글은 다음에 상세를 열 때 보인다.
+  }
+}
+
+function takeWriteOpened(competitionId: number): boolean {
+  try {
+    if (
+      window.sessionStorage.getItem(WRITE_OPENED_KEY) !== String(competitionId)
+    ) {
+      return false;
+    }
+    window.sessionStorage.removeItem(WRITE_OPENED_KEY);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 글쓰기에서 돌아오면 상세를 다시 읽는다 — 올린 글이 대회 이야기에 바로 보이게(#433).
+ * 앱은 작성 서브뷰가 닫히면 상세 웹뷰가 다시 보이며 visibilitychange가 오고, 웹은 뒤로 가기로 상세가 다시 그려질 때
+ * (마운트·pageshow) 확인한다. 목록의 상세 복귀 갱신(useRefreshAfterDetail)과 같은 방식이다.
+ */
+function useRefreshAfterWrite(competitionId: number) {
+  const router = useRouter();
+  useEffect(() => {
+    const refreshIfReturned = () => {
+      if (document.visibilityState !== "visible") return;
+      if (takeWriteOpened(competitionId)) router.refresh();
+    };
+    refreshIfReturned();
+    document.addEventListener("visibilitychange", refreshIfReturned);
+    window.addEventListener("pageshow", refreshIfReturned);
+    return () => {
+      document.removeEventListener("visibilitychange", refreshIfReturned);
+      window.removeEventListener("pageshow", refreshIfReturned);
+    };
+  }, [competitionId, router]);
 }

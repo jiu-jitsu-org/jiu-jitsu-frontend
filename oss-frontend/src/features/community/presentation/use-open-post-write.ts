@@ -25,22 +25,30 @@ const POST_WRITE_PATH = "/community/write";
  *
  * 닫기(등록/취소)는 작성 화면의 closeScreen이 CLOSE_SUBVIEW로 pop해 짝을 맞춘다.
  *
+ * competitionId를 넘기면 '대회' 카테고리와 그 대회를 미리 골라 연다(`?competitionId=`, 대회 이야기의 "첫 글 남기기", #433).
+ *
  * 목록 갱신 표시는 여기서 남기지 않는다 — 등록에 성공한 시점에 작성 화면이 글 id와 함께 남긴다
  * (markPostCreated). 취소로 닫으면 아무것도 남지 않아 목록이 헛되이 재조회하지 않는다.
  */
-export function useOpenPostWrite() {
+export function useOpenPostWrite({
+  competitionId,
+}: { competitionId?: number } = {}) {
   const router = useRouter();
   const { requireAuth } = useAuth();
+  const path =
+    competitionId === undefined
+      ? POST_WRITE_PATH
+      : `${POST_WRITE_PATH}?competitionId=${competitionId}`;
 
   return () => {
     requireAuth(
       () => {
         if (isNativeBridgeAvailable()) {
-          openNativeSubview(`${window.location.origin}${POST_WRITE_PATH}`);
+          openNativeSubview(`${window.location.origin}${path}`);
           return;
         }
 
-        router.push(POST_WRITE_PATH);
+        router.push(path);
       },
       { reason: "게시글 작성" },
     );
