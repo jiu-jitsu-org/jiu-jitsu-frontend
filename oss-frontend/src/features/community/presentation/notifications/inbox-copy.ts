@@ -35,11 +35,14 @@ export function inboxTitle(notification: InboxNotification): string {
 export const POST_GONE_MESSAGE = "삭제된 게시글이에요";
 export const COMMENT_GONE_MESSAGE = "삭제된 댓글이에요";
 export const REPLY_GONE_MESSAGE = "삭제된 대댓글이에요";
+/** 대회가 지워졌거나 미공개로 바뀐 대회 알림(#422) — 게시글 삭제 문구와 같은 말투. */
+export const COMPETITION_GONE_MESSAGE = "더 이상 볼 수 없는 대회예요";
 
 const GONE_MESSAGE_BY_KIND: Record<InboxGoneKind, string> = {
   post: POST_GONE_MESSAGE,
   comment: COMMENT_GONE_MESSAGE,
   reply: REPLY_GONE_MESSAGE,
+  competition: COMPETITION_GONE_MESSAGE,
 };
 
 export function inboxGoneMessage(kind: InboxGoneKind): string {

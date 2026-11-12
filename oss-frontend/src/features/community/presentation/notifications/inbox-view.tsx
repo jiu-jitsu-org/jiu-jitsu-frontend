@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useState } from "react";
 
 import {
   INBOX_RETENTION_DAYS,
+  isCompetitionNotification,
   type InboxNotification,
 } from "@/features/community/domain/inbox-notification";
 import { useOpenBalanceDetail } from "@/features/community/presentation/balance/use-open-balance-detail";
@@ -12,9 +13,7 @@ import { InboxEmptyState } from "@/features/community/presentation/notifications
 import { inboxGoneMessage } from "@/features/community/presentation/notifications/inbox-copy";
 import { InboxItem } from "@/features/community/presentation/notifications/inbox-item";
 import { useOpenPostDetail } from "@/features/community/presentation/use-open-post-detail";
-import type { CompetitionAlertInbox } from "@/features/competition/application/load-competition-alert-inbox";
-import type { CompetitionAlertNotification } from "@/features/competition/domain/competition-alert";
-import { markCompetitionAlertsReadAction } from "@/features/competition/presentation/actions/competition-alert-actions";
+import type { CompetitionAlertSettings } from "@/features/competition/domain/competition-alert";
 import {
   CompetitionAlertProvider,
   useCompetitionAlerts,
@@ -41,46 +40,34 @@ import { useServerNow } from "@/shared/ui/server-clock";
  * 모두 읽음: 전체를 읽음으로 바꾸고(낙관적) PUT /api/community/notifications로 저장한다.
  *   실패하면 그때 안 읽음이던 것만 되돌리고 토스트로 알린다(이 화면에 머물러 있으니 알려야 한다).
  *
- * 대회 마감 알림(#377): 커뮤니티 알림과 한 목록에 최신순으로 섞는다(종류는 아이콘으로 구분). 누르면 읽음 처리 후
- *   대회 상세로 가고, 읽음 저장은 대회 feature의 Server Action이 한다. 모두 읽음·새 알림 수에도 함께 든다.
- *   줄의 '이 대회 알림 받지 않기'는 대회 상세의 알림 종과 같은 값이다(#376).
+ * 대회 마감 알림(#377 · #422): 서버가 커뮤니티 알림과 한 목록에 섞어 준다(종류는 아이콘으로 구분). 읽음 저장도 같다.
+ *   누르면 대회 상세로 가고, 대회가 지워졌거나 미공개면(deletedStatus COMPETITION) 이동하지 않고 토스트만 띄운다.
+ *   줄의 '이 대회 알림 받지 않기'는 대회 상세의 알림 종과 같은 값이다(#376, DELETE /competitions/{id}/notice).
  *
  * 목록을 받은 뒤에 지워져 상세까지 들어간 경우(와 위의 밸런스 게임)는 상세(PostDetailGone · BalanceDetailGone)가
  * 문구를 남기고 닫히고, 돌아온 이 화면이 usePendingToast로 받아 띄운다 — 피드와 같은 공용 경로다.
  */
 export function InboxView({
   initialNotifications,
-  competition,
+  competitionAlertSettings,
 }: {
   initialNotifications: InboxNotification[];
-  competition: CompetitionAlertInbox;
+  competitionAlertSettings: CompetitionAlertSettings | null;
 }) {
   const today = toKstDateKey(useServerNow());
   return (
-    <CompetitionAlertProvider settings={competition.settings} today={today}>
-      <InboxList
-        initialNotifications={initialNotifications}
-        initialCompetitionAlerts={competition.notifications}
-      />
+    <CompetitionAlertProvider settings={competitionAlertSettings} today={today}>
+      <InboxList initialNotifications={initialNotifications} />
     </CompetitionAlertProvider>
   );
 }
 
-type InboxEntry =
-  | { kind: "community"; item: InboxNotification }
-  | { kind: "competition"; item: CompetitionAlertNotification };
-
 function InboxList({
   initialNotifications,
-  initialCompetitionAlerts,
 }: {
   initialNotifications: InboxNotification[];
-  initialCompetitionAlerts: CompetitionAlertNotification[];
 }) {
   const [notifications, setNotifications] = useState(initialNotifications);
-  const [competitionAlerts, setCompetitionAlerts] = useState(
-    initialCompetitionAlerts,
-  );
   const alerts = useCompetitionAlerts();
   const openCompetitionDetail = useOpenCompetitionDetail();
   const [markAllPending, setMarkAllPending] = useState(false);
@@ -89,58 +76,13 @@ function InboxList({
   const toast = useToast();
   usePendingToast();
 
-  const unreadCount =
-    notifications.filter((item) => !item.isRead).length +
-    competitionAlerts.filter((item) => !item.isRead).length;
+  const unreadCount = notifications.filter((item) => !item.isRead).length;
 
-  // 커뮤니티 알림과 대회 알림을 최신순으로 섞는다. 시각은 둘 다 오프셋이 붙은 ISO라 시각 값으로 비교한다.
-  const entries = useMemo<InboxEntry[]>(
-    () =>
-      [
-        ...notifications.map((item) => ({ kind: "community" as const, item })),
-        ...competitionAlerts.map((item) => ({
-          kind: "competition" as const,
-          item,
-        })),
-      ].sort(
-        (a, b) => Date.parse(b.item.createdAt) - Date.parse(a.item.createdAt),
-      ),
-    [competitionAlerts, notifications],
-  );
-
-  function setCompetitionReadState(ids: ReadonlySet<string>, isRead: boolean) {
-    setCompetitionAlerts((items) =>
-      items.map((item) => (ids.has(item.id) ? { ...item, isRead } : item)),
-    );
-  }
-
-  // 모두 읽음이 성공한 대회 알림 — 하나 읽기가 늦게 실패해도 이것들은 안 읽음으로 되돌리지 않는다.
-  const competitionReadByAll = useRef(new Set<string>());
-
-  async function markCompetitionRead(id: string) {
-    const ids = new Set([id]);
-    setCompetitionReadState(ids, true);
-    const result = await markCompetitionAlertsReadAction([id]).catch(
-      () => null,
-    );
-    if (!result?.ok && !competitionReadByAll.current.has(id)) {
-      setCompetitionReadState(ids, false);
-    }
-  }
-
-  function handleCompetitionPress(notification: CompetitionAlertNotification) {
-    if (!notification.isRead) void markCompetitionRead(notification.id);
-    openCompetitionDetail(notification.competitionId);
-  }
-
-  async function toggleCompetitionMuted(competitionId: string) {
+  // '이 대회 알림 받지 않기'(#377) — 이미 꺼져 있어도 같은 결과라 늘 같은 문구로 알린다.
+  async function muteCompetition(competitionId: number) {
     if (!alerts) return;
-    const muted = !alerts.isMuted(competitionId);
-    if (await alerts.setMuted(competitionId, muted)) {
-      toast.show(
-        muted ? "이 대회의 알림을 받지 않아요" : "이 대회의 알림을 받아요",
-        { tone: "info" },
-      );
+    if (await alerts.setNotice(competitionId, false)) {
+      toast.show("이 대회의 알림을 받지 않아요", { tone: "info" });
     }
   }
 
@@ -166,37 +108,18 @@ function InboxList({
     const ids = new Set(
       notifications.filter((item) => !item.isRead).map((item) => item.id),
     );
-    const competitionIds = new Set(
-      competitionAlerts.filter((item) => !item.isRead).map((item) => item.id),
-    );
     setReadState(ids, true);
-    setCompetitionReadState(competitionIds, true);
     setMarkAllPending(true);
 
-    // 안 읽은 것이 있는 쪽만 저장한다 — 커뮤니티와 대회 알림은 저장하는 곳이 다르다.
-    const [communityOk, competitionOk] = await Promise.all([
-      ids.size === 0
-        ? true
-        : bffFetch("/api/community/notifications", { method: "PUT" })
-            .then((response) => response.ok)
-            .catch(() => false),
-      competitionIds.size === 0
-        ? true
-        : markCompetitionAlertsReadAction()
-            .then((result) => result.ok)
-            .catch(() => false),
-    ]);
+    const ok =
+      ids.size === 0 ||
+      (await bffFetch("/api/community/notifications", { method: "PUT" })
+        .then((response) => response.ok)
+        .catch(() => false));
     setMarkAllPending(false);
 
-    if (!communityOk) setReadState(ids, false);
-    if (competitionOk) {
-      // 모두 읽음은 서버에서 대회 알림 전부를 읽음으로 바꾼다 — 그 전에 눌러 아직 응답을 기다리는 것도 포함한다.
-      for (const item of competitionAlerts)
-        competitionReadByAll.current.add(item.id);
-    } else {
-      setCompetitionReadState(competitionIds, false);
-    }
-    if (!communityOk || !competitionOk) {
+    if (!ok) {
+      setReadState(ids, false);
       toast.show("알림을 읽음 처리하지 못했어요", { tone: "error" });
     }
   }
@@ -213,7 +136,9 @@ function InboxList({
       return;
     }
     if (target.kind === "post") openPostDetail(target.postId);
-    else openBalanceDetail(target.contentId);
+    else if (target.kind === "competition") {
+      openCompetitionDetail(target.competitionId);
+    } else openBalanceDetail(target.contentId);
   }
 
   return (
@@ -223,7 +148,7 @@ function InboxList({
         onMarkAllRead={() => void markAllRead()}
       />
 
-      {entries.length === 0 ? (
+      {notifications.length === 0 ? (
         <InboxEmptyState />
       ) : (
         <>
@@ -235,27 +160,25 @@ function InboxList({
           </p>
 
           <ul>
-            {entries.map((entry) =>
-              entry.kind === "community" ? (
-                <InboxItem
-                  key={`community-${entry.item.id}`}
-                  notification={entry.item}
-                  onPress={handlePress}
+            {notifications.map((item) =>
+              isCompetitionNotification(item) ? (
+                <CompetitionAlertInboxItem
+                  key={item.id}
+                  notification={item}
+                  canMute={
+                    alerts?.available === true &&
+                    item.target?.kind === "competition" &&
+                    item.gone === null
+                  }
+                  onPress={() => handlePress(item)}
+                  onMute={() => {
+                    if (item.target?.kind === "competition") {
+                      void muteCompetition(item.target.competitionId);
+                    }
+                  }}
                 />
               ) : (
-                <CompetitionAlertInboxItem
-                  key={`competition-${entry.item.id}`}
-                  notification={entry.item}
-                  muted={
-                    alerts?.available
-                      ? alerts.isMuted(entry.item.competitionId)
-                      : null
-                  }
-                  onPress={() => handleCompetitionPress(entry.item)}
-                  onToggleMuted={() =>
-                    void toggleCompetitionMuted(entry.item.competitionId)
-                  }
-                />
+                <InboxItem key={item.id} notification={item} onPress={handlePress} />
               ),
             )}
           </ul>

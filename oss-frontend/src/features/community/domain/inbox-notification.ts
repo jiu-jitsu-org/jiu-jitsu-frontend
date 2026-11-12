@@ -11,25 +11,32 @@ export type InboxNotificationType =
   | "NEW_COMMENTS"
   | "NEW_CHILD_COMMENTS"
   | "CONTENTS_LIKE"
-  | "COMMENTS_LIKE";
+  | "COMMENTS_LIKE"
+  /** 관심 대회 얼리버드 마감 전날(#422) */
+  | "COMPETITION_EARLY_BIRD_DEADLINE"
+  /** 관심 대회 접수 마감 전날(#422) */
+  | "COMPETITION_REGISTRATION_DEADLINE";
 
 /**
  * 셀을 탭했을 때 열 대상 — actionType + data를 해석한 결과.
  *
- * BOARD_DETAIL → 게시글 상세, BALANCE_DETAIL → 밸런스 게임 상세. data는 둘 다 contentId다.
+ * BOARD_DETAIL → 게시글 상세, BALANCE_DETAIL → 밸런스 게임 상세(data = contentId),
+ * COMPETITION_DETAIL → 대회 상세(data = 대회 id, #422).
  * 해석할 수 없으면(알 수 없는 actionType · 숫자가 아닌 data) null — 읽음 처리만 하고 이동하지 않는다.
  */
 export type InboxNotificationTarget =
   | { kind: "post"; postId: number }
-  | { kind: "balance"; contentId: number };
+  | { kind: "balance"; contentId: number }
+  | { kind: "competition"; competitionId: number };
 
 /**
  * 알림 대상 중 무엇이 삭제됐는지 — 셀을 탭했을 때 이동하지 않고 띄울 안내 문구를 고르는 기준이다.
  *
  * 게시글이 지워지면 그 아래 댓글 알림도 "post"다(열 화면 자체가 없다).
  * 댓글 · 대댓글만 지워진 경우는 서버가 알려줘야만 구분된다 — 알림 응답에는 댓글 id가 없다.
+ * "competition"은 대회가 지워졌거나 미공개로 바뀐 경우다(#422).
  */
-export type InboxGoneKind = "post" | "comment" | "reply";
+export type InboxGoneKind = "post" | "comment" | "reply" | "competition";
 
 export type InboxNotification = {
   id: number;
@@ -60,6 +67,16 @@ export type InboxNotification = {
    */
   createdAt: string;
 };
+
+/** 대회 마감 알림인지(#422) — 셀 아이콘과 '이 대회 알림 받지 않기'를 단다. */
+export function isCompetitionNotification(
+  notification: InboxNotification,
+): boolean {
+  return (
+    notification.type === "COMPETITION_EARLY_BIRD_DEADLINE" ||
+    notification.type === "COMPETITION_REGISTRATION_DEADLINE"
+  );
+}
 
 /** 알림함 노출 기간(일). 푸터 안내 문구에 쓴다. 기간 필터 자체는 서버 몫이다(backend#154). */
 export const INBOX_RETENTION_DAYS = 30;

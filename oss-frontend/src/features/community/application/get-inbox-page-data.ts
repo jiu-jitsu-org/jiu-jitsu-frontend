@@ -1,9 +1,11 @@
 import { createGetInboxNotificationsUseCase } from "@/features/community/application/community-use-case-factory";
-import type { InboxNotification } from "@/features/community/domain/inbox-notification";
 import {
-  loadCompetitionAlertInbox,
-  type CompetitionAlertInbox,
-} from "@/features/competition/application/load-competition-alert-inbox";
+  isCompetitionNotification,
+  type InboxNotification,
+} from "@/features/community/domain/inbox-notification";
+import { isCompetitionEnabled } from "@/features/competition/application/is-competition-enabled";
+import { loadCompetitionAlertSettings } from "@/features/competition/application/load-competition-alert-settings";
+import type { CompetitionAlertSettings } from "@/features/competition/domain/competition-alert";
 import { readSessionToken } from "@/shared/lib/auth";
 import { ApiErrorCode, toApiError } from "@/shared/lib/http";
 
@@ -11,8 +13,11 @@ export type InboxPageDataResult =
   | {
       ok: true;
       notifications: InboxNotification[];
-      /** 함께 보여 줄 대회 마감 알림(#377). 대회 알림 API가 나오면 notifications에 섞여 올 수 있다. */
-      competition: CompetitionAlertInbox;
+      /**
+       * 관심 대회 알림 설정(#422) — 대회 마감 알림 줄의 '이 대회 알림 받지 않기'에 쓴다. 못 읽으면 null(그 버튼만 빠진다).
+       * 대회 마감 알림 자체는 notifications에 커뮤니티 알림과 함께 온다.
+       */
+      competitionAlertSettings: CompetitionAlertSettings | null;
     }
   // 비로그인 — 앱은 진입점이 없고(종 아이콘 미노출), URL 직접 진입이면 안내만 그린다.
   | { ok: false; reason: "guest" }
@@ -25,18 +30,26 @@ export type InboxPageDataResult =
  *
  * 로그인 전용 API라 토큰이 없으면 호출 자체를 하지 않는다(401 확정 왕복 방지).
  * 만료 토큰(A0003) 처리는 내 커뮤니티 활동(get-my-activity-page-data)과 같다.
- * 대회 마감 알림(#377)은 대회 feature에서 따로 읽어 함께 싣는다 — 섞는 순서는 화면이 정한다.
+ * 대회 마감 알림(#377 · #422)은 같은 목록에 서버가 섞어 준다.
  */
 export async function getInboxPageData(): Promise<InboxPageDataResult> {
   const accessToken = await readSessionToken();
   if (!accessToken) return { ok: false, reason: "guest" };
 
   try {
-    const [notifications, competition] = await Promise.all([
+    const competitionEnabled = isCompetitionEnabled();
+    const [notifications, competitionAlertSettings] = await Promise.all([
       createGetInboxNotificationsUseCase(accessToken).execute(),
-      loadCompetitionAlertInbox(),
+      competitionEnabled ? loadCompetitionAlertSettings() : null,
     ]);
-    return { ok: true, notifications, competition };
+    return {
+      ok: true,
+      // 대회 화면이 꺼진 배포에서는 대회 알림 줄을 뺀다 — 눌러도 열 대회 상세가 없다.
+      notifications: competitionEnabled
+        ? notifications
+        : notifications.filter((item) => !isCompetitionNotification(item)),
+      competitionAlertSettings,
+    };
   } catch (error) {
     const apiError = toApiError(error);
 
