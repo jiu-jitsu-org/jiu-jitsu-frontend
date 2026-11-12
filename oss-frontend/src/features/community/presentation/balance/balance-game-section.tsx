@@ -8,12 +8,19 @@ import {
   COLLAPSED_BAR_OUT_MS,
 } from "@/features/community/presentation/balance/balance-collapsed-bar";
 import { BalanceHeroBoard } from "@/features/community/presentation/balance/balance-hero-board";
+import { balanceVotedSince } from "@/features/community/presentation/balance/balance-voted-at";
 import { useBalanceVote } from "@/features/community/presentation/balance/use-balance-vote";
 import { useOpenBalanceDetail } from "@/features/community/presentation/balance/use-open-balance-detail";
 import { useStickyReveal } from "@/features/community/presentation/balance/use-sticky-reveal";
 import { prefersReducedMotion } from "@/features/community/presentation/use-presence-motion";
 import type { BalanceGame } from "@/features/community/domain/balance-game";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
+
+/**
+ * 숨김으로 그려진 페이지가 이 시간 안에 처음 보이면 seed를 그대로 쓴다(#409).
+ * 앱은 미리 불러 둔 홈을 15초 안에 이어받지 못하면 버리므로 그보다 넉넉히 잡는다.
+ */
+const FRESH_SEED_MS = 30_000;
 
 /**
  * 피드 최상단 밸런스 게임 영역 — 상태를 소유한다.
@@ -23,6 +30,7 @@ import { bffFetch } from "@/shared/lib/http/bff-fetch";
  *
  * 1. 잔여 시간이 0에 닿음 → 서버가 다음 판으로 교체했을 것이다
  * 2. 화면이 다시 보임(포그라운드 복귀 · 상세에서 복귀) → 서버 시각 재동기화 겸 최신 상태 확보
+ *    단, 숨김으로 그려진 페이지가 곧바로 처음 보이는 순간은 복귀가 아니라 건너뛴다(앱 미리 불러오기, #409)
  * 3. 비로그인 → 로그인 전환 → 비로그인으로 읽은 내 투표(myVote)를 실제 값으로(#173)
  *
  * 재조회 결과가 null이면 카드를 걷는다 — 진행 중인 판이 없다는 뜻이다. 별도 재시도 루프는 두지
@@ -75,8 +83,21 @@ export function BalanceGameSection({
   useOnLogin(() => void reload());
 
   useEffect(() => {
+    // 앱은 스플래시 동안 홈 피드를 숨김 상태로 미리 불러 두고, 홈에 붙이는 순간 보이게 한다(#409).
+    // 그 첫 visible은 복귀가 아니다 — seed는 방금 서버가 그린 값이라 다시 읽지 않는다.
+    // 숨김으로 오래 머물다 처음 보인 경우(웹 백그라운드 탭, 스플래시 중 앱 내림)는 seed가 낡았을 수 있어 읽는다.
+    // 보이기 전에 상세가 덮어 그 안에서 투표하고 돌아온 경우(공유 링크·푸시로 실행)도 읽는다.
+    const mountedAt = Date.now();
+    let seenVisible = document.visibilityState === "visible";
+
     function handleVisibility() {
-      if (document.visibilityState === "visible") void reload();
+      if (document.visibilityState !== "visible") return;
+      if (!seenVisible) {
+        seenVisible = true;
+        const fresh = Date.now() - mountedAt < FRESH_SEED_MS;
+        if (fresh && !balanceVotedSince(mountedAt)) return;
+      }
+      void reload();
     }
 
     document.addEventListener("visibilitychange", handleVisibility);

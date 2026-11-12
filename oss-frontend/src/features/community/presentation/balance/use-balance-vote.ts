@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from "react";
 
 import { isDevelopmentRuntime } from "@/config/env";
 import { useAuth } from "@/features/auth/presentation/auth-provider";
+import { markBalanceVoted } from "@/features/community/presentation/balance/balance-voted-at";
 import type {
   BalanceGame,
   BalanceOptionKey,
@@ -153,6 +154,7 @@ export function useBalanceVote({
       // 같은 선택지를 다시 누른 경우는 취소라 null이 된다.
       const next = nextVoteOf(game.myVote, option);
       onVoted(applyVote(game, next));
+      markBalanceVoted();
 
       if (running) {
         // 보내고 있는 요청이 끝나면 아래 반복문이 이 상태로 맞춘다.
