@@ -2,6 +2,7 @@
 import type { ReactNode } from "react";
 
 import type { Belt, BeltRank } from "@/features/community/domain/belt";
+import { BALANCE_CHARACTER_SRC } from "@/features/community/presentation/balance/balance-character-src";
 import { BeltAvatar } from "@/features/community/presentation/belt-avatar";
 
 import {
@@ -80,7 +81,7 @@ const BALANCE_STATES = [
   { id: "idle", label: "대기" },
   { id: "selected", label: "골랐을 때" },
   { id: "unselected", label: "안 골랐을 때" },
-];
+] as const;
 
 const MEDALS = [
   { id: "gold", label: "금메달" },
@@ -280,12 +281,12 @@ export function CharacterSection() {
 
       <Group title="밸런스 게임 캐릭터" note="홈 밸런스 게임 · A·B × 4상태">
         <Grid className="grid-cols-2 sm:grid-cols-4">
-          {(["a", "b"] as const).flatMap((option) =>
+          {(["A", "B"] as const).flatMap((option) =>
             BALANCE_STATES.map(({ id, label }) => (
               <Tile
                 key={`${option}-${id}`}
-                src={`/images/balance/character-${option}-${id}.png`}
-                label={`${option.toUpperCase()} · ${label}`}
+                src={BALANCE_CHARACTER_SRC[option][id]}
+                label={`${option} · ${label}`}
                 imageClassName="h-24"
               />
             )),

@@ -3,6 +3,7 @@
 import { Component, type ReactNode, createRef, useEffect, useId, useState } from "react";
 
 import type { BalanceOptionKey } from "@/features/community/domain/balance-game";
+import { BALANCE_CHARACTER_SRC } from "@/features/community/presentation/balance/balance-character-src";
 import type { BalanceOptionState } from "@/features/community/presentation/balance/balance-option-button";
 import { cn } from "@/shared/lib/cn";
 
@@ -10,39 +11,6 @@ import { cn } from "@/shared/lib/cn";
  * 밸런스 게임 캐릭터(#305) — 선택지 행(BalanceOptionButton)과 스코어보드(BalanceHeroBoard)가 함께 쓴다.
  * 그림·눈·대결/맞물림 동작은 선택지 행에 있던 것을 그대로 옮겼다. 크기와 자르기는 놓이는 쪽이 정한다.
  */
-
-/**
- * 상태별 캐릭터 아트워크(174×198 = 58×66의 @3x, 알파 있음).
- *
- * 파일명이 색(빨강/파랑)이 아니라 선택지 키(A/B)를 따르는 이유: 어느 쪽이 무슨 색인지는
- * OPTION_STYLES의 poll-option-a/b 토큰이 이미 정한다. 파일명까지 색으로 부르면 색의 출처가
- * 둘이 되어, 토큰만 바뀌었을 때 자산이 조용히 어긋난다.
- *
- * 아트워크 자체가 상태를 말한다(디자인 원본의 표정 변형):
- * - default = 곁눈질하는 **회색** 캐릭터. A/B 모두 무채색이고 고개 방향만 좌우로 갈린다.
- * - selected = 눈을 크게 뜬 컬러, unselected = 눈이 처진 컬러.
- *
- * 즉 투표 전에는 행 배경만 색을 내고 캐릭터는 무채색이다가, 투표하는 순간 캐릭터에 색이 든다.
- * 캐릭터 뒤에는 어떤 상태에서도 배경을 깔지 않는다 — 행 배경이 그대로 비쳐야 한다(디자인).
- *
- * 경로는 런타임 문자열이라 보간해도 되지만 표로 편다 — 자산 6개가 코드에 그대로 드러나
- * 빠진 상태를 눈으로 잡을 수 있다.
- */
-const CHARACTER_SRC: Record<
-  BalanceOptionKey,
-  Record<BalanceOptionState, string>
-> = {
-  A: {
-    default: "/images/balance/character-a-default.png",
-    selected: "/images/balance/character-a-selected.png",
-    unselected: "/images/balance/character-a-unselected.png",
-  },
-  B: {
-    default: "/images/balance/character-b-default.png",
-    selected: "/images/balance/character-b-selected.png",
-    unselected: "/images/balance/character-b-unselected.png",
-  },
-};
 
 /**
  * 상태가 바뀐 직후 캐릭터가 하는 동작(B안 "보잉", motion.css).
@@ -62,7 +30,7 @@ const CHARACTER_MOTION: Record<BalanceOptionState, string | null> = {
 /**
  * 투표 전(default) 캐릭터의 그림과 대기 동작 — 회색이라 앱이 꺼진 듯 보이던 것을 깨운다.
  *
- * 그림은 투표 뒤와 같은 몸통 색이다. unselected 아트워크에서 눈만 지운 몸통(idle)을 쓰고,
+ * 그림은 눈 없는 몸통(BALANCE_CHARACTER_SRC의 idle)이라 투표 뒤와 같은 몸통 색이다.
  * 눈은 BalanceIdleEyes가 그 위에 따로 그린다 — 눈동자를 굴려야 해서 그림에 박아 둘 수 없다.
  * 고르는 순간 selected 아트워크(눈 크게 뜬 얼굴)로 바뀐다.
  *
@@ -79,12 +47,10 @@ const CHARACTER_MOTION: Record<BalanceOptionState, string | null> = {
  */
 const IDLE_STYLES = {
   A: {
-    src: "/images/balance/character-a-idle.png",
     motion: "motion-safe:animate-balance-idle-a",
     pupil: "motion-safe:animate-balance-pupil-a",
   },
   B: {
-    src: "/images/balance/character-b-idle.png",
     motion: "motion-safe:animate-balance-idle-b",
     pupil: "motion-safe:animate-balance-pupil-b",
   },
@@ -274,10 +240,10 @@ export function BalanceCharacter({
   const gloat = state !== "default" && interactive;
   const glaring = gloat && state === "selected";
 
-  // 상태가 바뀔 때 그림이 비지 않게 세 그림을 미리 받아 둔다(#310) — 처음 고를 때 밀려난 쪽 그림을
+  // 상태가 바뀔 때 그림이 비지 않게 네 그림(idle·default·selected·unselected)을 미리 받아 둔다(#310) — 처음 고를 때 밀려난 쪽 그림을
   // 그제야 받으면, 받는 동안 몸통이 사라졌다가 툭 나타난다.
   useEffect(() => {
-    for (const src of [IDLE_STYLES[optionKey].src, ...Object.values(CHARACTER_SRC[optionKey])]) {
+    for (const src of Object.values(BALANCE_CHARACTER_SRC[optionKey])) {
       new Image().src = src;
     }
   }, [optionKey]);
@@ -315,9 +281,7 @@ export function BalanceCharacter({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={
-            idle || glaring
-              ? IDLE_STYLES[optionKey].src
-              : CHARACTER_SRC[optionKey][state]
+            BALANCE_CHARACTER_SRC[optionKey][idle || glaring ? "idle" : state]
           }
           alt=""
           className="size-full object-contain"
