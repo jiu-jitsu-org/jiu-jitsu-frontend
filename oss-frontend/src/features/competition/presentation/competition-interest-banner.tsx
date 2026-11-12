@@ -109,7 +109,7 @@ export function subscribeDeadlineBannerDismissed(onChange: () => void) {
 
 /**
  * 위에서 내려오는 내 띠 색 그라데이션 — 화면 맨 위(필터 줄 뒤)에서 은은하게 시작해 배너 아래에서 바탕색으로 녹는다.
- * 배너 자리에 배너가 떠 있을 때만 보이고, 배너를 닫아 자리가 접히면 0.5초에 걸쳐 옅어진다.
+ * 배너 자리에 배너가 떠 있을 때만 보이고, 배너와 함께 0.5초에 걸쳐 짙어지며, 배너를 닫아 자리가 접히면 0.5초에 걸쳐 옅어진다.
  * 흰띠는 회색, 검은띠는 끝 칸의 빨강으로 물들인다.
  *
  * 화면 맨 앞에 두고 z를 주지 않아, 뒤에 오는 필터 줄(sticky)·배너(relative)가 그 위에 그려진다.
@@ -138,24 +138,28 @@ export function CompetitionTopTint({
   const layerRef = useRef<HTMLDivElement>(null);
   const requestUpdateRef = useRef<() => void>(() => {});
   const ready = shown !== null;
+  const decidedOnceRef = useRef(false);
 
-  // 배너가 뜨면 바로 칠하고, 자리가 접히면 0.5초에 걸쳐 옅어진다.
+  // 배너가 들어올 때 함께 0.5초에 걸쳐 짙어지고, 자리가 접히면 0.5초에 걸쳐 옅어진다.
+  // 처음 정해질 때 이미 보일 차례면(당겨서 새로고침 — 앞 배너의 색이 앱 머리에 깔려 있다) 움직이지 않고 바로 칠한다.
   // 아래 칠하기보다 먼저 둔다 — 처음 정해질 때 투명한 채로 칠해 앱 머리에 '색 없음'을 먼저 보내지 않게.
   useEffect(() => {
     const layer = layerRef.current;
     if (shown === null || !layer) return;
+    const first = !decidedOnceRef.current;
+    decidedOnceRef.current = true;
     const visible = layer.style.opacity === "1";
     for (const running of layer.getAnimations()) running.cancel();
     layer.style.opacity = shown ? "1" : "0";
     if (
-      visible &&
-      !shown &&
+      !first &&
+      visible !== shown &&
       !window.matchMedia("(prefers-reduced-motion: reduce)").matches
     ) {
-      layer.animate([{ opacity: 1 }, { opacity: 0 }], {
-        duration: 500,
-        easing: smoothOutEasing(),
-      });
+      layer.animate(
+        [{ opacity: visible ? 1 : 0 }, { opacity: shown ? 1 : 0 }],
+        { duration: 500, easing: smoothOutEasing() },
+      );
     }
     requestUpdateRef.current();
   }, [shown]);
