@@ -315,7 +315,7 @@ Server Action은 UI 이벤트 adapter에 가깝다.
 - 재사용이 확인되기 전에는 공통화하지 않는다.
 - 공통화가 필요하면 먼저 feature 내부 중복 제거를 검토한다.
 - import는 가능하면 `@/` alias를 사용한다.
-- 정적 자산은 `public/`에 둔다.
+- 정적 자산은 `public/`에 둔다. 단, 앱을 켤 때마다 받는 그림은 feature 안 `images/`에 두고 import한다(예: `features/community/presentation/balance/images/`, 주소 표 `balance-character-src.ts`) — 해시 주소(1년 immutable)로 나가 Cloudflare가 원본 서버까지 확인하러 가지 않고, 같은 이름으로 덮어써도 옛 그림이 남지 않는다. `public/images`는 Cloudflare 엣지에 1시간(`next.config.ts` headers), 기기에는 Cloudflare 설정으로 4시간 캐시된다 — 같은 이름으로 바꾸면 최대 약 5시간 옛 그림이 보일 수 있다(#410).
 
 ## 웹 무게 규칙
 
@@ -338,7 +338,7 @@ Server Action은 UI 이벤트 adapter에 가깝다.
 
 - `npm run check:weight`가 상한, 3배(코드에 표시 폭이 적힌 PNG), 안 쓰는 이미지, 무거운 움직임, 무한 반복을 검사한다. PR마다 CI에서도 돈다.
 - 예외에 이유가 비어 있으면 실패한다. 필요 없어진 예외는 검사가 알려 주니 지운다.
-- 실기기 확인과 자동으로 잡지 못하는 3배 규칙은 PR 양식의 체크 항목으로 확인한다.
+- 실기기 확인과 자동으로 잡지 못하는 3배 규칙은 PR 양식의 체크 항목으로 확인한다. feature 안에서 import한 그림은 주소가 코드에 없어 3배 검사를 하지 않는다 — 이것도 PR 양식으로 확인한다.
 
 ## 협업 시 리뷰 기준
 

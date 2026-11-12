@@ -8,7 +8,7 @@
  * 막는 것
  *   1. 이미지 한 장이 상한(MAX_IMAGE_BYTES)을 넘음
  *   2. `<img src="..." width={n}>` 처럼 표시 크기가 코드에 적힌 PNG가 표시 크기의 3배를 넘음
- *   3. 코드 어디에서도 부르지 않는 이미지
+ *   3. 코드 어디에서도 부르지 않는 이미지 (public은 주소, src는 import 경로로 찾는다)
  *   4. 레이아웃·페인트를 타는 속성(width, clip-path 등)을 움직이는 transition·keyframes
  *   5. 무한 반복 애니메이션 토큰(motion.css)
  *
@@ -16,7 +16,7 @@
  * 의존성 없이 돈다 — CI에서 npm ci 없이 바로 실행한다.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
+import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -64,7 +64,10 @@ function pngWidth(path) {
 }
 
 const publicDir = join(ROOT, "public");
-const images = [...walk(publicDir), ...walk(join(ROOT, "src/app"))].filter((path) =>
+const srcDir = join(ROOT, "src");
+const appDir = join(srcDir, "app");
+// src 아래 그림도 본다 — 앱 실행 때마다 받는 그림은 feature 안에 두고 import해 해시 주소로 내보낸다(#410).
+const images = [...walk(publicDir), ...walk(srcDir)].filter((path) =>
   IMAGE_EXT.test(path),
 );
 
@@ -78,7 +81,18 @@ for (const path of images) {
   }
 
   // src/app의 이미지는 파일 이름 규칙(favicon 등)으로 쓰인다 — 부르는 코드가 없는 게 정상이다.
-  if (!path.startsWith(publicDir)) continue;
+  if (path.startsWith(appDir + sep)) continue;
+  // 그 밖의 src 이미지는 import로 쓰인다 — 주소 대신 `@/` import 경로 전체가 소스에 있는지 본다.
+  // 파일 이름만 보면 다른 폴더의 같은 이름이나 옛 주소 문자열에 속는다. 상대 경로 import는 쓰지 않는다(루트 AGENTS.md).
+  // 주소로 부르지 않으니 아래 3배 검사(<img src="주소" width>)는 해당하지 않는다 — PR 양식으로 확인한다.
+  if (!path.startsWith(publicDir + sep)) {
+    const specifier = `@/${relative(srcDir, path).split(sep).join("/")}`;
+    const imported = allSource.includes(`${specifier}"`) || allSource.includes(`${specifier}'`);
+    if (!imported && !excepted(imageExceptions, name)) {
+      errors.push(`${name}: 코드에서 import하는 곳이 없습니다(\`${specifier}\`). 지우거나 예외에 이유를 적으세요.`);
+    }
+    continue;
+  }
   const url = `/${relative(publicDir, path)}`;
   // 경로를 조립해 부르는 경우(`/images/x/${name}.webp`)는 폴더 뒤에 조립이 이어질 때만 쓰는 것으로 본다.
   const used =
