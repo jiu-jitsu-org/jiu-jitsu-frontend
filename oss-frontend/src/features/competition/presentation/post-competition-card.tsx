@@ -2,7 +2,8 @@
 
 import { useMemo } from "react";
 
-import type { CompetitionCard } from "@/features/competition/domain/competition-card";
+import type { Competition } from "@/features/competition/domain/competition";
+import { registrationStatusOf } from "@/features/competition/domain/competition-registration";
 import { RegistrationIcon } from "@/features/competition/presentation/competition-icons";
 import { CompetitionDetailLink } from "@/features/competition/presentation/competition-detail-link";
 import {
@@ -13,6 +14,8 @@ import {
 } from "@/features/competition/presentation/competition-month-section";
 import { useCompetitionInterest } from "@/features/competition/presentation/use-competition-interest";
 import { cn } from "@/shared/lib/cn";
+import { toKstDateKey } from "@/shared/lib/time";
+import { useServerNow } from "@/shared/ui/server-clock";
 
 /**
  * 커뮤니티 글이 고른 대회 카드 (#379 피드 · #380 글 상세) — 대회 탭 목록 줄의 축소판.
@@ -24,25 +27,30 @@ import { cn } from "@/shared/lib/cn";
  * 하트는 대회 탭과 같은 관심 등록 — 처음 등록이면 감싼 CompetitionAlertProvider가 마감 알림 시트를 띄운다(#375).
  * 끝난 대회는 접수 상태 자리에 '종료'를 두고 하트는 뺀다. 눌러도 그대로 대회 상세로 간다.
  *
+ * 대회 카드는 글 목록·상세 응답에 실려 온다(#421). 남은 날은 화면의 서버 시각으로 센다(글 응답에는 today가 없다).
+ *
  * 관심 상태는 카드마다 따로 든다 — 피드는 페이지를 이어 붙이며 글이 늘어나, 목록 전체로 들면 다음 페이지가 올 때마다
  * 이 화면에서 누른 값이 지워진다. 같은 대회를 고른 글이 둘이면 서로 따라 바뀌지는 않는다(돌아오면 서버 값으로 맞는다).
  */
 export function PostCompetitionCard({
-  card,
+  competition,
   className,
 }: {
-  card: CompetitionCard;
+  competition: Competition;
   className?: string;
 }) {
-  const { competition, registration, ended, currentYear } = card;
+  const today = toKstDateKey(useServerNow());
+  const currentYear = Number(today.slice(0, 4));
+  const ended = competition.status === "ended";
+  const registration = registrationStatusOf(competition, today);
   // 훅은 서버 값이 "바뀌었는지"를 참조로 본다 — 매번 새 배열을 넘기면 바뀐 것으로 알고 끝없이 다시 그린다.
   const interestedIds = useMemo(
-    () => (card.interested ? [competition.id] : []),
-    [card.interested, competition.id],
+    () => (competition.interested ? [competition.id] : []),
+    [competition.interested, competition.id],
   );
   const interestCounts = useMemo(
-    () => ({ [competition.id]: card.interestCount }),
-    [card.interestCount, competition.id],
+    () => ({ [competition.id]: competition.interestCount }),
+    [competition.interestCount, competition.id],
   );
   const interest = useCompetitionInterest({ interestedIds, interestCounts });
   const interested = interest.isInterested(competition.id);

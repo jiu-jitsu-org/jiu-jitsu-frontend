@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { withoutCompetitionWhenDisabled } from "@/features/competition/application/is-competition-enabled";
 import {
   parsePostBody,
   requireSessionOr401,
   toErrorResponse,
   validatePostBody,
 } from "@/app/api/community/_lib/community-route-helpers";
-import { attachPostCompetitions } from "@/features/community/application/attach-post-competitions";
 import {
   createCreatePostUseCase,
   createGetPostListUseCase,
@@ -54,11 +54,11 @@ export async function GET(request: NextRequest) {
   const accessToken = await readSessionToken();
 
   try {
+    // 고른 대회 카드(#379)는 목록 응답에 실려 온다. 대회 화면이 꺼진 배포에서는 뗀다.
     const list = await createGetPostListUseCase(accessToken).execute(query);
-    // 고른 대회 카드(#379)를 첫 페이지와 같은 모양으로 붙인다.
     const data: PostList = {
       ...list,
-      items: await attachPostCompetitions(list.items, accessToken !== null),
+      items: withoutCompetitionWhenDisabled(list.items),
     };
 
     return NextResponse.json<ApiSuccessResponse<PostList>>({
@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/community/board — 게시글 생성(④, 인증 필요).
  *
- * body: { categoryId: number, title: string, body: string, imageFileIdList: number[], tags: string[] }
+ * body: { categoryId: number, title: string, body: string, imageFileIdList: number[], tags: string[], competitionId?: number }
  * imageFileIdList는 등록(③) 단계에서 받은 TEMP 이미지의 서버 int id 목록(표시 순서 = 저장 순서).
  * tags는 태그 이름 목록 — 화면이 정규화(허용 문자·소문자·중복 제거)한 값이지만 서버도 한 번 더 정리한다.
  */

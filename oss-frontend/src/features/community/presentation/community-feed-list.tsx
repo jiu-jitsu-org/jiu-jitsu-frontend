@@ -446,7 +446,7 @@ function FeedCardItem({
       hideAuthor={hideAuthor}
       attachment={
         post.competition ? (
-          <PostCompetitionCard card={post.competition} />
+          <PostCompetitionCard competition={post.competition} />
         ) : undefined
       }
       onPressAuthor={

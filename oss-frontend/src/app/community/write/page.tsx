@@ -14,8 +14,8 @@ export default async function CommunityWritePage() {
   const now = readServerNow();
   const [categories, competitionOptions] = await Promise.all([
     getPostCategoriesOrFallback(),
-    // '대회' 카테고리에서 고를 대회(#367). 대회 데이터가 없는 환경이면 빈 목록 — 고르기 칸이 안 나온다.
-    getCompetitionPickerOptions({ now }),
+    // '대회' 카테고리에서 고를 대회(#367). 못 읽으면 빈 목록 — 고르기 칸이 안 나온다.
+    getCompetitionPickerOptions(),
   ]);
   return (
     <>
