@@ -86,6 +86,10 @@ export const InboundMessageType = {
   SELECT_SHEET_RESULT: "SELECT_SHEET_RESULT",
   // PICK_PHOTOS의 결과. 취소하면 files가 빈 배열이다.
   PHOTOS_PICKED: "PHOTOS_PICKED",
+  // 내 프로필(띠 등)을 앱에서 바꿨음(jiu-jitsu-frontend#413). 앱 MY 화면에서 띠를 저장한 뒤 떠 있는 모든 웹뷰에 보낸다.
+  // 웹은 내 띠를 다시 읽어 바뀌었으면 화면을 새로 그린다. payload 없음. 이 메시지가 없어도 웹뷰가 다시 보일 때
+  // 한 번 더 확인하므로(MyBeltWatcher) 구버전 앱에서도 결국 맞춰진다 — 이 메시지는 가려지지 않은 화면을 위한 것이다.
+  PROFILE_UPDATED: "PROFILE_UPDATED",
 } as const;
 export type InboundMessageType =
   (typeof InboundMessageType)[keyof typeof InboundMessageType];
@@ -301,4 +305,5 @@ export type InboundMessage =
   | {
       type: typeof InboundMessageType.PHOTOS_PICKED;
       payload: PhotosPickedPayload;
-    };
+    }
+  | { type: typeof InboundMessageType.PROFILE_UPDATED };

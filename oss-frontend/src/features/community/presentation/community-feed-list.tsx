@@ -18,6 +18,7 @@ import {
 } from "@/features/community/presentation/use-board-feed";
 import { useInfiniteScroll } from "@/features/community/presentation/use-infinite-scroll";
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
+import { useOnMyBeltChange } from "@/features/community/presentation/my-belt-watcher";
 import { useFeedRevalidate } from "@/features/community/presentation/use-feed-revalidate";
 import { usePostActions } from "@/features/community/presentation/use-post-actions";
 import type { PostSummary } from "@/features/community/domain/post-summary";
@@ -218,6 +219,8 @@ export function CommunityFeedList({
   usePendingToast(handlePendingAction, handleUndoHide);
 
   useOnLogin(() => void refreshLoaded());
+  // 앱에서 띠를 바꾸고 돌아오면 쌓아 둔 카드의 작성자 띠도 다시 읽는다(#413).
+  useOnMyBeltChange(() => void refreshLoaded());
 
   // 목록 컨테이너 — 작성 후 복귀 스크롤 기준 · 뒤에 붙은 카드 모션에 함께 쓴다.
   const listRef = useRef<HTMLDivElement>(null);
