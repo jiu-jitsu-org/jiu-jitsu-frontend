@@ -47,7 +47,7 @@ export function MonthHeadingContent({
 }) {
   return (
     <>
-      <span aria-hidden className="flex w-9 flex-none justify-center">
+      <span aria-hidden className="relative flex w-9 flex-none justify-center">
         <span
           className={cn(
             "size-1.5 rounded-full bg-icon-disabled",
@@ -96,20 +96,19 @@ export function MonthSection({
       aria-labelledby={headingId}
       className={cn("relative px-4", hideHeading && "pt-1")}
     >
-      {/* 세로 줄 — 섹션 위아래 끝까지 이어 달이 바뀌어도 끊기지 않는다. 머리를 감춘 첫 달은 첫 날짜에서 시작해
-          날짜 위로 줄 끄트머리가 삐져나오지 않게 한다. */}
-      <span
-        aria-hidden
-        className={cn(
-          "absolute bottom-0 left-[33.5px] w-px bg-surface-secondary",
-          hideHeading ? "top-1" : "top-0",
-        )}
-      />
       {/* 스크롤해 이 머리가 필터 줄 밑으로 지나가면 필터 줄 왼쪽의 달 이름이 이 달로 바뀐다(목록 화면). */}
       <h2
         id={headingId}
         className={hideHeading ? "sr-only" : MONTH_HEADING_CLASS}
       >
+        {/* 세로 줄은 달 머리 칸과 날짜 아래 칸에만 긋는다 — 날짜 뒤는 비워 둬, 날짜 칸에 바탕을 깔지 않아도
+            줄이 날짜에서 끊겨 보인다(맨 위 띠 색 그라데이션 위에서 흰 네모가 생기지 않게). */}
+        {!hideHeading && (
+          <span
+            aria-hidden
+            className="absolute inset-y-0 left-[17.5px] w-px bg-surface-secondary"
+          />
+        )}
         <MonthHeadingContent label={monthLabel(month, currentYear)} />
       </h2>
       <ul className="relative flex flex-col gap-3 pb-3">
@@ -119,6 +118,7 @@ export function MonthSection({
             item={item}
             currentYear={currentYear}
             interest={interest}
+            timeline
           />
         ))}
       </ul>
@@ -140,10 +140,13 @@ export function CompetitionRow({
   item: { competition, registration },
   currentYear,
   interest,
+  timeline = false,
 }: {
   item: CompetitionListItem;
   currentYear: number;
   interest?: CompetitionInterest;
+  /** 목록 화면의 세로 타임라인 — 날짜 아래에서 다음 줄 날짜 위까지 세로 줄을 잇는다. */
+  timeline?: boolean;
 }) {
   const meta = metaLine(competition);
   const popular =
@@ -153,11 +156,18 @@ export function CompetitionRow({
   const interested = interest?.isInterested(competition.id) ?? false;
 
   return (
-    <li className="flex items-start gap-2">
-      {/* 날짜 칸은 면·테두리 없이 흰 바탕에 글자만 — 흰 바탕이 뒤의 세로 줄을 가려 날짜가 줄 위에 놓인 듯 보인다. */}
+    <li className="relative flex items-start gap-2">
+      {/* 세로 줄은 날짜 아래(top-14)에서 시작해 줄 사이 간격(gap-3·pb-3)까지 이어, 다음 날짜 위에서 멈춘다.
+          날짜 칸은 바탕 없이 글자만 — 바탕을 깔면 맨 위 띠 색 그라데이션 위에서 흰 네모로 보인다. */}
+      {timeline && (
+        <span
+          aria-hidden
+          className="absolute top-14 -bottom-3 left-[17.5px] w-px bg-surface-secondary"
+        />
+      )}
       <time
         dateTime={competition.date}
-        className="relative flex h-14 w-9 flex-none flex-col items-center justify-center bg-surface-container"
+        className="relative flex h-14 w-9 flex-none flex-col items-center justify-center"
       >
         <span className="text-[18px] leading-[22px] font-bold text-text-primary tabular-nums">
           {Number(competition.date.slice(8, 10))}
