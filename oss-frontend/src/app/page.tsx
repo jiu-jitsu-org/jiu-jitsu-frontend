@@ -20,7 +20,7 @@ import { FeedErrorState } from "@/features/community/presentation/feed-error-sta
 import { FeedScrollTopOnReload } from "@/features/community/presentation/feed/feed-scroll-top-on-reload";
 import { NativePageReady } from "@/shared/lib/native-bridge";
 import { PostWriteFab } from "@/features/community/presentation/post-write-fab";
-import { isCompetitionPageEnabled } from "@/features/competition/application/is-competition-page-enabled";
+import { isCompetitionEnabled } from "@/features/competition/application/is-competition-enabled";
 import { loadCompetitionAlertSettings } from "@/features/competition/application/load-competition-alert-settings";
 import { CompetitionAlertProvider } from "@/features/competition/presentation/competition-alert-provider";
 import { readSessionToken } from "@/shared/lib/auth";
@@ -61,7 +61,7 @@ export default async function Home({
   ]);
   // 글 속 대회 카드(#379)의 하트로 처음 관심 등록하면 마감 알림 시트를 띄운다 — 알림 설정을 함께 읽는다.
   const alertSettings =
-    sessionToken !== null && isCompetitionPageEnabled()
+    sessionToken !== null && isCompetitionEnabled()
       ? await loadCompetitionAlertSettings()
       : null;
   const now = readServerNow();

@@ -1,130 +1,115 @@
 import {
-  GetCompetitionAlertNotificationsUseCase,
-  MarkCompetitionAlertNotificationsReadUseCase,
-} from "@/features/competition/application/competition-alert-notifications";
-import {
+  AnswerCompetitionAlertPromptUseCase,
   GetCompetitionAlertSettingsUseCase,
-  SetCompetitionAlertMutedUseCase,
-  SetCompetitionAlertsEnabledUseCase,
+  SetCompetitionNoticeUseCase,
 } from "@/features/competition/application/competition-alert-settings";
 import { GetCompetitionDetailUseCase } from "@/features/competition/application/get-competition-detail";
+import { GetCompetitionListUseCase } from "@/features/competition/application/get-competition-list";
+import { GetCompetitionPickerUseCase } from "@/features/competition/application/get-competition-picker";
 import { GetCompetitionStoriesUseCase } from "@/features/competition/application/get-competition-stories";
-import {
-  GetPostCompetitionIdUseCase,
-  GetPostCompetitionIdsUseCase,
-  LinkPostCompetitionUseCase,
-} from "@/features/competition/application/link-post-competition";
 import { RecordCompetitionViewUseCase } from "@/features/competition/application/record-competition-view";
 import { ReportCompetitionInfoUseCase } from "@/features/competition/application/report-competition-info";
-import { GetCompetitionInterestCountsUseCase } from "@/features/competition/application/get-competition-interest-counts";
-import { GetCompetitionListUseCase } from "@/features/competition/application/get-competition-list";
-import { GetInterestedCompetitionIdsUseCase } from "@/features/competition/application/get-interested-competition-ids";
 import { SetCompetitionInterestUseCase } from "@/features/competition/application/set-competition-interest";
-import { FixtureCompetitionAlertRepository } from "@/features/competition/infrastructure/fixture-competition-alert-repository";
-import { FixtureCompetitionInterestRepository } from "@/features/competition/infrastructure/fixture-competition-interest-repository";
-import { FixtureCompetitionInfoReportRepository } from "@/features/competition/infrastructure/fixture-competition-info-report-repository";
-import { FixtureCompetitionRepository } from "@/features/competition/infrastructure/fixture-competition-repository";
-import { FixtureCompetitionStoryRepository } from "@/features/competition/infrastructure/fixture-competition-story-repository";
-import { FixtureCompetitionViewRepository } from "@/features/competition/infrastructure/fixture-competition-view-repository";
+import { ExternalCompetitionAlertRepository } from "@/features/competition/infrastructure/external-competition-alert-repository";
+import { ExternalCompetitionInfoReportRepository } from "@/features/competition/infrastructure/external-competition-info-report-repository";
+import { ExternalCompetitionInterestRepository } from "@/features/competition/infrastructure/external-competition-interest-repository";
+import { ExternalCompetitionRepository } from "@/features/competition/infrastructure/external-competition-repository";
+import {
+  createAuthedServerHttpClient,
+  createServerHttpClient,
+} from "@/shared/lib/http/create-server-http-client";
 
 /**
- * 대회 feature 의존성 조립.
+ * 대회 feature 의존성 조립 — 대회 API(backend#193) External 저장소.
  *
- * 대회 목록·상세·관심 등록·마감 알림·조회수·대회 이야기·제보 API가 아직 없어 고정 데이터 저장소를 끼운다. API가 나오면 여기서
- * createServerHttpClient 기반 External 저장소로 바꾼다 — 위 계층은 그대로 둔다.
+ * 읽기는 토큰이 있으면 authed 클라이언트로 내 관심(interested)까지 받고, 없으면 익명으로 읽는다(커뮤니티 읽기와 같은 기준).
+ * 관심·알림·제보 쓰기와 알림 설정은 로그인 전용이라 토큰을 강제한다.
  */
-export function createGetCompetitionListUseCase(): GetCompetitionListUseCase {
-  return new GetCompetitionListUseCase(new FixtureCompetitionRepository());
-}
-
-export function createGetInterestedCompetitionIdsUseCase(): GetInterestedCompetitionIdsUseCase {
-  return new GetInterestedCompetitionIdsUseCase(
-    new FixtureCompetitionInterestRepository(),
+function createReadRepository(
+  accessToken: string | null,
+): ExternalCompetitionRepository {
+  return new ExternalCompetitionRepository(
+    accessToken
+      ? createAuthedServerHttpClient(accessToken)
+      : createServerHttpClient(),
   );
 }
 
-export function createGetCompetitionInterestCountsUseCase(): GetCompetitionInterestCountsUseCase {
-  return new GetCompetitionInterestCountsUseCase(
-    new FixtureCompetitionInterestRepository(),
-  );
+export function createGetCompetitionListUseCase(
+  accessToken: string | null,
+): GetCompetitionListUseCase {
+  return new GetCompetitionListUseCase(createReadRepository(accessToken));
 }
 
-export function createSetCompetitionInterestUseCase(): SetCompetitionInterestUseCase {
-  return new SetCompetitionInterestUseCase(
-    new FixtureCompetitionRepository(),
-    new FixtureCompetitionInterestRepository(),
-  );
+export function createGetCompetitionDetailUseCase(
+  accessToken: string | null,
+): GetCompetitionDetailUseCase {
+  return new GetCompetitionDetailUseCase(createReadRepository(accessToken));
 }
 
-export function createGetCompetitionDetailUseCase(): GetCompetitionDetailUseCase {
-  return new GetCompetitionDetailUseCase(new FixtureCompetitionRepository());
-}
-
+/** 조회수는 익명 숫자라 토큰 없이 센다. */
 export function createRecordCompetitionViewUseCase(): RecordCompetitionViewUseCase {
-  return new RecordCompetitionViewUseCase(
-    new FixtureCompetitionViewRepository(),
+  return new RecordCompetitionViewUseCase(createReadRepository(null));
+}
+
+export function createGetCompetitionStoriesUseCase(
+  accessToken: string | null,
+): GetCompetitionStoriesUseCase {
+  return new GetCompetitionStoriesUseCase(createReadRepository(accessToken));
+}
+
+export function createGetCompetitionPickerUseCase(
+  accessToken: string | null,
+): GetCompetitionPickerUseCase {
+  return new GetCompetitionPickerUseCase(createReadRepository(accessToken));
+}
+
+export function createSetCompetitionInterestUseCase(
+  accessToken: string,
+): SetCompetitionInterestUseCase {
+  return new SetCompetitionInterestUseCase(
+    new ExternalCompetitionInterestRepository(
+      createAuthedServerHttpClient(accessToken),
+    ),
   );
 }
 
-export function createGetCompetitionStoriesUseCase(): GetCompetitionStoriesUseCase {
-  return new GetCompetitionStoriesUseCase(
-    new FixtureCompetitionStoryRepository(),
+export function createSetCompetitionNoticeUseCase(
+  accessToken: string,
+): SetCompetitionNoticeUseCase {
+  return new SetCompetitionNoticeUseCase(
+    new ExternalCompetitionInterestRepository(
+      createAuthedServerHttpClient(accessToken),
+    ),
   );
 }
 
-export function createReportCompetitionInfoUseCase(): ReportCompetitionInfoUseCase {
+export function createReportCompetitionInfoUseCase(
+  accessToken: string,
+): ReportCompetitionInfoUseCase {
   return new ReportCompetitionInfoUseCase(
-    new FixtureCompetitionRepository(),
-    new FixtureCompetitionInfoReportRepository(),
+    new ExternalCompetitionInfoReportRepository(
+      createAuthedServerHttpClient(accessToken),
+    ),
   );
 }
 
-export function createLinkPostCompetitionUseCase(): LinkPostCompetitionUseCase {
-  return new LinkPostCompetitionUseCase(
-    new FixtureCompetitionRepository(),
-    new FixtureCompetitionStoryRepository(),
-  );
-}
-
-export function createGetPostCompetitionIdUseCase(): GetPostCompetitionIdUseCase {
-  return new GetPostCompetitionIdUseCase(
-    new FixtureCompetitionStoryRepository(),
-  );
-}
-
-export function createGetCompetitionAlertSettingsUseCase(): GetCompetitionAlertSettingsUseCase {
+export function createGetCompetitionAlertSettingsUseCase(
+  accessToken: string,
+): GetCompetitionAlertSettingsUseCase {
   return new GetCompetitionAlertSettingsUseCase(
-    new FixtureCompetitionAlertRepository(),
+    new ExternalCompetitionAlertRepository(
+      createAuthedServerHttpClient(accessToken),
+    ),
   );
 }
 
-export function createSetCompetitionAlertsEnabledUseCase(): SetCompetitionAlertsEnabledUseCase {
-  return new SetCompetitionAlertsEnabledUseCase(
-    new FixtureCompetitionAlertRepository(),
-  );
-}
-
-export function createSetCompetitionAlertMutedUseCase(): SetCompetitionAlertMutedUseCase {
-  return new SetCompetitionAlertMutedUseCase(
-    new FixtureCompetitionRepository(),
-    new FixtureCompetitionAlertRepository(),
-  );
-}
-
-export function createGetCompetitionAlertNotificationsUseCase(): GetCompetitionAlertNotificationsUseCase {
-  return new GetCompetitionAlertNotificationsUseCase(
-    new FixtureCompetitionAlertRepository(),
-  );
-}
-
-export function createMarkCompetitionAlertNotificationsReadUseCase(): MarkCompetitionAlertNotificationsReadUseCase {
-  return new MarkCompetitionAlertNotificationsReadUseCase(
-    new FixtureCompetitionAlertRepository(),
-  );
-}
-
-export function createGetPostCompetitionIdsUseCase(): GetPostCompetitionIdsUseCase {
-  return new GetPostCompetitionIdsUseCase(
-    new FixtureCompetitionStoryRepository(),
+export function createAnswerCompetitionAlertPromptUseCase(
+  accessToken: string,
+): AnswerCompetitionAlertPromptUseCase {
+  return new AnswerCompetitionAlertPromptUseCase(
+    new ExternalCompetitionAlertRepository(
+      createAuthedServerHttpClient(accessToken),
+    ),
   );
 }

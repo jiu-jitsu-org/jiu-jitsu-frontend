@@ -1,3 +1,4 @@
+import type { Competition } from "@/features/competition/domain/competition";
 /**
  * 커뮤니티 게시글 상세 도메인 타입.
  *
@@ -73,6 +74,12 @@ export type PostDetail = {
   edited: boolean;
   /** noticeEnabled → 이 글의 알림 수신 여부(헤더 종 토글 초기 상태). */
   noticeEnabled: boolean;
+  /**
+   * 이 글이 고른 대회 id(#417). 대회가 미공개로 바뀌어 카드(competition)가 없어도 id는 온다 — 수정 때 다시 보낸다.
+   */
+  competitionId: number | null;
+  /** 고른 대회 카드(#380). 고르지 않았거나 대회가 미공개면 없다. */
+  competition?: Competition;
 };
 
 /** 게시글 카테고리 — GET /board/category 응답 항목(categoryId로 그대로 전송). */
@@ -90,6 +97,12 @@ export type CreatePostInput = {
   imageFileIdList: number[];
   /** 태그 이름 목록(Swagger: tags ["BJJ","운동"]). 서버가 공백 제거·소문자·중복 제거를 한 번 더 한다. */
   tags: string[];
+  /**
+   * 고른 대회(#421) — '대회' 카테고리만. 없으면 null.
+   * 수정(PUT)에서는 보낸 값으로 바꾸고 null이면 연결을 푼다 — 수정 화면은 그 글의 값을 늘 다시 보낸다(#417).
+   * 생략하면 요청에 싣지 않는다 — 대회 화면이 꺼진 배포의 BFF가 뺀다.
+   */
+  competitionId?: number | null;
 };
 
 /**
@@ -102,6 +115,8 @@ export type PostEditInitial = {
   body: string;
   images: PostImage[];
   tags: string[];
+  /** 이 글이 고른 대회(#417) — 글 상세 응답의 competitionId. 고르기 칸이 없어도 수정 때 그대로 다시 보낸다. */
+  competitionId: number | null;
 };
 
 /**

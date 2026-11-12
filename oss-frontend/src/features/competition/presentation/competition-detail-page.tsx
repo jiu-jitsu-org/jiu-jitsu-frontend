@@ -58,6 +58,10 @@ export function CompetitionDetailPage({
         <SubviewScrollShell className="bg-surface-container">
           <CompetitionDetailHeader
             alertTarget={alertable ? target : undefined}
+            // 관심이 없던 대회는 관심을 새로 등록하면 알림이 켜진 채로 생긴다.
+            noticeEnabled={
+              data.interested ? (competition.noticeEnabled ?? false) : true
+            }
           />
           <div className="pb-[calc(env(safe-area-inset-bottom)+40px)]">
             {data.promptResult && status?.kind === "ended" ? (
@@ -82,7 +86,11 @@ export function CompetitionDetailPage({
               items={data.schedule}
               currentYear={currentYear}
             />
-            <CompetitionFeeSection fees={data.fees} currentYear={currentYear} />
+            <CompetitionFeeSection
+              fees={data.fees}
+              feeNote={competition.feeNote}
+              currentYear={currentYear}
+            />
             <CompetitionInfoBasis
               competitionId={competition.id}
               verifiedOn={competition.verifiedOn}

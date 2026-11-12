@@ -14,10 +14,10 @@ const DISMISSED_KEY_PREFIX = "oss.competition.result-prompt.dismissed.";
 const DISMISS_EVENT = "oss:competition-result-prompt-dismissed";
 
 /** 저장소를 못 쓰는 환경(사생활 보호 모드)에서도 지금 화면에서는 닫히게 기억해 둔다. */
-const hiddenThisSession = new Set<string>();
+const hiddenThisSession = new Set<number>();
 
 /** 이 대회의 결과 남기기 안내를 닫았는지. 서버 그림에서는 늘 false. */
-export function useResultPromptDismissed(competitionId: string): boolean {
+export function useResultPromptDismissed(competitionId: number): boolean {
   return useSyncExternalStore(
     subscribeResultPromptDismissed,
     () => isResultPromptDismissed(competitionId),
@@ -29,7 +29,7 @@ export function useResultPromptDismissed(competitionId: string): boolean {
  * 여러 대회 중 아직 닫지 않은 대회 id — 쉼표로 이은 문자열이라 값이 같으면 다시 그리지 않는다.
  * 서버 그림에서는 모두 닫지 않은 것으로 본다.
  */
-export function useOpenResultPromptIds(competitionIds: readonly string[]) {
+export function useOpenResultPromptIds(competitionIds: readonly number[]) {
   return useSyncExternalStore(
     subscribeResultPromptDismissed,
     () => competitionIds.filter((id) => !isResultPromptDismissed(id)).join(","),
@@ -37,7 +37,7 @@ export function useOpenResultPromptIds(competitionIds: readonly string[]) {
   );
 }
 
-export function isResultPromptDismissed(competitionId: string): boolean {
+export function isResultPromptDismissed(competitionId: number): boolean {
   if (hiddenThisSession.has(competitionId)) return true;
   try {
     return (
@@ -48,7 +48,7 @@ export function isResultPromptDismissed(competitionId: string): boolean {
   }
 }
 
-export function dismissResultPrompt(competitionIds: readonly string[]) {
+export function dismissResultPrompt(competitionIds: readonly number[]) {
   for (const competitionId of competitionIds) {
     hiddenThisSession.add(competitionId);
     try {

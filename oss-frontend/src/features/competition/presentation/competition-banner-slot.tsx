@@ -91,7 +91,7 @@ export function useBannerSlot(queue: readonly BannerSlotItem[]): {
   if (item.kind !== "result") return { ready: true, item };
   return {
     ready: true,
-    item: { ...item, group: openGroup(item.group, openIds.split(",")) },
+    item: { ...item, group: openGroup(item.group, openIds.split(",").map(Number)) },
   };
 }
 
@@ -159,7 +159,7 @@ function isOpen(item: BannerSlotItem): boolean {
   }
 }
 
-function openResultIds(group: ResultCardGroup): string[] {
+function openResultIds(group: ResultCardGroup): number[] {
   return group.competitions
     .filter(({ id }) => !isResultPromptDismissed(id))
     .map(({ id }) => id);
@@ -170,7 +170,7 @@ function openResultIds(group: ResultCardGroup): string[] {
  * 묶음의 '며칠 전'은 가장 늦게 끝난 대회 기준이다. 그 대회를 닫아 빠졌으면 남은 마지막 대회로 다시 센다
  * — 토·일 묶음에서 일요일 대회만 닫으면 토요일 대회가 '어제 끝난'으로 보이지 않게.
  */
-function openGroup(group: ResultCardGroup, openIds: string[]): ResultCardGroup {
+function openGroup(group: ResultCardGroup, openIds: number[]): ResultCardGroup {
   const open = new Set(openIds);
   const competitions = group.competitions.filter(({ id }) => open.has(id));
   const latest = competitions.at(-1);

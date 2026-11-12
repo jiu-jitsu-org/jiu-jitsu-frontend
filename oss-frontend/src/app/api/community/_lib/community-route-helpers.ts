@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { isCompetitionEnabled } from "@/features/competition/application/is-competition-enabled";
 import { SessionRequiredError, requireSessionToken } from "@/shared/lib/auth";
 import { HttpError } from "@/shared/lib/http";
 import type { ApiErrorResponse } from "@/shared/types/api";
@@ -139,12 +140,18 @@ export type PostBodyFields = {
   body: string;
   imageFileIdList: number[];
   tags: string[];
+  /**
+   * 고른 대회(#421). 양의 정수가 아니면 null — 수정에서는 연결을 푼다(#417).
+   * 대회 화면이 꺼진 배포에서는 키를 아예 빼 업스트림에 싣지 않는다.
+   */
+  competitionId?: number | null;
 };
 
 /**
  * 게시글 생성/수정 요청 body를 파싱·정리한다. 파싱 실패는 빈 값으로 흘려보내 호출부의 검증(400)에 맡긴다.
  * - imageFileIdList: 정수 id만 통과(잘못된 항목 제거), 없으면 빈 배열
  * - tags: 문자열만 통과 + 공백 제거 + 빈 값 제거(정규화 자체는 화면과 서버가 한다)
+ * - competitionId: 양의 정수만, 아니면 null. 대회 화면이 꺼진 배포(COMPETITION_ENABLED)에서는 키를 뺀다.
  */
 export async function parsePostBody(request: Request): Promise<PostBodyFields> {
   const fields: PostBodyFields = {
@@ -153,6 +160,7 @@ export async function parsePostBody(request: Request): Promise<PostBodyFields> {
     body: "",
     imageFileIdList: [],
     tags: [],
+    competitionId: null,
   };
   try {
     const json = await request.json();
@@ -168,9 +176,16 @@ export async function parsePostBody(request: Request): Promise<PostBodyFields> {
           .map((tag: string) => tag.trim())
           .filter((tag: string) => tag.length > 0)
       : [];
+    const competitionId = Number(json?.competitionId);
+    fields.competitionId =
+      Number.isSafeInteger(competitionId) && competitionId > 0
+        ? competitionId
+        : null;
   } catch {
     // 파싱 실패는 호출부 검증에서 400으로 처리된다.
   }
+  // 대회 화면이 꺼진 배포(대회 API가 없는 백엔드)에는 대회를 싣지 않는다 — 키 자체를 뺀다.
+  if (!isCompetitionEnabled()) delete fields.competitionId;
   return fields;
 }
 

@@ -32,7 +32,8 @@ export function CompetitionResultCard({
   function leaveRecord({ id, name, date }: Competition) {
     if (
       openNativeCompetitionRecord({
-        competitionId: id,
+        // 숫자 문자열로 보낸다 — 이미 깔린 앱은 문자열만 받는다(messages.ts).
+        competitionId: String(id),
         name,
         year: Number(date.slice(0, 4)),
       })

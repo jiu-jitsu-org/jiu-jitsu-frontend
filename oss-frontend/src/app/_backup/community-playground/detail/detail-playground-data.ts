@@ -29,6 +29,7 @@ export const MOCK_POST_BASE: PostDetail = {
   updatedAt: "2025-09-18T17:00:00+09:00",
   edited: true,
   noticeEnabled: true,
+  competitionId: null,
 };
 
 /** 댓글 없음(빈 상태). */

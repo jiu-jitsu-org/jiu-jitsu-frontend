@@ -1,82 +1,70 @@
 "use server";
 
+import { isCompetitionEnabled } from "@/features/competition/application/is-competition-enabled";
 import {
-  createMarkCompetitionAlertNotificationsReadUseCase,
-  createSetCompetitionAlertMutedUseCase,
-  createSetCompetitionAlertsEnabledUseCase,
+  createAnswerCompetitionAlertPromptUseCase,
+  createSetCompetitionNoticeUseCase,
 } from "@/features/competition/application/competition-use-case-factory";
-import { isCompetitionPageEnabled } from "@/features/competition/application/is-competition-page-enabled";
+import { isCompetitionId } from "@/features/competition/domain/competition";
+import {
+  competitionActionFailure,
+  type CompetitionActionFailureReason,
+} from "@/features/competition/presentation/actions/competition-action-failure";
+import type { CompetitionNoticeResult } from "@/features/competition/domain/competition-alert";
 import { readSessionToken } from "@/shared/lib/auth";
 
-export type CompetitionAlertActionResult =
-  { ok: true } | { ok: false; reason: "unauthenticated" | "failed" };
-
-/** 실제 대회 id보다 넉넉한 상한 — 화면 밖에서 아무 값이나 보내도 저장소까지 가지 않게. */
-const MAX_ID_LENGTH = 100;
-/** 알림함 한 화면의 대회 알림보다 넉넉한 상한. */
-const MAX_IDS = 200;
-
-function isId(value: unknown): value is string {
-  return (
-    typeof value === "string" &&
-    value.length > 0 &&
-    value.length <= MAX_ID_LENGTH
-  );
-}
+type Failure = { ok: false; reason: CompetitionActionFailureReason };
 
 /**
- * 관심 대회 마감 알림 Server Action (#375~#377).
+ * 관심 대회 마감 알림 Server Action (#375~#377 · #422).
  *
  * 화면은 누르는 순간 먼저 바꿔 보여 주고(낙관적), 실패면 되돌린다. 실제 로그인 경계는 여기서 다시 보는 세션이다.
  */
-async function run(
-  task: () => Promise<void>,
-): Promise<CompetitionAlertActionResult> {
-  // 대회 화면이 닫혀 있는 곳(운영)에서는 가짜 저장소에 아무것도 쌓지 않는다.
-  if (!isCompetitionPageEnabled()) return { ok: false, reason: "failed" };
-  if ((await readSessionToken()) === null) {
-    return { ok: false, reason: "unauthenticated" };
-  }
+async function run<T>(
+  task: (accessToken: string) => Promise<T>,
+): Promise<({ ok: true } & T) | Failure> {
+  // 대회 화면이 꺼진 배포에서는 부르지 않는다.
+  if (!isCompetitionEnabled()) return { ok: false, reason: "failed" };
+  const accessToken = await readSessionToken();
+  if (accessToken === null) return { ok: false, reason: "unauthenticated" };
   try {
-    await task();
-    return { ok: true };
-  } catch {
-    return { ok: false, reason: "failed" };
+    return { ok: true, ...(await task(accessToken)) };
+  } catch (error) {
+    return { ok: false, reason: competitionActionFailure(error) };
   }
 }
 
-/** '관심 대회 알림' 전체 켜기·끄기 — 첫 관심 등록 시트의 '알림 받기'(#375). */
-export async function setCompetitionAlertsEnabledAction(
+/**
+ * 첫 관심 등록 시트의 답(#375) — PUT /notice/setting/competition { enabled }.
+ * '나중에'도 false로 부른다 — 설정은 그대로 두고 물어본 것만 남는다.
+ */
+export async function answerCompetitionAlertPromptAction(
   enabled: boolean,
-): Promise<CompetitionAlertActionResult> {
+): Promise<{ ok: true } | Failure> {
   if (typeof enabled !== "boolean") return { ok: false, reason: "failed" };
-  return run(() => createSetCompetitionAlertsEnabledUseCase().execute(enabled));
+  return run(async (accessToken) => {
+    await createAnswerCompetitionAlertPromptUseCase(accessToken).execute(
+      enabled,
+    );
+    return {};
+  });
 }
 
-/** 이 대회 알림만 끄기·다시 받기 — 대회 상세 종(#376)·알림함 줄(#377). */
-export async function setCompetitionAlertMutedAction(
-  competitionId: string,
-  muted: boolean,
-): Promise<CompetitionAlertActionResult> {
-  if (!isId(competitionId) || typeof muted !== "boolean") {
+/**
+ * 이 대회 알림 켜기·끄기 — 대회 상세 종(#376)·알림함 '이 대회 알림 받지 않기'(#377).
+ * 켜면 관심도 함께 등록되므로 돌려주는 관심 상태로 화면을 맞춘다.
+ */
+export async function setCompetitionNoticeAction(
+  competitionId: number,
+  enabled: boolean,
+): Promise<({ ok: true } & CompetitionNoticeResult) | Failure> {
+  if (!isCompetitionId(competitionId) || typeof enabled !== "boolean") {
     return { ok: false, reason: "failed" };
   }
-  return run(() =>
-    createSetCompetitionAlertMutedUseCase().execute(competitionId, muted),
-  );
-}
-
-/** 대회 마감 알림 읽음 처리(#377). ids가 없으면 전부 — 알림함 '모두 읽음'. */
-export async function markCompetitionAlertsReadAction(
-  ids?: string[],
-): Promise<CompetitionAlertActionResult> {
-  if (
-    ids !== undefined &&
-    (!Array.isArray(ids) || ids.length > MAX_IDS || !ids.every(isId))
-  ) {
-    return { ok: false, reason: "failed" };
-  }
-  return run(() =>
-    createMarkCompetitionAlertNotificationsReadUseCase().execute(ids),
+  return run((accessToken) =>
+    createSetCompetitionNoticeUseCase(accessToken).execute(
+      competitionId,
+      enabled,
+    ),
   );
 }

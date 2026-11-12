@@ -1,11 +1,12 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import type { CompetitionDetailStatus } from "@/features/competition/domain/competition-schedule";
 import type { CompetitionAlertTarget } from "@/features/competition/presentation/competition-alert-sheet";
 import { RegistrationIcon } from "@/features/competition/presentation/competition-icons";
 import { shortDateLabel } from "@/features/competition/presentation/competition-detail-format";
+import { recordCompetitionViewAction } from "@/features/competition/presentation/actions/record-competition-view-action";
 import { useCompetitionDetailInterest } from "@/features/competition/presentation/competition-detail-interest";
 import { cn } from "@/shared/lib/cn";
 import { HeartIcon } from "@/shared/ui/icons";
@@ -17,6 +18,7 @@ import { Button } from "@/shared/ui/button";
  * 관심 등록은 이 화면의 주 행동이라 하트만 있는 목록과 달리 "관심 32"처럼 글자를 단 버튼으로 둔다.
  * 등록·해제·첫 등록 알림 시트·실패 되돌리기는 목록과 같은 훅을 쓴다(#335 · #375). 관심 상태는 머리의 알림 종과 함께 본다(#376).
  * 끝난 대회는 마감 알림을 받을 일이 없어 버튼 대신 관심 수만 글자로 남긴다.
+ * 조회수는 화면이 열린 뒤 한 번 세고(#420) 센 값으로 바꾼다 — 서버 렌더는 로그인 뒤 다시 그리기에서도 돌아 세지 않는다.
  */
 export function CompetitionDetailSummary({
   target,
@@ -27,9 +29,20 @@ export function CompetitionDetailSummary({
   target: CompetitionAlertTarget;
   status: CompetitionDetailStatus | null;
   currentYear: number;
-  viewCount: number | null;
+  viewCount: number;
 }) {
   const { id: competitionId, name } = target;
+  const [views, setViews] = useState(viewCount);
+  const counted = useRef(false);
+  useEffect(() => {
+    if (counted.current) return;
+    counted.current = true;
+    void recordCompetitionViewAction(competitionId)
+      .then((next) => {
+        if (next !== null) setViews(next);
+      })
+      .catch(() => undefined);
+  }, [competitionId]);
   const interest = useCompetitionDetailInterest();
   const on = interest.isInterested(competitionId);
   const count = interest.countOf(competitionId);
@@ -50,9 +63,7 @@ export function CompetitionDetailSummary({
         <p className="flex-1 text-[13px] leading-[18px] text-text-tertiary tabular-nums">
           {[
             ended && count > 0 ? `관심 ${count}` : null,
-            viewCount !== null
-              ? `조회 ${viewCount.toLocaleString("ko-KR")}`
-              : null,
+            `조회 ${views.toLocaleString("ko-KR")}`,
           ]
             .filter(Boolean)
             .join(" · ")}

@@ -1,10 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { BottomSheetFrame } from "@/features/community/presentation/bottom-sheet-frame";
 import type { CompetitionPickerOption } from "@/features/competition/application/get-competition-picker-options";
-import { matchesCompetitionName } from "@/features/competition/domain/competition-filter";
+import {
+  hasNameQuery,
+  matchesCompetitionName,
+} from "@/features/competition/domain/competition-filter";
+import { searchCompetitionPickerAction } from "@/features/competition/presentation/actions/search-competition-picker-action";
 import { longDateLabel } from "@/features/competition/presentation/competition-detail-format";
 import { cn } from "@/shared/lib/cn";
 import {
@@ -22,6 +26,7 @@ import { SearchField } from "@/shared/ui/search-field";
  * 고른 대회는 그 대회 상세의 '대회 이야기'에 이 글을 띄우는 데 쓴다. 대회 전반 질문도 있어 고르지 않아도 된다.
  * 칸은 검색칸과 같은 회색 면(입력칸 공통)이고, 누르면 바텀시트에서 이름으로 찾아 고른다 — 고르면 바로 닫힌다.
  * 다가오는 대회가 가까운 순으로 먼저, 최근 끝난 대회(후기 글)가 그 뒤에 온다.
+ * 이름을 치면 서버에서도 찾는다(#421) — 펼친 목록 밖의 지난 대회까지 나온다. 답이 오기 전에는 펼친 목록에서 거른다.
  */
 export function CompetitionPicker({
   options,
@@ -30,16 +35,47 @@ export function CompetitionPicker({
   currentYear,
 }: {
   options: CompetitionPickerOption[];
-  value: string | null;
-  onChange: (competitionId: string | null) => void;
+  value: number | null;
+  onChange: (competitionId: number | null) => void;
   currentYear: number;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const selected = options.find((option) => option.id === value) ?? null;
+  // 서버에서 찾은 결과 — 어떤 검색어의 답인지 함께 들어, 검색어가 바뀌면 지난 답을 쓰지 않는다.
+  const [found, setFound] = useState<{
+    query: string;
+    options: CompetitionPickerOption[];
+  } | null>(null);
+  // 고른 대회가 검색으로만 찾은 대회여도 칸에 이름이 보이게 기억해 둔다.
+  const [picked, setPicked] = useState<CompetitionPickerOption | null>(null);
+  const selected =
+    options.find((option) => option.id === value) ??
+    (picked?.id === value ? picked : null);
+  const searching = hasNameQuery(query);
+  useEffect(() => {
+    if (!searching) return;
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      // 찾기에 실패하면(연결 끊김 포함) 펼친 목록 안에서 거른 결과를 그대로 둔다.
+      void searchCompetitionPickerAction(query)
+        .catch(() => null)
+        .then((result) => {
+          if (!cancelled && result) setFound({ query, options: result });
+        });
+    }, SEARCH_DELAY_MS);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [query, searching]);
   const shown = useMemo(
-    () => options.filter((option) => matchesCompetitionName(option.name, query)),
-    [options, query],
+    () =>
+      found && found.query === query
+        ? found.options
+        : options.filter((option) =>
+            matchesCompetitionName(option.name, query),
+          ),
+    [found, options, query],
   );
 
   function close() {
@@ -70,7 +106,10 @@ export function CompetitionPicker({
             </span>
           )}
           {selected ? null : (
-            <ChevronDownIcon size={18} className="flex-none text-icon-secondary" />
+            <ChevronDownIcon
+              size={18}
+              className="flex-none text-icon-secondary"
+            />
           )}
         </button>
         {selected ? (
@@ -111,6 +150,7 @@ export function CompetitionPicker({
                     type="button"
                     aria-pressed={on}
                     onClick={() => {
+                      setPicked(option);
                       onChange(option.id);
                       close();
                     }}
@@ -129,7 +169,12 @@ export function CompetitionPicker({
                         {option.name}
                       </span>
                       <span className="text-[13px] leading-[18px] text-text-secondary">
-                        {[longDateLabel(option.date, currentYear), option.place.trim()]
+                        {[
+                          option.date
+                            ? longDateLabel(option.date, currentYear)
+                            : null,
+                          option.place.trim(),
+                        ]
                           .filter(Boolean)
                           .join(" · ")}
                       </span>
@@ -147,3 +192,6 @@ export function CompetitionPicker({
     </>
   );
 }
+
+/** 치는 동안 서버를 매 글자 부르지 않게 잠깐 기다린다(ms). */
+const SEARCH_DELAY_MS = 300;

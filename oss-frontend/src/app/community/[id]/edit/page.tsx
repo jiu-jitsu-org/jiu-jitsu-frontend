@@ -5,10 +5,8 @@ import { createGetPostDetailUseCase } from "@/features/community/application/com
 import { getPostCategoriesOrFallback } from "@/features/community/application/get-post-write-page-data";
 import type { PostEditInitial } from "@/features/community/domain/post";
 import { PostWriteScreen } from "@/features/community/presentation/post-write-screen";
-import {
-  getCompetitionPickerOptions,
-  getPostCompetitionId,
-} from "@/features/competition/application/get-competition-picker-options";
+import { getCompetitionPickerOptions } from "@/features/competition/application/get-competition-picker-options";
+import type { Competition } from "@/features/competition/domain/competition";
 import { POST_EDIT_FROM_DETAIL } from "@/features/community/presentation/post-edit-return";
 import { readSessionToken } from "@/shared/lib/auth";
 import { ApiErrorCode, toApiError } from "@/shared/lib/http";
@@ -47,6 +45,9 @@ export default async function CommunityPostEditPage({
   }
 
   let initial: PostEditInitial;
+  // 이 글이 고른 대회(#417) — 대회가 미공개로 바뀌어 카드가 없어도 id는 온다. 수정 때 그대로 다시 보낸다.
+  let competitionId: number | null = null;
+  let competition: Competition | null = null;
   try {
     const post = await createGetPostDetailUseCase(accessToken).execute(postId);
     if (!post.viewer.isOwner) {
@@ -58,7 +59,10 @@ export default async function CommunityPostEditPage({
       body: post.body,
       images: post.images,
       tags: post.tags,
+      competitionId: post.competitionId,
     };
+    competitionId = post.competitionId;
+    competition = post.competition ?? null;
   } catch (error) {
     // redirect()는 Next 내부 예외로 동작하므로 삼키지 않고 다시 던진다.
     unstable_rethrow(error);
@@ -72,16 +76,14 @@ export default async function CommunityPostEditPage({
   }
 
   const now = readServerNow();
-  // 대회 고르기(#367) — 이 글이 이미 고른 대회를 먼저 읽어, 오래돼 목록에서 빠졌어도 고르기 목록에 넣는다.
-  // 대회 데이터가 없는 환경이면 빈 목록이라 칸이 안 나온다.
-  const [categories, competitionId] = await Promise.all([
+  // 대회 고르기(#367 · #421) — 이 글이 이미 고른 대회는 고르기 목록 밖이어도 맨 위에 넣어 보이고 지울 수 있게 한다.
+  const [categories, competitionOptions] = await Promise.all([
     getPostCategoriesOrFallback(),
-    getPostCompetitionId(postId),
+    getCompetitionPickerOptions({
+      include: competition,
+      includeId: competition ? null : competitionId,
+    }),
   ]);
-  const competitionOptions = await getCompetitionPickerOptions({
-    now,
-    include: competitionId,
-  });
   return (
     <>
       <PostWriteScreen

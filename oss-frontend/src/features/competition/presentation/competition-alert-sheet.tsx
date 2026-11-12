@@ -12,7 +12,7 @@ import { Button } from "@/shared/ui/button";
 
 /** 시트가 묻는 대회 — 이름과 접수 일정으로 알림 날을 보여 준다. */
 export type CompetitionAlertTarget = {
-  id: string;
+  id: number;
   name: string;
   registration?: CompetitionRegistration;
 };

@@ -3,7 +3,8 @@ import {
   EARLY_BIRD_EMPHASIS_DAYS,
   daysBetween,
   isDateKey,
-  registrationStatusOn,
+  openEarlyBirdDeadline,
+  registrationStatusOf,
 } from "@/features/competition/domain/competition-registration";
 
 /**
@@ -42,42 +43,38 @@ export function detailStatusOn(
 ): CompetitionDetailStatus | null {
   // 대회 날짜 모양이 틀렸으면 상태를 지어내지 않는다 — "종료"·"D-NaN"을 보여 주느니 상태 줄을 뺀다.
   if (!isDateKey(competition.date)) return null;
-  if (today > competition.date) {
-    return { kind: "ended", daysAgo: daysBetween(competition.date, today) };
+  if (competition.status === "ended" || today > competition.date) {
+    return {
+      kind: "ended",
+      daysAgo: Math.max(0, daysBetween(competition.date, today)),
+    };
   }
   if (today === competition.date) return { kind: "today" };
 
   const daysToCompetition = daysBetween(today, competition.date);
-  const registration = competition.registration;
-  const status = registration
-    ? registrationStatusOn(registration, today)
-    : null;
-  if (!registration || !status) {
-    return { kind: "unannounced", daysToCompetition };
+  // 접수 중이면 가장 가까운 마감 — 얼리버드 마감이 남았으면 그것(접수 마감을 몰라도 보여 준다).
+  const earlyBird =
+    competition.status === "open"
+      ? openEarlyBirdDeadline(competition, today)
+      : undefined;
+  if (earlyBird) {
+    const daysLeft = daysBetween(today, earlyBird);
+    return {
+      kind: "open",
+      deadline: "early-bird",
+      daysLeft,
+      urgent: daysLeft <= EARLY_BIRD_EMPHASIS_DAYS,
+    };
   }
+  const status = registrationStatusOf(competition, today);
+  if (!status) return { kind: "unannounced", daysToCompetition };
   switch (status.kind) {
     case "upcoming":
       return status;
     case "closed":
       return { kind: "closed", daysToCompetition };
-    case "open": {
-      const earlyBird = validEarlyBird(registration);
-      if (earlyBird && today <= earlyBird) {
-        const daysLeft = daysBetween(today, earlyBird);
-        return {
-          kind: "open",
-          deadline: "early-bird",
-          daysLeft,
-          urgent: daysLeft <= EARLY_BIRD_EMPHASIS_DAYS,
-        };
-      }
-      return {
-        kind: "open",
-        deadline: "final",
-        daysLeft: daysBetween(today, registration.closesOn),
-        urgent: false,
-      };
-    }
+    case "open":
+      return { ...status, urgent: false };
   }
 }
 
@@ -99,8 +96,7 @@ export type CompetitionScheduleItem = {
 /**
  * 전체 일정(#363) — 접수 시작 · 얼리버드 마감 · 접수 마감 · 대회일 순.
  *
- * 없는 일정은 줄을 넣지 않는다. 접수 일정 값이 틀렸으면(시작이 마감보다 늦음 등) 접수 줄을 모두 빼고
- * 대회일만 둔다 — 목록이 상태를 지어내지 않는 것과 같은 기준이다.
+ * 없는 일정은 줄을 넣지 않는다.
  */
 export function scheduleOf(
   competition: Competition,
@@ -108,14 +104,21 @@ export function scheduleOf(
 ): CompetitionScheduleItem[] {
   const entries: { key: CompetitionScheduleKey; label: string; date: string }[] =
     [];
-  const registration = competition.registration;
-  if (registration && registrationStatusOn(registration, today)) {
-    entries.push({ key: "opens", label: "접수 시작", date: registration.opensOn });
-    const earlyBird = validEarlyBird(registration);
-    if (earlyBird) {
-      entries.push({ key: "early-bird", label: "얼리버드 마감", date: earlyBird });
-    }
-    entries.push({ key: "closes", label: "접수 마감", date: registration.closesOn });
+  // 서버가 일정 순서(접수 시작 ≤ 얼리버드 마감 ≤ 접수 마감 ≤ 대회일)를 지켜 저장하므로, 아는 날만 줄로 둔다.
+  const { opensOn, earlyBirdClosesOn, closesOn } =
+    competition.registration ?? {};
+  if (opensOn && isDateKey(opensOn)) {
+    entries.push({ key: "opens", label: "접수 시작", date: opensOn });
+  }
+  if (earlyBirdClosesOn && isDateKey(earlyBirdClosesOn)) {
+    entries.push({
+      key: "early-bird",
+      label: "얼리버드 마감",
+      date: earlyBirdClosesOn,
+    });
+  }
+  if (closesOn && isDateKey(closesOn)) {
+    entries.push({ key: "closes", label: "접수 마감", date: closesOn });
   }
   if (isDateKey(competition.date)) {
     entries.push({ key: "competition", label: "대회", date: competition.date });
@@ -136,18 +139,4 @@ export function shouldPromptResult(
   status: CompetitionDetailStatus | null,
 ): boolean {
   return status?.kind === "ended" && status.daysAgo <= RESULT_PROMPT_DAYS;
-}
-
-/** 얼리버드 마감일 — 모양이 틀렸거나 접수 마감보다 늦거나 접수 시작보다 이르면 없는 것으로 본다. */
-function validEarlyBird(registration: {
-  opensOn: string;
-  closesOn: string;
-  earlyBirdClosesOn?: string;
-}): string | undefined {
-  const value = registration.earlyBirdClosesOn;
-  if (!value || !isDateKey(value)) return undefined;
-  if (value > registration.closesOn || value < registration.opensOn) {
-    return undefined;
-  }
-  return value;
 }

@@ -22,8 +22,9 @@ export function fullDateLabel(date: string): string {
   return `${year}.${month}.${day}`;
 }
 
-/** 60000 → "6만 원", 65000 → "6만 5천 원", 그 밖에는 "65,500원". */
+/** 0 → "무료"(#420), 60000 → "6만 원", 65000 → "6만 5천 원", 그 밖에는 "65,500원". */
 export function feeAmountLabel(amount: number): string {
+  if (amount === 0) return "무료";
   const man = Math.floor(amount / 10000);
   const rest = amount % 10000;
   if (man > 0 && rest === 0) return `${man}만 원`;

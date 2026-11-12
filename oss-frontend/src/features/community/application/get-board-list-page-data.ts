@@ -1,4 +1,4 @@
-import { attachPostCompetitions } from "@/features/community/application/attach-post-competitions";
+import { withoutCompetitionWhenDisabled } from "@/features/competition/application/is-competition-enabled";
 import { withSampleBelts } from "@/features/community/application/belt-avatar-sample";
 import { createGetPostListUseCase } from "@/features/community/application/community-use-case-factory";
 import type {
@@ -43,10 +43,11 @@ export async function getBoardListPageData(
   const accessToken = await readSessionToken();
 
   try {
+    // 글마다 고른 대회 카드(#379)는 목록 응답에 실려 온다. 대회 화면이 꺼진 배포에서는 뗀다.
     const fetched = await createGetPostListUseCase(accessToken).execute(query);
     const list = {
       ...fetched,
-      items: await attachPostCompetitions(fetched.items, accessToken !== null),
+      items: withoutCompetitionWhenDisabled(fetched.items),
     };
     if (sampleBelts && isDevelopmentRuntime()) {
       return {

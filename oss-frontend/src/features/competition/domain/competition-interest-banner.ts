@@ -2,6 +2,7 @@ import type { Competition } from "@/features/competition/domain/competition";
 import {
   daysBetween,
   isDateKey,
+  openEarlyBirdDeadline,
   type RegistrationStatus,
 } from "@/features/competition/domain/competition-registration";
 
@@ -29,7 +30,7 @@ export type DeadlineSoonItem = InterestBannerItem & { deadline: string };
 
 export function deadlineSoonInterested(
   items: readonly InterestBannerItem[],
-  interestedIds: ReadonlySet<string>,
+  interestedIds: ReadonlySet<number>,
   today: string,
 ): DeadlineSoonItem[] {
   return items
@@ -58,18 +59,9 @@ function nextRegistrationDeadline(
   competition: Competition,
   today: string,
 ): string | null {
-  const registration = competition.registration;
-  if (!registration || !isDateKey(registration.closesOn)) return null;
-  if (today > registration.closesOn) return null;
-  const earlyBird = registration.earlyBirdClosesOn;
-  // 접수 마감보다 늦게 잡힌 얼리버드 값은 접수 상태 규칙처럼 무시한다.
-  if (
-    earlyBird &&
-    isDateKey(earlyBird) &&
-    earlyBird <= registration.closesOn &&
-    today <= earlyBird
-  ) {
-    return earlyBird;
-  }
-  return registration.closesOn;
+  const earlyBird = openEarlyBirdDeadline(competition, today);
+  if (earlyBird) return earlyBird;
+  const closesOn = competition.registration?.closesOn;
+  if (!closesOn || !isDateKey(closesOn) || today > closesOn) return null;
+  return closesOn;
 }

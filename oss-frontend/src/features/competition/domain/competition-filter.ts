@@ -1,6 +1,5 @@
-import type { Competition } from "@/features/competition/domain/competition";
+import type { CompetitionListQuery } from "@/features/competition/domain/competition";
 import type { CompetitionRegion } from "@/features/competition/domain/competition-region";
-import type { RegistrationStatus } from "@/features/competition/domain/competition-registration";
 
 /**
  * 대회 목록 필터(#334) — 관심 · 지역 · 접수 중, 그리고 이름 검색(#345).
@@ -53,26 +52,17 @@ export function matchesCompetitionName(name: string, query: string): boolean {
 }
 
 /**
- * 대회 하나가 필터를 통과하는지.
- *
- * 접수 상태는 "오늘" 기준이라 대회 자체가 아니라 호출부가 계산해 함께 넘긴다.
- * 지역이 아직 안 정해진 대회는 지역을 고르면 빠진다.
+ * 필터를 서버 목록 조회 조건으로 — 거르기는 서버가 한다(#419).
+ * 관심은 로그인한 사용자만 갖는다 — 비로그인이면 호출부가 interestedOnly를 꺼서 넘긴다(서버가 403을 준다).
  */
-export function matchesCompetitionFilter(
-  target: { competition: Competition; registration: RegistrationStatus | null },
+export function competitionListQueryOf(
   filter: CompetitionFilter,
-  interestedIds: ReadonlySet<string>,
-): boolean {
-  const { competition, registration } = target;
-
-  if (filter.interestedOnly && !interestedIds.has(competition.id)) return false;
-  if (
-    filter.regions.length > 0 &&
-    (!competition.region || !filter.regions.includes(competition.region))
-  ) {
-    return false;
-  }
-  if (filter.openOnly && registration?.kind !== "open") return false;
-  if (!matchesCompetitionName(competition.name, filter.nameQuery)) return false;
-  return true;
+): Pick<CompetitionListQuery, "regions" | "statuses" | "interested" | "keyword"> {
+  const keyword = filter.nameQuery.trim();
+  return {
+    ...(filter.regions.length > 0 ? { regions: filter.regions } : {}),
+    ...(filter.openOnly ? { statuses: ["open"] as const } : {}),
+    ...(filter.interestedOnly ? { interested: true } : {}),
+    ...(hasNameQuery(keyword) ? { keyword } : {}),
+  };
 }

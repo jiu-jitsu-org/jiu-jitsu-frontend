@@ -10,13 +10,14 @@ import { useLoginGuard } from "@/features/community/presentation/use-login-guard
 import { setCompetitionInterestAction } from "@/features/competition/presentation/actions/set-competition-interest-action";
 import { useCompetitionAlerts } from "@/features/competition/presentation/competition-alert-provider";
 import type { CompetitionAlertTarget } from "@/features/competition/presentation/competition-alert-sheet";
+import { COMPETITION_GONE_MESSAGE } from "@/features/community/presentation/notifications/inbox-copy";
 import { useToast } from "@/shared/ui";
 
 export type CompetitionInterest = {
   /** 지금 내가 관심 등록한 대회 id (누르는 즉시 반영된 값). */
-  interestedIds: ReadonlySet<string>;
-  isInterested: (competitionId: string) => boolean;
-  countOf: (competitionId: string) => number;
+  interestedIds: ReadonlySet<number>;
+  isInterested: (competitionId: number) => boolean;
+  countOf: (competitionId: number) => number;
   /**
    * 관심 등록·해제. 비로그인이면 로그인 안내(외부 브라우저면 앱 안내)만 띄운다.
    * 대회 이름·접수 일정을 함께 받는 것은 첫 등록 때 마감 알림 시트(#375)가 이 대회의 알림 날을 보여 주기 때문이다.
@@ -24,6 +25,8 @@ export type CompetitionInterest = {
   toggle: (target: CompetitionAlertTarget) => void;
   /** 관심 등록만(이미 등록돼 있으면 그대로). 시트는 띄우지 않는다 — 대회 상세의 알림 켜기(#376)가 쓴다. 성공 여부를 돌려준다. */
   register: (target: CompetitionAlertTarget) => Promise<boolean>;
+  /** 다른 요청이 돌려준 관심 상태로 맞춘다 — 이 대회 알림을 켜면 관심도 함께 등록된다(#376 · #422). */
+  apply: (competitionId: number, interested: boolean, count: number) => void;
 };
 
 type Override = { interested: boolean; count: number };
@@ -36,17 +39,25 @@ type Override = { interested: boolean; count: number };
  * 누르는 순간 먼저 바꿔 보여 주고(낙관적), 실패하면 되돌리고 토스트로 알린다.
  * 응답을 기다리는 대회는 다시 눌러도 무시한다 — 빠르게 두 번 누르면 요청 순서가 꼬일 수 있다.
  *
- * 이 기기에서 처음 등록에 성공하면 마감 알림을 받을지 시트로 묻는다(#375) — 감싼 CompetitionAlertProvider가 있을 때.
+ * 처음 등록에 성공하면(설정의 관심 대회 알림이 꺼져 있고 아직 물어본 적이 없으면 — 서버 값) 마감 알림을 받을지 시트로 묻는다
+ * (#375 · #422) — 감싼 CompetitionAlertProvider가 있을 때.
  */
 export function useCompetitionInterest({
   interestedIds,
   interestCounts,
+  resetKey,
 }: {
-  interestedIds: readonly string[];
-  interestCounts: Readonly<Record<string, number>>;
+  interestedIds: readonly number[];
+  interestCounts: Readonly<Record<number, number>>;
+  /**
+   * 덮어 쓴 값을 비우는 기준 — 넘기면 서버 값 묶음이 새로 왔을 때(이 값이 바뀔 때)만 비운다.
+   * 목록처럼 이어 받은 페이지가 관심 값에 더해지는 화면은, 더해질 때마다 누른 결과가 지워지지 않게 넘긴다.
+   * 없으면 interestedIds·interestCounts가 바뀔 때 비운다.
+   */
+  resetKey?: unknown;
 }): CompetitionInterest {
-  const [overrides, setOverrides] = useState<Record<string, Override>>({});
-  const pending = useRef(new Set<string>());
+  const [overrides, setOverrides] = useState<Record<number, Override>>({});
+  const pending = useRef(new Set<number>());
   const signedIn = useIsSignedIn();
   const { promptLogin } = useAuth();
   const { guard } = useLoginGuard();
@@ -55,13 +66,19 @@ export function useCompetitionInterest({
 
   // 서버 값이 새로 오거나(로그인 뒤 다시 그림) 로그인 상태가 바뀌면 이 화면에서 덮어 쓴 값을 비운다 —
   // 새 서버 값이 이미 그 결과를 담고 있고, 로그아웃·다른 계정이면 이전 사람의 관심이 남으면 안 된다.
-  const [seen, setSeen] = useState({ interestedIds, interestCounts, signedIn });
-  if (
-    seen.interestedIds !== interestedIds ||
-    seen.interestCounts !== interestCounts ||
-    seen.signedIn !== signedIn
-  ) {
-    setSeen({ interestedIds, interestCounts, signedIn });
+  const [seen, setSeen] = useState({
+    interestedIds,
+    interestCounts,
+    resetKey,
+    signedIn,
+  });
+  const serverChanged =
+    resetKey === undefined
+      ? seen.interestedIds !== interestedIds ||
+        seen.interestCounts !== interestCounts
+      : seen.resetKey !== resetKey;
+  if (serverChanged || seen.signedIn !== signedIn) {
+    setSeen({ interestedIds, interestCounts, resetKey, signedIn });
     setOverrides({});
   }
 
@@ -71,29 +88,29 @@ export function useCompetitionInterest({
   );
 
   const isInterested = useCallback(
-    (id: string) =>
+    (id: number) =>
       signedIn && (overrides[id]?.interested ?? serverInterested.has(id)),
     [overrides, serverInterested, signedIn],
   );
 
   const countOf = useCallback(
-    (id: string) => overrides[id]?.count ?? interestCounts[id] ?? 0,
+    (id: number) => overrides[id]?.count ?? interestCounts[id] ?? 0,
     [interestCounts, overrides],
   );
 
   const currentIds = useMemo(() => {
-    if (!signedIn) return new Set<string>();
+    if (!signedIn) return new Set<number>();
     const ids = new Set(serverInterested);
     for (const [id, override] of Object.entries(overrides)) {
-      if (override.interested) ids.add(id);
-      else ids.delete(id);
+      if (override.interested) ids.add(Number(id));
+      else ids.delete(Number(id));
     }
     return ids;
   }, [overrides, serverInterested, signedIn]);
 
   /** 관심을 next로 바꾼다. 바뀐 결과가 서버에 남았으면 true. */
   const run = useCallback(
-    async (id: string, next: boolean): Promise<boolean> => {
+    async (id: number, next: boolean): Promise<boolean> => {
       if (pending.current.has(id)) return false;
       const before: Override = {
         interested: isInterested(id),
@@ -118,10 +135,15 @@ export function useCompetitionInterest({
           promptLogin({ reason: "대회 관심 등록" });
           return false;
         }
+        if (!result.ok && result.reason === "not-found") {
+          setOverrides((current) => ({ ...current, [id]: before }));
+          toast.show(COMPETITION_GONE_MESSAGE, { tone: "info" });
+          return false;
+        }
         if (!result.ok) throw new Error(result.reason);
         setOverrides((current) => ({
           ...current,
-          [id]: { interested: next, count: result.count },
+          [id]: { interested: result.interested, count: result.interestCount },
         }));
         return true;
       } catch {
@@ -163,5 +185,18 @@ export function useCompetitionInterest({
     [run],
   );
 
-  return { interestedIds: currentIds, isInterested, countOf, toggle, register };
+  const apply = useCallback(
+    (id: number, interested: boolean, count: number) =>
+      setOverrides((current) => ({ ...current, [id]: { interested, count } })),
+    [],
+  );
+
+  return {
+    interestedIds: currentIds,
+    isInterested,
+    countOf,
+    toggle,
+    register,
+    apply,
+  };
 }

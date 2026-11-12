@@ -28,7 +28,7 @@ export function CompetitionResultBanner({
   year,
   daysAgo,
 }: {
-  competitionId: string;
+  competitionId: number;
   name: string;
   year: number;
   daysAgo: number;
@@ -41,7 +41,12 @@ export function CompetitionResultBanner({
   if (externalBrowser || dismissed) return null;
 
   function leaveRecord() {
-    if (openNativeCompetitionRecord({ competitionId, name, year })) return;
+    if (openNativeCompetitionRecord({
+        // 숫자 문자열로 보낸다 — 이미 깔린 앱은 문자열만 받는다(messages.ts).
+        competitionId: String(competitionId),
+        name,
+        year,
+      })) return;
     // 이 신호를 모르는 앱 — 기록하는 곳을 알려 준다.
     toast.show("MY의 대회 기록에서 남길 수 있어요", { tone: "info" });
   }

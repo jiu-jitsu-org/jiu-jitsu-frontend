@@ -12,7 +12,7 @@ import { toKstIso } from "@/shared/lib/time";
  * 업스트림 알림함 API(notice-controller) infrastructure 구현 (#187).
  *
  * Swagger 확정 계약:
- * - GET /notice      → NoticeListResponse[] (최신순, 페이지네이션 없음)
+ * - GET /notice      → NoticeListResponse[] (최신순, 페이지네이션 없음). 관심 대회 마감 알림(#422)도 함께 온다.
  * - PUT /notice/{id} → true (개별 읽음)
  * - PUT /notice      → true (모두 읽음)
  *
@@ -46,6 +46,8 @@ const KNOWN_TYPES: readonly InboxNotificationType[] = [
   "NEW_CHILD_COMMENTS",
   "CONTENTS_LIKE",
   "COMMENTS_LIKE",
+  "COMPETITION_EARLY_BIRD_DEADLINE",
+  "COMPETITION_REGISTRATION_DEADLINE",
 ];
 
 export class ExternalInboxNotificationRepository implements InboxNotificationRepository {
@@ -94,6 +96,7 @@ function toGone(deletedStatus: string | null): InboxGoneKind | null {
   if (deletedStatus === "BOARD") return "post";
   if (deletedStatus === "COMMENT") return "comment";
   if (deletedStatus === "REPLY") return "reply";
+  if (deletedStatus === "COMPETITION") return "competition";
   return null;
 }
 
@@ -107,5 +110,8 @@ function toTarget(
 
   if (actionType === "BOARD_DETAIL") return { kind: "post", postId: contentId };
   if (actionType === "BALANCE_DETAIL") return { kind: "balance", contentId };
+  if (actionType === "COMPETITION_DETAIL") {
+    return { kind: "competition", competitionId: contentId };
+  }
   return null;
 }

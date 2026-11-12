@@ -210,9 +210,14 @@ export type ShareSheetPayload = {
   url: string;
 };
 
-/** `COMPETITION_ALERTS_ENABLED` payload — 알림을 켠 시트가 묻던 대회. 앱이 안내 문구에 쓸 수 있다. */
+/**
+ * `COMPETITION_ALERTS_ENABLED` payload — 관심 대회 알림을 켰다(PUT /notice/setting/competition 성공).
+ * 앱은 이 신호로 열린 설정 화면을 다시 읽고, 기기 알림이 꺼져 있으면 켜는 방법을 안내한다.
+ * competitionId는 시트가 묻던 대회의 서버 id를 숫자 문자열로 보낸다(예 "32"). 이미 깔린 앱은 문자열만 받고,
+ * 새 앱(jiu-jitsu-ios#281)은 숫자·숫자 문자열 둘 다 받는다 — 구버전 호환을 위해 문자열이다. 대회 없이 켰으면 빠진다.
+ */
 export type CompetitionAlertsEnabledPayload = {
-  competitionId: string;
+  competitionId?: string;
 };
 
 /** `COMPETITION_HEADER_TINT` payload — 앱 머리를 칠할 색. "#RRGGBB" 이거나 null(앱 기본 머리색으로). */
@@ -220,7 +225,11 @@ export type CompetitionHeaderTintPayload = {
   color: string | null;
 };
 
-/** `OPEN_COMPETITION_RECORD` payload — 결과를 남길 대회. 앱은 이름·연도를 미리 채운다. */
+/**
+ * `OPEN_COMPETITION_RECORD` payload — 결과를 남길 대회. 앱은 이름·연도를 미리 채운다.
+ * competitionId는 서버 대회 id를 숫자 문자열로 보낸다(예 "32") — 이미 깔린 앱은 문자열만 받고,
+ * 새 앱(jiu-jitsu-ios#281)은 숫자·숫자 문자열 둘 다 받는다.
+ */
 export type OpenCompetitionRecordPayload = {
   competitionId: string;
   name: string;

@@ -41,7 +41,7 @@ function renderContent(result: InboxPageDataResult): ReactNode {
     return (
       <InboxView
         initialNotifications={result.notifications}
-        competition={result.competition}
+        competitionAlertSettings={result.competitionAlertSettings}
       />
     );
   }

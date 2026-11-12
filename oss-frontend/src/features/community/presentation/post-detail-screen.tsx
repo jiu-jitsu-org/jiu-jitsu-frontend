@@ -8,6 +8,7 @@ import { CompetitionAlertProvider } from "@/features/competition/presentation/co
 import { PostCompetitionCard } from "@/features/competition/presentation/post-competition-card";
 import { ApiErrorCode } from "@/shared/lib/http";
 import { NativePageReady } from "@/shared/lib/native-bridge";
+import { readServerNow, toKstDateKey } from "@/shared/lib/time";
 import { Spinner } from "@/shared/ui/spinner";
 
 /**
@@ -46,7 +47,8 @@ export async function PostDetailScreen({
     return <DetailErrorState title="게시글을 불러오지 못했습니다." />;
   }
 
-  const { post, comments, competition } = result.data;
+  const { post, comments, competitionAlertSettings } = result.data;
+  const competition = post.competition;
   const view = (
     <>
       <PostDetailView
@@ -55,7 +57,7 @@ export async function PostDetailScreen({
         sort={sort}
         attachment={
           competition ? (
-            <PostCompetitionCard card={competition.card} />
+            <PostCompetitionCard competition={competition} />
           ) : undefined
         }
       />
@@ -69,8 +71,8 @@ export async function PostDetailScreen({
   // 대회 카드 하트로 처음 관심 등록하면 마감 알림 시트를 띄운다(#375).
   return (
     <CompetitionAlertProvider
-      settings={competition.alertSettings}
-      today={competition.today}
+      settings={competitionAlertSettings}
+      today={toKstDateKey(readServerNow())}
     >
       {view}
     </CompetitionAlertProvider>

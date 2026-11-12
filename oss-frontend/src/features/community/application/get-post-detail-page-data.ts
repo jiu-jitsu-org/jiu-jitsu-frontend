@@ -10,17 +10,18 @@ import type { CommentSort, PostDetail } from "@/features/community/domain/post";
 import { isDevelopmentRuntime } from "@/config/env";
 import { readSessionToken } from "@/shared/lib/auth";
 import { ApiErrorCode, toApiError } from "@/shared/lib/http";
-import { readServerNow } from "@/shared/lib/time";
-import {
-  getPostCompetition,
-  type PostCompetition,
-} from "@/features/competition/application/get-post-competition-cards";
+import { withoutCompetitionWhenDisabled } from "@/features/competition/application/is-competition-enabled";
+import { loadCompetitionAlertSettings } from "@/features/competition/application/load-competition-alert-settings";
+import type { CompetitionAlertSettings } from "@/features/competition/domain/competition-alert";
 
 export type PostDetailPageData = {
   post: PostDetail;
   comments: CommentList;
-  /** 글이 고른 대회 카드(#380). 고르지 않은 글이면 null. 글 상세 응답에 실려 오기 전까지 대회 feature가 붙인다. */
-  competition: PostCompetition | null;
+  /**
+   * 관심 대회 알림 설정(#375) — 글이 고른 대회 카드(post.competition, #380)의 하트로 처음 관심 등록하면 시트를 띄운다.
+   * 대회 카드가 없거나 비로그인·못 읽으면 null.
+   */
+  competitionAlertSettings: CompetitionAlertSettings | null;
 };
 
 export type PostDetailPageDataResult =
@@ -80,19 +81,17 @@ export async function getPostDetailPageData(
   const accessToken = await readSessionToken();
 
   try {
-    const post = await loadPostDetail(postId, accessToken);
+    const loaded = await loadPostDetail(postId, accessToken);
+    // 대회 화면이 꺼진 배포에서는 대회 카드를 뗀다(competitionId는 남아 수정 때 다시 보낸다, #417).
+    const [post] = withoutCompetitionWhenDisabled([loaded]);
 
     // 댓글 목록 조회가 실패해도 게시글 상세는 보이도록 빈 목록으로 폴백(graceful degradation).
-    // 고른 대회 카드(#380)도 덧붙는 정보라 못 읽으면 빠질 뿐이다.
-    const [comments, competition] = await Promise.all([
+    // 고른 대회 카드(#380)는 상세 응답에 실려 온다. 알림 설정은 덧붙는 정보라 못 읽으면 빠질 뿐이다.
+    const [comments, competitionAlertSettings] = await Promise.all([
       createGetCommentsUseCase(accessToken)
         .execute(postId, sort)
         .catch(() => EMPTY_COMMENTS),
-      getPostCompetition({
-        postId,
-        now: readServerNow(),
-        signedIn: accessToken !== null,
-      }),
+      post.competition && accessToken ? loadCompetitionAlertSettings() : null,
     ]);
 
     // 게시글 작성자 본인이 단 댓글에 "작성자" 배지를 채운다(응답에 직접 필드가 없어 id 비교로 도출).
@@ -108,13 +107,13 @@ export async function getPostDetailPageData(
         data: {
           post: sample.post,
           comments: { ...commentsWithAuthor, items: sample.comments },
-          competition,
+          competitionAlertSettings,
         },
       };
     }
     return {
       ok: true,
-      data: { post, comments: commentsWithAuthor, competition },
+      data: { post, comments: commentsWithAuthor, competitionAlertSettings },
     };
   } catch (error) {
     const apiError = toApiError(error);

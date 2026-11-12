@@ -1,9 +1,11 @@
-import type { CompetitionAlertSettings } from "@/features/competition/domain/competition-alert";
+import type {
+  CompetitionAlertSettings,
+  CompetitionNoticeResult,
+} from "@/features/competition/domain/competition-alert";
 import type { CompetitionAlertRepository } from "@/features/competition/domain/competition-alert-repository";
-import type { CompetitionRepository } from "@/features/competition/domain/competition-repository";
-import { UnknownCompetitionError } from "@/features/competition/application/set-competition-interest";
+import type { CompetitionInterestRepository } from "@/features/competition/domain/competition-interest-repository";
 
-/** 관심 대회 알림 설정 읽기 (#375 · #376). */
+/** 관심 대회 알림 설정 읽기 (#375 · #422). */
 export class GetCompetitionAlertSettingsUseCase {
   constructor(private readonly alertRepository: CompetitionAlertRepository) {}
 
@@ -12,29 +14,22 @@ export class GetCompetitionAlertSettingsUseCase {
   }
 }
 
-/** '관심 대회 알림' 전체 켜기·끄기 (#375) — 첫 관심 등록 시트의 '알림 받기'. */
-export class SetCompetitionAlertsEnabledUseCase {
+/** 첫 관심 등록 시트의 답 (#375) — '알림 받기'면 켜고, '나중에'면 물어본 것만 남긴다. */
+export class AnswerCompetitionAlertPromptUseCase {
   constructor(private readonly alertRepository: CompetitionAlertRepository) {}
 
   execute(enabled: boolean): Promise<void> {
-    return this.alertRepository.setEnabled(enabled);
+    return this.alertRepository.answerPrompt(enabled);
   }
 }
 
-/**
- * 이 대회 알림만 끄기·다시 받기 (#376 · #377). 관심은 건드리지 않는다.
- * 있는 대회인지 먼저 본다 — Server Action은 누구나 부를 수 있어 아무 id나 쌓이지 않게(관심 등록과 같은 기준).
- */
-export class SetCompetitionAlertMutedUseCase {
+/** 이 대회 알림 켜기·끄기 (#376 · #377). 켜면 관심도 함께 등록되고, 끄면 관심은 그대로다. */
+export class SetCompetitionNoticeUseCase {
   constructor(
-    private readonly competitionRepository: CompetitionRepository,
-    private readonly alertRepository: CompetitionAlertRepository,
+    private readonly interestRepository: CompetitionInterestRepository,
   ) {}
 
-  async execute(competitionId: string, muted: boolean): Promise<void> {
-    if (!(await this.competitionRepository.getCompetition(competitionId))) {
-      throw new UnknownCompetitionError(competitionId);
-    }
-    await this.alertRepository.setMuted(competitionId, muted);
+  execute(competitionId: number, enabled: boolean): Promise<CompetitionNoticeResult> {
+    return this.interestRepository.setNotice(competitionId, enabled);
   }
 }

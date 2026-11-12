@@ -119,9 +119,12 @@ export function CompetitionInfoSection({
  */
 export function CompetitionFeeSection({
   fees,
+  feeNote,
   currentYear,
 }: {
   fees: CompetitionFeeItem[];
+  /** 참가비 기준 한 줄(서버). 없으면 성인 1종목 기준으로 적는다. */
+  feeNote?: string;
   currentYear: number;
 }) {
   if (fees.length === 0) return null;
@@ -158,7 +161,10 @@ export function CompetitionFeeSection({
         ))}
       </ul>
       <p className="mt-1 pb-1 text-[13px] leading-[18px] text-text-tertiary">
-        성인 1종목 기준이에요. 신청과 결제는 대회 공지에서 해요
+        {feeNote
+          ? `${feeNote.trim().replace(/[.。]$/, "")}. `
+          : "성인 1종목 기준이에요. "}
+        신청과 결제는 대회 공지에서 해요
       </p>
     </DetailSection>
   );
