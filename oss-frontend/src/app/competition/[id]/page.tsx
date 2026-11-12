@@ -5,7 +5,8 @@ import { connection } from "next/server";
 import { SessionHintProvider } from "@/features/auth/presentation/session-hint";
 import { RefreshOnLogin } from "@/features/auth/presentation/refresh-on-login";
 import { getCompetitionDetailPageData } from "@/features/competition/application/get-competition-detail-page-data";
-import { isCompetitionPageEnabled } from "@/features/competition/application/is-competition-page-enabled";
+import { isCompetitionEnabled } from "@/features/competition/application/is-competition-enabled";
+import { parseCompetitionId } from "@/features/competition/domain/competition";
 import { competitionShareSummary } from "@/features/competition/presentation/competition-share-summary";
 import { CompetitionDetailPage } from "@/features/competition/presentation/competition-detail-page";
 import { readSessionToken } from "@/shared/lib/auth";
@@ -18,23 +19,19 @@ type CompetitionPageParams = Promise<{ id: string }>;
 
 /**
  * 공유 미리보기(카카오톡 등, #369) — 대회 이름 · 날짜 · 장소 · 관심 수. 이미지는 OSS 기본 카드.
- * 미리보기를 만드는 요청은 사람이 연 게 아니라 조회수를 세지 않는다.
+ * 상세 조회는 조회수를 올리지 않는다 — 조회수는 사람이 화면을 연 뒤 화면이 센다(#420).
  */
 export async function generateMetadata({
   params,
 }: {
   params: CompetitionPageParams;
 }): Promise<Metadata> {
-  if (!isCompetitionPageEnabled()) return {};
-  const { id } = await params;
+  if (!isCompetitionEnabled()) return {};
+  // Next가 params를 이미 풀어 넘긴다 — 한 번 더 풀면 "%" 같은 주소에서 오류가 난다.
+  const competitionId = parseCompetitionId((await params).id);
+  if (competitionId === null) return { title: "대회" };
   const [data, origin] = await Promise.all([
-    getCompetitionDetailPageData({
-      // Next가 params를 이미 풀어 넘긴다 — 한 번 더 풀면 "%" 같은 주소에서 오류가 난다.
-      competitionId: id,
-      now: readServerNow(),
-      signedIn: false,
-      countView: false,
-    }),
+    getCompetitionDetailPageData({ competitionId, forPreview: true }),
     getRequestOrigin(),
   ]);
   if (!data.ok) return { title: "대회" };
@@ -57,16 +54,13 @@ export default async function CompetitionDetailRoutePage({
 }) {
   // 요청마다 "오늘"을 다시 정한다 — 접수 상태·남은 날이 날마다 바뀐다.
   await connection();
-  if (!isCompetitionPageEnabled()) notFound();
+  if (!isCompetitionEnabled()) notFound();
+  const competitionId = parseCompetitionId((await params).id);
+  if (competitionId === null) notFound();
 
-  const { id } = await params;
   const signedIn = (await readSessionToken()) !== null;
   const now = readServerNow();
-  const data = await getCompetitionDetailPageData({
-    competitionId: id,
-    now,
-    signedIn,
-  });
+  const data = await getCompetitionDetailPageData({ competitionId });
   if (!data.ok && data.reason === "not-found") notFound();
 
   return (

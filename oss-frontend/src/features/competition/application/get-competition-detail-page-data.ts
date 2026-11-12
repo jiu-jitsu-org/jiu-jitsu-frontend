@@ -1,8 +1,8 @@
+import { cache } from "react";
+
 import {
   createGetCompetitionDetailUseCase,
-  createGetCompetitionInterestCountsUseCase,
   createGetCompetitionStoriesUseCase,
-  createGetInterestedCompetitionIdsUseCase,
   createRecordCompetitionViewUseCase,
 } from "@/features/competition/application/competition-use-case-factory";
 import { loadCompetitionAlertSettings } from "@/features/competition/application/load-competition-alert-settings";
@@ -12,6 +12,7 @@ import {
   feeItemsOn,
   type CompetitionFeeItem,
 } from "@/features/competition/domain/competition-fee";
+import type { CompetitionDetail } from "@/features/competition/domain/competition-repository";
 import {
   detailStatusOn,
   scheduleOf,
@@ -20,7 +21,8 @@ import {
   type CompetitionScheduleItem,
 } from "@/features/competition/domain/competition-schedule";
 import type { CompetitionStory } from "@/features/competition/domain/competition-story";
-import { toKstDateKey } from "@/shared/lib/time";
+import { readSessionToken } from "@/shared/lib/auth";
+import { ApiErrorCode, toApiError } from "@/shared/lib/http";
 
 export type CompetitionDetailPageData =
   | {
@@ -30,14 +32,14 @@ export type CompetitionDetailPageData =
       status: CompetitionDetailStatus | null;
       schedule: CompetitionScheduleItem[];
       fees: CompetitionFeeItem[];
-      /** 오늘 — 한국 날짜 "YYYY-MM-DD" */
+      /** 오늘 — 응답의 today, 한국 날짜 "YYYY-MM-DD" */
       today: string;
       currentYear: number;
       /** 내가 관심 등록했는지 — 비로그인이면 false */
       interested: boolean;
       interestCount: number;
-      /** 이번 조회를 센 뒤의 조회수. 읽기 실패면 null — 숫자만 빠진다. */
-      viewCount: number | null;
+      /** 조회수 — 화면이 열린 뒤 센 값으로 바꾼다(#362). */
+      viewCount: number;
       /** 대회 이야기(#366). 읽기 실패면 null — 덩어리째 빠진다. */
       stories: CompetitionStory[] | null;
       /** 결과 남기기 배너를 띄울지(#368) */
@@ -48,52 +50,63 @@ export type CompetitionDetailPageData =
   | { ok: false; reason: "not-found" | "failed" };
 
 /**
- * 대회 상세 화면 데이터 (#361~#368).
+ * 대회 하나 — 한 요청 안에서 한 번만 부른다. generateMetadata(공유 미리보기)와 본문이 같은 상세를 쓴다.
+ * 상세 조회는 조회수를 올리지 않으므로 공유 미리보기에서 불러도 된다(#369).
+ */
+const loadCompetitionDetail = cache(
+  async (
+    competitionId: number,
+    accessToken: string | null,
+  ): Promise<CompetitionDetail | null> => {
+    try {
+      return await createGetCompetitionDetailUseCase(accessToken).execute(
+        competitionId,
+      );
+    } catch (error) {
+      // 만료 토큰이면 익명으로 다시 읽는다 — 관심 표시만 빠지고, 화면이 로그인 뒤 다시 그린다.
+      if (
+        accessToken &&
+        toApiError(error).code === ApiErrorCode.EXPIRED_TOKEN
+      ) {
+        return createGetCompetitionDetailUseCase(null).execute(competitionId);
+      }
+      throw error;
+    }
+  },
+);
+
+/**
+ * 대회 상세 화면 데이터 (#361~#368 · #420).
  *
- * 대회 자체를 못 읽으면 실패지만, 관심·조회수·대회 이야기는 못 읽어도 상세는 보여 준다 — 덧붙는 정보 하나 때문에
- * 화면 전체가 실패 화면이 되지 않게(목록과 같은 기준).
- * countView가 false면 조회수를 올리지 않는다 — 공유 미리보기를 만들 때처럼 사람이 연 게 아닐 때.
+ * 대회 자체를 못 읽으면 실패지만, 대회 이야기·알림 설정은 못 읽어도 상세는 보여 준다 — 덧붙는 정보 하나 때문에
+ * 화면 전체가 실패 화면이 되지 않게. 조회수는 여기서 올리지 않는다 — 사람이 화면을 열었을 때 화면이 센다
+ * (서버 렌더는 로그인 뒤 다시 그리기·공유 미리보기에서도 돈다).
+ * forPreview면 공유 미리보기용으로 익명 상세만 읽는다.
  */
 export async function getCompetitionDetailPageData({
   competitionId,
-  now,
-  signedIn,
-  countView = true,
+  forPreview = false,
 }: {
-  competitionId: string;
-  now: number;
-  signedIn: boolean;
-  countView?: boolean;
+  competitionId: number;
+  forPreview?: boolean;
 }): Promise<CompetitionDetailPageData> {
-  let competition: Competition | null;
+  const accessToken = forPreview ? null : await readSessionToken();
+  let detail: CompetitionDetail | null;
   try {
-    competition =
-      await createGetCompetitionDetailUseCase().execute(competitionId);
+    detail = await loadCompetitionDetail(competitionId, accessToken);
   } catch {
     return { ok: false, reason: "failed" };
   }
-  if (!competition) return { ok: false, reason: "not-found" };
+  if (!detail) return { ok: false, reason: "not-found" };
 
-  const [interestedIds, interestCounts, viewCount, stories, alertSettings] =
-    await Promise.all([
-      signedIn
-        ? safely(() => createGetInterestedCompetitionIdsUseCase().execute(), [])
-        : Promise.resolve([] as string[]),
-      safely(() => createGetCompetitionInterestCountsUseCase().execute(), {}),
-      countView
-        ? safely(
-            () => createRecordCompetitionViewUseCase().execute(competitionId),
-            null,
-          )
-        : Promise.resolve(null),
-      safely(
-        () => createGetCompetitionStoriesUseCase().execute(competitionId),
-        null,
-      ),
-      signedIn ? loadCompetitionAlertSettings() : Promise.resolve(null),
-    ]);
+  const [stories, alertSettings] = forPreview
+    ? [null, null]
+    : await Promise.all([
+        loadStories(competitionId, accessToken),
+        accessToken ? loadCompetitionAlertSettings() : null,
+      ]);
 
-  const today = toKstDateKey(now);
+  const { competition, today } = detail;
   const status = detailStatusOn(competition, today);
   return {
     ok: true,
@@ -103,23 +116,43 @@ export async function getCompetitionDetailPageData({
     fees: feeItemsOn(competition.fees, today),
     today,
     currentYear: Number(today.slice(0, 4)),
-    interested: interestedIds.includes(competition.id),
-    interestCount:
-      (interestCounts as Record<string, number>)[competition.id] ?? 0,
-    viewCount,
+    interested: competition.interested,
+    interestCount: competition.interestCount,
+    viewCount: competition.viewCount,
     stories,
     promptResult: shouldPromptResult(status),
     alertSettings,
   };
 }
 
-async function safely<T, F>(
-  load: () => Promise<T>,
-  fallback: F,
-): Promise<T | F> {
+/**
+ * 대회 이야기(#366) — 만료 토큰이면 익명으로 다시 읽는다(글 목록은 익명으로도 볼 수 있다). 못 읽으면 null.
+ */
+async function loadStories(
+  competitionId: number,
+  accessToken: string | null,
+): Promise<CompetitionStory[] | null> {
   try {
-    return await load();
+    return await createGetCompetitionStoriesUseCase(accessToken).execute(
+      competitionId,
+    );
+  } catch (error) {
+    if (accessToken && toApiError(error).code === ApiErrorCode.EXPIRED_TOKEN) {
+      return createGetCompetitionStoriesUseCase(null)
+        .execute(competitionId)
+        .catch(() => null);
+    }
+    return null;
+  }
+}
+
+/** 상세를 사람이 연 것으로 센다(#362) — 화면의 Server Action이 마운트 때 한 번 부른다. 실패하면 null. */
+export async function recordCompetitionView(
+  competitionId: number,
+): Promise<number | null> {
+  try {
+    return await createRecordCompetitionViewUseCase().execute(competitionId);
   } catch {
-    return fallback;
+    return null;
   }
 }

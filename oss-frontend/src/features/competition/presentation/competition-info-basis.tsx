@@ -5,13 +5,17 @@ import { useRef, useState } from "react";
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
 import { useNativeDialog } from "@/features/community/presentation/use-native-dialog";
 import {
+  COMPETITION_INFO_REPORT_DAILY_LIMIT,
   COMPETITION_INFO_REPORT_DETAIL_MAX_LENGTH,
   COMPETITION_INFO_REPORT_REASONS,
+  isCompetitionInfoReportReason,
+  requiresReportDetail,
 } from "@/features/competition/domain/competition-info-report";
 import { reportCompetitionInfoAction } from "@/features/competition/presentation/actions/report-competition-info-action";
 import { fullDateLabel } from "@/features/competition/presentation/competition-detail-format";
 import { useAuth } from "@/features/auth/presentation/auth-provider";
 import { cn } from "@/shared/lib/cn";
+import { COMPETITION_GONE_MESSAGE } from "@/features/community/presentation/notifications/inbox-copy";
 import { useToast } from "@/shared/ui";
 import { SURFACE_PRESS } from "@/shared/ui/press-styles";
 
@@ -20,13 +24,14 @@ import { SURFACE_PRESS } from "@/shared/ui/press-styles";
  *
  * 같은 대회의 마감일이 서비스마다 다른 일이 있어 얼마나 믿을지 스스로 판단하게 기준을 밝힌다.
  * 확인하지 못한 대회는 대회 공지에서 확인하라고 먼저 말한다.
- * 제보는 커뮤니티 신고와 같은 선택 시트(앱이면 앱이 그리는 시트)로 무엇이 다른지 하나 고른다.
+ * 제보는 커뮤니티 신고와 같은 선택 시트(앱이면 앱이 그리는 시트)로 무엇이 다른지 하나 고르고, 맞는 정보를 아시면 적는다(#420).
+ * 적는 칸은 "다른 정보"만 꼭 채워야 한다. 같은 항목은 하루 3번까지라 넘으면 토스트로 알린다.
  */
 export function CompetitionInfoBasis({
   competitionId,
   verifiedOn,
 }: {
-  competitionId: string;
+  competitionId: number;
   verifiedOn?: string;
 }) {
   const { guard } = useLoginGuard();
@@ -52,11 +57,20 @@ export function CompetitionInfoBasis({
       title: "어떤 정보가 다른가요?",
       message: "알려 주시면 대회 공지와 다시 맞춰 볼게요.",
       options: COMPETITION_INFO_REPORT_REASONS.map((reason) => ({ ...reason })),
-      customTextPlaceholder: "무엇이 다른지 적어 주세요.",
+      customTextPlaceholder: "아시면 맞는 정보를 적어 주세요.",
       customTextMaxLength: COMPETITION_INFO_REPORT_DETAIL_MAX_LENGTH,
       submitText: "보내기",
     });
     if (!outcome.submitted || !outcome.value) return;
+    // "다른 정보"는 고른 항목만으로 무엇이 다른지 알 수 없어 꼭 적어야 한다 — 보내기 전에 알린다.
+    if (
+      isCompetitionInfoReportReason(outcome.value) &&
+      requiresReportDetail(outcome.value) &&
+      !outcome.customText?.trim()
+    ) {
+      toast.show("어떤 정보가 다른지 적어 주세요", { tone: "info" });
+      return;
+    }
 
     setSending(true);
     try {
@@ -67,6 +81,21 @@ export function CompetitionInfoBasis({
       );
       if (!result.ok && result.reason === "unauthenticated") {
         promptLogin({ reason: "대회 정보 제보" });
+        return;
+      }
+      if (!result.ok && result.reason === "limit") {
+        toast.show(
+          `같은 항목은 하루 ${COMPETITION_INFO_REPORT_DAILY_LIMIT}번까지 알려 주실 수 있어요`,
+          { tone: "info" },
+        );
+        return;
+      }
+      if (!result.ok && result.reason === "not-found") {
+        toast.show(COMPETITION_GONE_MESSAGE, { tone: "info" });
+        return;
+      }
+      if (!result.ok && result.reason === "detail-required") {
+        toast.show("어떤 정보가 다른지 적어 주세요", { tone: "info" });
         return;
       }
       if (!result.ok) throw new Error(result.reason);

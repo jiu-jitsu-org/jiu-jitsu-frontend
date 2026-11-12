@@ -20,7 +20,7 @@ export function CompetitionDetailInterestProvider({
   interestCount,
   children,
 }: {
-  competitionId: string;
+  competitionId: number;
   interested: boolean;
   interestCount: number;
   children: ReactNode;
