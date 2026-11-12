@@ -55,6 +55,27 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
   const toast = useToast();
   const requestBeltPrompt = useRequestBeltPrompt();
 
+  // 앱의 당겨서 새로고침(#432)은 페이지를 다시 불러온다. 키보드를 내린 채 당겨도 쓰던 댓글이 남게
+  // 이 웹뷰가 살아 있는 동안만(sessionStorage) 들고 있다가 되살린다. 등록하면 비워진다.
+  const draftKey = `oss:comment-draft:${contentId}`;
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(draftKey);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 서버 렌더와 맞춘 뒤 저장해 둔 초안을 되살린다.
+      if (saved) setValue(saved);
+    } catch {
+      // 저장소를 못 쓰는 환경이면 되살리지 않는다.
+    }
+  }, [draftKey]);
+  useEffect(() => {
+    try {
+      if (value) sessionStorage.setItem(draftKey, value);
+      else sessionStorage.removeItem(draftKey);
+    } catch {
+      // 저장소를 못 쓰는 환경이면 초안을 남기지 않는다.
+    }
+  }, [draftKey, value]);
+
   // 입력에 따라 높이 자동 확장. 최대 5줄(max-h-[125px])은 CSS가 제한하고 초과분은 스크롤.
   useEffect(() => {
     const el = textareaRef.current;
