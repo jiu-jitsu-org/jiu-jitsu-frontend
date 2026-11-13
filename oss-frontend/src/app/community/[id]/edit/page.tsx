@@ -5,6 +5,7 @@ import { createGetPostDetailUseCase } from "@/features/community/application/com
 import { getPostCategoriesOrFallback } from "@/features/community/application/get-post-write-page-data";
 import type { PostEditInitial } from "@/features/community/domain/post";
 import { PostWriteScreen } from "@/features/community/presentation/post-write-screen";
+import { WriteSkeleton } from "@/features/community/presentation/write-skeleton";
 import { getCompetitionPickerOptions } from "@/features/competition/application/get-competition-picker-options";
 import type { Competition } from "@/features/competition/domain/competition";
 import { POST_EDIT_FROM_DETAIL } from "@/features/community/presentation/post-edit-return";
@@ -13,7 +14,6 @@ import { ApiErrorCode, toApiError } from "@/shared/lib/http";
 import { NativePageReady } from "@/shared/lib/native-bridge";
 import { readServerNow, toKstDateKey } from "@/shared/lib/time";
 
-import EditLoading from "./loading";
 
 /**
  * 게시글 수정 라우트. 피드/상세 ⋮ 메뉴의 "수정하기"(useOpenPostEdit)가 여는 화면.
@@ -69,7 +69,7 @@ export default async function CommunityPostEditPage({
     const apiError = toApiError(error);
     // 만료 토큰 → 클라이언트가 네이티브 갱신 후 이 화면을 재실행(router.refresh)해 인증 상태로 복구.
     if (apiError.code === ApiErrorCode.EXPIRED_TOKEN) {
-      return <SessionExpiredRecovery loading={<EditLoading />} />;
+      return <SessionExpiredRecovery loading={<WriteSkeleton mode="edit" showBack />} />;
     }
     // 삭제·숨김 등으로 열 수 없는 글 — 상세와 같은 404 처리.
     notFound();
@@ -103,7 +103,7 @@ export default async function CommunityPostEditPage({
           returnToDetail: from === POST_EDIT_FROM_DETAIL,
         }}
       />
-      {/* 수정 화면이 그려지면 앱이 로딩 덮개를 걷는다(jiu-jitsu-ios#261). 만료 복구 화면은 뒤로가기가 없어 보내지 않는다. */}
+      {/* 수정 화면이 그려지면 앱이 로딩 덮개를 걷는다(jiu-jitsu-ios#261). 만료 복구 중(스켈레톤)과 복구 실패 안내에는 보내지 않는다. */}
       <NativePageReady />
     </>
   );

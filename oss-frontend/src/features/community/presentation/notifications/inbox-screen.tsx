@@ -9,6 +9,7 @@ import {
 import { EmptyState } from "@/shared/ui/empty-state";
 import { FeedErrorState } from "@/features/community/presentation/feed-error-state";
 import { InboxAppBar } from "@/features/community/presentation/notifications/inbox-app-bar";
+import { InboxSkeletonRows } from "@/features/community/presentation/notifications/inbox-skeleton";
 import { InboxView } from "@/features/community/presentation/notifications/inbox-view";
 import { SubviewScrollShell } from "@/features/community/presentation/subview-scroll-shell";
 import { NativePageReady } from "@/shared/lib/native-bridge";
@@ -66,7 +67,7 @@ function renderContent(result: InboxPageDataResult): ReactNode {
     return (
       <>
         <InboxAppBar canMarkAllRead={false} />
-        <SessionExpiredRecovery loading={<InboxLoading />} />
+        <SessionExpiredRecovery loading={<InboxSkeletonRows />} />
       </>
     );
   }
@@ -77,18 +78,5 @@ function renderContent(result: InboxPageDataResult): ReactNode {
       {/* 앱바가 있어 뷰포트 전체 높이를 쓰면 그만큼 스크롤이 생긴다 → 60vh로 줄인다. */}
       <FeedErrorState className="min-h-[60vh]" />
     </>
-  );
-}
-
-/** 세션 복구(갱신) 중 표시 — 내 커뮤니티 활동 복구 로딩과 같은 모양. */
-function InboxLoading() {
-  return (
-    <div className="flex min-h-[60vh] items-center justify-center">
-      <span
-        className="size-6 animate-spin rounded-full border-2 border-feed-card-header-avatar-bg border-t-transparent"
-        role="status"
-        aria-label="불러오는 중"
-      />
-    </div>
   );
 }
