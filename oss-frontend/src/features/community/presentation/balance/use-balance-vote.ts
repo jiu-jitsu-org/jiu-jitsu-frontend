@@ -77,6 +77,12 @@ function isSampleVoting(): boolean {
   return new URLSearchParams(window.location.search).get("sample") === "1";
 }
 
+/** 마감된 판을 눌렀을 때. */
+const CLOSED_MESSAGE = "마감된 밸런스 게임이에요";
+
+/** 시작 전 판을 눌렀을 때(#427). 서버 문구("아직 시작하지 않은 밸런스 게임입니다.")를 화면 말투로. */
+const NOT_STARTED_MESSAGE = "아직 시작하지 않은 밸런스 게임이에요";
+
 /** 서버와 맞추는 중인 투표 상태. */
 type VoteSync = {
   /** 서버가 마지막으로 확정한 판 — 실패하면 여기로 되돌린다. */
@@ -131,12 +137,18 @@ export function useBalanceVote({
       // 서버도 C0007로 막지만 굳이 왕복해서 실패를 받을 이유가 없다.
       // 안내를 띄우는 이유: 사용자는 마감된 줄 모르고 눌렀고, 반응이 없으면 앱이 멈춘 것처럼 보인다.
       if (game.closed) {
-        toast.show("마감된 밸런스 게임이에요", { tone: "warning" });
+        toast.show(CLOSED_MESSAGE, { tone: "warning" });
         return;
       }
 
       if (isSampleVoting()) {
         onVoted(applyVote(game, nextVoteOf(game.myVote, option)));
+        return;
+      }
+
+      // 시작 전 판(상세 링크로 미리 들어옴, #427)도 같은 이유로 왕복 없이 알린다. 서버는 C0011로 막는다.
+      if (!game.started) {
+        toast.show(NOT_STARTED_MESSAGE, { tone: "warning" });
         return;
       }
 
