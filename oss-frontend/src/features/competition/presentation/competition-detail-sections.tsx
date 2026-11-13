@@ -129,6 +129,10 @@ export function CompetitionFeeSection({
   currentYear: number;
 }) {
   if (fees.length === 0) return null;
+  // 서버 글이 비었거나 "·"·마침표뿐이면 기본 문구로 채운다.
+  const parsedNote = feeNote ? feeNoteLines(feeNote) : [];
+  const noteLines =
+    parsedNote.length > 0 ? parsedNote : ["성인 1종목 기준이에요"];
   return (
     <DetailSection title="참가비" icon={<WonCoinIcon size={20} />}>
       <ul className="flex flex-col">
@@ -162,14 +166,15 @@ export function CompetitionFeeSection({
         ))}
       </ul>
       <p className="mt-1 pb-1 text-[13px] leading-[18px] text-text-tertiary">
-        {(feeNote ? feeNoteLines(feeNote) : ["성인 1종목 기준이에요"]).map(
-          (line, index) => (
-            // "·" 조각마다 한 줄 — 읽어 주는 글에서도 줄 사이가 끊겨 들리게 블록으로 둔다.
-            <span key={index} className="block">
-              {line}
-            </span>
-          ),
-        )}
+        {noteLines.map((line, index) => (
+          // "·" 조각마다 한 줄. 블록만으로는 읽어 주는 글이 이어 읽어, 줄 사이에 보이지 않는 쉼표를 둔다.
+          <span key={index} className="block">
+            {line}
+            {index < noteLines.length - 1 ? (
+              <span className="sr-only">, </span>
+            ) : null}
+          </span>
+        ))}
       </p>
     </DetailSection>
   );

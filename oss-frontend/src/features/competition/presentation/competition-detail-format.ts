@@ -34,18 +34,24 @@ export function feeAmountLabel(amount: number): string {
 
 /**
  * 참가비 기준 글(서버) → 보여 줄 줄들. "·"로 이어진 조각을 한 줄씩 나눠, 길어지면 어디서든 끊기지 않고
- * 뜻 단위로 줄이 바뀌게 한다. 글 속 금액("40,000원")은 참가비 줄과 같은 모양("4만 원")으로 맞춘다.
- * 끝 마침표는 뗀다. 비어 있으면 빈 배열.
+ * 뜻 단위로 줄이 바뀌게 한다. 글 속 1만 원 이상 금액("40,000원")은 참가비 줄과 같은 모양("4만 원")으로 맞춘다 —
+ * "10,000~20,000원" 같은 범위는 한쪽만 바뀌어 섞여 보이지 않게 그대로 둔다. 조각 끝 마침표는 뗀다.
+ * 남는 조각이 없으면 빈 배열(부르는 쪽이 기본 문구로 채운다).
  */
 export function feeNoteLines(note: string): string[] {
   return note
-    .trim()
-    .replace(/[.。]$/, "")
     .split(/\s*·\s*/)
     .map((part) =>
-      part.replace(/(\d{1,3}(?:,\d{3})+|\d+)\s*원/g, (_, digits: string) =>
-        feeAmountLabel(Number(digits.replaceAll(",", ""))),
-      ),
+      part
+        .trim()
+        .replace(/[.。]$/, "")
+        .replace(
+          /(?<![~\d,])(\d{1,3}(?:,\d{3})+|\d+)\s*원(?!\s*~)/g,
+          (match, digits: string) => {
+            const amount = Number(digits.replaceAll(",", ""));
+            return amount >= 10000 ? feeAmountLabel(amount) : match;
+          },
+        ),
     )
     .filter((part) => part.length > 0);
 }
