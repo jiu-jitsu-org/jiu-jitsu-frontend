@@ -5,8 +5,58 @@ import {
   requireSessionOr401,
   toErrorResponse,
 } from "@/app/api/community/_lib/community-route-helpers";
-import { createCreateCommentUseCase } from "@/features/community/application/community-use-case-factory";
+import {
+  createCreateCommentUseCase,
+  createGetCommentsUseCase,
+} from "@/features/community/application/community-use-case-factory";
+import { normalizeCommentSort } from "@/features/community/domain/post";
+import { readSessionToken } from "@/shared/lib/auth";
 import type { ApiSuccessResponse } from "@/shared/types/api";
+
+/**
+ * GET /api/community/comments — 최상위 댓글 목록 한 페이지(상세 댓글 무한 스크롤, #222).
+ *
+ * query: contentId(게시글·밸런스 게임) · page(0부터) · sort(latest|oldest)
+ *
+ * 첫 페이지는 상세 SSR이 직접 받으므로 화면은 page=1부터 부르지만, 이미 펼친 페이지를 다시
+ * 맞출 때도 같은 경로를 쓰므로 0도 받는다.
+ *
+ * 세션을 강제하지 않는다 — 대댓글 더보기와 같이 비로그인도 열람하는 읽기라, 토큰이 있으면
+ * viewer 상태(isLiked·isAuthor)까지 채워지고 없으면 익명 조회로 내려간다.
+ * sort를 반드시 함께 보낸다 — 첫 페이지와 정렬이 어긋나면 이미 본 댓글이 다시 오거나 빠진다.
+ */
+export async function GET(request: NextRequest) {
+  const { searchParams } = request.nextUrl;
+
+  const contentId = Number(searchParams.get("contentId"));
+  if (!Number.isInteger(contentId) || contentId <= 0) {
+    return jsonError("잘못된 컨텐츠 ID입니다.", 400);
+  }
+
+  const page = Number(searchParams.get("page") ?? 0);
+  if (!Number.isInteger(page) || page < 0) {
+    return jsonError("잘못된 페이지 번호입니다.", 400);
+  }
+
+  const sort = normalizeCommentSort(searchParams.get("sort") ?? undefined);
+
+  const accessToken = await readSessionToken();
+
+  try {
+    const data = await createGetCommentsUseCase(accessToken).execute(
+      contentId,
+      sort,
+      page,
+    );
+
+    return NextResponse.json<ApiSuccessResponse<typeof data>>(
+      { success: true, data },
+      { status: 200 },
+    );
+  } catch (error) {
+    return toErrorResponse(error, "comment-list", "댓글을 불러오지 못했습니다.");
+  }
+}
 
 /**
  * POST /api/community/comments — 댓글/대댓글 작성(인증 필요).

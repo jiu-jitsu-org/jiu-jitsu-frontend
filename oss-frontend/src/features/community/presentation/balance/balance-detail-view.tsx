@@ -94,7 +94,11 @@ export function BalanceDetailView({
             {/* 디바이더: 풀폭(좌우 여백 없음), 높이 4 — 게시글 상세와 같은 규격 */}
             <Divider className="mt-6" />
 
-            <CommentSection comments={comments} sort={sort} />
+            <CommentSection
+              contentId={game.contentId}
+              comments={comments}
+              sort={sort}
+            />
           </div>
         </KeyboardAwareShell>
       </BeltPromptProvider>

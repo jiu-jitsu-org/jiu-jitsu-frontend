@@ -115,6 +115,7 @@ export function PostDetailView({
 
             {/* 댓글 섹션 */}
             <CommentSection
+              contentId={post.id}
               comments={comments}
               sort={sort}
               postAuthorId={post.author.userId}

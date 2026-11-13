@@ -12,10 +12,14 @@ import { CommentSortSelect } from "@/features/community/presentation/comment-sor
  * 상단에 정렬 드롭다운(클라이언트 leaf), 아래에 빈 상태 또는 목록을 렌더한다.
  */
 export function CommentSection({
+  contentId,
   comments,
   sort,
   postAuthorId,
 }: {
+  /** 댓글이 달린 컨텐츠(게시글·밸런스 게임) id — 다음 페이지 조회에 쓴다. */
+  contentId: number;
+  /** 서버 렌더 첫 페이지 — 나머지는 CommentList가 무한 스크롤로 이어 받는다(#222). */
   comments: CommentListData;
   sort: CommentSort;
   /** 게시글 작성자 id — 대댓글 더보기로 불러온 줄의 "작성자" 배지 판정에 쓴다.
@@ -39,7 +43,9 @@ export function CommentSection({
         // 최신순 버튼 바텀↔첫 댓글 24 = 정렬 row pb-3(12) + 여기 pt-3(12). 하단 여유 pb-4.
         <div className="px-4 pb-4 pt-3">
           <CommentList
+            contentId={contentId}
             comments={comments.items}
+            hasNext={comments.hasNext}
             sort={sort}
             postAuthorId={postAuthorId}
           />

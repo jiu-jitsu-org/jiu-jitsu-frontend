@@ -44,8 +44,8 @@ import { toKstIso } from "@/shared/lib/time";
  * 작성자(author)·isAuthor(본인 여부)는 응답에 포함된다. 조회수·태그 필드는 아직 없어 optional.
  *
  * 댓글 목록: GET /community/comments?id={게시글id}&sortType=CREATE_DESC|CREATE_ASC&page=.
- *   응답 봉투 data는 최상위 댓글 Slice(20개씩, backend#161). 화면 페이징 정책이 정해지기 전까지는
- *   마지막 페이지까지 이어 받아 전체 목록으로 조립한다(#222).
+ *   응답 봉투 data는 최상위 댓글 Slice(20개씩, backend#161). 한 번에 한 페이지만 받고,
+ *   상세 화면이 첫 페이지를 SSR한 뒤 무한 스크롤로 다음 페이지를 이어 받는다(#222).
  *   대댓글은 이 응답에 상위 3개만 딸려 오고(backend#111), 나머지는 아래 getReplies로 이어 받는다.
  */
 const BOARD_ENDPOINT_PATH = "/api/board";
@@ -71,12 +71,6 @@ const REPLY_PAGE_SIZE = 10;
  * last가 없는 응답에서 다음 페이지 유무를 추정할 때만 쓴다.
  */
 const COMMENT_PAGE_SIZE = 20;
-
-/**
- * 댓글 목록을 이어 받는 최대 페이지 수(= 최대 1,000개). last가 계속 false로 오는 이상 응답에서
- * 요청이 끝없이 이어지지 않게 하는 안전장치다.
- */
-const COMMENT_MAX_PAGES = 50;
 
 /** 도메인 정렬 → 업스트림 sortType 쿼리 값. */
 const COMMENT_SORT_TYPE: Record<CommentSort, string> = {
@@ -334,35 +328,24 @@ export class ExternalPostRepository implements PostRepository {
     return toPostDetail(response.data);
   }
 
-  async getComments(postId: number, sort: CommentSort): Promise<CommentList> {
-    // GET /community/comments?id=&sortType=&page= → 봉투 data는 Slice. 화면 페이징 정책 전까지는
-    // 마지막 페이지까지 이어 받아 전체 목록을 한 번에 반환한다(#222).
-    const dtos: CommentDto[] = [];
-    const seen = new Set<number>();
+  async getComments(
+    postId: number,
+    sort: CommentSort,
+    page: number,
+  ): Promise<CommentList> {
+    // GET /community/comments?id=&sortType=&page= → 봉투 data는 최상위 댓글 Slice(20개씩).
+    const response = await this.httpClient.get<Envelope<CommentSliceDto>>({
+      path: COMMENT_ENDPOINT_PATH,
+      query: { id: postId, sortType: COMMENT_SORT_TYPE[sort], page },
+    });
 
-    for (let page = 0; page < COMMENT_MAX_PAGES; page++) {
-      const response = await this.httpClient.get<Envelope<CommentSliceDto>>({
-        path: COMMENT_ENDPOINT_PATH,
-        query: { id: postId, sortType: COMMENT_SORT_TYPE[sort], page },
-      });
-      const content = response.data?.content ?? [];
+    const content = response.data?.content ?? [];
+    const hasNext =
+      typeof response.data?.last === "boolean"
+        ? !response.data.last
+        : content.length >= COMMENT_PAGE_SIZE;
 
-      // 페이지를 받는 사이 새 댓글이 달리면 경계의 댓글이 다음 페이지에 한 번 더 온다 → id로 거른다.
-      for (const dto of content) {
-        if (seen.has(dto.id)) continue;
-        seen.add(dto.id);
-        dtos.push(dto);
-      }
-
-      const hasNext =
-        typeof response.data?.last === "boolean"
-          ? !response.data.last
-          : content.length >= COMMENT_PAGE_SIZE;
-      if (!hasNext) break;
-    }
-
-    const items = dtos.map(toComment);
-    return { items, total: items.length, nextCursor: null };
+    return { items: content.map(toComment), hasNext };
   }
 
   async getReplies(

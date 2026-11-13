@@ -42,10 +42,14 @@ export interface PostRepository {
    */
   getMyPostList(query: MyPostListQuery): Promise<PostList>;
   getPostDetail(postId: number): Promise<PostDetail>;
+  /**
+   * 최상위 댓글 목록 한 페이지(GET /community/comments, backend#161). page는 0부터.
+   * 밸런스 게임도 같은 API라 postId 자리에 contentId를 넘긴다.
+   */
   getComments(
     postId: number,
     sort: CommentSort,
-    cursor?: string,
+    page: number,
   ): Promise<CommentList>;
   /**
    * 부모 댓글의 대댓글 추가 조회(GET /community/comments/{id}/replies).

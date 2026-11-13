@@ -3,7 +3,10 @@
 import { useLayoutEffect, useRef, useState } from "react";
 
 import { useAuth } from "@/features/auth/presentation/auth-provider";
-import type { Comment } from "@/features/community/domain/comment";
+import {
+  markPostAuthorComments,
+  type Comment,
+} from "@/features/community/domain/comment";
 import type { CommentSort } from "@/features/community/domain/post";
 import { CommentItem } from "@/features/community/presentation/comment-item";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
@@ -40,24 +43,6 @@ function dedupeById(comments: Comment[]): Comment[] {
     seen.add(comment.id);
     return true;
   });
-}
-
-/**
- * 추가로 불러온 대댓글에 "작성자" 배지를 채운다.
- *
- * 응답에 "댓글 작성자 == 게시글 작성자" 필드가 없어 서버 렌더 경로(get-post-detail-page-data)도
- * id를 비교해 도출한다. 같은 규칙을 여기서도 적용하지 않으면 더보기로 불러온 줄만 배지가 빠진다.
- */
-function markPostAuthor(
-  replies: Comment[],
-  postAuthorId: number | null | undefined,
-): Comment[] {
-  if (!postAuthorId) return replies;
-
-  return replies.map((reply) => ({
-    ...reply,
-    isPostAuthor: reply.author.userId === postAuthorId,
-  }));
 }
 
 /** 대댓글 한 페이지 조회. 실패는 null로 돌려 호출부가 "다시 시도"로 전환하게 한다. */
@@ -192,7 +177,8 @@ export function CommentReplies({
       signature,
       loaded: dedupeById([
         ...current.loaded,
-        ...markPostAuthor(result.items, postAuthorId),
+        // 응답에 "작성자" 필드가 없어 서버 렌더 경로와 같은 규칙으로 채운다 — 안 하면 더보기로 불러온 줄만 배지가 빠진다.
+        ...markPostAuthorComments(result.items, postAuthorId),
       ]),
       nextPage: current.nextPage + 1,
       hasNext: result.hasNext,

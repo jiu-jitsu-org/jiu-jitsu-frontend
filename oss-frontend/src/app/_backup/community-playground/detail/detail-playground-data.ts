@@ -35,8 +35,7 @@ export const MOCK_POST_BASE: PostDetail = {
 /** 댓글 없음(빈 상태). */
 export const MOCK_COMMENTS_EMPTY: CommentList = {
   items: [],
-  total: 0,
-  nextCursor: null,
+  hasNext: false,
 };
 
 /** 사진 변형용 이미지(여러 장 → 대표 1장만 노출, +N은 임시 숨김). */
@@ -148,6 +147,5 @@ const MOCK_COMMENT_ITEMS: Comment[] = [
 
 export const MOCK_COMMENTS_LIST: CommentList = {
   items: MOCK_COMMENT_ITEMS,
-  total: MOCK_COMMENT_ITEMS.length,
-  nextCursor: null,
+  hasNext: false,
 };
