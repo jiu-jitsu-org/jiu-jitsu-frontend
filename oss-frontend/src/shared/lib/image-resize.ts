@@ -13,7 +13,10 @@ const IMAGEKIT_HOST = "ik.imagekit.io";
 /** 프로필 사진: 가장 크게 보이는 64px(내 활동 머리)의 3배. 화면마다 같은 주소라 한 번 받으면 캐시를 같이 쓴다. */
 export const AVATAR_IMAGE_TRANSFORM = "w-192,h-192";
 
-/** 피드 글 사진: 카드 폭(화면 폭 − 32, 최대 약 400px)의 3배. 원본이 더 작으면 키우지 않는다(c-at_max). */
+/**
+ * 피드 글 사진: 카드 폭(화면 폭 − 32, 최대 약 400px)의 3배. 원본이 더 작으면 키우지 않는다(c-at_max).
+ * 게시글 상세도 대표 사진 밑에 이 주소를 깔아 피드에서 받은 사진을 다시 쓴다 — 바꾸면 양쪽이 같이 바뀐다.
+ */
 export const FEED_IMAGE_TRANSFORM = "w-1200,c-at_max";
 
 export function resizeImageKitUrl(url: string, transform: string): string {
