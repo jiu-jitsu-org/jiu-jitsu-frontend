@@ -23,7 +23,7 @@ import { SubviewScrollShell } from "@/features/community/presentation/subview-sc
  * - error: 메인 피드 에러 화면(재시도 = router.refresh).
  * 목록이 없는 분기도 앱바는 그린다(뒤로가기가 있어야 빠져나갈 수 있다) — "모두 읽음"은 비활성.
  *
- * 바탕은 True White — 안 읽은 셀(흰색)과 읽은 셀(회색)의 대비가 디자인의 핵심이라 화면 바탕도 흰색이다.
+ * 바탕은 True White — 읽은 셀이 흰 바탕이라 화면 바탕도 같은 흰색이다(안 읽은 셀만 연한 파랑).
  * 앱에서 서브뷰로 열려 문서 스크롤이 막히므로 SubviewScrollShell이 스크롤한다(#200).
  */
 export async function InboxScreen() {
