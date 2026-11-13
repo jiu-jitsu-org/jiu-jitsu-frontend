@@ -2,6 +2,7 @@
 
 import { AppBarShell } from "@/features/community/presentation/app-bar-shell";
 import { closeDetail } from "@/features/community/presentation/close-detail";
+import { Button } from "@/shared/ui/button";
 import { IconButton } from "@/shared/ui/icon-button";
 import { ChevronLeftIcon } from "@/shared/ui/icons";
 
@@ -13,7 +14,8 @@ import { ChevronLeftIcon } from "@/shared/ui/icons";
  *
  * 디자인: safe-area 아래 12 여백 + 바 40 · 좌우 16. 좌우 버튼(36)은 바 위쪽에 붙여 아래 여백 4가 남는다.
  *
- * "모두 읽음"은 안 읽은 알림이 없으면 회색 비활성이다(누를 이유가 없는 버튼을 막는다).
+ * "모두 읽음"은 뒤로가기와 짝을 맞춘 연한 파랑 상자다 — 같은 높이(36) · 같은 틴트 색, 글자 14 Semibold.
+ * 안 읽은 알림이 없으면 회색 비활성이다(누를 이유가 없는 버튼을 막는다).
  */
 export function InboxAppBar({
   canMarkAllRead,
@@ -42,14 +44,15 @@ export function InboxAppBar({
         </span>
       </h1>
 
-      <button
-        type="button"
+      <Button
+        variant="tint"
+        size="s"
         onClick={onMarkAllRead}
         disabled={!canMarkAllRead || !onMarkAllRead}
-        className="ml-auto inline-flex h-9 w-[61px] items-center justify-center text-button-s text-button-text-default-text disabled:text-button-text-disabled-text"
+        className="ml-auto h-9 text-body-s font-semibold"
       >
         모두 읽음
-      </button>
+      </Button>
     </AppBarShell>
   );
 }
