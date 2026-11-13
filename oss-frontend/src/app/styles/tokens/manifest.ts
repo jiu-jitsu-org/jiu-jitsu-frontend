@@ -43,6 +43,7 @@ export const primitiveTokens: TokenEntry[] = [
   {"name":"red-balance-50","alias":null,"hex":"#fdefee"},
   {"name":"red-balance-100","alias":null,"hex":"#ffc1bd"},
   {"name":"red-balance-500","alias":null,"hex":"#d53e4c"},
+  {"name":"red-belt-bar","alias":null,"hex":"#ac2828"},
   {"name":"bw-black","alias":null,"hex":"#0d0d0d"},
   {"name":"bw-white","alias":null,"hex":"#fafafa"},
   {"name":"bw-true-black","alias":null,"hex":"#000000"},
