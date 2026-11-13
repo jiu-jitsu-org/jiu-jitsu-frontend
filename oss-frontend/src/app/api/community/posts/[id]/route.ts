@@ -12,6 +12,7 @@ import {
   createGetPostDetailUseCase,
   createUpdatePostUseCase,
 } from "@/features/community/application/community-use-case-factory";
+import { withoutCompetitionWhenDisabled } from "@/features/competition/application/is-competition-enabled";
 import { readSessionToken } from "@/shared/lib/auth";
 import type { ApiSuccessResponse } from "@/shared/types/api";
 
@@ -35,9 +36,12 @@ export async function GET(
   const accessToken = await readSessionToken();
 
   try {
-    const data = await createGetPostDetailUseCase(accessToken).execute(
+    const loaded = await createGetPostDetailUseCase(accessToken).execute(
       parsed.postId,
     );
+    // 목록·상세 화면과 같이, 대회 기능이 꺼진 배포에선 대회 카드를 뗀다(competitionId는 남긴다).
+    // 피드가 상세에 다녀온 글을 이 경로로 다시 읽어 카드를 갈아 끼운다(#449).
+    const [data] = withoutCompetitionWhenDisabled([loaded]);
 
     return NextResponse.json<ApiSuccessResponse<typeof data>>(
       { success: true, data },
