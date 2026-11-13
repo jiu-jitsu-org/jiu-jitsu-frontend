@@ -20,6 +20,7 @@ type CompetitionPageParams = Promise<{ id: string }>;
 /**
  * 공유 미리보기(카카오톡 등, #369) — 대회 이름 · 날짜 · 장소 · 관심 수. 이미지는 OSS 기본 카드.
  * 상세 조회는 조회수를 올리지 않는다 — 조회수는 사람이 화면을 연 뒤 화면이 센다(#420).
+ * 본문과 같은 조회 결과를 쓴다(한 번만 조회, #443) — 미리보기에는 사람마다 달라지는 값을 쓰지 않는다.
  */
 export async function generateMetadata({
   params,

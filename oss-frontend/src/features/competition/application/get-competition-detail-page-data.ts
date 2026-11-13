@@ -81,7 +81,11 @@ const loadCompetitionDetail = cache(
  * 대회 자체를 못 읽으면 실패지만, 대회 이야기·알림 설정은 못 읽어도 상세는 보여 준다 — 덧붙는 정보 하나 때문에
  * 화면 전체가 실패 화면이 되지 않게. 조회수는 여기서 올리지 않는다 — 사람이 화면을 열었을 때 화면이 센다
  * (서버 렌더는 로그인 뒤 다시 그리기·공유 미리보기에서도 돈다).
- * forPreview면 공유 미리보기용으로 익명 상세만 읽는다.
+ * forPreview면 공유 미리보기용으로 상세만 읽는다(이야기 · 알림 설정은 받지 않는다).
+ *
+ * 미리보기도 본문과 같은 토큰으로 읽어 같은 조회 결과(React cache)를 쓴다 — 로그인 사용자가 같은 대회를 두 번
+ * 조회하지 않게(#443). 로그인으로 달라지는 값은 내 관심 여부 · 이 대회 알림 여부뿐이고 미리보기(competitionShareSummary)는
+ * 그 값을 받지 않아 사람마다 같다. 미리보기를 긁어 가는 곳(카카오톡 등)은 쿠키가 없어 늘 익명이다.
  */
 export async function getCompetitionDetailPageData({
   competitionId,
@@ -90,7 +94,15 @@ export async function getCompetitionDetailPageData({
   competitionId: number;
   forPreview?: boolean;
 }): Promise<CompetitionDetailPageData> {
-  const accessToken = forPreview ? null : await readSessionToken();
+  const accessToken = await readSessionToken();
+  // 이야기 · 알림 설정은 상세 결과가 필요 없어 상세와 같이 시작한다(#443). 둘 다 실패를 삼켜 먼저 시작해도
+  // 거부되지 않는다 — 대회를 못 읽거나 없으면 결과만 버린다.
+  const extrasPromise = forPreview
+    ? Promise.resolve([null, null] as const)
+    : Promise.all([
+        loadStories(competitionId, accessToken),
+        accessToken ? loadCompetitionAlertSettings() : null,
+      ]);
   let detail: CompetitionDetail | null;
   try {
     detail = await loadCompetitionDetail(competitionId, accessToken);
@@ -99,12 +111,7 @@ export async function getCompetitionDetailPageData({
   }
   if (!detail) return { ok: false, reason: "not-found" };
 
-  const [stories, alertSettings] = forPreview
-    ? [null, null]
-    : await Promise.all([
-        loadStories(competitionId, accessToken),
-        accessToken ? loadCompetitionAlertSettings() : null,
-      ]);
+  const [stories, alertSettings] = await extrasPromise;
 
   const { competition, today } = detail;
   const status = detailStatusOn(competition, today);
