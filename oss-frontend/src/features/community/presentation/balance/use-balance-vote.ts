@@ -83,6 +83,26 @@ const CLOSED_MESSAGE = "마감된 밸런스 게임이에요";
 /** 시작 전 판을 눌렀을 때(#427). 서버 문구("아직 시작하지 않은 밸런스 게임입니다.")를 화면 말투로. */
 const NOT_STARTED_MESSAGE = "아직 시작하지 않은 밸런스 게임이에요";
 
+/** 업스트림이 투표를 막은 이유 코드(jiu-jitsu-backend#198). */
+const VOTE_REJECTION_MESSAGE: Record<string, string> = {
+  C0007: CLOSED_MESSAGE,
+  C0011: NOT_STARTED_MESSAGE,
+};
+
+/** 실패 응답 본문의 업스트림 코드 — BFF가 업스트림 본문을 details에 그대로 싣는다. */
+async function readErrorCode(response: Response): Promise<string | null> {
+  const body = (await response.json().catch(() => null)) as {
+    details?: { code?: unknown } | null;
+  } | null;
+  const code = body?.details?.code;
+  return typeof code === "string" ? code : null;
+}
+
+/** 이유를 아는 거절만 알린다. 그 밖의 실패는 문구가 정해지지 않아 되돌리기만 한다. */
+function rejectionMessageOf(code: string | null): string | null {
+  return code === null ? null : (VOTE_REJECTION_MESSAGE[code] ?? null);
+}
+
 /** 서버와 맞추는 중인 투표 상태. */
 type VoteSync = {
   /** 서버가 마지막으로 확정한 판 — 실패하면 여기로 되돌린다. */
@@ -197,6 +217,12 @@ export function useBalanceVote({
 
             if (!response.ok) {
               applySettled(sync.confirmed);
+              // 화면은 열려 있다고 봤는데 서버가 막은 경우 — 기기 시계가 어긋났거나 보는 사이 경계를 넘었다.
+              // 말없이 되돌리면 눌렀는데 안 되는 것처럼 보여 이유를 알린다(#427).
+              const message = rejectionMessageOf(
+                await readErrorCode(response),
+              );
+              if (message) toast.show(message, { tone: "warning" });
               return;
             }
 
@@ -229,7 +255,7 @@ export function useBalanceVote({
         }
       })();
     },
-    // 실패 문구는 아직 정해지지 않았다 → 롤백만 하고 아무것도 띄우지 않는다(정책: 동작 안 함).
+    // 이유를 모르는 실패는 문구가 정해지지 않았다 → 롤백만 한다(정책: 동작 안 함). 마감·시작 전만 알린다.
     [applySettled, game, onVoted, promptLogin, status, toast],
   );
 }
