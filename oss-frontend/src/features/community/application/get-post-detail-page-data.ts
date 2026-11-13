@@ -5,7 +5,10 @@ import {
   createGetCommentsUseCase,
   createGetPostDetailUseCase,
 } from "@/features/community/application/community-use-case-factory";
-import type { Comment, CommentList } from "@/features/community/domain/comment";
+import {
+  markPostAuthorComments,
+  type CommentList,
+} from "@/features/community/domain/comment";
 import type { CommentSort, PostDetail } from "@/features/community/domain/post";
 import { isDevelopmentRuntime } from "@/config/env";
 import { readSessionToken } from "@/shared/lib/auth";
@@ -42,24 +45,7 @@ export const loadPostDetail = cache(
 );
 
 /** 댓글 API 미연동 시 폴백(상세만으로도 화면이 뜨도록). */
-const EMPTY_COMMENTS: CommentList = { items: [], total: 0, nextCursor: null };
-
-/**
- * 게시글 작성자가 쓴 댓글에 isPostAuthor=true를 채운다("작성자" 배지).
- *
- * 응답에 "댓글 작성자 == 게시글 작성자" 필드가 없어, 게시글 author id와 댓글 author id를
- * 비교해 도출한다. 대댓글까지 재귀 적용. (게시글+댓글이 함께 있는 이 레이어에서만 가능)
- */
-function markPostAuthorComments(
-  comments: Comment[],
-  postAuthorId: number,
-): Comment[] {
-  return comments.map((comment) => ({
-    ...comment,
-    isPostAuthor: comment.author.userId === postAuthorId,
-    replies: markPostAuthorComments(comment.replies, postAuthorId),
-  }));
-}
+const EMPTY_COMMENTS: CommentList = { items: [], hasNext: false };
 
 /**
  * 상세 화면 Server Component용 페이지 쿼리.
@@ -85,6 +71,7 @@ export async function getPostDetailPageData(
     // 대회 화면이 꺼진 배포에서는 대회 카드를 뗀다(competitionId는 남아 수정 때 다시 보낸다, #417).
     const [post] = withoutCompetitionWhenDisabled([loaded]);
 
+    // 댓글은 첫 페이지만 받는다 — 다음 페이지는 화면이 무한 스크롤로 이어 받는다(#222).
     // 댓글 목록 조회가 실패해도 게시글 상세는 보이도록 빈 목록으로 폴백(graceful degradation).
     // 고른 대회 카드(#380)는 상세 응답에 실려 온다. 알림 설정은 덧붙는 정보라 못 읽으면 빠질 뿐이다.
     const [comments, competitionAlertSettings] = await Promise.all([

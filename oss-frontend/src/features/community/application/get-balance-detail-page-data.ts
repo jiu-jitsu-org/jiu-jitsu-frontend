@@ -37,7 +37,7 @@ export const loadBalanceGameDetail = cache(
 );
 
 /** 댓글 조회 실패 시 폴백 — 게임만으로도 화면이 뜨도록. */
-const EMPTY_COMMENTS: CommentList = { items: [], total: 0, nextCursor: null };
+const EMPTY_COMMENTS: CommentList = { items: [], hasNext: false };
 
 /**
  * 밸런스 게임 상세 Server Component용 페이지 쿼리.

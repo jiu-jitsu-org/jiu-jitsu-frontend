@@ -60,12 +60,32 @@ export type ReplyPage = {
 };
 
 /**
- * 페이지네이션을 포함한 댓글 목록.
+ * 최상위 댓글 목록 한 페이지(backend#161, 20개씩).
  *
- * nextCursor가 null/undefined면 다음 페이지가 없다. (커서 방식 가정 — 백엔드 확인 필요)
+ * 대댓글 추가 조회와 같은 Spring Slice라 총 개수 없이 다음 페이지 여부만 온다. 댓글 수는
+ * 상세 응답(commentCount)이 따로 준다. 각 댓글에는 대댓글 미리보기 3개가 딸려 온다(backend#111).
  */
 export type CommentList = {
   items: Comment[];
-  total: number;
-  nextCursor?: string | null;
+  hasNext: boolean;
 };
+
+/**
+ * 게시글 작성자가 쓴 댓글에 isPostAuthor=true를 채운다("작성자" 배지).
+ *
+ * 응답에 "댓글 작성자 == 게시글 작성자" 필드가 없어, 게시글 author id와 댓글 author id를
+ * 비교해 도출한다. 대댓글까지 재귀 적용. 상세 SSR과 무한 스크롤로 이어 받은 페이지가
+ * 같은 규칙을 써야 배지가 어긋나지 않는다. 밸런스 게임처럼 작성자가 없으면 그대로 둔다.
+ */
+export function markPostAuthorComments(
+  comments: Comment[],
+  postAuthorId: number | null | undefined,
+): Comment[] {
+  if (!postAuthorId) return comments;
+
+  return comments.map((comment) => ({
+    ...comment,
+    isPostAuthor: comment.author.userId === postAuthorId,
+    replies: markPostAuthorComments(comment.replies, postAuthorId),
+  }));
+}
