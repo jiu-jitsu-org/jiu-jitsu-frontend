@@ -21,15 +21,23 @@ import { PersonIcon } from "@/shared/ui/icons";
  *
  * src가 없거나 이미지 로드에 실패하면(onError) 기본 상태(PersonIcon)로 폴백한다 — 엑박 방지.
  * 컨테이너 크기는 className(예: "size-6")으로, 폴백 아이콘 크기는 iconSize로 지정.
+ * 목록처럼 화면 밖에 많이 깔리는 곳은 lowPriority로 켠다 — 기본은 보통 우선순위(첫 화면 위쪽 아바타가 늦게 뜨지 않게).
  */
 export function Avatar({
   src,
   className,
   iconSize,
+  lowPriority = false,
 }: {
   src?: string | null;
   className?: string;
   iconSize: number;
+  /**
+   * 바로 받되 낮은 우선순위로 — 화면 밖 아바타가 첫 사진과 대역을 덜 나눠 쓰게(#440). 서버 렌더링이
+   * 앞당겨 받게 거는 미리 받기(preload)에서도 빠진다. 실제 순서는 브라우저·CDN 우선순위 처리에 달렸다.
+   * lazy가 아닌 이유: 상세는 안쪽 영역이 스크롤해 WebKit이 미리 받지 않고, 보이는 순간에야 받아 빈 동그라미가 보인다.
+   */
+  lowPriority?: boolean;
 }) {
   // 실패 여부(boolean)가 아니라 "실패한 주소"를 기억한다 — src가 바뀌면 비교 결과가 저절로
   // 달라져 새 이미지를 다시 시도하므로, 폴백을 풀어주는 초기화 로직이 필요 없다.
@@ -65,6 +73,7 @@ export function Avatar({
           // 보이는 크기만큼만 받는다 — 원본은 1024px 약 290KB(jiu-jitsu-ios#261).
           src={src ? resizeImageKitUrl(src, AVATAR_IMAGE_TRANSFORM) : undefined}
           alt=""
+          fetchPriority={lowPriority ? "low" : undefined}
           // 남의 프로필 사진을 꾹 눌러 저장·공유하지 못하게 iOS 기본 메뉴와 끌기를 막는다(#306).
           draggable={false}
           onContextMenu={(e) => e.preventDefault()}

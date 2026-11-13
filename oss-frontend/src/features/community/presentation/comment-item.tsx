@@ -121,7 +121,13 @@ export function CommentItem({
         className="flex shrink-0 self-start"
       >
         <BeltAvatar belt={comment.author.belt ?? null} size="card">
-          <Avatar src={comment.author.avatarUrl} className="size-full" iconSize={16} />
+          {/* 댓글·대댓글은 화면 밖에 많이 깔려 첫 사진 뒤로 미룬다(#440) */}
+          <Avatar
+            src={comment.author.avatarUrl}
+            className="size-full"
+            iconSize={16}
+            lowPriority
+          />
         </BeltAvatar>
       </AuthorProfileLink>
       <div className="flex min-w-0 flex-1 flex-col">
