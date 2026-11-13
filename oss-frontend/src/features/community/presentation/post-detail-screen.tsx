@@ -2,6 +2,7 @@ import { getPostDetailPageData } from "@/features/community/application/get-post
 import { SessionExpiredRecovery } from "@/features/auth/presentation/session-expired-recovery";
 import type { CommentSort } from "@/features/community/domain/post";
 import { DetailErrorState } from "@/features/community/presentation/detail-error-state";
+import { DetailSkeleton } from "@/features/community/presentation/detail-skeleton";
 import { PostDetailGone } from "@/features/community/presentation/post-detail-gone";
 import { PostDetailView } from "@/features/community/presentation/post-detail-view";
 import { CompetitionAlertProvider } from "@/features/competition/presentation/competition-alert-provider";
@@ -9,7 +10,6 @@ import { PostCompetitionCard } from "@/features/competition/presentation/post-co
 import { ApiErrorCode } from "@/shared/lib/http";
 import { NativePageReady } from "@/shared/lib/native-bridge";
 import { readServerNow, toKstDateKey } from "@/shared/lib/time";
-import { Spinner } from "@/shared/ui/spinner";
 
 /**
  * 게시글 상세 화면 루트 (서버 컴포넌트).
@@ -34,7 +34,7 @@ export async function PostDetailScreen({
   if (!result.ok) {
     // 만료 토큰 → 클라이언트가 네이티브 갱신 후 이 화면을 재실행(router.refresh)해 인증 상태로 복구.
     if (result.reason === "session-expired") {
-      return <SessionExpiredRecovery loading={<PostDetailLoading />} />;
+      return <SessionExpiredRecovery loading={<DetailSkeleton variant="post" />} />;
     }
 
     // 열 수 없는 게시글(C0002 / 404) → 진입을 막고 목록으로 돌려보낸다(#41).
@@ -76,14 +76,5 @@ export async function PostDetailScreen({
     >
       {view}
     </CompetitionAlertProvider>
-  );
-}
-
-/** 상세 복구(세션 갱신) 중 표시. */
-function PostDetailLoading() {
-  return (
-    <div className="flex min-h-dvh items-center justify-center">
-      <Spinner />
-    </div>
   );
 }

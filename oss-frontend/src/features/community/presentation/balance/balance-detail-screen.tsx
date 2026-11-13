@@ -2,10 +2,10 @@ import { SessionExpiredRecovery } from "@/features/auth/presentation/session-exp
 import { getBalanceDetailPageData } from "@/features/community/application/get-balance-detail-page-data";
 import type { CommentSort } from "@/features/community/domain/post";
 import { DetailErrorState } from "@/features/community/presentation/detail-error-state";
+import { DetailSkeleton } from "@/features/community/presentation/detail-skeleton";
 import { BalanceDetailGone } from "@/features/community/presentation/balance/balance-detail-gone";
 import { BalanceDetailView } from "@/features/community/presentation/balance/balance-detail-view";
 import { NativePageReady } from "@/shared/lib/native-bridge";
-import { Spinner } from "@/shared/ui/spinner";
 
 /**
  * 밸런스 게임 상세 화면 루트 (서버 컴포넌트).
@@ -29,7 +29,7 @@ export async function BalanceDetailScreen({
     // 만료 토큰 → 클라이언트가 네이티브 갱신 후 이 화면을 재실행(router.refresh)해 복구.
     if (result.reason === "session-expired") {
       return (
-        <SessionExpiredRecovery loading={<BalanceDetailLoading />} />
+        <SessionExpiredRecovery loading={<DetailSkeleton variant="balance" />} />
       );
     }
 
@@ -50,14 +50,5 @@ export async function BalanceDetailScreen({
           게시글 상세와 같이 만료 복구·오류 화면에서는 보내지 않는다 — 그때는 load 때 걷힌다. */}
       <NativePageReady />
     </>
-  );
-}
-
-/** 상세 복구(세션 갱신) 중 표시. */
-function BalanceDetailLoading() {
-  return (
-    <div className="flex min-h-dvh items-center justify-center">
-      <Spinner />
-    </div>
   );
 }

@@ -20,22 +20,30 @@ import { ChevronLeftIcon } from "@/shared/ui/icons";
 export function InboxAppBar({
   canMarkAllRead,
   onMarkAllRead,
+  showBack = true,
 }: {
   canMarkAllRead: boolean;
   /** 목록이 없는 분기(비로그인 · 세션 복구 · 에러)는 서버 컴포넌트가 그려 핸들러 없이 비활성으로 둔다. */
   onMarkAllRead?: () => void;
+  /**
+   * 로딩 스켈레톤은 뒤로가기를 그리지 않는다 — 앱은 그동안 자기 비상용 뒤로가기(좌 8 · 40)를 띄워,
+   * 위치가 다른 이 버튼(좌 16 · 36)까지 있으면 둘이 어긋나 겹쳐 보인다(#452). 웹 단독은 브라우저 뒤로가기가 있다.
+   */
+  showBack?: boolean;
 }) {
   return (
     <AppBarShell className="h-10 items-start px-4 pt-[calc(env(safe-area-inset-top)+12px)]">
       {/* 좌측 뒤로가기 — 터치 영역 = 둥근 사각(36). */}
-      <IconButton
-        variant="tint"
-        size="s"
-        onClick={closeDetail}
-        aria-label="뒤로 가기"
-      >
-        <ChevronLeftIcon size={20} />
-      </IconButton>
+      {showBack ? (
+        <IconButton
+          variant="tint"
+          size="s"
+          onClick={closeDetail}
+          aria-label="뒤로 가기"
+        >
+          <ChevronLeftIcon size={20} />
+        </IconButton>
+      ) : null}
 
       {/* 제목: 바(40) 위 1 여백 + 글자 영역 35. 좌우 버튼 탭을 가리지 않게 pointer-events-none. */}
       <h1 className="pointer-events-none absolute inset-x-0 bottom-0 flex h-10 justify-center pt-px">

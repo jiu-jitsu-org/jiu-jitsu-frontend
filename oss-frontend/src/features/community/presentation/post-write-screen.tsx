@@ -59,6 +59,13 @@ import {
 import { PostEditImageViewer } from "./post-edit-image-viewer";
 import { PhotoSourceSheet } from "./photo-source-sheet";
 import { PostImageCropEditor } from "./post-image-crop-editor";
+import {
+  APP_BAR_BUTTON_SIZE,
+  APP_BAR_BUTTON_TOP,
+  APP_BAR_HEIGHT,
+  APP_BAR_TITLE_HEIGHT,
+  APP_BAR_TITLE_TOP,
+} from "./post-write-app-bar-metrics";
 import { useAutoResizeTextarea } from "./use-auto-resize-textarea";
 import { useLeavingKeys, usePopInKeys } from "./use-presence-motion";
 import {
@@ -87,15 +94,6 @@ const MAX_TAG_LENGTH = 12;
  * 완성형(가-힣) 외에 자모(ㄱ-ㅎ·ㅏ-ㅣ)도 허용해야 IME 조합 중인 글자가 지워지지 않는다.
  */
 const TAG_DISALLOWED_PATTERN = /[^0-9a-zA-Z가-힣ㄱ-ㅎㅏ-ㅣ]/g;
-/** 앱바 좌우 아이콘 버튼(뒤로가기·등록) 한 변(px). 이미지 뷰어 닫기(44)보다 작은 앱바용 크기. */
-const APP_BAR_BUTTON_SIZE = 36;
-/** 글쓰기 앱바 높이(px, safe-area 제외). 공통 셸(44)과 달리 디자인이 52 — 아래 상단 마진들이 이 안에 들어간다. */
-const APP_BAR_HEIGHT = 52;
-/** 앱바 버튼 상단 마진(px) — 12 + 36 = 48, 바 높이 52 안. */
-const APP_BAR_BUTTON_TOP = 12;
-/** 앱바 타이틀 박스 상단 마진·높이(px) — 13 + 35 = 48. 텍스트는 박스 안 세로 가운데. */
-const APP_BAR_TITLE_TOP = 13;
-const APP_BAR_TITLE_HEIGHT = 35;
 /** 하단 툴바 높이(px, safe-area 제외). 디자인 2026-09-16: 48. */
 const TOOLBAR_HEIGHT = 48;
 /** 툴바 사진·태그 버튼 아이콘 한 변(px) — 24는 화면 절반을 차지하던 큰 버튼 때 크기라 작은 버튼에 맞춰 줄인다(#397). */
