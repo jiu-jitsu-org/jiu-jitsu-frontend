@@ -104,9 +104,13 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
 
   // 답글 대상이 새로 지정되면 입력창으로 포커스를 옮긴다(버튼 쪽에서도 한 번 시도하지만,
   // 대상이 바뀌기만 한 경우까지 커버하려면 여기서도 반응해야 한다).
+  // 미리 넣은 `@닉네임 ` 뒤에서 바로 이어 쓰게 커서를 글 끝으로 옮긴다 — 버튼이 값이 들어가기 전에
+  // 포커스를 잡아 두므로, iOS 웹뷰는 커서를 태그 앞에 둔 채로 남길 수 있다.
   useEffect(() => {
-    if (!target) return;
-    textareaRef.current?.focus();
+    const el = textareaRef.current;
+    if (!target || !el) return;
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length);
   }, [target]);
 
   // 미리 넣은 태그만 있고 할 말이 없으면 등록하지 않는다.
