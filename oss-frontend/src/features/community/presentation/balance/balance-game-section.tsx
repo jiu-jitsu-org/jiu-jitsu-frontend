@@ -24,9 +24,18 @@ import { bffFetch } from "@/shared/lib/http/bff-fetch";
 const EXPIRY_RETRY_MS = 5_000;
 const EXPIRY_RETRY_LIMIT = 3;
 
-/** 받은 판의 시계가 이미 0이라 다시 세지 않는지 — 다음 전환을 기다릴 수 없는 판이다. */
+/**
+ * 결과를 보여 주는 판인데 다음 게임 시각이 이미 지났는지 — 서버가 아직 다음 판을 주지 못한 것이라 잠시 뒤 다시 읽는다.
+ *
+ * 결과 시각(resultUntil) 없이 마감된 판은 기다릴 다음 전환이 없다(옛 응답 · 다음 게임 없음). 다시 읽어도 같은 판이라
+ * 넘어간 것으로 친다 — 아니면 그런 판을 받을 때마다 헛조회를 몇 번씩 한다.
+ */
 function isStuckAtZero(game: BalanceGame): boolean {
-  return readRemainingAtResponse(readBalanceClock(game).until, game.serverTime) === 0;
+  const clock = readBalanceClock(game);
+  return (
+    clock.phase === "result" &&
+    readRemainingAtResponse(clock.until, game.serverTime) === 0
+  );
 }
 
 /**
@@ -79,7 +88,8 @@ export function BalanceGameSection({
 
   /** 다시 읽어 판을 갈아끼운다. 넘어갈 판을 받았는지(조회 실패·0에 멈춘 판이면 false)를 돌려준다. */
   const reload = useCallback(async (): Promise<boolean> => {
-    if (reloadingRef.current) return true;
+    // 이미 읽는 중이면 그 결과를 모른다 — 넘어갔다고 치지 않아야 0에 닿은 뒤의 재시도가 일찍 끝나지 않는다.
+    if (reloadingRef.current) return false;
     reloadingRef.current = true;
 
     try {
