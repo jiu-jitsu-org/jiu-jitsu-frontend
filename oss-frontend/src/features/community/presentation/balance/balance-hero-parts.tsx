@@ -72,11 +72,15 @@ export function BalanceClock({
   onExpired,
   className,
   below,
+  label = "남은 시간",
 }: {
+  /** 시계가 세는 끝 시각 — 마감만이 아니라 시작·다음 게임일 수도 있다(readBalanceClock). */
   endAt: string;
   serverTime: string;
   onExpired?: () => void;
   className?: string;
+  /** 낭독기가 숫자 앞에 읽는 이름 — 화면의 이름표와 같은 말. */
+  label?: string;
   /**
    * 시계 바로 아래에 붙일 것 — 시계가 그려질 때만 함께 그린다(파싱 실패면 둘 다 감춘다). 같은 틱(remainMs)을
    * 넘겨 주므로, 남은 시간에 따라 움직일 것이 생겨도 카운트다운을 따로 구독하지 않는다(타이머가 둘이면 박자가 어긋난다).
@@ -96,7 +100,7 @@ export function BalanceClock({
         <span aria-hidden>
           <ClockDigits clock={toClock(remainMs)} />
         </span>
-        <span className="sr-only">남은 시간 {toClock(remainMs)}</span>
+        <span className="sr-only">{label} {toClock(remainMs)}</span>
       </span>
       {below?.(remainMs)}
     </>

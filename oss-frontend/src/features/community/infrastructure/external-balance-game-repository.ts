@@ -39,6 +39,12 @@ type BalanceGameDto = {
   endAt: string;
   serverTime: string;
   closed: boolean;
+  /** 투표 시작 일시(jiu-jitsu-backend#198). */
+  startAt?: string;
+  /** 투표 시작 여부. */
+  started?: boolean;
+  /** 메인이 마감된 게임을 결과로 줄 때 그 끝 시각. 그 외에는 null. */
+  resultUntil?: string | null;
   optionA: BalanceGameOptionDto;
   optionB: BalanceGameOptionDto;
   totalVoteCount: number;
@@ -99,6 +105,11 @@ function toBalanceGame(dto: BalanceGameDto): BalanceGame {
     endAt: dto.endAt,
     serverTime: dto.serverTime,
     closed: dto.closed,
+    // 교체 버퍼 계약(jiu-jitsu-backend#198)도 나중에 생겨 방어적으로 읽는다 — 없으면 지금까지처럼
+    // 시작한 판, 결과 노출 끝 시각 없음으로 본다.
+    startAt: dto.startAt,
+    started: dto.started ?? true,
+    resultUntil: dto.resultUntil ?? null,
     optionA: toBalanceGameOption(dto.optionA),
     optionB: toBalanceGameOption(dto.optionB),
     totalVoteCount: dto.totalVoteCount ?? 0,

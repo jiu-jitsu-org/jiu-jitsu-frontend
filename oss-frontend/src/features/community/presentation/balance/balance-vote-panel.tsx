@@ -3,7 +3,10 @@
 import { useCallback, useState } from "react";
 
 import type { BalanceGame } from "@/features/community/domain/balance-game";
-import { useBalanceCloseTransition } from "@/features/community/presentation/balance/use-balance-close-transition";
+import {
+  readJsonData,
+  useBalanceCloseTransition,
+} from "@/features/community/presentation/balance/use-balance-close-transition";
 import { useBalanceVote } from "@/features/community/presentation/balance/use-balance-vote";
 import { BalanceHeroBoard } from "@/features/community/presentation/balance/balance-hero-board";
 
@@ -18,8 +21,9 @@ const NOOP = () => {};
  * 상태를 가진다 — 게시글 상세가 액션바만 클라이언트 leaf로 두는 것과 같은 분할이다.
  *
  * 리스트(BalanceGameSection)와 달리 포그라운드 복귀 재조회를 두지 않는다. 상세는 지목한 판에
- * 머물러야 하므로 복귀했다고 다음 판을 끌어오면 안 된다. 유일한 재조회는 마감 전환뿐이고,
- * 그때도 화면은 그 판에 남는다(다음 판은 토스트 버튼으로만 간다).
+ * 머물러야 하므로 복귀했다고 다음 판을 끌어오면 안 된다. 재조회는 시계가 0에 닿을 때뿐이다 —
+ * 시작 전 판이면 투표가 열린 그 판을, 진행 중이면 마감 전환으로 그 판의 최종 집계를 읽는다.
+ * 어느 쪽이든 화면은 그 판에 남는다(다음 판은 토스트 버튼으로만 간다).
  */
 export function BalanceVotePanel({
   initialGame,
@@ -53,6 +57,22 @@ export function BalanceVotePanel({
     onClosed: handleClosed,
   });
 
+  /**
+   * 시작 전 판(#427)의 시계가 0에 닿음 — 투표가 열렸으니 그 판을 다시 읽어 갈아끼운다.
+   *
+   * 다시 읽어도 아직 시작 전이면(기기 시계가 앞서 감) 로컬로 열어 둔다. 시작 시각이 그대로라 시계가 0에 멈춘 채
+   * 다시 세지 않으므로, 그대로 두면 판이 영영 닫혀 있다. 그 사이 누르면 서버가 C0011로 막고 투표 훅이 알린다.
+   */
+  const handleStarted = useCallback(() => {
+    void readJsonData<BalanceGame>(
+      `/api/community/balance-game/${game.contentId}`,
+    ).then((fresh) => {
+      setGame((previous) =>
+        fresh?.started ? fresh : { ...previous, started: true },
+      );
+    });
+  }, [game.contentId]);
+
   // 홈과 같은 스코어보드 판(#305). 투표했거나 마감되면 득표율을 줄이 보여 준다(variant="detail").
   return (
     <BalanceHeroBoard
@@ -61,7 +81,9 @@ export function BalanceVotePanel({
       onPressDetail={NOOP}
       // 이미 마감된 판으로 들어왔으면(지난 게임 · 내 활동 목록) 마감 안내를 띄우지 않는다 —
       // 보는 중에 0에 닿은 경우만 알린다.
-      onExpired={game.closed ? undefined : handleExpired}
+      onExpired={
+        game.closed ? undefined : game.started ? handleExpired : handleStarted
+      }
       variant="detail"
     />
   );

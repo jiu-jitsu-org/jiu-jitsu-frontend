@@ -30,7 +30,8 @@ const CLOSED_TOAST = "투표가 종료됐어요";
 /** 새 판으로 넘어가는 버튼. 정책 문구를 그대로 쓴다. */
 const OPEN_NEW_GAME_LABEL = "오늘의 밸런스 게임 보기";
 
-async function readJsonData<T>(path: string): Promise<T | null> {
+/** BFF 조회의 data만 꺼낸다. 실패하면 null — 호출부가 화면에 있는 값으로 물러선다. 상세 패널도 쓴다. */
+export async function readJsonData<T>(path: string): Promise<T | null> {
   try {
     const response = await bffFetch(path);
     if (!response.ok) return null;
