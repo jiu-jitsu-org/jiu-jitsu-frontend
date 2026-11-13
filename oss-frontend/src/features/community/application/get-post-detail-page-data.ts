@@ -67,18 +67,25 @@ export async function getPostDetailPageData(
   const accessToken = await readSessionToken();
 
   try {
-    const loaded = await loadPostDetail(postId, accessToken);
+    // 글과 댓글 첫 페이지를 같이 받는다(#441) — 댓글 조회에는 글 결과가 필요 없어, 글을 기다렸다 받으면
+    // 본문이 BE 한 번만큼 늦게 완성된다(밸런스 상세와 같은 방식). 글이 실패하면(404 · 만료) 댓글 결과는 버린다.
     // 대회 화면이 꺼진 배포에서는 대회 카드를 뗀다(competitionId는 남아 수정 때 다시 보낸다, #417).
-    const [post] = withoutCompetitionWhenDisabled([loaded]);
-
+    const postPromise = loadPostDetail(postId, accessToken).then(
+      (loaded) => withoutCompetitionWhenDisabled([loaded])[0],
+    );
+    // 고른 대회 카드(#380)는 상세 응답에 실려 온다. 알림 설정은 카드가 있을 때만 필요해 글이 오는 대로 받는다 —
+    // 댓글을 기다리지 않는다. 덧붙는 정보라 못 읽으면 빠질 뿐이다. 글이 실패하면 아래 Promise.all이 그 실패로 끝난다.
+    const alertSettingsPromise = postPromise.then((post) =>
+      post.competition && accessToken ? loadCompetitionAlertSettings() : null,
+    );
     // 댓글은 첫 페이지만 받는다 — 다음 페이지는 화면이 무한 스크롤로 이어 받는다(#222).
     // 댓글 목록 조회가 실패해도 게시글 상세는 보이도록 빈 목록으로 폴백(graceful degradation).
-    // 고른 대회 카드(#380)는 상세 응답에 실려 온다. 알림 설정은 덧붙는 정보라 못 읽으면 빠질 뿐이다.
-    const [comments, competitionAlertSettings] = await Promise.all([
+    const [post, comments, competitionAlertSettings] = await Promise.all([
+      postPromise,
       createGetCommentsUseCase(accessToken)
         .execute(postId, sort)
         .catch(() => EMPTY_COMMENTS),
-      post.competition && accessToken ? loadCompetitionAlertSettings() : null,
+      alertSettingsPromise,
     ]);
 
     // 게시글 작성자 본인이 단 댓글에 "작성자" 배지를 채운다(응답에 직접 필드가 없어 id 비교로 도출).

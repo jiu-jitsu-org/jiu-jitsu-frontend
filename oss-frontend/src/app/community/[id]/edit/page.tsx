@@ -6,7 +6,10 @@ import { getPostCategoriesOrFallback } from "@/features/community/application/ge
 import type { PostEditInitial } from "@/features/community/domain/post";
 import { PostWriteScreen } from "@/features/community/presentation/post-write-screen";
 import { WriteSkeleton } from "@/features/community/presentation/write-skeleton";
-import { getCompetitionPickerOptions } from "@/features/competition/application/get-competition-picker-options";
+import {
+  loadPickableCompetitionOptions,
+  withSelectedCompetition,
+} from "@/features/competition/application/get-competition-picker-options";
 import type { Competition } from "@/features/competition/domain/competition";
 import { POST_EDIT_FROM_DETAIL } from "@/features/community/presentation/post-edit-return";
 import { readSessionToken } from "@/shared/lib/auth";
@@ -44,6 +47,11 @@ export default async function CommunityPostEditPage({
     redirect(`/community/${postId}`);
   }
 
+  // 글 종류 · 대회 고르기 목록은 글 결과와 무관해 글 조회와 같이 시작한다(#441). 둘 다 실패를 삼켜
+  // 기다리지 않고 끝나도(남의 글 · 없는 글 · 만료로 아래에서 빠져나가도) 거부되지 않는다 — 결과만 버린다.
+  const categoriesPromise = getPostCategoriesOrFallback();
+  const pickableOptionsPromise = loadPickableCompetitionOptions();
+
   let initial: PostEditInitial;
   // 이 글이 고른 대회(#417) — 대회가 미공개로 바뀌어 카드가 없어도 id는 온다. 수정 때 그대로 다시 보낸다.
   let competitionId: number | null = null;
@@ -77,13 +85,14 @@ export default async function CommunityPostEditPage({
 
   const now = readServerNow();
   // 대회 고르기(#367 · #421) — 이 글이 이미 고른 대회는 고르기 목록 밖이어도 맨 위에 넣어 보이고 지울 수 있게 한다.
-  const [categories, competitionOptions] = await Promise.all([
-    getPostCategoriesOrFallback(),
-    getCompetitionPickerOptions({
-      include: competition,
-      includeId: competition ? null : competitionId,
-    }),
+  const [categories, pickableOptions] = await Promise.all([
+    categoriesPromise,
+    pickableOptionsPromise,
   ]);
+  const competitionOptions = withSelectedCompetition(pickableOptions, {
+    include: competition,
+    includeId: competition ? null : competitionId,
+  });
   return (
     <>
       <PostWriteScreen

@@ -23,27 +23,27 @@ const UNAVAILABLE_COMPETITION_NAME = "볼 수 없는 대회";
 /** 검색어 없이 펼친 목록에서는 끝난 대회를 이 날수까지만 둔다 — 대회 뒤 후기 글을 쓰는 기간. 더 지난 대회는 이름으로 찾는다. */
 export const PICKABLE_ENDED_DAYS = 30;
 
+/** 글이 이미 고른 대회 — 카드가 있으면 include, 미공개로 바뀌어 id만 있으면 includeId. */
+export type SelectedCompetition = {
+  include?: Competition | null;
+  includeId?: number | null;
+};
+
 /**
  * 글쓰기에서 고를 수 있는 대회(#367 · #421) — 서버가 다가오는 대회 → 끝난 대회(최근 순), 최대 20개를 고른다.
  *
- * 글 수정이면 이 글이 이미 고른 대회(include)를 맨 위에 둔다 — 목록 밖이어도 보이고 지울 수 있게.
- * 고른 대회가 미공개로 바뀌어 카드 없이 id만 있으면(includeId) '볼 수 없는 대회' 자리를 맨 위에 둔다.
- * 읽기에 실패해도 빈 목록 — 글쓰기를 막지 않는다(고른 대회가 있으면 그 하나는 남긴다).
- * 대회 화면이 꺼진 배포에서는 빈 목록이다 — 고르기 칸이 나오지 않는다.
+ * 글 수정은 글 조회와 같이 시작하려고 목록만 먼저 읽고(#441), 글을 받은 뒤 withSelectedCompetition으로
+ * 이 글이 고른 대회를 합친다. 읽기에 실패해도 빈 목록 — 글쓰기를 막지 않는다. 실패를 삼켜 먼저 시작해 두어도
+ * 거부되지 않는다. 대회 화면이 꺼진 배포에서는 빈 목록이다 — 고르기 칸이 나오지 않는다.
  */
-export async function getCompetitionPickerOptions({
-  include = null,
-  includeId = null,
-}: {
-  include?: Competition | null;
-  includeId?: number | null;
-} = {}): Promise<CompetitionPickerOption[]> {
+export async function loadPickableCompetitionOptions(): Promise<
+  CompetitionPickerOption[]
+> {
   if (!isCompetitionEnabled()) return [];
-  let options: CompetitionPickerOption[] = [];
   try {
     // 고르기 목록은 내 관심 등 로그인 값을 쓰지 않는다 — 익명으로 읽어 토큰이 만료돼도 목록이 빠지지 않게.
     const page = await createGetCompetitionPickerUseCase(null).execute();
-    options = page.competitions
+    return page.competitions
       .filter(
         (competition) =>
           competition.date >= page.today ||
@@ -51,8 +51,21 @@ export async function getCompetitionPickerOptions({
       )
       .map(toPickerOption);
   } catch {
-    options = [];
+    return [];
   }
+}
+
+/**
+ * 글 수정 — 이 글이 이미 고른 대회(include)를 고르기 목록 맨 위에 둔다(목록에 있던 같은 대회는 뺀다).
+ * 목록 밖이어도 보이고 지울 수 있게. 고른 대회가 미공개로 바뀌어 카드 없이 id만 있으면(includeId)
+ * '볼 수 없는 대회' 자리를 맨 위에 둔다. 목록 읽기에 실패했어도 고른 대회 하나는 남긴다.
+ * 대회 화면이 꺼진 배포에서는 빈 목록 — 고르기 칸이 나오지 않는다.
+ */
+export function withSelectedCompetition(
+  options: CompetitionPickerOption[],
+  { include = null, includeId = null }: SelectedCompetition,
+): CompetitionPickerOption[] {
+  if (!isCompetitionEnabled()) return [];
   const kept: CompetitionPickerOption | null = include
     ? toPickerOption(include)
     : includeId !== null
@@ -77,7 +90,7 @@ export async function getCompetitionPickerOptions({
 export async function getCompetitionPickerForWrite(
   preselectId: number | null,
 ): Promise<{ options: CompetitionPickerOption[]; initialId: number | null }> {
-  const options = await getCompetitionPickerOptions();
+  const options = await loadPickableCompetitionOptions();
   if (preselectId === null || !isCompetitionEnabled()) {
     return { options, initialId: null };
   }
