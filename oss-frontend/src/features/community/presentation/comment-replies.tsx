@@ -187,10 +187,18 @@ export function CommentReplies({
     if (current.generation === 0 || count === 0) return;
 
     const { resetKey, generation } = current;
-    // 지금까지 펼친 끝 줄(서버 정렬 기준 마지막). 앞쪽에 답글이 늘면 같은 페이지 수로는 이 줄이
-    // 다음 페이지로 밀려나므로, 이 줄이 다시 나올 때까지 더 받는다 — 안 그러면 펼친 끝 줄이 사라지고
-    // 더보기 버튼이 다시 생긴다. 지워져 영영 안 나오는 경우를 위해 두 페이지까지만 더 받는다.
-    const edgeId = current.pages.at(-1)?.at(-1)?.id;
+    // 지금까지 펼친 끝 줄(서버 정렬 기준 마지막 — 최신순이면 가장 오래된 줄, 작성된 순이면 가장 새 줄).
+    // 앞쪽에 답글이 늘면 같은 페이지 수로는 이 줄이 다음 페이지로 밀려나므로, 이 줄이 다시 나올 때까지
+    // 더 받는다 — 안 그러면 펼친 끝 줄이 사라지고 더보기 버튼이 다시 생긴다.
+    // 끝까지 펼쳐 둔 상태였다면 끝 줄을 찾아도 남은 페이지까지 받는다 — 작성된 순에서 방금 단 답글이
+    // 다음 페이지로 넘어간 경우다. 지워져 영영 안 나오는 경우를 위해 두 페이지까지만 더 받는다.
+    const loaded = [...current.pages.flat(), ...current.carry];
+    const edgeId = loaded.reduce<Comment | undefined>((edge, reply) => {
+      if (!edge) return reply;
+      const newer = byPostedOrder(reply, edge) > 0;
+      return sort === "latest" ? (newer ? edge : reply) : newer ? reply : edge;
+    }, undefined)?.id;
+    const hadAll = current.hasNext === false;
     const MAX_EXTRA_PAGES = 2;
 
     async function refetch() {
@@ -208,7 +216,7 @@ export function CommentReplies({
         const reachedEdge =
           edgeId === undefined ||
           fresh.some((page) => page.items.some((reply) => reply.id === edgeId));
-        if (!last.hasNext || reachedEdge) break;
+        if (!last.hasNext || (reachedEdge && !hadAll)) break;
         const next = await fetchReplyPage(parentId, sort, fresh.length);
         if (!next) break;
         fresh.push(next);
@@ -219,23 +227,34 @@ export function CommentReplies({
     void refetch().then((fresh) => {
       if (!fresh) return;
 
+      const marked = fresh.map((page) => ({
+        ...page,
+        items: markPostAuthorComments(page.items, postAuthorId),
+      }));
+      // 더 받은 페이지는 펼친 범위를 넘을 수 있다. 끝까지 펼쳐 뒀던 게 아니면 끝 줄까지만 보이고
+      // (누르지 않은 옛 답글이 저절로 펼쳐지지 않게) 페이지로는 세지 않는다 — 다음 더보기가 그 페이지를
+      // 다시 받고, 겹치는 줄은 dedupe가 지운다.
+      const base = hadAll ? marked : marked.slice(0, count);
+      const overflow = hadAll
+        ? []
+        : marked.slice(count).flatMap((p) => p.items);
+      const edgeIndex = overflow.findIndex((reply) => reply.id === edgeId);
+      const keep = edgeIndex >= 0 ? overflow.slice(0, edgeIndex + 1) : [];
+      // 잘라 낸 줄이 남았으면 더보기로 닿을 수 있어야 한다.
+      const freshHasNext =
+        overflow.length > keep.length || marked[marked.length - 1].hasNext;
+
       setState((prev) => {
         // 받는 사이 정렬이 바뀌었거나 또 새로 고쳐졌으면 이번 결과는 버린다(다음 다시 받기가 맞는다).
         if (prev.resetKey !== resetKey || prev.generation !== generation)
           return prev;
         // 다시 받는 사이 더 받은 페이지는 남긴다(다시 받은 범위 뒤쪽만 — 앞은 fresh가 같은 자리다).
-        const tail = prev.pages.slice(fresh.length);
+        const tail = prev.pages.slice(base.length);
         return {
           ...prev,
-          pages: [
-            ...fresh.map((page) =>
-              markPostAuthorComments(page.items, postAuthorId),
-            ),
-            ...tail,
-          ],
-          carry: [],
-          hasNext:
-            tail.length > 0 ? prev.hasNext : fresh[fresh.length - 1].hasNext,
+          pages: [...base.map((page) => page.items), ...tail],
+          carry: keep,
+          hasNext: tail.length > 0 ? prev.hasNext : freshHasNext,
         };
       });
     });
@@ -291,6 +310,8 @@ export function CommentReplies({
       // 받는 사이 서버 렌더가 다시 돌았으면(답글 등록 등) 이 응답은 밀리기 전 기준이라 경계에서
       // 한 줄이 빠지거나 겹친다 — 버리고 버튼을 되돌린다. 다시 누르면 새 기준으로 받는다.
       if (prev.generation !== generation) return { ...prev, status: "idle" };
+      // 같은 페이지를 두 번 받은 경우(연타) 뒤의 것은 버린다 — 붙이면 다음 요청이 한 페이지를 건너뛴다.
+      if (prev.pages.length !== page) return prev;
       // 실패해도 지금까지 받은 것은 남긴다 — 버튼만 "다시 시도"로 바뀌고 목록은 그대로다.
       if (!result) return { ...prev, status: "failed" };
 
