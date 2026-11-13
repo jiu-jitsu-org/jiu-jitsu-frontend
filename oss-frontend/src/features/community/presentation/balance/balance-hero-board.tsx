@@ -13,6 +13,11 @@ import {
   BalanceCharacter,
   SETTLE_TIMING,
 } from "@/features/community/presentation/balance/balance-character";
+import {
+  BALANCE_CLOCK_LABEL,
+  readBalanceClock,
+  type BalanceClockPhase,
+} from "@/features/community/presentation/balance/balance-countdown";
 import { usePauseMotionWhenHidden } from "@/features/community/presentation/balance/use-pause-motion-when-hidden";
 import { BOARD_PALETTE } from "@/features/community/presentation/balance/balance-board-palette";
 import {
@@ -218,6 +223,14 @@ const INTRO_COOKIE_MAX_AGE = 60 * 60 * 24 * 2;
  */
 const introPlayed = new Set<number>();
 
+/** 머리 알약 — 판이 지금 어떤 상태인지. */
+const PHASE_BADGE: Record<BalanceClockPhase, string> = {
+  upcoming: "시작 전",
+  open: "진행 중",
+  result: "종료",
+  closed: "종료",
+};
+
 export function BalanceHeroBoard({
   game,
   onVote,
@@ -234,7 +247,14 @@ export function BalanceHeroBoard({
   variant?: "hero" | "detail";
 }) {
   const detail = variant === "detail";
-  const interactive = !game.closed;
+  // 시작 전 판도 누를 수 없다(#427) — 눌리면 투표 훅이 "아직 시작 전"이라고 알린다.
+  const interactive = !game.closed && game.started;
+  const clock = readBalanceClock(game);
+  // 쉬는 판(시작 전 · 마감)은 점이 꺼지고 물결이 멈춘다.
+  const idle = clock.phase === "upcoming" || game.closed;
+  // 득표율 — 상세는 투표했거나 마감되면, 홈은 마감된 판(00:00~00:30 교체 버퍼)일 때 보인다(#427).
+  // 버퍼 동안 홈은 방금 끝난 판의 결과를 보여 주는 자리라, 투표하지 않은 사람에게도 결과를 연다.
+  const showResult = detail || game.closed;
   const palette = BOARD_PALETTE;
   const boardRef = usePauseMotionWhenHidden<HTMLElement>();
 
@@ -279,36 +299,37 @@ export function BalanceHeroBoard({
           className={cn(
             "flex h-7 items-center gap-1.5 rounded-full pr-3 pl-2.5 text-label-m font-semibold",
             palette.row,
-            game.closed && palette.muted,
+            idle && palette.muted,
           )}
         >
           <span aria-hidden className="relative flex size-2">
-            {game.closed ? null : (
+            {idle ? null : (
               <span className="absolute inset-0 rounded-full bg-interactive-poll-a motion-safe:animate-ping motion-safe:[animation-duration:1.6s]" />
             )}
             <span
               className={cn(
                 "relative size-2 rounded-full",
-                game.closed ? "bg-current opacity-60" : "bg-interactive-poll-a",
+                idle ? "bg-current opacity-60" : "bg-interactive-poll-a",
               )}
             />
           </span>
-          {game.closed ? "종료" : "진행 중"}
+          {PHASE_BADGE[clock.phase]}
         </span>
       </header>
 
       {/* 경기 시계 — 판의 주인공. 숫자가 자리마다 굴러간다. */}
       <div className={cn("mt-4 flex flex-col items-center", parts.clock)}>
         <BalanceClock
-          endAt={game.endAt}
+          endAt={clock.until}
           serverTime={game.serverTime}
           onExpired={onExpired}
+          label={BALANCE_CLOCK_LABEL[clock.phase]}
           // 카니트 엑스트라볼드, 똑바로. 경기 시계가 판의 주인공이다.
           className={cn(
             balanceNumeralFont.className,
             "inline-block text-[60px] leading-[64px] tracking-[-1px]",
           )}
-          below={() => <BoardClockLabel closed={game.closed} />}
+          below={() => <BoardClockLabel phase={clock.phase} />}
         />
       </div>
 
@@ -318,8 +339,8 @@ export function BalanceHeroBoard({
           state={optionStateOf(game, "A")}
           interactive={interactive}
           intro={parts}
-          detail={detail}
-          result={detail ? readOptionResult(game, "A") : null}
+          detail={showResult}
+          result={showResult ? readOptionResult(game, "A") : null}
           onPress={() => onVote("A")}
         />
         <BoardRow
@@ -327,8 +348,8 @@ export function BalanceHeroBoard({
           state={optionStateOf(game, "B")}
           interactive={interactive}
           intro={parts}
-          detail={detail}
-          result={detail ? readOptionResult(game, "B") : null}
+          detail={showResult}
+          result={showResult ? readOptionResult(game, "B") : null}
           onPress={() => onVote("B")}
         />
       </div>
@@ -355,9 +376,9 @@ function BoardRow({
   state: BalanceOptionState;
   interactive: boolean;
   intro: IntroParts;
-  /** 상세 판인지 — 득표 막대 자리를 늘 깔아 둔다(아래 득표 막대 참조). */
+  /** 득표 막대 자리를 늘 깔아 둘지 — 상세 판, 그리고 결과를 보여 주는 마감된 홈 판(아래 득표 막대 참조). */
   detail: boolean;
-  /** 득표율(상세만) — 있으면 줄이 통째로 켜지는 대신 득표율만큼 진영 색이 차고 점수 자리에 %가 뜬다. */
+  /** 득표율(상세, 홈은 마감된 판만) — 있으면 줄이 통째로 켜지는 대신 득표율만큼 진영 색이 차고 점수 자리에 %가 뜬다. */
   result: BalanceOptionResult | null;
   onPress: () => void;
 }) {
@@ -572,7 +593,7 @@ function BoardRow({
  * 아이콘은 째깍이지 않는다(#310) — 바로 위 큰 숫자가 이미 매초 움직여, 아이콘까지 흔들면 시선이 둘로 갈린다.
  * 시계가 그려질 때만 함께 그린다(BalanceClock의 below). 낭독기에는 숨긴다(시계가 이미 "남은 시간 …"으로 읽힌다).
  */
-function BoardClockLabel({ closed }: { closed: boolean }) {
+function BoardClockLabel({ phase }: { phase: BalanceClockPhase }) {
   const palette = BOARD_PALETTE;
 
   return (
@@ -585,7 +606,7 @@ function BoardClockLabel({ closed }: { closed: boolean }) {
       )}
     >
       <TimerIcon size={14} className="text-interactive-primary" />
-      {closed ? "투표 종료" : "남은 시간"}
+      {BALANCE_CLOCK_LABEL[phase]}
     </span>
   );
 }

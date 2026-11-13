@@ -1,6 +1,10 @@
 "use client";
 
 import { BOARD_PALETTE } from "@/features/community/presentation/balance/balance-board-palette";
+import {
+  BALANCE_CLOCK_LABEL,
+  readBalanceClock,
+} from "@/features/community/presentation/balance/balance-countdown";
 import { BalanceClock } from "@/features/community/presentation/balance/balance-hero-parts";
 import {
   balanceNumeralFont,
@@ -34,6 +38,8 @@ export function BalanceCollapsedBar({
   leaving: boolean;
   onPress: () => void;
 }) {
+  const clock = readBalanceClock(game);
+
   return (
     // 웹 단독으로 열렸을 때만 상태바 인셋이 잡힌다(네이티브에선 0).
     <div
@@ -62,10 +68,15 @@ export function BalanceCollapsedBar({
             "shrink-0 text-[18px] leading-[22px]",
           )}
         >
-          오늘의 밸런스 게임
+          {clock.phase === "result" ? "다음 밸런스 게임까지" : "오늘의 밸런스 게임"}
         </span>
+        {/*
+          펼친 판과 같은 끝 시각을 센다. 교체 버퍼 동안은 다음 게임까지라 제목도 그 말로 바꾼다(#427) —
+          "오늘의 밸런스 게임" 옆에 시간이 있으면 늘 그랬듯 마감까지 남은 시간으로 읽힌다.
+        */}
         <BalanceClock
-          endAt={game.endAt}
+          endAt={clock.until}
+          label={BALANCE_CLOCK_LABEL[clock.phase]}
           serverTime={game.serverTime}
           // 제목보다 한 단계 아래 — 작고 옅게.
           className={cn(

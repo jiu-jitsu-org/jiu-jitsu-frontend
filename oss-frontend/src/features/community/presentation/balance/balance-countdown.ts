@@ -113,3 +113,38 @@ export function readRemainingAtResponse(
   // 이미 마감된 응답(서버 시각이 마감을 지남)은 0으로 눕힌다 — 음수는 표기 분기를 흐린다.
   return Math.max(0, end - server);
 }
+
+/**
+ * 경기 시계가 무엇을 세는지 — 판의 상태마다 세는 끝 시각과 시계 밑 이름표가 다르다(#427).
+ *
+ * - 시작 전(상세 링크로만 들어온다): 투표 시작까지 → "시작까지"
+ * - 교체 버퍼(메인이 끝난 판을 resultUntil과 함께 준다): 다음 게임이 시작할 때까지 → "다음 게임까지"
+ * - 그 밖: 마감까지 → "남은 시간", 마감됐으면 0에 멈춰 "투표 종료"
+ *
+ * 0에 닿으면 상위가 다시 읽는다 — 시작 전이면 그 판을, 버퍼면 다음 판을. 시계 하나로 세 전환을 모두 건다.
+ */
+export type BalanceClockPhase = "upcoming" | "result" | "open" | "closed";
+
+export function readBalanceClock(game: {
+  endAt: string;
+  closed: boolean;
+  started: boolean;
+  startAt?: string;
+  resultUntil: string | null;
+}): { phase: BalanceClockPhase; until: string } {
+  if (!game.started && game.startAt) {
+    return { phase: "upcoming", until: game.startAt };
+  }
+  if (game.closed && game.resultUntil) {
+    return { phase: "result", until: game.resultUntil };
+  }
+  return { phase: game.closed ? "closed" : "open", until: game.endAt };
+}
+
+/** 시계 밑 이름표 — 시계가 무엇까지 세는지. 낭독기도 숫자 앞에 같은 말을 읽는다. */
+export const BALANCE_CLOCK_LABEL: Record<BalanceClockPhase, string> = {
+  upcoming: "시작까지",
+  open: "남은 시간",
+  result: "다음 게임까지",
+  closed: "투표 종료",
+};
