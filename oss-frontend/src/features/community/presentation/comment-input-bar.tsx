@@ -238,6 +238,10 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
             ref={textareaRef}
             rows={1}
             value={value}
+            // 등록 중엔 글을 고칠 수 없게 한다 — 고쳐도 등록이 끝나면 비워져 사라진다.
+            // disabled가 아닌 readOnly라 포커스·키보드는 그대로 남는다.
+            readOnly={submitting}
+            aria-busy={submitting}
             onChange={(event) => setValue(event.target.value)}
             placeholder="댓글을 입력해주세요."
             className="max-h-[125px] flex-1 resize-none overflow-y-auto rounded-[24px] bg-comment-input-bar-bg px-4 py-[10px] text-body-s text-comment-input-bar-text outline-none placeholder:text-comment-input-bar-placeholder"

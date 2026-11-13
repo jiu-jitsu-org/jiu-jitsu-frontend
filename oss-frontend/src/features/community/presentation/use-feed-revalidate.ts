@@ -179,6 +179,8 @@ function toSummary(detail: PostDetail): PostSummary {
     createdAt: detail.createdAt,
     updatedAt: detail.updatedAt,
     edited: detail.edited,
+    // 대회 글의 대회 카드. 빠뜨리면 상세에 다녀온 뒤 카드가 목록에서 사라진다.
+    ...(detail.competition ? { competition: detail.competition } : {}),
   };
 }
 
