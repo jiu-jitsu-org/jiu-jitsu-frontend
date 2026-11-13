@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  type Dispatch,
+  type SetStateAction,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import type { PostImage } from "@/features/community/domain/post";
 import {
@@ -22,6 +30,10 @@ import {
 } from "@/features/community/presentation/image-fallback";
 import { PostImageViewer } from "@/features/community/presentation/post-image-viewer";
 import { cn } from "@/shared/lib/cn";
+import {
+  FEED_IMAGE_TRANSFORM,
+  resizeImageKitUrl,
+} from "@/shared/lib/image-resize";
 
 /**
  * 게시글 상세 이미지 영역 — 허용 비율 정책(#121) + 가로 스크롤 캐러셀(#45).
@@ -68,6 +80,25 @@ const SCROLL_END_EPSILON = 1;
  * 존재하는 규격(피드)을 따르는 편이 일관된다.
  */
 const FALLBACK_HEIGHT_RATIO = 220 / 343;
+
+/** 원본을 깔 사진과 바꾸기 전 디코드를 기다리는 최대 시간. 넘으면 디코드를 기다리지 않고 바꾼다. */
+const DECODE_WAIT_LIMIT_MS = 500;
+
+/** 1장 크기 — 높이는 auto가 기본이고, 원본 비율이 허용 범위 안이면 둘 다 걸리지 않는다. */
+const SINGLE_IMAGE_SIZE: CSSProperties = {
+  minHeight: IMAGE_MIN_HEIGHT,
+  maxHeight: IMAGE_MAX_HEIGHT,
+};
+
+/**
+ * 캐러셀 한 장 크기 — width:auto + 높이 고정이면 브라우저가 원본 비율대로 폭을 잡는다.
+ * min/max-width가 허용 범위 밖만 잘라내므로 장별 폭 계산이 필요 없다.
+ */
+const SLIDE_IMAGE_SIZE: CSSProperties = {
+  width: "auto",
+  minWidth: SLIDE_MIN_WIDTH,
+  maxWidth: SLIDE_MAX_WIDTH,
+};
 
 /** 1장 실패 폴백 높이 — 폭 파생이라 기기를 따라간다. */
 const SINGLE_FALLBACK_HEIGHT = `calc(${IMAGE_WIDTH} * ${FALLBACK_HEIGHT_RATIO})`;
@@ -132,15 +163,21 @@ function SingleImage({
   const [attempt, setAttempt] = useState(0);
   const [failed, setFailed] = useState(false);
   const [reveal, setReveal] = useState<ImageReveal>(undefined);
+  // 깔 사진은 첫 시도에만 — '다시 시도'는 원본 한 장으로 받는다(지금까지와 같음).
+  const preview = useCoverPreview(attempt === 0, setReveal);
+  const { dropPreview } = preview;
 
   // 높이는 CSS가 잡아 잴 것은 없지만, 받는 중이던 사진은 다 불러온 뒤에 옅게 나타나게 한다.
   // 하이드레이션 전에 끝난 이미지는 이벤트를 놓치므로 부착 시점에 직접 확인한다.
   // 재시도는 실패 폴백을 거쳐 새 img로 붙으므로 여기서 등장 상태도 새로 정해진다.
   const detectSettledImage = useCallback((img: HTMLImageElement | null) => {
     if (!img) return;
-    if (readSettledImage(img) === "failed") setFailed(true);
+    const settled = readSettledImage(img);
+    if (settled === "failed") setFailed(true);
+    // 원본을 이미 받았으면 깔 사진은 필요 없다 — 원본이 바로 칸 크기를 잡는다.
+    if (settled === "loaded") dropPreview();
     setReveal(revealOnAttach(img));
-  }, []);
+  }, [dropPreview]);
 
   function handleRetry() {
     setFailed(false);
@@ -170,21 +207,28 @@ function SingleImage({
         className,
       )}
     >
+      {preview.showPreview ? (
+        <CoverPreview
+          url={image.imageUrl}
+          style={SINGLE_IMAGE_SIZE}
+          className="block w-full"
+          onShown={preview.markShown}
+          onFail={dropPreview}
+        />
+      ) : null}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         ref={detectSettledImage}
         src={withRetryParam(image.imageUrl, attempt)}
         alt=""
-        style={{
-          // 높이는 auto가 기본 — 원본 비율이 허용 범위 안이면 둘 다 걸리지 않는다.
-          minHeight: IMAGE_MIN_HEIGHT,
-          maxHeight: IMAGE_MAX_HEIGHT,
-        }}
-        onLoad={() => setReveal(revealOnLoad)}
+        // 받는 동안은 깔 사진 위에 투명하게 겹친다 — 칸 크기는 깔 사진이 잡는다.
+        style={preview.showPreview ? undefined : SINGLE_IMAGE_SIZE}
+        onLoad={(event) => preview.handleOriginalLoad(event.currentTarget)}
         onError={() => setFailed(true)}
         // block: inline 이미지의 baseline 여백을 없앤다.
         className={cn(
-          "block w-full object-cover object-center",
+          preview.showPreview ? "absolute inset-0 h-full w-full" : "block w-full",
+          "object-cover object-center",
           imageRevealClassName(reveal),
         )}
       />
@@ -257,6 +301,7 @@ function ImageCarousel({
           <CarouselSlide
             key={image.imageUrl}
             image={image}
+            isCover={index === 0}
             label={`이미지 ${index + 1} / ${images.length} 크게 보기`}
             onOpen={() => onOpen(index)}
           />
@@ -286,23 +331,32 @@ function ImageCarousel({
  */
 function CarouselSlide({
   image,
+  isCover,
   label,
   onOpen,
 }: {
   image: PostImage;
+  /** 첫 장 — 피드 카드에 대표로 나온 사진이라 피드 주소 사진을 밑에 깐다. */
+  isCover: boolean;
   label: string;
   onOpen: () => void;
 }) {
   const [attempt, setAttempt] = useState(0);
   const [failed, setFailed] = useState(false);
   const [reveal, setReveal] = useState<ImageReveal>(undefined);
+  // 둘째 장부터는 피드에 나오지 않아 깔아도 캐시 이득이 없다.
+  const preview = useCoverPreview(isCover && attempt === 0, setReveal);
+  const { dropPreview } = preview;
 
   // 높이 고정이라 잴 것은 없지만, 받는 중이던 사진은 다 불러온 뒤에 옅게 나타나게 한다.
   const detectSettledImage = useCallback((img: HTMLImageElement | null) => {
     if (!img) return;
-    if (readSettledImage(img) === "failed") setFailed(true);
+    const settled = readSettledImage(img);
+    if (settled === "failed") setFailed(true);
+    // 원본을 이미 받았으면 깔 사진은 필요 없다 — 원본이 바로 칸 크기를 잡는다.
+    if (settled === "loaded") dropPreview();
     setReveal(revealOnAttach(img));
-  }, []);
+  }, [dropPreview]);
 
   function handleRetry() {
     setFailed(false);
@@ -333,25 +387,126 @@ function CarouselSlide({
       // 로드 전 자리 색(surface/secondary)은 버튼이 깐다 — 사진은 다 불러온 뒤 옅게 나타난다.
       className="relative h-full shrink-0 overflow-hidden rounded-2xl bg-surface-secondary"
     >
+      {preview.showPreview ? (
+        <CoverPreview
+          url={image.imageUrl}
+          style={SLIDE_IMAGE_SIZE}
+          className="block h-full"
+          onShown={preview.markShown}
+          onFail={dropPreview}
+        />
+      ) : null}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         ref={detectSettledImage}
         src={withRetryParam(image.imageUrl, attempt)}
         alt=""
-        style={{
-          // width:auto + 높이 고정 → 브라우저가 원본 비율대로 폭을 잡는다.
-          // min/max-width가 허용 범위 밖만 잘라내므로 장별 폭 계산이 필요 없다.
-          width: "auto",
-          minWidth: SLIDE_MIN_WIDTH,
-          maxWidth: SLIDE_MAX_WIDTH,
-        }}
-        onLoad={() => setReveal(revealOnLoad)}
+        // 받는 동안은 깔 사진 위에 투명하게 겹친다 — 장 폭은 깔 사진이 잡는다.
+        style={preview.showPreview ? undefined : SLIDE_IMAGE_SIZE}
+        onLoad={(event) => preview.handleOriginalLoad(event.currentTarget)}
         onError={() => setFailed(true)}
         className={cn(
-          "block h-full object-cover object-center",
+          preview.showPreview ? "absolute inset-0 h-full w-full" : "block h-full",
+          "object-cover object-center",
           imageRevealClassName(reveal),
         )}
       />
     </button>
   );
+}
+
+/**
+ * 대표 사진(1장, 캐러셀 첫 장) 밑에 까는 사진 — 피드 카드와 같은 주소라 피드에서 본 글이면 캐시에서 바로 뜬다.
+ *
+ * 원본이 오기 전 빈칸 대신 보이고, 칸 크기도 이 사진이 먼저 잡는다. 원본과 비율이 같아 원본이 덮여도
+ * 크기·잘림이 그대로다. 원본은 위에 겹쳐 그대로 받는다 — 줄인 주소만 쓰면 캐러셀처럼 높이를 고정해
+ * 늘려 그리는 칸과 넓은 화면에서 흐려지고, 확대 뷰어도 원본을 새로 받느라 늦게 뜬다.
+ * 원본을 다 받으면 내려(useCoverPreview) 1200px 사진을 메모리에 들고 있지 않는다.
+ */
+function CoverPreview({
+  url,
+  style,
+  className,
+  onShown,
+  onFail,
+}: {
+  url: string;
+  style: CSSProperties;
+  className: string;
+  /** 다 받아 화면에 다 보이게 됐을 때. 콜백 둘 다 바뀌지 않는 함수여야 한다 — 바뀌면 ref가 다시 붙어 등장 상태가 처음으로 돌아간다. */
+  onShown: () => void;
+  onFail: () => void;
+}) {
+  const [reveal, setReveal] = useState<ImageReveal>(undefined);
+
+  const detectSettledImage = useCallback(
+    (img: HTMLImageElement | null) => {
+      if (!img) return;
+      const settled = readSettledImage(img);
+      if (settled === "failed") onFail();
+      // 부착 때 이미 받아 있으면 페이드 없이 그대로 보인다.
+      if (settled === "loaded") onShown();
+      setReveal(revealOnAttach(img));
+    },
+    [onShown, onFail],
+  );
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      ref={detectSettledImage}
+      src={resizeImageKitUrl(url, FEED_IMAGE_TRANSFORM)}
+      alt=""
+      aria-hidden
+      style={style}
+      onLoad={() => setReveal(revealOnLoad)}
+      // 페이드가 끝나야 '보인다'로 친다 — 반쯤 투명할 때 원본으로 바로 바꾸면 한 번에 진해진다.
+      // 동작 줄이기에서는 페이드가 없어 끝 이벤트도 없다 — 원본이 지금처럼 나타나는 쪽으로 간다.
+      onAnimationEnd={onShown}
+      onError={onFail}
+      className={cn(
+        "object-cover object-center",
+        className,
+        imageRevealClassName(reveal),
+      )}
+    />
+  );
+}
+
+/**
+ * 대표 사진 밑에 까는 사진(CoverPreview)의 상태 — 1장과 캐러셀 첫 장이 같이 쓴다.
+ * 원본을 다 받거나 깔 사진이 실패하면 내린다. 원본 요소는 같은 자리에 그대로라 다시 받지 않고,
+ * 흐름 안으로 돌아와 칸 크기를 다시 잡는다 — 원본이 먼저 와도 원본 비율로 칸이 잡힌다.
+ */
+function useCoverPreview(
+  enabled: boolean,
+  setReveal: Dispatch<SetStateAction<ImageReveal>>,
+) {
+  const [dropped, setDropped] = useState(false);
+  // 깔 사진이 다 받아져 화면에 보이는지 — 원본이 그 위로 바로 바뀌어도 되는지 가른다.
+  const [shown, setShown] = useState(false);
+  const dropPreview = useCallback(() => setDropped(true), []);
+  const markShown = useCallback(() => setShown(true), []);
+  const showPreview = enabled && !dropped;
+
+  function handleOriginalLoad(img: HTMLImageElement) {
+    // 깔 사진이 없거나 아직 안 보였으면 지금까지처럼 원본이 옅게 나타난다.
+    if (!showPreview || !shown) {
+      setReveal(revealOnLoad);
+      dropPreview();
+      return;
+    }
+    // 같은 사진이 이미 보이고 있어 페이드 없이 바로 바꾼다 — 투명부터 다시 나타나게 하면 바탕색이 비친다.
+    // load는 디코드가 끝났다는 보장이 없어, 디코드를 기다린 뒤 깔 사진을 내린다(먼저 내리면 한 프레임 빈다).
+    // 디코드가 끝나지 않는 기기에서 깔 사진에 머물지 않게 기다림에 상한을 둔다.
+    Promise.race([
+      img.decode().catch(() => {}),
+      new Promise((resolve) => setTimeout(resolve, DECODE_WAIT_LIMIT_MS)),
+    ]).then(() => {
+      setReveal(undefined);
+      dropPreview();
+    });
+  }
+
+  return { showPreview, markShown, dropPreview, handleOriginalLoad };
 }
