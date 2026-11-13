@@ -175,7 +175,7 @@ export function CompetitionTopTint({
   /** 필터 줄 바탕 — 그 자리의 그라데이션 구간으로 칠한다. */
   barRef: RefObject<HTMLElement | null>;
 }) {
-  const { color, depth } = TINT[rank];
+  const { color, depth, height } = TINT[rank];
   const layerRef = useRef<HTMLDivElement>(null);
   const requestUpdateRef = useRef<() => void>(() => {});
   const ready = shown !== null;
@@ -237,13 +237,14 @@ export function CompetitionTopTint({
       const layerTop = layer.getBoundingClientRect().top;
       const barRect = bar?.getBoundingClientRect();
       const from = barRect ? barRect.top - layerTop : window.scrollY;
-      const top = tintAt(from) * strength;
+      const top = tintAt(from, height) * strength;
       if (bar && barRect && top > 0) {
         bar.style.background = tintGradient(
           color,
           from,
           from + barRect.height,
           strength,
+          height,
         );
       } else {
         bar?.style.removeProperty("background");
@@ -271,7 +272,7 @@ export function CompetitionTopTint({
       delete html.dataset[TINT_FLAG];
       setNativeCompetitionHeaderTint(null);
     };
-  }, [barRef, color, depth, ready]);
+  }, [barRef, color, depth, height, ready]);
 
   return (
     <div
@@ -279,9 +280,9 @@ export function CompetitionTopTint({
       aria-hidden
       className="pointer-events-none absolute inset-x-0 top-0"
       style={{
-        height: TINT_HEIGHT,
+        height,
         opacity: 0,
-        background: tintGradient(color, 0, TINT_HEIGHT, depth),
+        background: tintGradient(color, 0, height, depth, height),
       }}
     />
   );
@@ -301,6 +302,12 @@ export function smoothOutEasing() {
  * 띠처럼 끊겨 보이지 않게 넉넉히 잡는다.
  */
 const TINT_HEIGHT = 420;
+/**
+ * 흰띠(먹색) 그라데이션 높이 — 먹색은 색이 없어 옅어지는 구간이 회색 카드(cool-gray-25)와 같은 밝기가 되면
+ * 카드 테두리가 바탕에 묻힌다. 필터 줄 뒤에서 다 옅어지게 짧게 잡아 카드는 늘 맨 바탕 위에 둔다.
+ * 다른 띠는 색이 있어 회색 카드와 섞이지 않아 TINT_HEIGHT 그대로다.
+ */
+const WHITE_BELT_TINT_HEIGHT = 150;
 /**
  * 그라데이션 곡선 — [높이 비율, 띠 색 %]. smoothstep(3t²−2t³)을 12칸으로 나눈 값이라 맨 위와 맨 끝이 둘 다
  * 평평하다 — 끝에서 꺾이는 자리가 없어 어디서 사라졌는지 눈에 걸리지 않는다.
@@ -322,9 +329,9 @@ const TINT_STOPS: readonly (readonly [number, number])[] = [
   [1, 0],
 ];
 
-/** 맨 위에서 y(px)만큼 내려간 자리의 띠 색 비율(%) — TINT_STOPS 사이를 곧게 잇는다(CSS 그라데이션과 같다). */
-function tintAt(y: number): number {
-  const at = y / TINT_HEIGHT;
+/** 맨 위에서 y(px)만큼 내려간 자리의 띠 색 비율(%) — 높이 height 안에서 TINT_STOPS 사이를 곧게 잇는다(CSS 그라데이션과 같다). */
+function tintAt(y: number, height: number): number {
+  const at = y / height;
   if (at <= 0) return TINT_STOPS[0][1];
   for (let index = 1; index < TINT_STOPS.length; index += 1) {
     const [x1, p1] = TINT_STOPS[index];
@@ -349,18 +356,19 @@ function tintGradient(
   from: number,
   to: number,
   strength: number,
+  height: number,
 ) {
   const span = Math.max(to - from, 1);
   const ys = [
     from,
-    ...TINT_STOPS.map(([x]) => x * TINT_HEIGHT).filter(
+    ...TINT_STOPS.map(([x]) => x * height).filter(
       (y) => y > from && y < to,
     ),
     to,
   ];
   const stops = ys.map(
     (y) =>
-      `${mixOf(color, tintAt(y) * strength)} ${(((y - from) / span) * 100).toFixed(2)}%`,
+      `${mixOf(color, tintAt(y, height) * strength)} ${(((y - from) / span) * 100).toFixed(2)}%`,
   );
   return `linear-gradient(180deg, ${stops.join(", ")})`;
 }
@@ -407,11 +415,35 @@ function toHex(value: string): string | null {
  * 검은띠 빨강은 경고용 Red-500이 아니라 띠 그림의 빨간 바 색(red-belt-bar) — 넓게 깔려도 눈이 편하다.
  * depth: TINT_STOPS 곡선에 곱하는 진하기 — 먹색은 색이 없어 같은 비율이면 옅은 회색 막으로만 보여 조금 짙게
  * 깔되, 다섯 띠를 나란히 놓았을 때 혼자 무겁지 않을 만큼만.
+ * height: 그라데이션이 다 옅어지는 높이(px) — 흰띠만 짧다(WHITE_BELT_TINT_HEIGHT).
  */
-const TINT: Record<BeltRank, { color: string; depth: number }> = {
-  white: { color: "var(--my-profile-header-bg-black)", depth: 1.3 },
-  blue: { color: "var(--my-profile-header-bg-blue)", depth: 1 },
-  purple: { color: "var(--my-profile-header-bg-purple)", depth: 1 },
-  brown: { color: "var(--my-profile-header-bg-brown)", depth: 1 },
-  black: { color: "var(--red-belt-bar)", depth: 1 },
+const TINT: Record<
+  BeltRank,
+  { color: string; depth: number; height: number }
+> = {
+  white: {
+    color: "var(--my-profile-header-bg-black)",
+    depth: 1.3,
+    height: WHITE_BELT_TINT_HEIGHT,
+  },
+  blue: {
+    color: "var(--my-profile-header-bg-blue)",
+    depth: 1,
+    height: TINT_HEIGHT,
+  },
+  purple: {
+    color: "var(--my-profile-header-bg-purple)",
+    depth: 1,
+    height: TINT_HEIGHT,
+  },
+  brown: {
+    color: "var(--my-profile-header-bg-brown)",
+    depth: 1,
+    height: TINT_HEIGHT,
+  },
+  black: {
+    color: "var(--red-belt-bar)",
+    depth: 1,
+    height: TINT_HEIGHT,
+  },
 };

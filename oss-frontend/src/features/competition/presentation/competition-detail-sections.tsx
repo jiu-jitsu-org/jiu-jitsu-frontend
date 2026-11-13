@@ -4,6 +4,7 @@ import type { Competition } from "@/features/competition/domain/competition";
 import type { CompetitionFeeItem } from "@/features/competition/domain/competition-fee";
 import {
   feeAmountLabel,
+  feeNoteLines,
   longDateLabel,
   shortDateLabel,
 } from "@/features/competition/presentation/competition-detail-format";
@@ -115,7 +116,7 @@ export function CompetitionInfoSection({
 
 /**
  * 참가비 (#364) — 단계별 금액. 기한이 지난 단계는 흐리게 두고 읽어 주는 글에 "기한 지남"을 붙인다.
- * 얼리버드가 없으면 기본 참가비 한 줄만 나온다. 신청과 결제는 대회 공지에서 한다.
+ * 얼리버드가 없으면 기본 참가비 한 줄만 나온다. 신청·결제 안내는 기본 정보의 '대회 공지 보기'가 맡는다.
  */
 export function CompetitionFeeSection({
   fees,
@@ -128,6 +129,10 @@ export function CompetitionFeeSection({
   currentYear: number;
 }) {
   if (fees.length === 0) return null;
+  // 서버 글이 비었거나 "·"·마침표뿐이면 기본 문구로 채운다.
+  const parsedNote = feeNote ? feeNoteLines(feeNote) : [];
+  const noteLines =
+    parsedNote.length > 0 ? parsedNote : ["성인 1종목 기준이에요"];
   return (
     <DetailSection title="참가비" icon={<WonCoinIcon size={20} />}>
       <ul className="flex flex-col">
@@ -161,10 +166,15 @@ export function CompetitionFeeSection({
         ))}
       </ul>
       <p className="mt-1 pb-1 text-[13px] leading-[18px] text-text-tertiary">
-        {feeNote
-          ? `${feeNote.trim().replace(/[.。]$/, "")}. `
-          : "성인 1종목 기준이에요. "}
-        신청과 결제는 대회 공지에서 해요
+        {noteLines.map((line, index) => (
+          // "·" 조각마다 한 줄. 블록만으로는 읽어 주는 글이 이어 읽어, 줄 사이에 보이지 않는 쉼표를 둔다.
+          <span key={index} className="block">
+            {line}
+            {index < noteLines.length - 1 ? (
+              <span className="sr-only">, </span>
+            ) : null}
+          </span>
+        ))}
       </p>
     </DetailSection>
   );

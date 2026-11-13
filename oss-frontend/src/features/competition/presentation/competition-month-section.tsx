@@ -255,8 +255,8 @@ export function deadlineLabel(
 /**
  * 상태 칩 — 박스 아래 칩 줄의 알약.
  *
- * 색 면은 접수 중(옅은 파랑) 하나다. 접수 예정·HOT·마감은 회색 박스 위에 흰 면으로 띄운다 — 옅은 빨강 면은 회색 위에서
- * 묻혀서, HOT은 흰 면 + 굵은 빨강 글자로 띄운다(마감은 흐린 글자).
+ * 칩은 모두 회색 박스 위에 흰 면으로 띄우고 글자색으로 나눈다 — 옅은 파랑·옅은 빨강 면은 회색 위에서 묻혀서,
+ * 접수 중은 파랑 글자, HOT은 굵은 빨강 글자, 마감은 흐린 글자다.
  * 누르는 칩(필터 줄)과 헷갈리지 않게 테두리 없이 면만 쓴다. 폰에서 앞 아이콘이 읽히게 아이콘 16 · 높이 26 · 글자 13.
  * 앞 아이콘은 글자색을 따른다 — HOT의 불꽃만 제 색(빨강 + 노랑 속불)을 갖는다.
  */
@@ -284,7 +284,7 @@ export function StatusChip({
         "inline-flex h-[26px] items-center gap-1 rounded-full pr-2.5 pl-1.5 text-[13px] leading-none font-semibold whitespace-nowrap",
         !onDark &&
           tone === "primary" &&
-          "bg-surface-primary-subtle text-primary",
+          "bg-surface-container text-primary",
         !onDark &&
           tone === "neutral" &&
           "bg-surface-container text-text-secondary-strong",
@@ -308,7 +308,8 @@ export function StatusChip({
 }
 
 /**
- * 접수 상태 칩 — 접수 중(파랑 면) · 접수 예정(흰 면) · 접수 마감(흰 면, 흐린 글자).
+ * 접수 상태 칩 — 모두 흰 면, 글자색으로 나눈다: 접수 중(파랑) · 접수 예정(진회색) · 접수 마감(흐린 글자).
+ * 회색 카드 위에서 옅은 파랑 면은 카드와 섞여 칩 모양이 안 보여, 다른 칩과 같은 흰 면으로 띄운다.
  * `dday`면 칩 끝에 남은 날을 붙인다(가는 점으로 띄움). 얼리버드 마감은 칩 글자를 "얼리버드 D-2"로 바꾼다.
  * `surface="dark"`면 진한 카드(곧 마감 배너) 위 모양으로 그린다 — 같은 말·같은 아이콘이라 목록 줄과 같은 칩으로 읽힌다.
  */

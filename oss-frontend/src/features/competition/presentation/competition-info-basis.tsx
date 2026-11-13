@@ -20,7 +20,10 @@ import { useToast } from "@/shared/ui";
 import { SURFACE_PRESS } from "@/shared/ui/press-styles";
 
 /**
- * 정보 기준 (#365) — 무엇을 기준으로 적었는지 · 마지막 확인일 · "정보가 달라요" 제보.
+ * 정보 기준 (#365) — 언제 무엇(대회 공지)을 기준으로 적었는지 · "잘못된 정보 알려 주기" 제보.
+ *
+ * "바뀔 수 있어요"처럼 책임을 미루는 말 대신 확인한 날과 기준을 밝히고, 다른 점은 바로 알려 달라고 한다.
+ * 제보 버튼은 "정보가 달라요"(상태) 대신 동작으로 끝나는 말이라 누르는 자리로 읽힌다.
  *
  * 같은 대회의 마감일이 서비스마다 다른 일이 있어 얼마나 믿을지 스스로 판단하게 기준을 밝힌다.
  * 확인하지 못한 대회는 대회 공지에서 확인하라고 먼저 말한다.
@@ -110,17 +113,16 @@ export function CompetitionInfoBasis({
   return (
     <section className="px-5 pt-4 text-[13px] leading-[18px] text-text-tertiary">
       <p>
-        {verifiedOn
-          ? "대회 공지 기준이에요. 바뀔 수 있어요."
-          : "아직 확인 전인 정보라 대회 공지를 꼭 봐 주세요."}
-      </p>
-      <div className="mt-0.5 flex items-center gap-1">
         {verifiedOn ? (
           <>
-            <span className="tabular-nums">{fullDateLabel(verifiedOn)} 확인</span>
-            <span aria-hidden>·</span>
+            <span className="tabular-nums">{fullDateLabel(verifiedOn)}</span>{" "}
+            대회 공지 기준이에요
           </>
-        ) : null}
+        ) : (
+          "아직 확인 전인 정보라 대회 공지를 꼭 봐 주세요."
+        )}
+      </p>
+      <div className="mt-0.5 flex items-center">
         <button
           type="button"
           disabled={sending}
@@ -135,7 +137,7 @@ export function CompetitionInfoBasis({
             SURFACE_PRESS,
           )}
         >
-          정보가 달라요 ›
+          잘못된 정보 알려 주기 ›
         </button>
       </div>
       {dialog}
