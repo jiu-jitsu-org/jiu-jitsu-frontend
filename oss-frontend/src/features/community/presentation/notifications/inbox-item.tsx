@@ -129,7 +129,7 @@ export function InboxItemShell({
           </span>
         ) : null}
         {trailing ? (
-          <span className="relative mt-2 flex">{trailing}</span>
+          <span className="relative mt-2 flex w-fit">{trailing}</span>
         ) : null}
       </span>
     </li>
