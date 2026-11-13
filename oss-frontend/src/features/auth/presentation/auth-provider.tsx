@@ -5,12 +5,14 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
   type ReactNode,
 } from "react";
 
+import { isDevelopmentRuntime } from "@/config/env";
 import type { SessionState } from "@/features/auth/domain/session";
 import { useSessionHint } from "@/features/auth/presentation/session-hint";
 import {
@@ -37,7 +39,9 @@ import { useOpenInAppPrompt } from "@/shared/ui";
  *   복귀 없이 유도만 하는 경로(promptLogin)도 있다 — 좋아요·저장처럼 토글이라 자동 실행이 위험한 행위용.
  *   네이티브가 없는 외부 브라우저(공유 링크)에서는 "앱에서 계속하기" 안내로 대신한다.
  * - 비로그인 → 로그인 전환을 loginCount로 알린다 — 화면이 viewer 상태(좋아요·소유자 등)를 다시 읽는 신호.
- * - (개발용) 송수신 브릿지 이벤트 로그를 노출해 테스트 하니스가 표시할 수 있게 한다.
+ * - (개발용) 송수신 브릿지 이벤트 로그를 노출한다. 개발 서버에서만 쌓는다 — 쌓을 때마다 이 Provider와
+ *   useAuth를 쓰는 부품(댓글마다 로그인 확인 등)이 모두 다시 그려진다(#442). 지금 이 로그를 보여 주는 화면은 없다
+ *   (auth-playground는 라우트가 되지 않는 app/_backup 아래에 있다).
  */
 
 type AuthStatus = "loading" | "authenticated" | "anonymous";
@@ -133,6 +137,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logEvent = useCallback(
     (direction: BridgeEventDirection, type: string, payload?: unknown) => {
+      // 운영에서는 기록을 읽는 곳이 없다 — 메시지마다 화면 전체를 다시 그리지 않게 건너뛴다.
+      if (!isDevelopmentRuntime()) return;
       eventIdRef.current += 1;
       const entry: BridgeEvent = {
         id: eventIdRef.current,
@@ -290,16 +296,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.WebBridge.receive(JSON.stringify(message));
   }, []);
 
-  const value: AuthContextValue = {
-    status,
-    events,
-    nativeAvailable,
-    requireAuth,
-    promptLogin,
-    loginCount,
-    refresh,
-    simulateInbound,
-  };
+  // 값이 실제로 바뀔 때만 새 객체를 만든다 — 렌더마다 새로 만들면 useAuth를 쓰는 부품이 모두 다시 그려진다(#442).
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      status,
+      events,
+      nativeAvailable,
+      requireAuth,
+      promptLogin,
+      loginCount,
+      refresh,
+      simulateInbound,
+    }),
+    [
+      status,
+      events,
+      nativeAvailable,
+      requireAuth,
+      promptLogin,
+      loginCount,
+      refresh,
+      simulateInbound,
+    ],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
