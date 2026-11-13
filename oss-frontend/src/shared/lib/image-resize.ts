@@ -10,6 +10,9 @@
  */
 const IMAGEKIT_HOST = "ik.imagekit.io";
 
+/** 사진 서버 주소 — 루트 layout이 첫 HTML에서 미리 연결해 둔다(#440). */
+export const IMAGEKIT_ORIGIN = `https://${IMAGEKIT_HOST}`;
+
 /** 프로필 사진: 가장 크게 보이는 64px(내 활동 머리)의 3배. 화면마다 같은 주소라 한 번 받으면 캐시를 같이 쓴다. */
 export const AVATAR_IMAGE_TRANSFORM = "w-192,h-192";
 

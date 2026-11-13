@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from "next";
+import { preconnect } from "react-dom";
 
 import { AuthProvider } from "@/features/auth/presentation/auth-provider";
 import { MyBeltWatcher } from "@/features/community/presentation/my-belt-watcher";
 import { OpenInAppPromptProvider, ToastProvider } from "@/shared/ui";
+import { IMAGEKIT_ORIGIN } from "@/shared/lib/image-resize";
 import {
   SITE_DESCRIPTION,
   SITE_NAME,
@@ -47,6 +49,10 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // 사진은 거의 모든 화면에서 ImageKit에서 받는다 — 첫 사진 요청 때 연결을 새로 맺지 않게 미리 연결해 둔다(#440).
+  // crossOrigin은 두지 않는다: 사진은 일반 img 요청이라 crossorigin 연결은 쓰이지 않는다.
+  preconnect(IMAGEKIT_ORIGIN);
+
   return (
     <html lang="ko" className="h-full antialiased">
       <body className="min-h-full flex flex-col">

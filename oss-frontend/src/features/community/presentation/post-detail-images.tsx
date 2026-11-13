@@ -302,6 +302,9 @@ function ImageCarousel({
             key={image.imageUrl}
             image={image}
             isCover={index === 0}
+            // 첫 화면에는 첫 장과 둘째 장 일부만 보인다 — 셋째 장부터는 낮은 우선순위로 받아 첫 장과 대역을 덜 나눈다(#440).
+            // lazy로 미루지 않는 이유: 장 폭이 사진을 받아야 정해져, 넘기는 도중에 받으면 장이 넓어지며 옆 장이 밀린다.
+            lowPriority={index >= 2}
             label={`이미지 ${index + 1} / ${images.length} 크게 보기`}
             onOpen={() => onOpen(index)}
           />
@@ -332,12 +335,14 @@ function ImageCarousel({
 function CarouselSlide({
   image,
   isCover,
+  lowPriority,
   label,
   onOpen,
 }: {
   image: PostImage;
   /** 첫 장 — 피드 카드에 대표로 나온 사진이라 피드 주소 사진을 밑에 깐다. */
   isCover: boolean;
+  lowPriority: boolean;
   label: string;
   onOpen: () => void;
 }) {
@@ -400,6 +405,7 @@ function CarouselSlide({
       <img
         ref={detectSettledImage}
         src={withRetryParam(image.imageUrl, attempt)}
+        fetchPriority={lowPriority ? "low" : undefined}
         alt=""
         // 받는 동안은 깔 사진 위에 투명하게 겹친다 — 장 폭은 깔 사진이 잡는다.
         style={preview.showPreview ? undefined : SLIDE_IMAGE_SIZE}
@@ -456,6 +462,9 @@ function CoverPreview({
     <img
       ref={detectSettledImage}
       src={resizeImageKitUrl(url, FEED_IMAGE_TRANSFORM)}
+      // 첫 화면에서 가장 먼저 보여야 할 사진이다(#440). 피드에서 오면 캐시라 우선순위와 무관하고,
+      // 바로 들어오면 작은 이 사진이 먼저 와야 빨리 보인다 — 원본은 high로 올리지 않아 이 사진보다 뒤에 받게 한다.
+      fetchPriority="high"
       alt=""
       aria-hidden
       style={style}
