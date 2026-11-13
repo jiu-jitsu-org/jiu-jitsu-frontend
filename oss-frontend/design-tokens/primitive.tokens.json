@@ -612,6 +612,24 @@
             "ALL_SCOPES"
           ]
         }
+      },
+      "belt-bar": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.6745098039215687,
+            0.1568627450980392,
+            0.1568627450980392
+          ],
+          "alpha": 1,
+          "hex": "#AC2828"
+        },
+        "$extensions": {
+          "com.figma.scopes": [
+            "ALL_SCOPES"
+          ]
+        }
       }
     },
     "B&W": {

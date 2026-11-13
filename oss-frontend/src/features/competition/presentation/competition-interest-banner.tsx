@@ -151,7 +151,7 @@ export function isReloadedDocument(): boolean {
 /**
  * 위에서 내려오는 내 띠 색 그라데이션 — 화면 맨 위(필터 줄 뒤)에서 은은하게 시작해 배너 아래에서 바탕색으로 녹는다.
  * 배너가 있든 없든 늘 깐다. 배너 자리가 정해지면 0.5초에 걸쳐 옅게 들어오고(당겨서 새로고침이면 앱 머리에 이미 색이 깔려 있어
- * 바로 칠한다), `shown`이 꺼지면 0.5초에 걸쳐 옅어진다. 흰띠는 회색, 검은띠는 끝 칸의 빨강으로 물들인다.
+ * 바로 칠한다), `shown`이 꺼지면 0.5초에 걸쳐 옅어진다. 흰띠는 검은 바의 먹색, 검은띠는 끝 칸의 빨강으로 물들인다.
  *
  * 화면 맨 앞에 두고 z를 주지 않아, 뒤에 오는 필터 줄(sticky)·배너(relative)가 그 위에 그려진다.
  * 음수 z + isolate로 깔면 같은 화면의 시트(fixed z-50)가 main 안에 갇혀 토스트 등과 순서가 바뀌어 쓰지 않는다.
@@ -175,7 +175,7 @@ export function CompetitionTopTint({
   /** 필터 줄 바탕 — 그 자리의 그라데이션 구간으로 칠한다. */
   barRef: RefObject<HTMLElement | null>;
 }) {
-  const color = TINT_COLOR[rank];
+  const { color, depth } = TINT[rank];
   const layerRef = useRef<HTMLDivElement>(null);
   const requestUpdateRef = useRef<() => void>(() => {});
   const ready = shown !== null;
@@ -233,7 +233,7 @@ export function CompetitionTopTint({
     const update = () => {
       frame = 0;
       // 옅어지는 중이면 지금 불투명도만큼 색을 줄인다 — 앱 머리·필터 줄이 그라데이션과 같은 박자로 옅어진다.
-      const strength = Number(getComputedStyle(layer).opacity) || 0;
+      const strength = (Number(getComputedStyle(layer).opacity) || 0) * depth;
       const layerTop = layer.getBoundingClientRect().top;
       const barRect = bar?.getBoundingClientRect();
       const from = barRect ? barRect.top - layerTop : window.scrollY;
@@ -271,7 +271,7 @@ export function CompetitionTopTint({
       delete html.dataset[TINT_FLAG];
       setNativeCompetitionHeaderTint(null);
     };
-  }, [barRef, color, ready]);
+  }, [barRef, color, depth, ready]);
 
   return (
     <div
@@ -281,7 +281,7 @@ export function CompetitionTopTint({
       style={{
         height: TINT_HEIGHT,
         opacity: 0,
-        background: tintGradient(color, 0, TINT_HEIGHT, 1),
+        background: tintGradient(color, 0, TINT_HEIGHT, depth),
       }}
     />
   );
@@ -401,11 +401,17 @@ function toHex(value: string): string | null {
     .toUpperCase()}`;
 }
 
-/** 그라데이션 색 — 프로필 머리의 띠 색 토큰을 쓴다. */
-const TINT_COLOR: Record<BeltRank, string> = {
-  white: "var(--cool-gray-400)",
-  blue: "var(--my-profile-header-bg-blue)",
-  purple: "var(--my-profile-header-bg-purple)",
-  brown: "var(--my-profile-header-bg-brown)",
-  black: "var(--red-500)",
+/**
+ * 그라데이션 색 — 띠 몸 색으로 칠하되, 몸 색이 너무 밝거나(흰띠) 어두우면(검은띠) 그 띠의 바 색으로 칠한다.
+ * 흰띠는 검은 바(먹색), 검은띠는 빨간 바. 앱 MY 머리 색도 같은 규칙이다.
+ * 검은띠 빨강은 경고용 Red-500이 아니라 띠 그림의 빨간 바 색(red-belt-bar) — 넓게 깔려도 눈이 편하다.
+ * depth: TINT_STOPS 곡선에 곱하는 진하기 — 먹색은 색이 없어 같은 비율이면 옅은 회색 막으로만 보여 조금 짙게
+ * 깔되, 다섯 띠를 나란히 놓았을 때 혼자 무겁지 않을 만큼만.
+ */
+const TINT: Record<BeltRank, { color: string; depth: number }> = {
+  white: { color: "var(--my-profile-header-bg-black)", depth: 1.3 },
+  blue: { color: "var(--my-profile-header-bg-blue)", depth: 1 },
+  purple: { color: "var(--my-profile-header-bg-purple)", depth: 1 },
+  brown: { color: "var(--my-profile-header-bg-brown)", depth: 1 },
+  black: { color: "var(--red-belt-bar)", depth: 1 },
 };
