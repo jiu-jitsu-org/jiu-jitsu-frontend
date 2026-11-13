@@ -11,6 +11,7 @@ import { FeedErrorState } from "@/features/community/presentation/feed-error-sta
 import { InboxAppBar } from "@/features/community/presentation/notifications/inbox-app-bar";
 import { InboxView } from "@/features/community/presentation/notifications/inbox-view";
 import { SubviewScrollShell } from "@/features/community/presentation/subview-scroll-shell";
+import { NativePageReady } from "@/shared/lib/native-bridge";
 
 /**
  * 알림함 화면 루트 (서버 컴포넌트) — /community/notifications (#187).
@@ -39,10 +40,15 @@ export async function InboxScreen() {
 function renderContent(result: InboxPageDataResult): ReactNode {
   if (result.ok) {
     return (
-      <InboxView
-        initialNotifications={result.notifications}
-        competitionAlertSettings={result.competitionAlertSettings}
-      />
+      <>
+        <InboxView
+          initialNotifications={result.notifications}
+          competitionAlertSettings={result.competitionAlertSettings}
+        />
+        {/* 다 그려지면 앱이 그림·글꼴을 다 받기 전에 로딩 덮개를 걷는다(jiu-jitsu-ios#261).
+            조회에 성공한 화면(빈 목록 포함)에서만 보낸다 — 만료 복구·오류·비로그인 화면은 load 때 걷힌다. */}
+        <NativePageReady />
+      </>
     );
   }
 

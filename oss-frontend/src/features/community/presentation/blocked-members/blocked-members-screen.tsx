@@ -11,6 +11,7 @@ import { BlockedMembersView } from "@/features/community/presentation/blocked-me
 import { EmptyState } from "@/shared/ui/empty-state";
 import { FeedErrorState } from "@/features/community/presentation/feed-error-state";
 import { SubviewScrollShell } from "@/features/community/presentation/subview-scroll-shell";
+import { NativePageReady } from "@/shared/lib/native-bridge";
 import { Spinner } from "@/shared/ui";
 
 /**
@@ -39,7 +40,14 @@ export async function BlockedMembersScreen() {
 
 function renderContent(result: BlockedMembersPageDataResult): ReactNode {
   if (result.ok) {
-    return <BlockedMembersView initialMembers={result.members} />;
+    return (
+      <>
+        <BlockedMembersView initialMembers={result.members} />
+        {/* 다 그려지면 앱이 그림·글꼴을 다 받기 전에 로딩 덮개를 걷는다(jiu-jitsu-ios#261).
+            조회에 성공한 화면(빈 목록 포함)에서만 보낸다 — 만료 복구·오류·비로그인 화면은 load 때 걷힌다. */}
+        <NativePageReady />
+      </>
+    );
   }
 
   if (result.reason === "guest") {

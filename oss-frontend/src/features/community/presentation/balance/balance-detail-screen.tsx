@@ -4,6 +4,7 @@ import type { CommentSort } from "@/features/community/domain/post";
 import { DetailErrorState } from "@/features/community/presentation/detail-error-state";
 import { BalanceDetailGone } from "@/features/community/presentation/balance/balance-detail-gone";
 import { BalanceDetailView } from "@/features/community/presentation/balance/balance-detail-view";
+import { NativePageReady } from "@/shared/lib/native-bridge";
 import { Spinner } from "@/shared/ui/spinner";
 
 /**
@@ -42,7 +43,14 @@ export async function BalanceDetailScreen({
 
   const { game, comments } = result.data;
 
-  return <BalanceDetailView game={game} comments={comments} sort={sort} />;
+  return (
+    <>
+      <BalanceDetailView game={game} comments={comments} sort={sort} />
+      {/* 다 그려지면 앱이 그림·글꼴을 다 받기 전에 로딩 덮개를 걷는다(jiu-jitsu-ios#261).
+          게시글 상세와 같이 만료 복구·오류 화면에서는 보내지 않는다 — 그때는 load 때 걷힌다. */}
+      <NativePageReady />
+    </>
+  );
 }
 
 /** 상세 복구(세션 갱신) 중 표시. */
