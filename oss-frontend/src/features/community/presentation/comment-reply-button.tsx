@@ -17,7 +17,9 @@ import { CommentIcon } from "@/shared/ui/icons";
  * 댓글 답글 버튼 (클라이언트 leaf).
  *
  * 탭하면 하단 입력 바를 답글 모드로 전환한다(대상 칩 노출 + 포커스).
- * 최상위 댓글 행에만 놓인다 — 대댓글에는 답글 버튼이 없다(#131).
+ * 최상위 댓글과 대댓글 모두에 놓인다(#451). 대댓글에서 누르면 그 대댓글 작성자를 대상으로 칩을 띄우고
+ * 입력창 앞에 `@닉네임`을 넣되, 등록은 같은 최상위 스레드 끝에 붙는다(2단 유지).
+ * #131에서 대댓글 버튼을 뺐던 이유(칩이 누른 사람이 아니라 부모 작성자를 가리킴)는 대상을 나눠 담아 풀었다.
  * 인라인 입력창 대신 기존 입력 바를 재사용하는 이유: 키보드 대응·멀티라인·전송 로직이 이미
  * 그쪽에 있고, 입력창이 키보드에 가리지 않게 스크롤을 따로 보정할 필요도 없다.
  *
@@ -28,13 +30,16 @@ export function CommentReplyButton({
   nickname,
   replyCount,
   replied,
+  mention = false,
 }: {
-  /** 서버로 보낼 부모 댓글 id — 이 버튼은 최상위 댓글에만 있으므로 그 댓글의 id다. */
+  /** 서버로 보낼 부모 댓글 id — 대댓글에 놓여도 늘 최상위 댓글 id다. */
   parentId: number;
   /** 탭한 댓글의 작성자 닉네임(대상 표시용). */
   nickname: string;
   replyCount: number;
   replied: boolean;
+  /** 입력창 앞에 `@닉네임`을 넣을지 — 대댓글에서만 켠다(ReplyTarget.mention). */
+  mention?: boolean;
 }) {
   const { startReply } = useCommentReply();
   // 비로그인은 답글 모드를 열지 않는다 — 외부 브라우저는 입력 바가 감춰져 있어 앱 안내(#72),
@@ -42,7 +47,7 @@ export function CommentReplyButton({
   const { guard } = useLoginGuard();
 
   function start() {
-    startReply({ parentId, nickname });
+    startReply({ parentId, nickname, mention });
     // 포커스는 입력 바가 대상 변화를 감지해 잡지만, 사용자 제스처 컨텍스트가 살아 있는
     // 이 시점에도 한 번 시도한다 — iOS 웹뷰는 제스처 밖 focus()로 키보드가 안 올라온다.
     document.getElementById(COMMENT_INPUT_ELEMENT_ID)?.focus();

@@ -200,6 +200,7 @@ export function CommentReplies({
             sort={sort}
             postAuthorId={postAuthorId}
             isReply
+            threadId={parentId}
           />
         ))}
       </ul>

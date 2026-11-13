@@ -18,6 +18,12 @@ export type ReplyTarget = {
   parentId: number;
   /** 탭한 댓글 작성자 닉네임 — 대댓글에 답글을 달면 그 대댓글 작성자가 표시된다. */
   nickname: string;
+  /**
+   * 입력창 맨 앞에 `@닉네임 `을 미리 넣을지(#451).
+   * 대댓글에 답할 때만 켠다 — 답글은 늘 최상위 스레드 끝에 붙으므로 누구에게 하는 말인지
+   * 본문의 태그로 남겨야 대화가 이어진다. 최상위 댓글에 답할 땐 스레드 주인이 곧 대상이라 넣지 않는다.
+   */
+  mention?: boolean;
 };
 
 type CommentReplyContextValue = {

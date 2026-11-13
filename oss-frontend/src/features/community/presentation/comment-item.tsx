@@ -6,6 +6,7 @@ import { Avatar } from "@/features/community/presentation/avatar";
 import { BeltAvatar } from "@/features/community/presentation/belt-avatar";
 import { CoachBadge } from "@/features/community/presentation/coach-badge";
 import { CommentLikeButton } from "@/features/community/presentation/comment-like-button";
+import { splitMentions } from "@/features/community/presentation/comment-mention";
 import { CommentReplyButton } from "@/features/community/presentation/comment-reply-button";
 import { CommentMenu } from "@/features/community/presentation/comment-menu";
 import { CommentPlaceholder } from "@/features/community/presentation/comment-placeholder";
@@ -34,14 +35,17 @@ export function CommentItem({
   sort,
   postAuthorId,
   isReply = false,
+  threadId,
 }: {
   comment: Comment;
   /** 대댓글 추가 조회에 그대로 넘길 정렬 — 목록과 어긋나면 중복·누락이 생긴다. */
   sort: CommentSort;
   /** 게시글 작성자 id — 추가 로드된 대댓글의 "작성자" 배지 판정용(CommentReplies로 전달). */
   postAuthorId?: number | null;
-  /** 대댓글이면 아바타 앞에 분기 아이콘을 붙이고, 답글 버튼을 감춘다. */
+  /** 대댓글이면 아바타 앞에 분기 아이콘을 붙인다. */
   isReply?: boolean;
+  /** 대댓글이 속한 최상위 댓글 id — 대댓글의 답글 버튼이 이 스레드 끝에 답글을 붙인다(#451). */
+  threadId?: number;
 }) {
   // 대댓글 렌더는 원문·placeholder가 공유한다 — 부모가 가려져도 스레드는 유지되기 때문.
   // 미리보기가 비어도 총 개수가 있으면 그려야 한다 — 「대댓글 더보기」가 유일한 접근 경로다.
@@ -154,10 +158,19 @@ export function CommentItem({
             프로필 행이 24일 때(간격 7)처럼 닉네임과 본문이 붙어 읽힌다(#299).
             Body S(14/21), feed-card/body/body-text */}
         <p className="mt-0.5 whitespace-pre-wrap text-body-s text-feed-card-body-text">
-          {comment.body}
+          {/* `@닉네임` 태그(#451)는 같은 글자 크기에 파란 글씨로만 구분한다 — 면·밑줄 없이. */}
+          {splitMentions(comment.body).map((part, index) =>
+            part.mention ? (
+              <span key={index} className="text-interactive-primary">
+                {part.text}
+              </span>
+            ) : (
+              part.text
+            ),
+          )}
         </p>
 
-        {/* 본문 바로 하단 반응 행(본문과 간격 0): (최상위만) 답글 · 좋아요(+카운트) — 왼쪽, ⋮ — 오른쪽 끝.
+        {/* 본문 바로 하단 반응 행(본문과 간격 0): 답글 · 좋아요(+카운트) — 왼쪽, ⋮ — 오른쪽 끝.
             높이 28 고정. 버튼 사이 간격 4(gap-1).
             답글·좋아요를 본문 바로 아래 왼쪽에 붙여 "이 댓글의 버튼"으로 읽히게 한다(#258) —
             오른쪽 끝에 몰려 있으면 눈이 반대편까지 가야 하고 다음 댓글에 더 가까워 보인다.
@@ -166,10 +179,21 @@ export function CommentItem({
             색/상태는 comment-reaction-styles가 단일 출처. */}
         <div className="-ml-2 flex h-7 items-center justify-between">
           <div className="flex items-center gap-1">
-            {/* 답글은 최상위 댓글에만 둔다(#131) — 대댓글에 대댓글이 달리지 않는 구조라
-                대댓글의 답글 버튼은 탭한 대상(대댓글 작성자)이 아니라 최상위 스레드에 붙어
-                가리키는 대상이 어긋났고, replyCount도 자기 자식 수라 항상 0이었다. */}
-            {isReply ? null : (
+            {/* 대댓글에도 답글 버튼을 둔다(#451) — 대댓글 아래로 또 들여 쓰지 않고(2단 유지)
+                같은 최상위 스레드 끝에 붙이되, 칩·`@태그`는 누른 대댓글의 작성자를 가리킨다.
+                대댓글의 replyCount·replied는 자기 자식 기준이라 늘 0·false — "댓글쓰기"로 보인다.
+                내 대댓글에 이어 쓸 땐 나를 태그하지 않는다. */}
+            {isReply ? (
+              threadId !== undefined ? (
+                <CommentReplyButton
+                  parentId={threadId}
+                  nickname={comment.author.nickname}
+                  replyCount={0}
+                  replied={false}
+                  mention={!comment.isOwner}
+                />
+              ) : null
+            ) : (
               <CommentReplyButton
                 parentId={comment.id}
                 nickname={comment.author.nickname}
