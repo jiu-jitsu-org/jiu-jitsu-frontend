@@ -5,6 +5,10 @@ import { useEffect, useRef, useState } from "react";
 
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
 import { useRequestBeltPrompt } from "@/features/community/presentation/belt-prompt";
+import {
+  isMentionOnly,
+  swapMention,
+} from "@/features/community/presentation/comment-mention";
 import { useCommentReply } from "@/features/community/presentation/comment-reply-context";
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
@@ -49,6 +53,13 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
   const [lastTarget, setLastTarget] = useState(target);
   if (target && target !== lastTarget) setLastTarget(target);
   const shownTarget = target ?? lastTarget;
+  // 대댓글에 답할 땐 입력창 맨 앞에 `@닉네임 `을 넣는다(#451). 대상이 바뀌거나 취소되면 넣어 둔 태그를
+  // 걷어 내고 새 태그로 바꾼다 — 렌더 중에 직전 대상과 비교해 바로 맞춘다(effect를 거치면 한 박자 늦게 깜빡인다).
+  const [mentionTarget, setMentionTarget] = useState(target);
+  if (target !== mentionTarget) {
+    setMentionTarget(target);
+    setValue((current) => swapMention(current, mentionTarget, target));
+  }
   // 키보드가 떠 있는 동안엔 홈 인디케이터(safe-area)가 키보드에 가려 의미가 없으므로 하단 패딩 0.
   const rect = useViewportRect();
   const { guest, guard } = useLoginGuard();
@@ -93,18 +104,24 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
 
   // 답글 대상이 새로 지정되면 입력창으로 포커스를 옮긴다(버튼 쪽에서도 한 번 시도하지만,
   // 대상이 바뀌기만 한 경우까지 커버하려면 여기서도 반응해야 한다).
+  // 미리 넣은 `@닉네임 ` 뒤에서 바로 이어 쓰게 커서를 글 끝으로 옮긴다 — 버튼이 값이 들어가기 전에
+  // 포커스를 잡아 두므로, iOS 웹뷰는 커서를 태그 앞에 둔 채로 남길 수 있다.
   useEffect(() => {
-    if (!target) return;
-    textareaRef.current?.focus();
+    const el = textareaRef.current;
+    if (!target || !el) return;
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length);
   }, [target]);
 
-  const canSubmit = value.trim().length > 0 && !submitting;
+  // 미리 넣은 태그만 있고 할 말이 없으면 등록하지 않는다.
+  const canSubmit =
+    value.trim().length > 0 && !isMentionOnly(value) && !submitting;
   // 등록에 성공할 때마다 1씩 — 아이콘 key로 써서 종이비행기 모션을 처음부터 다시 재생한다.
   const [sentCount, setSentCount] = useState(0);
 
   async function submit() {
     const content = value.trim();
-    if (!content || submitting) return;
+    if (!canSubmit) return;
 
     // 예시(데모)에선 네트워크 없이 입력만 비운다(목록 갱신/전송 없음).
     if (demo) {
