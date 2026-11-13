@@ -31,3 +31,21 @@ export function feeAmountLabel(amount: number): string {
   if (man > 0 && rest % 1000 === 0) return `${man}만 ${rest / 1000}천 원`;
   return `${amount.toLocaleString("ko-KR")}원`;
 }
+
+/**
+ * 참가비 기준 글(서버) → 보여 줄 줄들. "·"로 이어진 조각을 한 줄씩 나눠, 길어지면 어디서든 끊기지 않고
+ * 뜻 단위로 줄이 바뀌게 한다. 글 속 금액("40,000원")은 참가비 줄과 같은 모양("4만 원")으로 맞춘다.
+ * 끝 마침표는 뗀다. 비어 있으면 빈 배열.
+ */
+export function feeNoteLines(note: string): string[] {
+  return note
+    .trim()
+    .replace(/[.。]$/, "")
+    .split(/\s*·\s*/)
+    .map((part) =>
+      part.replace(/(\d{1,3}(?:,\d{3})+|\d+)\s*원/g, (_, digits: string) =>
+        feeAmountLabel(Number(digits.replaceAll(",", ""))),
+      ),
+    )
+    .filter((part) => part.length > 0);
+}
