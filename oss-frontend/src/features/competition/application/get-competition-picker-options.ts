@@ -5,6 +5,7 @@ import {
 import { isCompetitionEnabled } from "@/features/competition/application/is-competition-enabled";
 import type { Competition } from "@/features/competition/domain/competition";
 import { daysBetween } from "@/features/competition/domain/competition-registration";
+import { readServerNow, toKstDateKey } from "@/shared/lib/time";
 
 /** 글쓰기 대회 고르기의 한 줄(#367). */
 export type CompetitionPickerOption = {
@@ -30,29 +31,90 @@ export type SelectedCompetition = {
 };
 
 /**
+ * 고르기 목록은 글쓰기 · 수정 화면을 열 때마다 백엔드를 기다리지 않게 서버 메모리에 잠시 기억해 둔다(#444).
+ * 익명으로 읽어 모든 사람에게 같은 결과라 함께 써도 된다. 글 종류 목록(#389)과 같은 방식이다 — 기한이 지나면
+ * 기억한 값을 바로 쓰며 뒤에서 새로 받고, 실패는 기억하지 않는다. 기한 동안 새로 등록 · 수정된 대회는
+ * 고르기 목록에 늦게 보인다(이름으로 찾기는 늘 새로 읽는다).
+ */
+const PICKER_CACHE_MS = 5 * 60 * 1000;
+/** 새로 받기에 실패하면 이만큼 뒤에 다시 시도한다 — 장애 동안 요청마다 백엔드를 두드리지 않게. */
+const PICKER_RETRY_MS = 30 * 1000;
+/**
+ * 기억한 목록과 그 목록을 거른 날(응답 today, 백엔드 KST) — 이 서버의 KST 날짜와 다르면 끝난 대회 거르기가
+ * 달라져 다시 받는다. 받은 시각이 아니라 응답 today로 기억해, 자정 직전에 시작한 응답이 "오늘 목록"으로
+ * 남지 않게 한다.
+ */
+let cachedPicker: {
+  options: CompetitionPickerOption[];
+  today: string;
+  at: number;
+} | null = null;
+/** 마지막으로 새로 받기에 실패한 시각 — 날짜가 바뀐 뒤 장애 중에도 요청마다 백엔드를 기다리지 않게. */
+let lastFailureAt: number | null = null;
+let inflight: Promise<CompetitionPickerOption[] | null> | null = null;
+
+/**
  * 글쓰기에서 고를 수 있는 대회(#367 · #421) — 서버가 다가오는 대회 → 끝난 대회(최근 순), 최대 20개를 고른다.
  *
  * 글 수정은 글 조회와 같이 시작하려고 목록만 먼저 읽고(#441), 글을 받은 뒤 withSelectedCompetition으로
- * 이 글이 고른 대회를 합친다. 읽기에 실패해도 빈 목록 — 글쓰기를 막지 않는다. 실패를 삼켜 먼저 시작해 두어도
- * 거부되지 않는다. 대회 화면이 꺼진 배포에서는 빈 목록이다 — 고르기 칸이 나오지 않는다.
+ * 이 글이 고른 대회를 합친다. 읽기에 실패하면 기억해 둔 목록(어제 것이라도), 그것도 없으면 빈 목록 —
+ * 글쓰기를 막지 않는다. 실패를 삼켜 먼저 시작해 두어도 거부되지 않는다. 대회 화면이 꺼진 배포에서는 빈 목록이다 —
+ * 고르기 칸이 나오지 않는다.
  */
 export async function loadPickableCompetitionOptions(): Promise<
   CompetitionPickerOption[]
 > {
   if (!isCompetitionEnabled()) return [];
-  try {
-    // 고르기 목록은 내 관심 등 로그인 값을 쓰지 않는다 — 익명으로 읽어 토큰이 만료돼도 목록이 빠지지 않게.
-    const page = await createGetCompetitionPickerUseCase(null).execute();
-    return page.competitions
-      .filter(
-        (competition) =>
-          competition.date >= page.today ||
-          daysBetween(competition.date, page.today) <= PICKABLE_ENDED_DAYS,
-      )
-      .map(toPickerOption);
-  } catch {
-    return [];
+  const now = readServerNow();
+  // 날짜가 바뀌었으면 기억한 목록을 쓰지 않고 기다려 새로 받는다 — 끝난 지 30일 거르기가 하루 어긋나지 않게.
+  if (cachedPicker && cachedPicker.today === toKstDateKey(now)) {
+    if (now - cachedPicker.at > PICKER_CACHE_MS) void refreshPicker();
+    return cachedPicker.options;
   }
+  // 날짜가 바뀌었는데 방금 새로 받기에 실패했으면 다시 묻지 않고 어제 목록을 쓴다(대부분 그대로 유효).
+  if (
+    cachedPicker &&
+    lastFailureAt !== null &&
+    now - lastFailureAt < PICKER_RETRY_MS
+  ) {
+    return cachedPicker.options;
+  }
+  return (await refreshPicker()) ?? cachedPicker?.options ?? [];
+}
+
+/** 고르기 목록을 새로 받아 기억한다. 동시에 여러 요청이 와도 백엔드에는 한 번만 묻는다. 실패면 null. */
+function refreshPicker(): Promise<CompetitionPickerOption[] | null> {
+  // 저장소를 만들다 바로 던져도 실패 갈래로 가도록 약속 안에서 부른다.
+  inflight ??= Promise.resolve()
+    // 고르기 목록은 내 관심 등 로그인 값을 쓰지 않는다 — 익명으로 읽어 토큰이 만료돼도 목록이 빠지지 않게.
+    .then(() => createGetCompetitionPickerUseCase(null).execute())
+    .then((page) => {
+      const options = page.competitions
+        .filter(
+          (competition) =>
+            competition.date >= page.today ||
+            daysBetween(competition.date, page.today) <= PICKABLE_ENDED_DAYS,
+        )
+        .map(toPickerOption);
+      cachedPicker = { options, today: page.today, at: readServerNow() };
+      lastFailureAt = null;
+      return options;
+    })
+    .catch(() => {
+      // 실패는 기억하지 않는다. 기억한 값이 있으면 그대로 쓰되 다시 시도는 잠시 뒤로 미룬다.
+      lastFailureAt = readServerNow();
+      if (cachedPicker) {
+        cachedPicker = {
+          ...cachedPicker,
+          at: readServerNow() - PICKER_CACHE_MS + PICKER_RETRY_MS,
+        };
+      }
+      return null;
+    })
+    .finally(() => {
+      inflight = null;
+    });
+  return inflight;
 }
 
 /**
