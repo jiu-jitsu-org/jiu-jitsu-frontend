@@ -52,44 +52,62 @@ export function DetailSkeleton({ variant }: { variant: "post" | "balance" }) {
   );
 }
 
-/** 게시글: 작성자 행(24) · 제목 · 메타 · 본문 세 줄. 위 24 · 좌우 16 · 묶음 간격 16. */
+/**
+ * 게시글: 작성자 행(띠 아바타 32) · 제목(줄 24) · 메타(줄 16, 위 6) · 본문 세 줄(줄 21, 위 12).
+ * 실제 상세(PostDetailView · PostAuthorRow · PostDetailBody)와 같은 줄 높이 · 간격이라 데이터가 와도 위쪽 덩어리가
+ * 움직이지 않는다(#452). 글 길이 · 사진 · 태그는 미리 알 수 없어 본문 세 줄 아래부터는 맞추지 않는다.
+ */
 function PostBodySkeleton() {
   return (
-    <div className="flex flex-col gap-4 px-4 pt-6">
+    <div className="flex flex-col gap-2 px-4 pt-6">
+      {/* 작성자 행: 띠 아바타 32 · 닉네임 간격 6 */}
       <div
         style={pulseDelay(0)}
-        className="flex h-6 items-center gap-2 motion-safe:animate-pulse"
+        className="flex h-8 items-center gap-1.5 motion-safe:animate-pulse"
       >
-        <Skeleton className="size-6 rounded-full" />
-        <Skeleton className="h-4 w-20" />
+        <Skeleton className="size-8 rounded-full" />
+        <Skeleton className="h-3.5 w-20" />
       </div>
-      <div
-        style={pulseDelay(1)}
-        className="flex flex-col motion-safe:animate-pulse"
-      >
-        <Skeleton className="h-5 w-2/3" />
-        <Skeleton className="mt-2 h-3 w-32" />
-      </div>
-      <div
-        style={pulseDelay(2)}
-        className="flex flex-col gap-2 motion-safe:animate-pulse"
-      >
-        <Skeleton className="h-3.5 w-full" />
-        <Skeleton className="h-3.5 w-full" />
-        <Skeleton className="h-3.5 w-4/5" />
+      {/* 제목 · 메타 · 본문: 글줄은 띠 아바타 보정으로 2 들인다(pl-0.5) */}
+      <div className="flex flex-col pl-0.5">
+        <div
+          style={pulseDelay(1)}
+          className="flex flex-col motion-safe:animate-pulse"
+        >
+          <div className="flex h-6 items-center">
+            <Skeleton className="h-4 w-2/3" />
+          </div>
+          <div className="mt-1.5 flex h-4 items-center">
+            <Skeleton className="h-3 w-32" />
+          </div>
+        </div>
+        <div
+          style={pulseDelay(2)}
+          className="mt-3 flex flex-col motion-safe:animate-pulse"
+        >
+          <div className="flex h-[21px] items-center">
+            <Skeleton className="h-3.5 w-full" />
+          </div>
+          <div className="flex h-[21px] items-center">
+            <Skeleton className="h-3.5 w-full" />
+          </div>
+          <div className="flex h-[21px] items-center">
+            <Skeleton className="h-3.5 w-4/5" />
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-/** 밸런스 게임: 스코어보드 판(위 20) · 조회수 줄(판 아래 12) — 실제 상세(BalanceDetailView)와 같은 간격. */
+/** 밸런스 게임: 스코어보드 판(위 20) · 조회수 줄(판 아래 12, 줄 16) — 실제 상세(BalanceDetailView)와 같은 간격. */
 function BalanceBodySkeleton() {
   return (
     <div className="flex flex-col px-4 pt-5">
       <BalanceBoardSkeleton variant="detail" style={pulseDelay(0)} />
       <div
         style={pulseDelay(1)}
-        className="mt-3 px-1 motion-safe:animate-pulse"
+        className="mt-3 flex h-4 items-center px-1 motion-safe:animate-pulse"
       >
         <Skeleton className="h-3 w-32" />
       </div>

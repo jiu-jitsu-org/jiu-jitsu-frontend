@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 
 import { MyActivityAppBar } from "@/features/community/presentation/my-activity/my-activity-app-bar";
+import { MY_ACTIVITY_TABS } from "@/features/community/presentation/my-activity/my-activity-tab";
 import { SubviewScrollShell } from "@/features/community/presentation/subview-scroll-shell";
 import { Skeleton } from "@/shared/ui/skeleton";
 
@@ -20,45 +21,58 @@ export function MyActivitySkeleton() {
   return (
     <SubviewScrollShell className="bg-surface-container">
       <MyActivityAppBar />
+      <MyActivitySkeletonBody />
+    </SubviewScrollShell>
+  );
+}
 
-      <div aria-hidden>
-        {/* 프로필 행: 위 12 · 좌우 16 · 아래 20, 간격 12 */}
-        <div
-          style={pulseDelay(0)}
-          className="flex items-center gap-3 px-4 pt-3 pb-5 motion-safe:animate-pulse"
-        >
-          <Skeleton className="size-16 shrink-0 rounded-full" />
-          <Skeleton className="h-6 w-28" />
-        </div>
+/**
+ * 앱바 아래 자리(프로필 · 탭 · 카드) — 세션 복구 중 표시(MyActivityScreen)도 같은 모양을 쓴다.
+ * 카드는 첫 탭(쓴 글) 모양이다. 앱은 늘 첫 탭으로 열고, 다른 탭은 주소(?tab=)로 바로 들어올 때만 어긋난다.
+ */
+export function MyActivitySkeletonBody() {
+  return (
+    <div aria-hidden>
+      {/* 프로필 행: 위 12 · 좌우 16 · 아래 20, 간격 12 */}
+      <div
+        style={pulseDelay(0)}
+        className="flex items-center gap-3 px-4 pt-3 pb-5 motion-safe:animate-pulse"
+      >
+        <Skeleton className="size-16 shrink-0 rounded-full" />
+        <Skeleton className="h-6 w-28" />
+      </div>
 
-        {/* 탭: 높이 44, 두 칸 가운데에 라벨 자리 */}
-        <div
-          style={pulseDelay(1)}
-          className="flex px-4 motion-safe:animate-pulse"
-        >
-          <div className="flex h-11 flex-1 items-center justify-center">
+      {/* 탭: 높이 44, 탭 수(MY_ACTIVITY_TABS)만큼 칸 가운데에 라벨 자리 */}
+      <div style={pulseDelay(1)} className="flex px-4 motion-safe:animate-pulse">
+        {MY_ACTIVITY_TABS.map(({ value }) => (
+          <div
+            key={value}
+            className="flex h-11 flex-1 items-center justify-center"
+          >
             <Skeleton className="h-4 w-14" />
           </div>
-          <div className="flex h-11 flex-1 items-center justify-center">
-            <Skeleton className="h-4 w-14" />
-          </div>
-        </div>
+        ))}
+      </div>
 
-        {/* 카드: 목록 위 16(pt-4), 카드 사이 16 — 메인 피드 스켈레톤과 같은 자리표시 카드 */}
-        <div className="flex flex-col gap-4 pt-4">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <div
-              key={index}
-              style={pulseDelay(index + 2)}
-              className="flex flex-col gap-3 px-4 py-4 motion-safe:animate-pulse"
-            >
+      {/* 카드: 첫 탭(쓴 글)의 목록과 같은 자리 — 목록 위 4(pt-1), 카드 눌림 여백 위아래 12 · 좌우 8(mx-2 px-2 py-3),
+          카드 사이 16(mb-4). 글줄이 실제 카드와 같은 위치(탭 아래 16)에서 시작한다(#452). */}
+      <div className="flex flex-col pt-1">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <div
+            key={index}
+            style={pulseDelay(index + 2)}
+            className="mx-2 mb-4 flex flex-col px-2 py-3 motion-safe:animate-pulse"
+          >
+            <div className="flex h-6 items-center">
               <Skeleton className="h-4 w-2/3" />
+            </div>
+            <div className="mt-2 flex flex-col gap-2">
               <Skeleton className="h-3 w-full" />
               <Skeleton className="h-3 w-5/6" />
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
-    </SubviewScrollShell>
+    </div>
   );
 }

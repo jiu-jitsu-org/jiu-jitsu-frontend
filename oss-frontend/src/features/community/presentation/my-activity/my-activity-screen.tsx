@@ -13,6 +13,7 @@ import { EmptyState } from "@/shared/ui/empty-state";
 import { FeedErrorState } from "@/features/community/presentation/feed-error-state";
 import { MyActivityAppBar } from "@/features/community/presentation/my-activity/my-activity-app-bar";
 import { MyActivityEmptyState } from "@/features/community/presentation/my-activity/my-activity-empty-state";
+import { MyActivitySkeletonBody } from "@/features/community/presentation/my-activity/my-activity-skeleton";
 import {
   myPostListUrl,
   toMyPostListKind,
@@ -23,7 +24,6 @@ import { MyActivityTabs } from "@/features/community/presentation/my-activity/my
 import { MyBalanceGameList } from "@/features/community/presentation/my-activity/my-balance-game-list";
 import { SubviewScrollShell } from "@/features/community/presentation/subview-scroll-shell";
 import { NativePageReady } from "@/shared/lib/native-bridge";
-import { Spinner } from "@/shared/ui/spinner";
 
 /**
  * 내 커뮤니티 활동 화면 루트 (서버 컴포넌트) — 내가 쓴 글 · 저장한 글 · 참여한 밸런스 게임(플래그).
@@ -87,7 +87,7 @@ function renderContent<L>(
       );
     }
     if (result.reason === "session-expired") {
-      return <SessionExpiredRecovery loading={<MyActivityLoading />} />;
+      return <SessionExpiredRecovery loading={<MyActivitySkeletonBody />} />;
     }
     // 앱바가 있어 뷰포트 전체 높이를 쓰면 그만큼 스크롤이 생긴다 → 60vh로 줄인다.
     return <FeedErrorState className="min-h-[60vh]" />;
@@ -132,11 +132,3 @@ function MyActivityPanel({ list, tab }: { list: PostList; tab: MyPostTab }) {
   );
 }
 
-/** 세션 복구(갱신) 중 표시 — 메인 피드 복구 로딩과 같은 모양. */
-function MyActivityLoading() {
-  return (
-    <div className="flex min-h-[60vh] items-center justify-center">
-      <Spinner />
-    </div>
-  );
-}

@@ -7,12 +7,12 @@ import {
   type BlockedMembersPageDataResult,
 } from "@/features/community/application/get-blocked-members-page-data";
 import { BlockedMembersAppBar } from "@/features/community/presentation/blocked-members/blocked-members-app-bar";
+import { BlockedMembersSkeletonRows } from "@/features/community/presentation/blocked-members/blocked-members-skeleton";
 import { BlockedMembersView } from "@/features/community/presentation/blocked-members/blocked-members-view";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { FeedErrorState } from "@/features/community/presentation/feed-error-state";
 import { SubviewScrollShell } from "@/features/community/presentation/subview-scroll-shell";
 import { NativePageReady } from "@/shared/lib/native-bridge";
-import { Spinner } from "@/shared/ui";
 
 /**
  * 차단한 회원 화면 루트 (서버 컴포넌트) — /community/blocked-users.
@@ -64,7 +64,7 @@ function renderContent(result: BlockedMembersPageDataResult): ReactNode {
     return (
       <>
         <BlockedMembersAppBar />
-        <SessionExpiredRecovery loading={<BlockedMembersLoading />} />
+        <SessionExpiredRecovery loading={<BlockedMembersSkeletonRows />} />
       </>
     );
   }
@@ -78,11 +78,3 @@ function renderContent(result: BlockedMembersPageDataResult): ReactNode {
   );
 }
 
-/** 세션 복구(갱신) 중 표시. */
-function BlockedMembersLoading() {
-  return (
-    <div className="flex min-h-[60vh] items-center justify-center">
-      <Spinner />
-    </div>
-  );
-}

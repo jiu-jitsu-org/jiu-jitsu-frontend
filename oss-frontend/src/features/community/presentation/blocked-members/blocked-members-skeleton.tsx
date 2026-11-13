@@ -19,20 +19,26 @@ export function BlockedMembersSkeleton() {
   return (
     <SubviewScrollShell className="bg-surface-container">
       <BlockedMembersAppBar />
-
-      <ul aria-hidden className="pt-2">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <li
-            key={index}
-            style={pulseDelay(index)}
-            className="flex items-center gap-3 px-4 py-2.5 motion-safe:animate-pulse"
-          >
-            <Skeleton className="size-10 shrink-0 rounded-full" />
-            <Skeleton className="h-4 w-28" />
-            <Skeleton className="ml-auto h-8 w-[66px] rounded-lg" />
-          </li>
-        ))}
-      </ul>
+      <BlockedMembersSkeletonRows />
     </SubviewScrollShell>
+  );
+}
+
+/** 앱바 아래 줄 자리 — 세션 복구 중 표시(BlockedMembersScreen)도 같은 모양을 쓴다. */
+export function BlockedMembersSkeletonRows() {
+  return (
+    <ul aria-hidden className="pt-2">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <li
+          key={index}
+          style={pulseDelay(index)}
+          className="flex items-center gap-3 px-4 py-2.5 motion-safe:animate-pulse"
+        >
+          <Skeleton className="size-10 shrink-0 rounded-full" />
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="ml-auto h-8 w-[66px] rounded-lg" />
+        </li>
+      ))}
+    </ul>
   );
 }
