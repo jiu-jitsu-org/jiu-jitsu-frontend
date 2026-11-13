@@ -14,6 +14,7 @@ import { CompetitionInfoBasis } from "@/features/competition/presentation/compet
 import { CompetitionResultBanner } from "@/features/competition/presentation/competition-result-banner";
 import { CompetitionStories } from "@/features/competition/presentation/competition-stories";
 import { SubviewScrollShell } from "@/features/community/presentation/subview-scroll-shell";
+import { NativePageReady } from "@/shared/lib/native-bridge";
 
 /**
  * 대회 상세 (#361~#369).
@@ -102,6 +103,9 @@ export function CompetitionDetailPage({
               />
             ) : null}
           </div>
+          {/* 다 그려지면 앱이 그림·글꼴을 다 받기 전에 로딩 덮개를 걷는다(jiu-jitsu-ios#261).
+              게시글 상세와 같이 오류 화면에서는 보내지 않는다 — 그때는 load 때 걷힌다. */}
+          <NativePageReady />
         </SubviewScrollShell>
       </CompetitionDetailInterestProvider>
     </CompetitionAlertProvider>
