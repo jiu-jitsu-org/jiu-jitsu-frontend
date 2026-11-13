@@ -4,7 +4,7 @@
  * 세 버튼이 서로 다른 파일(서버/클라이언트)에 흩어져 있어 클래스를 여기 한 곳에 모은다.
  * 상세 리액션바(PostActionBar)와 달리 기본 배경이 없는 가벼운 폼이고, 색은 reaction-bar/* 패밀리를 쓴다.
  *
- * - Default : icon reaction-bar/default/icon · text reaction-bar/default/count-text
+ * - Default : icon icon-tertiary(아래 COMMENT_REACTION_ICON 참고) · text reaction-bar/default/count-text
  * - Pressed : bg reaction-bar/pressed/bg · icon reaction-bar/pressed/icon · text reaction-bar/pressed/count-text
  * - Active  : 배경 없음. 아이콘 fill + 종류별 active 토큰, 텍스트 reaction-bar/active/count-text
  *
@@ -19,8 +19,14 @@
 export const COMMENT_REACTION_BUTTON =
   "group inline-flex h-7 items-center gap-1 rounded-10 px-2 active:bg-reaction-bar-pressed-bg active:text-reaction-bar-pressed-icon";
 
-/** 아이콘 기본색 — 버튼에 걸어 아이콘이 currentColor로 상속받게 한다. */
-export const COMMENT_REACTION_ICON = "text-reaction-bar-default-icon";
+/**
+ * 아이콘 기본색 — 버튼에 걸어 아이콘이 currentColor로 상속받게 한다.
+ *
+ * reaction-bar/default/icon(icon-subtle)보다 한 단계 진한 icon-tertiary를 쓴다 — 흰 바탕의 댓글 줄에서
+ * subtle은 너무 옅어 버튼이 잘 안 보였다. 그 토큰은 피드 카드·대회 하트도 함께 쓰므로 토큰을 바꾸지 않고
+ * 댓글 줄만 semantic 단계로 올린다. 카운트 글자(text-tertiary)와 같은 회색이 된다.
+ */
+export const COMMENT_REACTION_ICON = "text-icon-tertiary";
 
 /** 카운트/라벨 텍스트: Body S(14/21). */
 export const COMMENT_REACTION_TEXT =
