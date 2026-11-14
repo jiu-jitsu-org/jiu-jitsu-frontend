@@ -126,6 +126,7 @@ export function CompetitionInfoBasis({
       className="py-3 underline decoration-text-tertiary/50 underline-offset-[3px] active:text-text-secondary"
     >
       대회 공지
+      <span className="sr-only">(새 창)</span>
     </a>
   ) : (
     "대회 공지"

@@ -107,11 +107,7 @@ export function CompetitionDetailPage({
               fees={data.fees}
               feeNote={competition.feeNote}
               noticeUrl={competition.noticeUrl}
-              // 대한체육회 대회 · 바에 신청하기가 있는 대회는 "공지에서 신청" 말이 어긋난다.
-              showNoticePaymentNote={
-                !data.clubEntryOnly &&
-                !data.entryLinks.some((link) => link.kind === "register")
-              }
+              showNoticePaymentNote={data.noticePaymentNote}
               currentYear={currentYear}
             />
             <CompetitionInfoBasis

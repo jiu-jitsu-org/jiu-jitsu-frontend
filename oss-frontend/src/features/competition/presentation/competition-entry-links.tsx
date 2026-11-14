@@ -102,7 +102,7 @@ export function CompetitionEntryBar({
           {note}
         </p>
       ) : null}
-      {/* 둘이면 주 버튼이 엄지에 가까운 오른쪽에 오게 순서를 뒤집는다. */}
+      {/* 둘이면 주 버튼이 엄지에 가까운 오른쪽에 온다 — 읽는 순서도 화면 순서(하트 · 보조 · 주)와 같게 배열을 뒤집어 그린다. */}
       <div className="flex gap-2">
         {interestTarget ? (
           <CompetitionDetailInterestButton
@@ -110,8 +110,8 @@ export function CompetitionEntryBar({
             shape="icon"
           />
         ) : null}
-        <div className="flex min-w-0 flex-1 flex-row-reverse gap-2">
-          {buttons.map((button) => (
+        <div className="flex min-w-0 flex-1 gap-2">
+          {[...buttons].reverse().map((button) => (
             <a
               key={button.key}
               href={button.url}
@@ -126,6 +126,7 @@ export function CompetitionEntryBar({
               )}
             >
               {button.label}
+              <span className="sr-only">(새 창)</span>
             </a>
           ))}
         </div>

@@ -68,14 +68,15 @@ export type CompetitionDetailDto = CompetitionListItemDto & {
   lastVerifiedDate: string | null;
   noticeEnabled: boolean | null;
   // 상태 링크 · 접수 사이트(#469 · #470) — 백엔드 계약 전 임시 이름. 아직 오지 않아 선택 필드로 둔다.
-  entryLinks?: CompetitionEntryLinkDto[] | null;
-  entrySite?: { type: string; name: string | null } | null;
+  // 계약 전이라 모양을 믿지 않는다 — 원소가 null이거나 값 타입이 달라도 버리고 넘어간다.
+  entryLinks?: (CompetitionEntryLinkDto | null)[] | null;
+  entrySite?: { type: string } | null;
 };
 
 type CompetitionEntryLinkDto = {
   type: string;
   url: string;
-  siteName: string | null;
+  siteName?: string | null;
 };
 
 /** CompetitionListResponse */
@@ -133,20 +134,21 @@ const DIVISION_BY_UNIFORM: Record<string, CompetitionDivision> = {
   NO_GI: "nogi",
 };
 
-const ENTRY_LINK_KIND_BY_CODE: Record<string, CompetitionEntryLinkKind> = {
-  REGISTER: "register",
-  PARTICIPANTS: "participants",
-  BRACKET: "bracket",
-  LIVE_MAT: "liveMat",
-  RESULT: "result",
-};
+// Map으로 찾는다 — 객체 조회는 "constructor" · "toString" 같은 코드에도 값이 나온다.
+const ENTRY_LINK_KIND_BY_CODE = new Map<string, CompetitionEntryLinkKind>([
+  ["REGISTER", "register"],
+  ["PARTICIPANTS", "participants"],
+  ["BRACKET", "bracket"],
+  ["LIVE_MAT", "liveMat"],
+  ["RESULT", "result"],
+]);
 
-const ENTRY_SITE_KIND_BY_CODE: Record<string, CompetitionEntrySiteKind> = {
-  FLOWCOMP: "flowcomp",
-  STREET: "street",
-  JUDAEPL: "judaepl",
-  KJF: "kjf",
-};
+const ENTRY_SITE_KIND_BY_CODE = new Map<string, CompetitionEntrySiteKind>([
+  ["FLOWCOMP", "flowcomp"],
+  ["STREET", "street"],
+  ["JUDAEPL", "judaepl"],
+  ["KJF", "kjf"],
+]);
 
 /** 참가 대상 제한 — 제한 없음(null)은 표시하지 않는다. */
 const AUDIENCE_LABELS: Record<string, string> = {
@@ -200,8 +202,13 @@ export function toCompetitionDetail(dto: CompetitionDetailDto): Competition {
     ...(dto.venue ? { venue: dto.venue } : {}),
     ...(dto.host ? { host: dto.host } : {}),
     ...(dto.noticeUrl ? { noticeUrl: dto.noticeUrl } : {}),
-    entryLinks: toEntryLinks(dto.entryLinks),
-    ...(dto.entrySite ? { entrySite: toEntrySite(dto.entrySite) } : {}),
+    // 모르는 상태 코드는 toCompetition이 접수 중으로 두지만, 그 추측으로 신청하기를 띄우지는 않는다.
+    entryLinks: toEntryLinks(dto.entryLinks).filter(
+      (link) => link.kind !== "register" || STATUS_BY_CODE.has(dto.status),
+    ),
+    ...(isObject(dto.entrySite)
+      ? { entrySite: toEntrySite(dto.entrySite) }
+      : {}),
     fees: (dto.fees ?? []).map(
       (fee): CompetitionFee => ({
         label: fee.label,
@@ -215,25 +222,29 @@ export function toCompetitionDetail(dto: CompetitionDetailDto): Competition {
   };
 }
 
-/** 모르는 종류 · http(s)가 아닌 주소는 버린다 — 화면에 엉뚱한 버튼이나 눌리는 이상한 링크가 생기지 않게. */
-function toEntryLinks(
-  dtos: CompetitionEntryLinkDto[] | null | undefined,
-): CompetitionEntryLink[] {
-  return (dtos ?? []).flatMap((dto): CompetitionEntryLink[] => {
-    const kind = ENTRY_LINK_KIND_BY_CODE[dto.type];
-    if (!kind || !isWebUrl(dto.url)) return [];
-    const siteName = dto.siteName?.trim();
-    return [{ kind, url: dto.url, ...(siteName ? { siteName } : {}) }];
+/** 모르는 종류 · http(s)가 아닌 주소 · 모양이 틀린 원소는 버린다 — 엉뚱한 버튼이나 이상한 링크가 생기지 않게. */
+function toEntryLinks(dtos: unknown): CompetitionEntryLink[] {
+  if (!Array.isArray(dtos)) return [];
+  return dtos.flatMap((dto: unknown): CompetitionEntryLink[] => {
+    if (!isObject(dto) || typeof dto.type !== "string") return [];
+    const kind = ENTRY_LINK_KIND_BY_CODE.get(dto.type);
+    const url = typeof dto.url === "string" ? dto.url : undefined;
+    if (!kind || !isWebUrl(url)) return [];
+    const siteName =
+      typeof dto.siteName === "string" ? dto.siteName.trim() : "";
+    return [{ kind, url, ...(siteName ? { siteName } : {}) }];
   });
 }
 
 /** 모르는 사이트 종류는 기타로 둔다. */
-function toEntrySite(dto: {
-  type: string;
-  name: string | null;
-}): CompetitionEntrySite {
-  return {
-    kind: ENTRY_SITE_KIND_BY_CODE[dto.type] ?? "other",
-    name: dto.name?.trim() ?? "",
-  };
+function toEntrySite(dto: Record<string, unknown>): CompetitionEntrySite {
+  const kind =
+    typeof dto.type === "string"
+      ? ENTRY_SITE_KIND_BY_CODE.get(dto.type)
+      : undefined;
+  return { kind: kind ?? "other" };
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
