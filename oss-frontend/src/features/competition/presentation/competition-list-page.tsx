@@ -46,6 +46,7 @@ function renderBody(data: CompetitionListPageData) {
         interestedUpcoming={data.interestedUpcoming}
         myBeltRank={data.myBeltRank}
         endedInterested={data.endedInterested}
+        availableRegions={data.availableRegions}
       />
     </CompetitionAlertProvider>
   );

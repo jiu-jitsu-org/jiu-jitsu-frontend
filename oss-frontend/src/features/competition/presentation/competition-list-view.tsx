@@ -33,10 +33,7 @@ import {
   deadlineSoonInterested,
   eventSoonInterested,
 } from "@/features/competition/domain/competition-interest-banner";
-import {
-  COMPETITION_REGIONS,
-  type CompetitionRegion,
-} from "@/features/competition/domain/competition-region";
+import type { CompetitionRegion } from "@/features/competition/domain/competition-region";
 import type { ResultCardGroup } from "@/features/competition/domain/competition-result-prompt";
 import {
   CompetitionBannerSlot,
@@ -98,6 +95,7 @@ export function CompetitionListView({
   interestedUpcoming,
   myBeltRank,
   endedInterested,
+  availableRegions,
 }: {
   /** 필터 없이 받은 오늘 이후 대회 첫 페이지 */
   list: CompetitionListChunk;
@@ -110,6 +108,8 @@ export function CompetitionListView({
   myBeltRank: BeltRank | null;
   /** 끝난 지 며칠 안 된 내 관심 대회 묶음(#403) — 배너 자리의 결과 남기기 배너. */
   endedInterested: ResultCardGroup[];
+  /** 지역 시트에서 고를 수 있는 시·도 — 공개 대회(지난 대회 포함)가 있는 곳. 못 받았으면 17개 모두. */
+  availableRegions: readonly CompetitionRegion[];
 }) {
   const [filter, setFilter] = useState<CompetitionFilter>(
     EMPTY_COMPETITION_FILTER,
@@ -774,8 +774,8 @@ export function CompetitionListView({
         key={regionSheetKey}
         open={regionSheetOpen}
         selected={filter.regions}
-        // 대회가 있는 지역 API(backend#205) 전까지는 17개 모두 고를 수 있다 — 대회가 없으면 빈 목록 안내.
-        available={COMPETITION_REGIONS}
+        // 공개 대회(지난 대회 포함)가 있는 지역만 고를 수 있다(backend#206) — 못 받았으면 17개 모두.
+        available={availableRegions}
         onDismiss={() => setRegionSheetOpen(false)}
         onApply={(regions) => {
           setFilter((current) => ({ ...current, regions }));

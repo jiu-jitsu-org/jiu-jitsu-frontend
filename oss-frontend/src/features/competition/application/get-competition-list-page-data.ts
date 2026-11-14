@@ -1,5 +1,8 @@
 import type { BeltRank } from "@/features/community/domain/belt";
-import { createGetCompetitionListUseCase } from "@/features/competition/application/competition-use-case-factory";
+import {
+  createGetCompetitionListUseCase,
+  createGetCompetitionRegionsUseCase,
+} from "@/features/competition/application/competition-use-case-factory";
 import { loadCompetitionAlertSettings } from "@/features/competition/application/load-competition-alert-settings";
 import { loadMyBeltRank } from "@/features/competition/application/load-my-belt-rank";
 import {
@@ -11,6 +14,10 @@ import {
   type MonthGroup,
 } from "@/features/competition/domain/competition";
 import type { CompetitionAlertSettings } from "@/features/competition/domain/competition-alert";
+import {
+  COMPETITION_REGIONS,
+  type CompetitionRegion,
+} from "@/features/competition/domain/competition-region";
 import {
   addDays,
   registrationStatusOf,
@@ -63,6 +70,11 @@ export type CompetitionListPageData =
        * 끝난 대회는 목록에 없어 따로 싣는다. 비로그인이면 빈 배열.
        */
       endedInterested: ResultCardGroup[];
+      /**
+       * 지역 시트에서 고를 수 있는 시·도 — 공개 대회(지난 대회 포함)가 있는 곳(backend#206), 표준 순서.
+       * 못 받았거나 비어 오면 17개 모두.
+       */
+      availableRegions: readonly CompetitionRegion[];
     }
   | { ok: false };
 
@@ -71,7 +83,7 @@ export type CompetitionListPageData =
  *
  * 필터·다음 페이지는 화면이 Server Action(loadCompetitionListChunk)으로 이어 받는다.
  * 로그인이면 곧 마감·곧 열려요 배너(관심 + 접수 예정·접수 중·접수 마감)와 결과 남기기 카드(관심 + 종료, 며칠 전부터)를 함께 읽는다 —
- * 둘은 덧붙는 정보라 못 읽어도 목록을 막지 않는다.
+ * 둘은 덧붙는 정보라 못 읽어도 목록을 막지 않는다. 지역 시트의 고를 수 있는 지역도 같이 읽고, 못 읽으면 17개 모두 연다.
  */
 export async function getCompetitionListPageData(): Promise<CompetitionListPageData> {
   const accessToken = await readSessionToken();
@@ -87,6 +99,7 @@ export async function getCompetitionListPageData(): Promise<CompetitionListPageD
       interestedEnded,
       alertSettings,
       myBeltRank,
+      availableRegions,
     ] = await Promise.all([
       fetchPage({ size: COMPETITION_LIST_PAGE_SIZE }, accessToken),
       accessToken
@@ -112,6 +125,9 @@ export async function getCompetitionListPageData(): Promise<CompetitionListPageD
         : null,
       accessToken ? loadCompetitionAlertSettings() : null,
       accessToken ? loadMyBeltRank() : null,
+      createGetCompetitionRegionsUseCase()
+        .execute()
+        .catch(() => null),
     ]);
     const today = page.today;
 
@@ -132,6 +148,10 @@ export async function getCompetitionListPageData(): Promise<CompetitionListPageD
             today,
           )
         : [],
+      // 못 받았거나 빈 목록이면(모르는 값만 왔을 때 포함) 시트가 전부 막히지 않게 17개 모두 연다.
+      availableRegions: availableRegions?.length
+        ? availableRegions
+        : COMPETITION_REGIONS,
     };
   } catch {
     return { ok: false };

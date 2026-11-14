@@ -3,6 +3,7 @@ import type {
   CompetitionListQuery,
   CompetitionPage,
 } from "@/features/competition/domain/competition";
+import type { CompetitionRegion } from "@/features/competition/domain/competition-region";
 import type { CompetitionStory } from "@/features/competition/domain/competition-story";
 
 /** 대회 상세 — 대회와 서버가 본 오늘. */
@@ -30,4 +31,6 @@ export interface CompetitionRepository {
   /** 이 대회를 고른 커뮤니티 글 — 최대 5개, 서버 순서(#366). */
   getStories(id: number): Promise<CompetitionStory[]>;
   getPickerCompetitions(keyword?: string): Promise<CompetitionPickerPage>;
+  /** 공개 대회(지난 대회 포함)가 하나라도 있는 시·도 — 지역 시트의 고를 수 있는 지역(backend#206). 표준 순서. */
+  getRegions(): Promise<CompetitionRegion[]>;
 }

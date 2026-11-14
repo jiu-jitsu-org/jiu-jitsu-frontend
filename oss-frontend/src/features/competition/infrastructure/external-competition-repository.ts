@@ -7,16 +7,19 @@ import type {
   CompetitionPickerPage,
   CompetitionRepository,
 } from "@/features/competition/domain/competition-repository";
+import type { CompetitionRegion } from "@/features/competition/domain/competition-region";
 import type { CompetitionStory } from "@/features/competition/domain/competition-story";
 import {
   COMPETITION_NOT_FOUND_CODE,
   toCompetition,
   toCompetitionDetail,
   toRegionCode,
+  toRegions,
   toStatusCode,
   type CompetitionDetailDto,
   type CompetitionListDto,
   type CompetitionListItemDto,
+  type CompetitionRegionsDto,
   type Envelope,
 } from "@/features/competition/infrastructure/competition-dto";
 import { toApiError, type HttpClient } from "@/shared/lib/http";
@@ -30,6 +33,7 @@ import { toKstIso } from "@/shared/lib/time";
  * - POST /competitions/{id}/views    조회수 +1 → { competitionId, viewCount }
  * - GET  /competitions/{id}/stories  이 대회를 고른 글(BoardListResponse[], 최대 5)
  * - GET  /competitions/picker        글쓰기 대회 고르기 → { today, competitions } 최대 20
+ * - GET  /competitions/regions       공개 대회(지난 대회 포함)가 있는 시·도 → { regions } (backend#206)
  *
  * 지역·상태는 여러 개를 쉼표로 이어 보낸다(region=SEOUL,BUSAN).
  */
@@ -121,5 +125,12 @@ export class ExternalCompetitionRepository implements CompetitionRepository {
       today: response.data.today,
       competitions: (response.data.competitions ?? []).map(toCompetition),
     };
+  }
+
+  async getRegions(): Promise<CompetitionRegion[]> {
+    const response = await this.httpClient.get<
+      Envelope<CompetitionRegionsDto>
+    >({ path: `${COMPETITIONS_PATH}/regions`, cache: "no-store" });
+    return toRegions(response.data.regions);
   }
 }
