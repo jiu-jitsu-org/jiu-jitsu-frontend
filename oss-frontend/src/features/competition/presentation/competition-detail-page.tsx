@@ -49,7 +49,14 @@ export function CompetitionDetailPage({
     name: competition.name,
     registration: competition.registration,
   };
-  const entryBar = hasEntryBar(data.entryLinks, competition.noticeUrl);
+  const entrySource = {
+    links: data.entryLinks,
+    noticeUrl: competition.noticeUrl,
+    status,
+    serverUpcoming: competition.status === "upcoming",
+    currentYear,
+  };
+  const entryBar = hasEntryBar(entrySource);
   // 바가 있으면 관심 버튼은 바 왼쪽 하트로 옮긴다. 끝난 대회는 원래도 관심 버튼이 없다.
   const interestInBar = entryBar && status?.kind !== "ended";
   const alertable =
@@ -65,7 +72,7 @@ export function CompetitionDetailPage({
         interestCount={data.interestCount}
       >
         {/* 세로 flex — 내용이 화면보다 짧아도 바(mt-auto)가 화면 바닥에 붙는다.
-            *:shrink-0: 내용이 넘칠 때 flex가 앱바 높이(44)를 줄이지 않게. */}
+         *:shrink-0: 내용이 넘칠 때 flex가 앱바 높이(44)를 줄이지 않게. */}
         <SubviewScrollShell className="flex flex-col bg-surface-container *:shrink-0">
           <CompetitionDetailHeader
             alertTarget={alertable ? target : undefined}
@@ -123,8 +130,7 @@ export function CompetitionDetailPage({
             ) : null}
           </div>
           <CompetitionEntryBar
-            links={data.entryLinks}
-            noticeUrl={competition.noticeUrl}
+            {...entrySource}
             clubEntryOnly={data.clubEntryOnly}
             interestTarget={interestInBar ? target : undefined}
           />
