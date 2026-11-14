@@ -11,6 +11,7 @@ import {
   isCompetitionInfoReportReason,
   requiresReportDetail,
 } from "@/features/competition/domain/competition-info-report";
+import { isWebUrl } from "@/features/competition/domain/competition-entry-link";
 import { reportCompetitionInfoAction } from "@/features/competition/presentation/actions/report-competition-info-action";
 import { fullDateLabel } from "@/features/competition/presentation/competition-detail-format";
 import { useAuth } from "@/features/auth/presentation/auth-provider";
@@ -29,13 +30,19 @@ import { SURFACE_PRESS } from "@/shared/ui/press-styles";
  * 확인하지 못한 대회는 대회 공지에서 확인하라고 먼저 말한다.
  * 제보는 커뮤니티 신고와 같은 선택 시트(앱이면 앱이 그리는 시트)로 무엇이 다른지 하나 고르고, 맞는 정보를 아시면 적는다(#420).
  * 적는 칸은 "다른 정보"만 꼭 채워야 한다. 같은 항목은 하루 3번까지라 넘으면 토스트로 알린다.
+ *
+ * 대회 공지 링크(#471)는 출처를 밝히는 문장 안의 "대회 공지"에 건다 — 대회사 사이트로 쉽게 빠져나가지 않게
+ * 버튼 모양 없이 같은 회색 글에 옅은 밑줄만 둔다. 새 창으로 연다(앱에서는 앱 위 브라우저, jiu-jitsu-ios#316).
+ * 주소가 없으면 그냥 글이다.
  */
 export function CompetitionInfoBasis({
   competitionId,
   verifiedOn,
+  noticeUrl,
 }: {
   competitionId: number;
   verifiedOn?: string;
+  noticeUrl?: string;
 }) {
   const { guard } = useLoginGuard();
   const { promptLogin } = useAuth();
@@ -110,16 +117,30 @@ export function CompetitionInfoBasis({
     }
   }
 
+  // 위아래 py-3은 줄 높이를 바꾸지 않고 누르는 자리만 넓힌다(글 안 링크라 버튼 모양은 두지 않는다).
+  const notice = isWebUrl(noticeUrl) ? (
+    <a
+      href={noticeUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="py-3 underline decoration-text-tertiary/50 underline-offset-[3px] active:text-text-secondary"
+    >
+      대회 공지
+    </a>
+  ) : (
+    "대회 공지"
+  );
+
   return (
     <section className="px-5 pt-4 text-[13px] leading-[18px] text-text-tertiary">
       <p>
         {verifiedOn ? (
           <>
             <span className="tabular-nums">{fullDateLabel(verifiedOn)}</span>{" "}
-            대회 공지 기준이에요
+            {notice} 기준이에요
           </>
         ) : (
-          "아직 확인 전인 정보라 대회 공지를 꼭 봐 주세요."
+          <>아직 확인 전인 정보라 {notice}를 꼭 봐 주세요.</>
         )}
       </p>
       <div className="mt-0.5 flex items-center">
