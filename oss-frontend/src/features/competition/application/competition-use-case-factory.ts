@@ -6,6 +6,7 @@ import {
 import { GetCompetitionDetailUseCase } from "@/features/competition/application/get-competition-detail";
 import { GetCompetitionListUseCase } from "@/features/competition/application/get-competition-list";
 import { GetCompetitionPickerUseCase } from "@/features/competition/application/get-competition-picker";
+import { GetCompetitionRegionsUseCase } from "@/features/competition/application/get-competition-regions";
 import { GetCompetitionStoriesUseCase } from "@/features/competition/application/get-competition-stories";
 import { RecordCompetitionViewUseCase } from "@/features/competition/application/record-competition-view";
 import { ReportCompetitionInfoUseCase } from "@/features/competition/application/report-competition-info";
@@ -62,6 +63,11 @@ export function createGetCompetitionPickerUseCase(
   accessToken: string | null,
 ): GetCompetitionPickerUseCase {
   return new GetCompetitionPickerUseCase(createReadRepository(accessToken));
+}
+
+/** 대회 있는 지역은 내 정보와 무관해 토큰 없이 읽는다. */
+export function createGetCompetitionRegionsUseCase(): GetCompetitionRegionsUseCase {
+  return new GetCompetitionRegionsUseCase(createReadRepository(null));
 }
 
 export function createSetCompetitionInterestUseCase(

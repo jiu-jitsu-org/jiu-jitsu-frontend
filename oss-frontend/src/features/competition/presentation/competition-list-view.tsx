@@ -33,10 +33,7 @@ import {
   deadlineSoonInterested,
   eventSoonInterested,
 } from "@/features/competition/domain/competition-interest-banner";
-import {
-  COMPETITION_REGIONS,
-  type CompetitionRegion,
-} from "@/features/competition/domain/competition-region";
+import type { CompetitionRegion } from "@/features/competition/domain/competition-region";
 import type { ResultCardGroup } from "@/features/competition/domain/competition-result-prompt";
 import {
   CompetitionBannerSlot,
@@ -84,7 +81,8 @@ import { IconButton } from "@/shared/ui/icon-button";
  *
  * 거르기는 서버가 한다(#419) — 칩을 바꾸면 그 조건의 첫 페이지를 Server Action으로 받고, 받기 전까지는 앞 결과를 둔다.
  * 아래 끝에 닿으면 다음 페이지를 이어 받는다. 필터 줄은 목록을 내려도 위에 붙어 있어 언제든 바꿀 수 있다.
- * 대회가 하나도 없는 달은 달 이름까지 뺀다. 고른 지역에 대회가 없으면 빈 목록 안내를 띄운다.
+ * 대회가 하나도 없는 달은 달 이름까지 뺀다. 조건에 맞는 다가오는 대회가 없으면 가장 최근 지난 대회를 보여 주고
+ * (지난 대회만 있는 지역), 지난 대회도 없으면 빈 목록 안내를 띄운다.
  * 관심 하트와 목록 ↔ 달력은 화면 전체에 걸리는 동작이라 앱 '대회' 머리에 둔다(#396). 앱이 그 버튼을 모르면
  * (구버전 앱·브라우저) 필터 줄 오른쪽 끝에 같은 버튼을 그린다.
  *
@@ -98,6 +96,7 @@ export function CompetitionListView({
   interestedUpcoming,
   myBeltRank,
   endedInterested,
+  availableRegions,
 }: {
   /** 필터 없이 받은 오늘 이후 대회 첫 페이지 */
   list: CompetitionListChunk;
@@ -110,6 +109,8 @@ export function CompetitionListView({
   myBeltRank: BeltRank | null;
   /** 끝난 지 며칠 안 된 내 관심 대회 묶음(#403) — 배너 자리의 결과 남기기 배너. */
   endedInterested: ResultCardGroup[];
+  /** 지역 시트에서 고를 수 있는 시·도 — 공개 대회(지난 대회 포함)가 있는 곳. 못 받았으면 17개 모두. */
+  availableRegions: readonly CompetitionRegion[];
 }) {
   const [filter, setFilter] = useState<CompetitionFilter>(
     EMPTY_COMPETITION_FILTER,
@@ -774,8 +775,8 @@ export function CompetitionListView({
         key={regionSheetKey}
         open={regionSheetOpen}
         selected={filter.regions}
-        // 대회가 있는 지역 API(backend#205) 전까지는 17개 모두 고를 수 있다 — 대회가 없으면 빈 목록 안내.
-        available={COMPETITION_REGIONS}
+        // 공개 대회(지난 대회 포함)가 있는 지역만 고를 수 있다(backend#206) — 못 받았으면 17개 모두.
+        available={availableRegions}
         onDismiss={() => setRegionSheetOpen(false)}
         onApply={(regions) => {
           setFilter((current) => ({ ...current, regions }));

@@ -11,7 +11,10 @@ import {
   type CompetitionEntrySite,
   type CompetitionEntrySiteKind,
 } from "@/features/competition/domain/competition-entry-link";
-import type { CompetitionRegion } from "@/features/competition/domain/competition-region";
+import {
+  COMPETITION_REGIONS,
+  type CompetitionRegion,
+} from "@/features/competition/domain/competition-region";
 import type { CompetitionRegistration } from "@/features/competition/domain/competition-registration";
 
 /**
@@ -48,6 +51,8 @@ export type CompetitionListItemDto = {
   viewCount: number | null;
   interestCount: number | null;
   interested: boolean | null;
+  /** 관심 많은 대회(backend#206). 이 값을 모르는 서버면 오지 않는다. */
+  popular?: boolean | null;
 };
 
 type CompetitionFeeDto = {
@@ -85,6 +90,11 @@ export type CompetitionListDto = {
   competitions: CompetitionListItemDto[] | null;
   previousCursor: string | null;
   nextCursor: string | null;
+};
+
+/** CompetitionRegionsResponse — 공개 대회가 있는 시·도 enum(목록 region과 같은 값) */
+export type CompetitionRegionsDto = {
+  regions: string[] | null;
 };
 
 /** 시·도 enum ↔ 화면 이름. 순서는 행정구역 표준 순서(COMPETITION_REGIONS와 같다). */
@@ -164,6 +174,17 @@ export function toStatusCode(status: CompetitionStatus): string {
   return STATUS_CODES[status];
 }
 
+/** 시·도 enum 목록을 화면 이름으로 — 모르는 값은 버리고 표준 순서로 맞춘다. */
+export function toRegions(codes: readonly string[] | null): CompetitionRegion[] {
+  const regions = new Set(
+    (codes ?? []).flatMap((code) => {
+      const region = REGION_BY_CODE.get(code);
+      return region ? [region] : [];
+    }),
+  );
+  return COMPETITION_REGIONS.filter((region) => regions.has(region));
+}
+
 export function toCompetition(dto: CompetitionListItemDto): Competition {
   const registration: CompetitionRegistration = {
     ...(dto.registrationStartDate ? { opensOn: dto.registrationStartDate } : {}),
@@ -192,6 +213,7 @@ export function toCompetition(dto: CompetitionListItemDto): Competition {
     viewCount: dto.viewCount ?? 0,
     interestCount: dto.interestCount ?? 0,
     interested: dto.interested ?? false,
+    popular: dto.popular ?? false,
   };
 }
 

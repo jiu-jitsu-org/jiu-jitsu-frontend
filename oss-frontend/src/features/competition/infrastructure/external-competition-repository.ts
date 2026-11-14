@@ -7,16 +7,19 @@ import type {
   CompetitionPickerPage,
   CompetitionRepository,
 } from "@/features/competition/domain/competition-repository";
+import type { CompetitionRegion } from "@/features/competition/domain/competition-region";
 import type { CompetitionStory } from "@/features/competition/domain/competition-story";
 import {
   COMPETITION_NOT_FOUND_CODE,
   toCompetition,
   toCompetitionDetail,
   toRegionCode,
+  toRegions,
   toStatusCode,
   type CompetitionDetailDto,
   type CompetitionListDto,
   type CompetitionListItemDto,
+  type CompetitionRegionsDto,
   type Envelope,
 } from "@/features/competition/infrastructure/competition-dto";
 import { toApiError, type HttpClient } from "@/shared/lib/http";
@@ -30,10 +33,14 @@ import { toKstIso } from "@/shared/lib/time";
  * - POST /competitions/{id}/views    조회수 +1 → { competitionId, viewCount }
  * - GET  /competitions/{id}/stories  이 대회를 고른 글(BoardListResponse[], 최대 5)
  * - GET  /competitions/picker        글쓰기 대회 고르기 → { today, competitions } 최대 20
+ * - GET  /competitions/regions       공개 대회(지난 대회 포함)가 있는 시·도 → { regions } (backend#206)
  *
  * 지역·상태는 여러 개를 쉼표로 이어 보낸다(region=SEOUL,BUSAN).
  */
 const COMPETITIONS_PATH = "/api/competitions";
+
+/** 지역 목록 묶어 두는 시간(초) */
+const REGIONS_REVALIDATE_SECONDS = 300;
 
 type CompetitionStoryDto = {
   id: number;
@@ -121,5 +128,19 @@ export class ExternalCompetitionRepository implements CompetitionRepository {
       today: response.data.today,
       competitions: (response.data.competitions ?? []).map(toCompetition),
     };
+  }
+
+  async getRegions(): Promise<CompetitionRegion[]> {
+    // 내 정보와 무관하고 대회가 새로 생길 때만 바뀌어 5분 묶어 둔다 — 목록 화면마다 부르면
+    // 이 호출이 느릴 때 목록 첫 화면까지 늦어진다.
+    const response = await this.httpClient.get<
+      Envelope<CompetitionRegionsDto>
+    >({
+      path: `${COMPETITIONS_PATH}/regions`,
+      // http 클라이언트 기본값이 no-store라 같이 주면 revalidate가 무시된다 — 캐시를 켜고 주기를 둔다.
+      cache: "force-cache",
+      next: { revalidate: REGIONS_REVALIDATE_SECONDS },
+    });
+    return toRegions(response.data.regions);
   }
 }

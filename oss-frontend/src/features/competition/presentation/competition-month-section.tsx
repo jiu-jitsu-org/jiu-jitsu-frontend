@@ -9,7 +9,6 @@ import type {
   CompetitionDivision,
 } from "@/features/competition/domain/competition";
 import { HotMark } from "@/features/competition/presentation/competition-hot-flame";
-import { isPopularCompetition } from "@/features/competition/domain/competition-popularity";
 import type { RegistrationStatus } from "@/features/competition/domain/competition-registration";
 import { CompetitionDetailLink } from "@/features/competition/presentation/competition-detail-link";
 import { RegistrationIcon } from "@/features/competition/presentation/competition-icons";
@@ -149,9 +148,6 @@ export function CompetitionRow({
   timeline?: boolean;
 }) {
   const meta = metaLine(competition);
-  const popular =
-    interest !== undefined &&
-    isPopularCompetition(interest.countOf(competition.id));
   const weekday = weekdayOf(competition.date);
   const interested = interest?.isInterested(competition.id) ?? false;
 
@@ -189,7 +185,7 @@ export function CompetitionRow({
             <CompetitionDetailLink competitionId={competition.id}>
               {competition.name}
             </CompetitionDetailLink>
-            {popular ? (
+            {competition.popular ? (
               <span className="ml-0.5 inline-flex items-center align-[-3px] text-[13px] leading-none font-bold whitespace-nowrap text-text-error">
                 {/* 불꽃과 HOT 글자가 한 자리에서 번갈아 나온다. 읽어 주는 이름은 뜻 그대로.
                     align -3px = 18px 불꽃의 가운데를 16px 이름 글자의 가운데(실측)에 맞춘 값. */}

@@ -38,6 +38,11 @@ export type Competition = {
   interestCount: number;
   /** 내가 관심 등록했는지 — 비로그인이면 false */
   interested: boolean;
+  /**
+   * 관심 많은 대회(HOT)인지 — 서버가 같은 달 안의 관심 수 순위로 정한다(backend#206). 끝난 대회는 늘 false.
+   * 필터와 무관해 어느 목록에서 받아도 같은 대회는 같은 값이다. 관심을 누르거나 풀어도 다시 받기 전까지 그대로다.
+   */
+  popular: boolean;
   /** 시작 시각 "HH:MM" — 상세(#361). 공지되지 않았으면 없다. */
   startTime?: string;
   /** 경기장 이름 — 상세에서 장소 뒤에 붙인다. 예: "송파 올림픽홀" */
