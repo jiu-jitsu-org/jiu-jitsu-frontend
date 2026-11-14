@@ -68,6 +68,10 @@ export const OutboundMessageType = {
   // 보내 앱 머리를 같은 색으로 칠해 이음매를 없앤다. 스크롤로 그라데이션이 올라가면 옅어진 색을 다시 보내고,
   // 다 사라지면 color:null(앱 기본색). 구버전 앱은 모르므로 지원 목록에 있을 때만 보낸다.
   COMPETITION_HEADER_TINT: "COMPETITION_HEADER_TINT",
+  // 웹 시트 열림·닫힘(#465 · jiu-jitsu-ios#314). 웹 바텀 시트가 화면에 떠 있는 동안 open:true, 다 내려가면 false.
+  // 앱은 열려 있는 동안 떠 있는 탭 바를 숨기고 가린 높이(obscuredContentInsets)를 0으로 돌려, 시트가 탭 바 자리까지
+  // 내려오고 딤이 그 자리를 덮게 한다. 구버전 앱은 모르므로 지원 목록에 있을 때만 보낸다(useNativeSheetOpen).
+  SET_SHEET_OPEN: "SET_SHEET_OPEN",
 } as const;
 export type OutboundMessageType =
   (typeof OutboundMessageType)[keyof typeof OutboundMessageType];
@@ -218,6 +222,11 @@ export type ShareSheetPayload = {
  */
 export type CompetitionAlertsEnabledPayload = {
   competitionId?: string;
+};
+
+/** `SET_SHEET_OPEN` payload — 웹 시트가 하나라도 떠 있으면 true, 마지막 시트가 다 내려가면 false. */
+export type SheetOpenPayload = {
+  open: boolean;
 };
 
 /** `COMPETITION_HEADER_TINT` payload — 앱 머리를 칠할 색. "#RRGGBB" 이거나 null(앱 기본 머리색으로). */
