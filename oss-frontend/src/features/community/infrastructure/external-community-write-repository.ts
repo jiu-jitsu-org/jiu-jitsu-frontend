@@ -61,12 +61,19 @@ export class ExternalCommunityWriteRepository implements CommunityWriteRepositor
     postId: number,
     body: string,
     parentId?: number,
+    mentionCommentId?: number,
   ): Promise<Comment> {
-    // POST /community/comments — contentId(게시글 id) + parentId + body.
+    // POST /community/comments — contentId(게시글 id) + parentId + body (+ mentionCommentId).
     // 최상위 댓글은 업스트림 규약상 parentId=0으로 보낸다(null 아님).
+    // mentionCommentId는 태그한 대댓글이 있을 때만 싣는다 — 없으면 지금과 같은 태그 없는 답글이다(backend#219).
     const response = await this.httpClient.post<Envelope<CommentDto>>({
       path: COMMENT_ENDPOINT_PATH,
-      body: { contentId: postId, parentId: parentId ?? 0, body },
+      body: {
+        contentId: postId,
+        parentId: parentId ?? 0,
+        body,
+        ...(mentionCommentId ? { mentionCommentId } : {}),
+      },
     });
 
     return toComment(response.data);

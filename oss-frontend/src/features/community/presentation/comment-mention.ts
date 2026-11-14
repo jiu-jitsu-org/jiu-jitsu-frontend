@@ -3,8 +3,9 @@ import type { ReplyTarget } from "@/features/community/presentation/comment-repl
 /**
  * 댓글 태그(`@닉네임`) 도우미 (#451).
  *
- * 태그는 서버에 따로 보내지 않고 본문 글에 그대로 남긴다 — 요청 형태(contentId·parentId·body)를
- * 바꾸지 않고도 누구에게 하는 말인지 보이게 하기 위해서다. 태그된 사람에게 가는 알림은 BE 몫이다.
+ * 태그는 본문 글에 그대로 남겨 누구에게 하는 말인지 보이게 한다. 태그된 사람에게 가는 알림은 따로 —
+ * 대댓글의 답글 버튼으로 쓰면 누른 대댓글 id를 `mentionCommentId`로 함께 보내고, 서버가 그 대댓글
+ * 작성자에게 답글 알림을 보낸다(#473, backend#219). 서버는 본문의 태그 글자를 읽지 않는다.
  */
 
 /**
@@ -19,7 +20,28 @@ export function mentionPrefix(nickname: string): string {
 }
 
 function prefixOf(target: ReplyTarget | null): string | null {
-  return target?.mention ? mentionPrefix(target.nickname) : null;
+  return target?.mentionCommentId ? mentionPrefix(target.nickname) : null;
+}
+
+/**
+ * 서버에 보낼 `mentionCommentId` — 글 맨 앞에 대상의 `@닉네임` 태그가 남아 있을 때만 돌려준다(#473).
+ * 사용자가 태그를 지웠으면 본문은 다른 사람에게 하는 말인데 알림만 태그된 사람에게 가므로 보내지 않는다
+ * (서버는 태그 없는 답글로 보고 최상위 댓글 작성자에게 알린다).
+ * 태그 바로 뒤는 닉네임 글자가 아니어야 한다(글 끝·공백·"@B, 고마워"의 쉼표 등) — 본문 태그 강조(splitMentions)와
+ * 같은 경계다. "@B님"처럼 닉네임 글자가 이어지면 다른 닉네임으로 읽힌다.
+ */
+export function mentionCommentIdOf(
+  value: string,
+  target: ReplyTarget | null,
+): number | undefined {
+  if (!target?.mentionCommentId) return undefined;
+  const tag = `@${target.nickname}`;
+  const head = value.trimStart();
+  if (!head.startsWith(tag)) return undefined;
+  const next = head.charAt(tag.length);
+  return next === "" || !new RegExp(NICKNAME_CHARS).test(next)
+    ? target.mentionCommentId
+    : undefined;
 }
 
 /**

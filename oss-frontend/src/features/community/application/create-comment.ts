@@ -4,7 +4,8 @@ import type { CommunityWriteRepository } from "@/features/community/domain/post-
 /**
  * 게시글에 댓글 또는 대댓글을 작성한다.
  *
- * parentId가 있으면 그 댓글의 답글로 달린다.
+ * parentId가 있으면 그 댓글의 답글로 달린다. mentionCommentId(대댓글의 답글 버튼을 누른 그 대댓글 id)가
+ * 있으면 서버가 그 대댓글 작성자에게 답글 알림을 보낸다(#473, backend#219).
  * 빈 본문 방어는 진입부(BFF route)에서 1차로 하되, 여기서도 trim 후 빈 값을 막아
  * use case 단독 재사용 시에도 빈 댓글이 생성되지 않게 한다.
  */
@@ -15,12 +16,18 @@ export class CreateCommentUseCase {
     postId: number,
     body: string,
     parentId?: number,
+    mentionCommentId?: number,
   ): Promise<Comment> {
     const trimmed = body.trim();
     if (!trimmed) {
       throw new Error("댓글 내용이 비어 있습니다.");
     }
 
-    return this.writeRepository.createComment(postId, trimmed, parentId);
+    return this.writeRepository.createComment(
+      postId,
+      trimmed,
+      parentId,
+      mentionCommentId,
+    );
   }
 }

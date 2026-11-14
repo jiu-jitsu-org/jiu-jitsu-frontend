@@ -188,6 +188,7 @@ export function CommentItem({
             {/* 대댓글에도 답글 버튼을 둔다(#451) — 대댓글 아래로 또 들여 쓰지 않고(2단 유지)
                 같은 최상위 스레드 끝에 붙이되, 칩·`@태그`는 누른 대댓글의 작성자를 가리킨다.
                 대댓글의 replyCount·replied는 자기 자식 기준이라 늘 0·false — "댓글쓰기"로 보인다.
+                누른 대댓글 id를 함께 넘겨 서버가 그 작성자에게 답글 알림을 보내게 한다(#473).
                 내 대댓글에 이어 쓸 땐 나를 태그하지 않는다. 닉네임이 비어 오면(DTO 폴백) "@ "만 들어가니 넣지 않는다. */}
             {isReply ? (
               threadId !== undefined ? (
@@ -196,7 +197,11 @@ export function CommentItem({
                   nickname={comment.author.nickname}
                   replyCount={0}
                   replied={false}
-                  mention={!comment.isOwner && comment.author.nickname !== ""}
+                  mentionCommentId={
+                    !comment.isOwner && comment.author.nickname !== ""
+                      ? comment.id
+                      : undefined
+                  }
                 />
               ) : null
             ) : (

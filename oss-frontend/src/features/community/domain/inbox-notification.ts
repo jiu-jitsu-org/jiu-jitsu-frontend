@@ -49,7 +49,8 @@ export type InboxNotification = {
   title: string;
   /**
    * 서버 body — 카드 본문 1줄로 그대로 쓴다(backend#177, #196).
-   * 댓글 · 게시글 좋아요 = 게시글 제목(밸런스 게임은 빈 값), 대댓글 = 대댓글이 달린 내 댓글, 댓글 좋아요 = 좋아요 받은 댓글.
+   * 댓글 · 게시글 좋아요 = 게시글 제목(밸런스 게임은 빈 값), 댓글 좋아요 = 좋아요 받은 댓글,
+   * 대댓글 = 답글이 달린 내 댓글 — 내 최상위 댓글이거나, 누가 내 대댓글을 태그해 답했으면 그 내 대댓글이다(#473, backend#219).
    */
   body: string;
   target: InboxNotificationTarget | null;
@@ -63,7 +64,8 @@ export type InboxNotification = {
   isRead: boolean;
   /**
    * createdAt(ISO 8601, 오프셋 명시). 화면이 공통 상대 시간 규칙으로 표시한다(#188).
-   * 좋아요 카드는 글 · 댓글마다 한 장이라 마지막으로 푸시가 간 시각이다(backend#196).
+   * 좋아요 카드는 글 · 댓글마다 한 장이라 마지막 좋아요 시각이다 — 푸시가 가지 않는 기준 사이 좋아요에도
+   * 카드가 안 읽음으로 맨 위로 올라오며 이 시각이 바뀐다(backend#219).
    */
   createdAt: string;
 };

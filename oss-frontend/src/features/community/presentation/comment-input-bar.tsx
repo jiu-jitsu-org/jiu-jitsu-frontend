@@ -7,6 +7,7 @@ import { useIsDemoMode } from "@/features/community/presentation/community-demo-
 import { useRequestBeltPrompt } from "@/features/community/presentation/belt-prompt";
 import {
   isMentionOnly,
+  mentionCommentIdOf,
   swapMention,
 } from "@/features/community/presentation/comment-mention";
 import { useCommentReply } from "@/features/community/presentation/comment-reply-context";
@@ -31,7 +32,8 @@ export const COMMENT_INPUT_ELEMENT_ID = "community-comment-input";
  * (클라이언트에 목록 상태를 중복으로 들지 않음). 401이면 네이티브 로그인 유도.
  *
  * 답글 모드: 댓글의 답글 버튼이 대상을 지정하면 입력창 위에 "○○님에게 답글" 칩이 뜨고,
- * 전송 시 parentId가 함께 나간다. 인라인 입력창을 따로 두지 않고 이 바를 재사용한다.
+ * 전송 시 parentId가 함께 나간다(대댓글에서 연 답글이면 누른 대댓글 id도 mentionCommentId로, #473).
+ * 인라인 입력창을 따로 두지 않고 이 바를 재사용한다.
  *
  * 대상은 게시글일 수도 밸런스 게임일 수도 있어 `contentId`를 받는다 — 업스트림 댓글 API가
  * 처음부터 컨텐츠 단위라 이 바가 게시글을 알 이유가 없다.
@@ -133,6 +135,8 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
 
     // 대상은 전송 시점 값으로 고정한다 — 응답을 기다리는 동안 대상이 바뀌어도 영향받지 않게.
     const parentId = target?.parentId;
+    // 누른 대댓글 id도 같이 고정한다(#473). 글 맨 앞의 `@닉네임`을 지웠으면 보내지 않는다.
+    const mentionCommentId = mentionCommentIdOf(content, target);
 
     setSubmitting(true);
     try {
@@ -140,7 +144,9 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
-          parentId ? { contentId, content, parentId } : { contentId, content },
+          parentId
+            ? { contentId, content, parentId, mentionCommentId }
+            : { contentId, content },
         ),
       });
 

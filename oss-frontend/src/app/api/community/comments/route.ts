@@ -61,8 +61,11 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/community/comments — 댓글/대댓글 작성(인증 필요).
  *
- * body: { contentId: number, content: string, parentId?: number }
+ * body: { contentId: number, content: string, parentId?: number, mentionCommentId?: number }
  * parentId가 있으면 그 댓글의 답글로 달린다. 숫자가 아니거나 0 이하면 최상위 댓글로 취급한다.
+ * mentionCommentId는 대댓글의 답글 버튼을 누른 그 대댓글 id다(#473) — 서버가 그 작성자에게 답글 알림을
+ * 보낸다(backend#219). 숫자가 아니거나 0 이하면 보내지 않는다(태그 없는 답글). 같은 스레드인지 등
+ * 검증은 업스트림 몫이다(아니면 400 R0002).
  *
  * WHY 게시글 아래(`/posts/{id}/comments`)가 아니라 여기인가: 업스트림이 이미 중립이다
  * (`POST /community/comments`의 body는 `{ contentId, parentId, body }`). 댓글이 달리는 대상은
@@ -79,6 +82,7 @@ export async function POST(request: NextRequest) {
   let contentId: number | undefined;
   let content = "";
   let parentId: number | undefined;
+  let mentionCommentId: number | undefined;
   try {
     const body = await request.json();
 
@@ -95,6 +99,16 @@ export async function POST(request: NextRequest) {
     parentId =
       Number.isInteger(rawParentId) && rawParentId > 0
         ? rawParentId
+        : undefined;
+
+    // 대댓글 작성(parentId 있음)일 때만 싣는다 — 최상위 댓글에 태그를 붙이면 업스트림이 400(R0002)이다.
+    const rawMentionCommentId = body?.mentionCommentId;
+    mentionCommentId =
+      parentId !== undefined &&
+      typeof rawMentionCommentId === "number" &&
+      Number.isInteger(rawMentionCommentId) &&
+      rawMentionCommentId > 0
+        ? rawMentionCommentId
         : undefined;
   } catch {
     // 파싱 실패는 아래 검증에서 400으로 처리된다.
@@ -113,6 +127,7 @@ export async function POST(request: NextRequest) {
       contentId,
       content,
       parentId,
+      mentionCommentId,
     );
 
     return NextResponse.json<ApiSuccessResponse<typeof data>>(
