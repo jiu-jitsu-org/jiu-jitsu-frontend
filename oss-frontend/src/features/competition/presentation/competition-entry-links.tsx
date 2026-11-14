@@ -3,10 +3,12 @@ import {
   type CompetitionEntryLink,
   type CompetitionEntryLinkKind,
 } from "@/features/competition/domain/competition-entry-link";
+import type { CompetitionDetailStatus } from "@/features/competition/domain/competition-schedule";
 import type { CompetitionAlertTarget } from "@/features/competition/presentation/competition-alert-sheet";
+import { longDateLabel } from "@/features/competition/presentation/competition-detail-format";
 import { CompetitionDetailInterestButton } from "@/features/competition/presentation/competition-detail-summary";
 import { cn } from "@/shared/lib/cn";
-import { buttonVariants } from "@/shared/ui/button";
+import { Button, buttonVariants } from "@/shared/ui/button";
 
 const ENTRY_LINK_LABELS: Record<CompetitionEntryLinkKind, string> = {
   register: "신청하기",
@@ -16,8 +18,22 @@ const ENTRY_LINK_LABELS: Record<CompetitionEntryLinkKind, string> = {
   result: "결과 보기",
 };
 
-/** 상태 링크 · 대회 공지로 바닥 바에 놓을 버튼들. 첫째가 주 버튼이다(대회 공지 하나뿐이면 보조 모양). */
-function entryButtonsOf(links: CompetitionEntryLink[], noticeUrl?: string) {
+type EntryButton =
+  | { key: string; url: string; label: string; primary: boolean }
+  /** 아직 갈 곳이 없는 단계(접수 전)를 알리는 누를 수 없는 버튼. */
+  | { key: string; url?: undefined; label: string; primary: false };
+
+/**
+ * 바닥 바에 놓을 버튼들. 첫째가 주 버튼이다.
+ * 상태 링크가 있으면 그것 → 접수 전이면 접수 시작일(또는 미정)을 적은 누를 수 없는 버튼 → 대회 공지로 가는 보조 버튼.
+ * 접수 전 단계엔 상태 링크가 없다 — 공지는 정보 기준 줄의 '대회 공지' 링크로도 갈 수 있어 이 자리는 언제 열리는지 알리는 데 쓴다.
+ */
+function entryButtonsOf({
+  links,
+  noticeUrl,
+  status,
+  currentYear,
+}: EntryBarSource): EntryButton[] {
   if (links.length > 0) {
     return links.map((link) => ({
       key: link.kind,
@@ -25,6 +41,18 @@ function entryButtonsOf(links: CompetitionEntryLink[], noticeUrl?: string) {
       label: ENTRY_LINK_LABELS[link.kind],
       primary: link === links[0],
     }));
+  }
+  if (status?.kind === "upcoming") {
+    return [
+      {
+        key: "opens",
+        label: `${longDateLabel(status.opensOn, currentYear)} 접수 시작`,
+        primary: false,
+      },
+    ];
+  }
+  if (status?.kind === "unannounced") {
+    return [{ key: "opens", label: "접수 일정 미정", primary: false }];
   }
   return isWebUrl(noticeUrl)
     ? [
@@ -38,9 +66,16 @@ function entryButtonsOf(links: CompetitionEntryLink[], noticeUrl?: string) {
     : [];
 }
 
+type EntryBarSource = {
+  links: CompetitionEntryLink[];
+  noticeUrl?: string;
+  status: CompetitionDetailStatus | null;
+  currentYear: number;
+};
+
 /** 바닥 바를 그리는지 — 그리면 본문 아래 여백을 바가 대신한다. */
-export function hasEntryBar(links: CompetitionEntryLink[], noticeUrl?: string) {
-  return entryButtonsOf(links, noticeUrl).length > 0;
+export function hasEntryBar(source: EntryBarSource) {
+  return entryButtonsOf(source).length > 0;
 }
 
 /**
@@ -48,7 +83,9 @@ export function hasEntryBar(links: CompetitionEntryLink[], noticeUrl?: string) {
  *
  * 하나면 꽉 찬 주 버튼 + 버튼 위에 어느 사이트인지 한 줄, 둘이면(당일) 가로 반반 — 왼쪽 보조 · 오른쪽 주.
  * 관심 등록(interestTarget)을 받으면 맨 왼쪽에 하트만 든 정사각 버튼을 두고, 나머지 폭을 버튼들이 나눈다.
- * 상태 링크가 없으면 같은 자리에 대회 공지로 가는 보조 버튼을 두고, 공지 주소도 없으면 바를 그리지 않는다.
+ * 접수 예정 · 접수 일정 미정이면 같은 자리에 접수 시작일(또는 미정)을 적은 누를 수 없는 버튼을 둔다 — 하트가
+ * 접수 중과 같은 자리에 있게(같은 동작은 같은 자리). 그 밖에 상태 링크가 없으면 대회 공지로 가는 보조 버튼을 두고,
+ * 공지 주소도 없으면 바를 그리지 않는다.
  * 대한체육회 대회는 접수 전 · 접수 중에 도장을 통해 신청한다고 버튼 위에 알린다.
  * 링크는 새 창으로 연다 — 앱에서는 앱 위 브라우저로 뜬다(jiu-jitsu-ios#316).
  *
@@ -59,18 +96,16 @@ export function hasEntryBar(links: CompetitionEntryLink[], noticeUrl?: string) {
  * 토스트는 toast-inset-bottom-bar(-note)로 바 위에 띄운다(globals.css).
  */
 export function CompetitionEntryBar({
-  links,
-  noticeUrl,
   clubEntryOnly,
   interestTarget,
-}: {
-  links: CompetitionEntryLink[];
-  noticeUrl?: string;
+  ...source
+}: EntryBarSource & {
   clubEntryOnly: boolean;
   /** 관심 등록 대상 — 있으면 바 왼쪽에 하트 버튼을 둔다(끝난 대회는 없다). */
   interestTarget?: CompetitionAlertTarget;
 }) {
-  const buttons = entryButtonsOf(links, noticeUrl);
+  const { links } = source;
+  const buttons = entryButtonsOf(source);
   if (buttons.length === 0) return null;
 
   const only = links.length === 1 ? links[0] : undefined;
@@ -111,24 +146,36 @@ export function CompetitionEntryBar({
           />
         ) : null}
         <div className="flex min-w-0 flex-1 gap-2">
-          {[...buttons].reverse().map((button) => (
-            <a
-              key={button.key}
-              href={button.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={cn(
-                buttonVariants({
-                  variant: button.primary ? "filled" : "neutral",
-                  size: "l",
-                }),
-                "min-w-0 flex-1 px-2",
-              )}
-            >
-              {button.label}
-              <span className="sr-only">(새 창)</span>
-            </a>
-          ))}
+          {[...buttons].reverse().map((button) =>
+            button.url === undefined ? (
+              <Button
+                key={button.key}
+                variant="neutral"
+                size="l"
+                disabled
+                className="min-w-0 flex-1 px-2 tabular-nums"
+              >
+                {button.label}
+              </Button>
+            ) : (
+              <a
+                key={button.key}
+                href={button.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(
+                  buttonVariants({
+                    variant: button.primary ? "filled" : "neutral",
+                    size: "l",
+                  }),
+                  "min-w-0 flex-1 px-2",
+                )}
+              >
+                {button.label}
+                <span className="sr-only">(새 창)</span>
+              </a>
+            ),
+          )}
         </div>
       </div>
     </div>
