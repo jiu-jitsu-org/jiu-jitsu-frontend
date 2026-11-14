@@ -131,6 +131,15 @@ html:has(.toast-inset-comment-bar) {
   --toast-bottom-inset: 85px;
 }
 
+/* 대회 상세 아래 상태 버튼 바(버튼 51 + 위아래 20, 위 안내 글이 있으면 + 26) 위로 16. */
+html:has(.toast-inset-bottom-bar) {
+  --toast-bottom-inset: 87px;
+}
+
+html:has(.toast-inset-bottom-bar-note) {
+  --toast-bottom-inset: 113px;
+}
+
 /* 앱의 당겨서 새로고침이 붙는 화면(커뮤니티 메인 피드·대회 탭·게시글 상세)에서만 오버스크롤 바운스 허용.
    목록은 문서 레벨로 스크롤되므로 해당 페이지가 떠 있을 때만 html/body의 차단을 해제한다.
    상세는 고정 셸 안에서 본문만 스크롤되지만, 맨 위에서 당기면 문서로 이어져 같은 띠가 보인다(#432). */

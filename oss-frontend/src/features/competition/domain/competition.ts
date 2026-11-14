@@ -1,3 +1,4 @@
+import type { CompetitionEntryLink } from "@/features/competition/domain/competition-entry-link";
 import type { CompetitionRegion } from "@/features/competition/domain/competition-region";
 import type { CompetitionRegistration } from "@/features/competition/domain/competition-registration";
 
@@ -42,6 +43,8 @@ export type Competition = {
   host?: string;
   /** 대회사가 올린 공지 주소. 접수 상태와 상관없이 이 공지로 보낸다. */
   noticeUrl?: string;
+  /** 접수 사이트의 상태 링크(#469) — 상세에만 온다. 서버가 보이는 기간 · 운영자 확인으로 거른 것. */
+  entryLinks?: CompetitionEntryLink[];
   /** 참가비 단계(#364) — 서버가 정한 순서. 모르면 빈 배열(목록 항목에는 없다). */
   fees?: CompetitionFee[];
   /** 참가비 기준 한 줄. 예: "성인 1종목 기준" */

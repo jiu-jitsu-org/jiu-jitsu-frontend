@@ -4,6 +4,11 @@ import type {
   CompetitionFee,
   CompetitionStatus,
 } from "@/features/competition/domain/competition";
+import {
+  isWebUrl,
+  type CompetitionEntryLink,
+  type CompetitionEntryLinkKind,
+} from "@/features/competition/domain/competition-entry-link";
 import type { CompetitionRegion } from "@/features/competition/domain/competition-region";
 import type { CompetitionRegistration } from "@/features/competition/domain/competition-registration";
 
@@ -60,6 +65,14 @@ export type CompetitionDetailDto = CompetitionListItemDto & {
   feeNote: string | null;
   lastVerifiedDate: string | null;
   noticeEnabled: boolean | null;
+  // 상태 링크(#469) — 백엔드 계약 전 임시 이름. 아직 오지 않아 선택 필드로 둔다.
+  entryLinks?: CompetitionEntryLinkDto[] | null;
+};
+
+type CompetitionEntryLinkDto = {
+  type: string;
+  url: string;
+  siteName: string | null;
 };
 
 /** CompetitionListResponse */
@@ -117,6 +130,14 @@ const DIVISION_BY_UNIFORM: Record<string, CompetitionDivision> = {
   NO_GI: "nogi",
 };
 
+const ENTRY_LINK_KIND_BY_CODE: Record<string, CompetitionEntryLinkKind> = {
+  REGISTER: "register",
+  PARTICIPANTS: "participants",
+  BRACKET: "bracket",
+  LIVE_MAT: "liveMat",
+  RESULT: "result",
+};
+
 /** 참가 대상 제한 — 제한 없음(null)은 표시하지 않는다. */
 const AUDIENCE_LABELS: Record<string, string> = {
   ADULT: "성인",
@@ -169,6 +190,7 @@ export function toCompetitionDetail(dto: CompetitionDetailDto): Competition {
     ...(dto.venue ? { venue: dto.venue } : {}),
     ...(dto.host ? { host: dto.host } : {}),
     ...(dto.noticeUrl ? { noticeUrl: dto.noticeUrl } : {}),
+    entryLinks: toEntryLinks(dto.entryLinks),
     fees: (dto.fees ?? []).map(
       (fee): CompetitionFee => ({
         label: fee.label,
@@ -180,4 +202,16 @@ export function toCompetitionDetail(dto: CompetitionDetailDto): Competition {
     ...(dto.lastVerifiedDate ? { verifiedOn: dto.lastVerifiedDate } : {}),
     noticeEnabled: dto.noticeEnabled ?? false,
   };
+}
+
+/** 모르는 종류 · http(s)가 아닌 주소는 버린다 — 화면에 엉뚱한 버튼이나 눌리는 이상한 링크가 생기지 않게. */
+function toEntryLinks(
+  dtos: CompetitionEntryLinkDto[] | null | undefined,
+): CompetitionEntryLink[] {
+  return (dtos ?? []).flatMap((dto): CompetitionEntryLink[] => {
+    const kind = ENTRY_LINK_KIND_BY_CODE[dto.type];
+    if (!kind || !isWebUrl(dto.url)) return [];
+    const siteName = dto.siteName?.trim();
+    return [{ kind, url: dto.url, ...(siteName ? { siteName } : {}) }];
+  });
 }

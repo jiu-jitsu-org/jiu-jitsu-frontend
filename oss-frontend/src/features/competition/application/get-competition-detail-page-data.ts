@@ -9,6 +9,10 @@ import { loadCompetitionAlertSettings } from "@/features/competition/application
 import type { Competition } from "@/features/competition/domain/competition";
 import type { CompetitionAlertSettings } from "@/features/competition/domain/competition-alert";
 import {
+  entryLinksOn,
+  type CompetitionEntryLink,
+} from "@/features/competition/domain/competition-entry-link";
+import {
   feeItemsOn,
   type CompetitionFeeItem,
 } from "@/features/competition/domain/competition-fee";
@@ -32,6 +36,8 @@ export type CompetitionDetailPageData =
       status: CompetitionDetailStatus | null;
       schedule: CompetitionScheduleItem[];
       fees: CompetitionFeeItem[];
+      /** 지금 단계에 맞는 상태 링크(#469) — 두 개까지. 없으면 빈 배열. */
+      entryLinks: CompetitionEntryLink[];
       /** 오늘 — 응답의 today, 한국 날짜 "YYYY-MM-DD" */
       today: string;
       currentYear: number;
@@ -121,6 +127,7 @@ export async function getCompetitionDetailPageData({
     status,
     schedule: scheduleOf(competition, today),
     fees: feeItemsOn(competition.fees, today),
+    entryLinks: entryLinksOn(competition, today),
     today,
     currentYear: Number(today.slice(0, 4)),
     interested: competition.interested,
