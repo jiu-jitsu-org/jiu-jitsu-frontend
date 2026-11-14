@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 
 import { cn } from "@/shared/lib/cn";
+import { useNativeSheetOpen } from "@/shared/lib/native-bridge";
 
 /** 딤 페이드·시트 내려가기 시간(ms). 호출부도 닫은 뒤 이만큼 기다렸다 언마운트한다. */
 export const SHEET_FADE_MS = 200;
@@ -30,6 +31,8 @@ export function BottomSheetFrame({
 }) {
   const [mounted, setMounted] = useState(open);
   const [visible, setVisible] = useState(false);
+  // 내려가는 동안까지(mounted) 앱 탭 바를 숨겨 둔다 — 시트가 화면 맨 아래까지 내려와 탭 바 자리에 색 면이 안 생긴다.
+  useNativeSheetOpen(open || mounted);
 
   // 열릴 때 한 프레임 뒤 전환 / 닫힐 때 내려간 뒤 언마운트. 딤은 페이드, 시트는 아래에서 올라온다.
   useEffect(() => {
