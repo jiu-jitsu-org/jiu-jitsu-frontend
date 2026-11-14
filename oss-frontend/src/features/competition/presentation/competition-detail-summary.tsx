@@ -18,6 +18,7 @@ import { Button } from "@/shared/ui/button";
  * 관심 등록은 이 화면의 주 행동이라 하트만 있는 목록과 달리 "관심 32"처럼 글자를 단 버튼으로 둔다.
  * 등록·해제·첫 등록 알림 시트·실패 되돌리기는 목록과 같은 훅을 쓴다(#335 · #375). 관심 상태는 머리의 알림 종과 함께 본다(#376).
  * 끝난 대회는 마감 알림을 받을 일이 없어 버튼 대신 관심 수만 글자로 남긴다.
+ * 아래 상태 버튼 바가 있으면 관심 버튼은 바 왼쪽 하트로 옮겨 가고(같은 동작을 두 곳에 두지 않는다), 여기엔 관심 수만 글자로 남긴다.
  * 조회수는 화면이 열린 뒤 한 번 세고(#420) 센 값으로 바꾼다 — 서버 렌더는 로그인 뒤 다시 그리기에서도 돌아 세지 않는다.
  */
 export function CompetitionDetailSummary({
@@ -25,11 +26,14 @@ export function CompetitionDetailSummary({
   status,
   currentYear,
   viewCount,
+  interestInBar,
 }: {
   target: CompetitionAlertTarget;
   status: CompetitionDetailStatus | null;
   currentYear: number;
   viewCount: number;
+  /** 관심 버튼이 아래 바에 있는지 — 그러면 여기엔 관심 수만 글자로 둔다. */
+  interestInBar: boolean;
 }) {
   const { id: competitionId, name } = target;
   const [views, setViews] = useState(viewCount);
@@ -44,9 +48,9 @@ export function CompetitionDetailSummary({
       .catch(() => undefined);
   }, [competitionId]);
   const interest = useCompetitionDetailInterest();
-  const on = interest.isInterested(competitionId);
   const count = interest.countOf(competitionId);
   const ended = status?.kind === "ended";
+  const buttonHere = !ended && !interestInBar;
 
   return (
     <section className="px-4 pt-4">
@@ -62,41 +66,72 @@ export function CompetitionDetailSummary({
       <div className="mt-3 flex min-h-8 items-center gap-2">
         <p className="flex-1 text-[13px] leading-[18px] text-text-tertiary tabular-nums">
           {[
-            ended && count > 0 ? `관심 ${count}` : null,
             `조회 ${views.toLocaleString("ko-KR")}`,
+            !buttonHere && count > 0 ? `관심 ${count}` : null,
           ]
             .filter(Boolean)
             .join(" · ")}
         </p>
-        {ended ? null : (
-          <Button
-            variant="neutral"
-            size="s"
-            onClick={() => interest.toggle(target)}
-            aria-pressed={on}
-            aria-label={`관심 등록${count > 0 ? `, 관심 ${count}명` : ""}`}
-            // 누르기 전은 아래 정보 상자와 같은 옅은 회색 면 — 기본 회색 버튼 면은 이 자리에서 너무 짙어 보였다.
-            className={cn(
-              "gap-1 rounded-full pr-3.5 pl-3",
-              !on && "bg-surface-field",
-            )}
-          >
-            <HeartIcon
-              size={18}
-              filled={on}
-              className={
-                on
-                  ? "text-reaction-bar-active-like-icon"
-                  : "text-reaction-bar-default-icon"
-              }
-            />
-            <span className="tabular-nums">
-              관심{count > 0 ? ` ${count}` : ""}
-            </span>
-          </Button>
-        )}
+        {buttonHere ? (
+          <CompetitionDetailInterestButton target={target} shape="pill" />
+        ) : null}
       </div>
     </section>
+  );
+}
+
+/**
+ * 관심 등록 버튼 — 요약 줄의 "♡ 관심 32" 알약(pill), 또는 아래 상태 버튼 바 왼쪽의 하트만 든 정사각(icon).
+ * 정사각은 옆 버튼(Button l)과 같은 51 높이 · 보조(neutral) 면이고, 관심 수는 요약 줄 글자가 맡는다.
+ * 등록 · 해제 · 비로그인 · 첫 등록 알림은 같은 훅(useCompetitionDetailInterest)이 한다.
+ */
+export function CompetitionDetailInterestButton({
+  target,
+  shape,
+}: {
+  target: CompetitionAlertTarget;
+  shape: "pill" | "icon";
+}) {
+  const interest = useCompetitionDetailInterest();
+  const on = interest.isInterested(target.id);
+  const count = interest.countOf(target.id);
+  const heart = (
+    <HeartIcon
+      size={shape === "icon" ? 24 : 18}
+      filled={on}
+      className={
+        on
+          ? "text-reaction-bar-active-like-icon"
+          : "text-reaction-bar-default-icon"
+      }
+    />
+  );
+  const props = {
+    onClick: () => interest.toggle(target),
+    "aria-pressed": on,
+    "aria-label": `관심 등록${count > 0 ? `, 관심 ${count}명` : ""}`,
+  };
+  if (shape === "icon") {
+    return (
+      <Button variant="neutral" size="l" className="w-[51px]" {...props}>
+        {heart}
+      </Button>
+    );
+  }
+  return (
+    <Button
+      variant="neutral"
+      size="s"
+      {...props}
+      // 누르기 전은 아래 정보 상자와 같은 옅은 회색 면 — 기본 회색 버튼 면은 이 자리에서 너무 짙어 보였다.
+      className={cn(
+        "gap-1 rounded-full pr-3.5 pl-3",
+        !on && "bg-surface-field",
+      )}
+    >
+      {heart}
+      <span className="tabular-nums">관심{count > 0 ? ` ${count}` : ""}</span>
+    </Button>
   );
 }
 
