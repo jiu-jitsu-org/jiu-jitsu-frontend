@@ -139,7 +139,9 @@ export function CompetitionPicker({
           aria-label="대회 이름으로 찾기"
           className="mt-1"
         />
-        <ul className="-mx-2 mt-2 max-h-[50dvh] overflow-y-auto overscroll-contain">
+        {/* 목록 높이는 고정 — 검색으로 결과가 줄어도 시트 키가 그대로라 검색칸이 손가락 밑에서 내려가지 않는다(#467).
+            키보드가 떠서 보이는 영역이 모자라면 시트가 줄어드는 만큼 이 목록이 줄어든다(min-h-0). */}
+        <ul className="-mx-2 mt-2 h-[50dvh] min-h-0 overflow-y-auto overscroll-contain">
           {shown.length === 0 ? (
             <li className="py-8 text-center text-[14px] leading-[20px] text-text-secondary">
               찾는 대회가 없어요
