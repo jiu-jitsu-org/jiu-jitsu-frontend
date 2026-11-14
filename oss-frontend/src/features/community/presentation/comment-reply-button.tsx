@@ -30,7 +30,7 @@ export function CommentReplyButton({
   nickname,
   replyCount,
   replied,
-  mention = false,
+  mentionCommentId,
 }: {
   /** 서버로 보낼 부모 댓글 id — 대댓글에 놓여도 늘 최상위 댓글 id다. */
   parentId: number;
@@ -38,8 +38,8 @@ export function CommentReplyButton({
   nickname: string;
   replyCount: number;
   replied: boolean;
-  /** 입력창 앞에 `@닉네임`을 넣을지 — 대댓글에서만 켠다(ReplyTarget.mention). */
-  mention?: boolean;
+  /** 누른 대댓글 id — 있으면 `@닉네임`을 넣고 서버에도 보낸다. 대댓글에서만 넣는다(ReplyTarget.mentionCommentId). */
+  mentionCommentId?: number;
 }) {
   const { startReply } = useCommentReply();
   // 비로그인은 답글 모드를 열지 않는다 — 외부 브라우저는 입력 바가 감춰져 있어 앱 안내(#72),
@@ -47,7 +47,7 @@ export function CommentReplyButton({
   const { guard } = useLoginGuard();
 
   function start() {
-    startReply({ parentId, nickname, mention });
+    startReply({ parentId, nickname, mentionCommentId });
     // 포커스는 입력 바가 대상 변화를 감지해 잡지만, 사용자 제스처 컨텍스트가 살아 있는
     // 이 시점에도 한 번 시도한다 — iOS 웹뷰는 제스처 밖 focus()로 키보드가 안 올라온다.
     document.getElementById(COMMENT_INPUT_ELEMENT_ID)?.focus();

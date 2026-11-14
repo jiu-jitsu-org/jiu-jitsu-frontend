@@ -108,11 +108,13 @@ export interface CommunityWriteRepository {
   /**
    * 댓글/대댓글 작성.
    * parentId를 주면 그 댓글의 답글로 달린다. 생략하면 최상위 댓글(업스트림 규약상 parentId=0).
+   * mentionCommentId는 대댓글의 답글 버튼을 누른 그 대댓글 id — 그 작성자에게 답글 알림이 간다(#473).
    */
   createComment(
     postId: number,
     body: string,
     parentId?: number,
+    mentionCommentId?: number,
   ): Promise<Comment>;
   /** 댓글 삭제(본인 댓글). 결과 본문이 없어 void. */
   deleteComment(commentId: number): Promise<void>;
