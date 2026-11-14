@@ -24,7 +24,7 @@ import { SearchField } from "@/shared/ui/search-field";
  * 글쓰기 대회 고르기 (#367) — '대회' 카테고리를 골랐을 때 카테고리 칩 아래에 나오는 한 칸.
  *
  * 고른 대회는 그 대회 상세의 '대회 이야기'에 이 글을 띄우는 데 쓴다. 대회 전반 질문도 있어 고르지 않아도 된다.
- * 칸은 검색칸과 같은 회색 면(입력칸 공통)이고, 누르면 바텀시트에서 이름으로 찾아 고른다 — 고르면 바로 닫힌다.
+ * 칸은 흰 면에 카테고리 칩과 같은 테두리를 두르고(#467), 누르면 바텀시트에서 이름으로 찾아 고른다 — 고르면 바로 닫힌다.
  * 다가오는 대회가 가까운 순으로 먼저, 최근 끝난 대회(후기 글)가 그 뒤에 온다.
  * 이름을 치면 서버에서도 찾는다(#421) — 펼친 목록 밖의 지난 대회까지 나온다. 답이 오기 전에는 펼친 목록에서 거른다.
  */
@@ -85,13 +85,15 @@ export function CompetitionPicker({
 
   return (
     <>
-      <div className="flex h-10 items-center rounded-10 bg-surface-secondary">
+      {/* 흰 면 + 위 카테고리 칩과 같은 테두리 — 회색 면은 꺼진 칸처럼 보여서(#467), 눌러서 고르는 칸으로 보이게 한다.
+          누르는 칸 높이 44. 고르기 전에는 묻는 말을 또렷하게(보조 글색), 고르면 대회 이름을 굵게. */}
+      <div className="flex h-11 items-center rounded-10 border border-chip-default-border bg-tag-chip-default-bg">
         <button
           type="button"
           onClick={() => setOpen(true)}
           aria-haspopup="dialog"
           className={cn(
-            "flex h-full min-w-0 flex-1 items-center gap-2 rounded-10 pr-2 pl-3 text-left text-[15px] leading-[21px]",
+            "flex h-full min-w-0 flex-1 items-center gap-2 rounded-10 pr-3 pl-3 text-left text-[15px] leading-[21px]",
             SURFACE_PRESS,
           )}
         >
@@ -101,8 +103,9 @@ export function CompetitionPicker({
               {selected.name}
             </span>
           ) : (
-            <span className="min-w-0 flex-1 truncate text-textfield-default-placeholder">
-              어떤 대회 이야기인가요? (선택)
+            <span className="min-w-0 flex-1 truncate text-text-secondary">
+              어떤 대회 이야기인가요?
+              <span className="ml-1 text-text-tertiary">(선택)</span>
             </span>
           )}
           {selected ? null : (
@@ -118,7 +121,7 @@ export function CompetitionPicker({
             onClick={() => onChange(null)}
             aria-label={`${selected.name} 고른 것 지우기`}
             className={cn(
-              "flex size-10 flex-none items-center justify-center rounded-10 text-icon-secondary",
+              "flex size-11 flex-none items-center justify-center rounded-10 text-icon-secondary",
               SURFACE_PRESS,
             )}
           >
