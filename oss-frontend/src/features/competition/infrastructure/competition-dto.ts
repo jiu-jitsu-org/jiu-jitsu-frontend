@@ -48,6 +48,8 @@ export type CompetitionListItemDto = {
   viewCount: number | null;
   interestCount: number | null;
   interested: boolean | null;
+  /** 관심 많은 대회(backend#206). 이 값을 모르는 서버면 오지 않는다. */
+  popular?: boolean | null;
 };
 
 type CompetitionFeeDto = {
@@ -192,6 +194,7 @@ export function toCompetition(dto: CompetitionListItemDto): Competition {
     viewCount: dto.viewCount ?? 0,
     interestCount: dto.interestCount ?? 0,
     interested: dto.interested ?? false,
+    popular: dto.popular ?? false,
   };
 }
 
