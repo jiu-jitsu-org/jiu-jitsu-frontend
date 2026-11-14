@@ -39,6 +39,9 @@ import { toKstIso } from "@/shared/lib/time";
  */
 const COMPETITIONS_PATH = "/api/competitions";
 
+/** 지역 목록 묶어 두는 시간(초) */
+const REGIONS_REVALIDATE_SECONDS = 300;
+
 type CompetitionStoryDto = {
   id: number;
   title: string;
@@ -128,9 +131,16 @@ export class ExternalCompetitionRepository implements CompetitionRepository {
   }
 
   async getRegions(): Promise<CompetitionRegion[]> {
+    // 내 정보와 무관하고 대회가 새로 생길 때만 바뀌어 5분 묶어 둔다 — 목록 화면마다 부르면
+    // 이 호출이 느릴 때 목록 첫 화면까지 늦어진다.
     const response = await this.httpClient.get<
       Envelope<CompetitionRegionsDto>
-    >({ path: `${COMPETITIONS_PATH}/regions`, cache: "no-store" });
+    >({
+      path: `${COMPETITIONS_PATH}/regions`,
+      // http 클라이언트 기본값이 no-store라 같이 주면 revalidate가 무시된다 — 캐시를 켜고 주기를 둔다.
+      cache: "force-cache",
+      next: { revalidate: REGIONS_REVALIDATE_SECONDS },
+    });
     return toRegions(response.data.regions);
   }
 }
