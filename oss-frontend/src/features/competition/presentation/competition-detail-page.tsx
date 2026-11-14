@@ -53,6 +53,7 @@ export function CompetitionDetailPage({
     links: data.entryLinks,
     noticeUrl: competition.noticeUrl,
     status,
+    serverUpcoming: competition.status === "upcoming",
     currentYear,
   };
   const entryBar = hasEntryBar(entrySource);

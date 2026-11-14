@@ -32,6 +32,7 @@ function entryButtonsOf({
   links,
   noticeUrl,
   status,
+  serverUpcoming,
   currentYear,
 }: EntryBarSource): EntryButton[] {
   if (links.length > 0) {
@@ -46,12 +47,13 @@ function entryButtonsOf({
     return [
       {
         key: "opens",
-        label: `${longDateLabel(status.opensOn, currentYear)} 접수 시작`,
+        label: `${opensOnLabel(status.opensOn, currentYear)} 접수 시작`,
         primary: false,
       },
     ];
   }
-  if (status?.kind === "unannounced") {
+  // 'unannounced'는 접수 중인데 마감일을 모를 때도 나온다 — 서버가 접수 예정이라 할 때만 미정이라고 적는다.
+  if (status?.kind === "unannounced" && serverUpcoming) {
     return [{ key: "opens", label: "접수 일정 미정", primary: false }];
   }
   return isWebUrl(noticeUrl)
@@ -66,10 +68,20 @@ function entryButtonsOf({
     : [];
 }
 
+/** "12월 1일(화)" — 해가 다르면 요일을 빼 "2027년 1월 5일"로, 하트 옆 좁은 버튼에서 한 줄에 들어가게. */
+function opensOnLabel(date: string, currentYear: number) {
+  const [year, month, day] = date.split("-").map(Number);
+  return year === currentYear
+    ? longDateLabel(date, currentYear)
+    : `${year}년 ${month}월 ${day}일`;
+}
+
 type EntryBarSource = {
   links: CompetitionEntryLink[];
   noticeUrl?: string;
   status: CompetitionDetailStatus | null;
+  /** 서버 상태가 접수 예정인지 — 상세 상태 'unannounced'의 까닭(여는 날 모름 / 마감일 모름)을 가른다. */
+  serverUpcoming: boolean;
   currentYear: number;
 };
 
@@ -153,7 +165,8 @@ export function CompetitionEntryBar({
                 variant="neutral"
                 size="l"
                 disabled
-                className="min-w-0 flex-1 px-2 tabular-nums"
+                // 크기 l의 눌림 출렁임은 비활성이어도 걸린다 — 누를 수 없는 버튼은 눌려도 움직이지 않게.
+                className="min-w-0 flex-1 px-2 whitespace-nowrap tabular-nums motion-safe:active:scale-100"
               >
                 {button.label}
               </Button>
