@@ -2,6 +2,8 @@ import {
   type CompetitionEntryLink,
   type CompetitionEntryLinkKind,
 } from "@/features/competition/domain/competition-entry-link";
+import type { CompetitionAlertTarget } from "@/features/competition/presentation/competition-alert-sheet";
+import { CompetitionDetailInterestButton } from "@/features/competition/presentation/competition-detail-summary";
 import { cn } from "@/shared/lib/cn";
 import { buttonVariants } from "@/shared/ui/button";
 
@@ -32,6 +34,7 @@ export function hasEntryBar(links: CompetitionEntryLink[]) {
  * 상태 버튼 (#469 · #470) — 화면 아래에 붙은 바. 지금 단계에 맞는 접수 사이트 페이지로 바로 보낸다.
  *
  * 하나면 꽉 찬 주 버튼 + 버튼 위에 어느 사이트인지 한 줄, 둘이면(당일) 가로 반반 — 왼쪽 보조 · 오른쪽 주.
+ * 관심 등록(interestTarget)을 받으면 맨 왼쪽에 하트만 든 정사각 버튼을 두고, 나머지 폭을 버튼들이 나눈다.
  * 상태 링크가 없으면 바를 그리지 않는다.
  * 링크는 새 창으로 연다 — 앱에서는 앱 위 브라우저로 뜬다(jiu-jitsu-ios#316).
  *
@@ -43,8 +46,11 @@ export function hasEntryBar(links: CompetitionEntryLink[]) {
  */
 export function CompetitionEntryBar({
   links,
+  interestTarget,
 }: {
   links: CompetitionEntryLink[];
+  /** 관심 등록 대상 — 있으면 바 왼쪽에 하트 버튼을 둔다(끝난 대회는 없다). */
+  interestTarget?: CompetitionAlertTarget;
 }) {
   const buttons = entryButtonsOf(links);
   if (buttons.length === 0) return null;
@@ -72,24 +78,32 @@ export function CompetitionEntryBar({
         </p>
       ) : null}
       {/* 둘이면 주 버튼이 엄지에 가까운 오른쪽에 오게 순서를 뒤집는다. */}
-      <div className="flex flex-row-reverse gap-2">
-        {buttons.map((button) => (
-          <a
-            key={button.key}
-            href={button.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={cn(
-              buttonVariants({
-                variant: button.primary ? "filled" : "neutral",
-                size: "l",
-              }),
-              "min-w-0 flex-1 px-2",
-            )}
-          >
-            {button.label}
-          </a>
-        ))}
+      <div className="flex gap-2">
+        {interestTarget ? (
+          <CompetitionDetailInterestButton
+            target={interestTarget}
+            shape="icon"
+          />
+        ) : null}
+        <div className="flex min-w-0 flex-1 flex-row-reverse gap-2">
+          {buttons.map((button) => (
+            <a
+              key={button.key}
+              href={button.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                buttonVariants({
+                  variant: button.primary ? "filled" : "neutral",
+                  size: "l",
+                }),
+                "min-w-0 flex-1 px-2",
+              )}
+            >
+              {button.label}
+            </a>
+          ))}
+        </div>
       </div>
     </div>
   );

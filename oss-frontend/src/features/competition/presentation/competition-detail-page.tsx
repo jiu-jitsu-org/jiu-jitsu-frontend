@@ -50,6 +50,8 @@ export function CompetitionDetailPage({
     registration: competition.registration,
   };
   const entryBar = hasEntryBar(data.entryLinks);
+  // 바가 있으면 관심 버튼은 바 왼쪽 하트로 옮긴다. 끝난 대회는 원래도 관심 버튼이 없다.
+  const interestInBar = entryBar && status?.kind !== "ended";
   const alertable =
     status?.kind !== "ended" &&
     status?.kind !== "today" &&
@@ -91,6 +93,7 @@ export function CompetitionDetailPage({
               status={status}
               currentYear={currentYear}
               viewCount={data.viewCount}
+              interestInBar={interestInBar}
             />
             <CompetitionInfoSection
               competition={competition}
@@ -118,6 +121,7 @@ export function CompetitionDetailPage({
           </div>
           <CompetitionEntryBar
             links={data.entryLinks}
+            interestTarget={interestInBar ? target : undefined}
           />
           {/* 다 그려지면 앱이 그림·글꼴을 다 받기 전에 로딩 덮개를 걷는다(jiu-jitsu-ios#261).
               게시글 상세와 같이 오류 화면에서는 보내지 않는다 — 그때는 load 때 걷힌다. */}
