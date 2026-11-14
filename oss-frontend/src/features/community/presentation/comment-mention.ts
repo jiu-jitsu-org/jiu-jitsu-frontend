@@ -27,7 +27,8 @@ function prefixOf(target: ReplyTarget | null): string | null {
  * 서버에 보낼 `mentionCommentId` — 글 맨 앞에 대상의 `@닉네임` 태그가 남아 있을 때만 돌려준다(#473).
  * 사용자가 태그를 지웠으면 본문은 다른 사람에게 하는 말인데 알림만 태그된 사람에게 가므로 보내지 않는다
  * (서버는 태그 없는 답글로 보고 최상위 댓글 작성자에게 알린다).
- * 태그 바로 뒤는 공백이거나 글 끝이어야 한다 — "@B님"처럼 닉네임 글자가 이어지면 다른 닉네임으로 읽힌다.
+ * 태그 바로 뒤는 닉네임 글자가 아니어야 한다(글 끝·공백·"@B, 고마워"의 쉼표 등) — 본문 태그 강조(splitMentions)와
+ * 같은 경계다. "@B님"처럼 닉네임 글자가 이어지면 다른 닉네임으로 읽힌다.
  */
 export function mentionCommentIdOf(
   value: string,
@@ -38,7 +39,9 @@ export function mentionCommentIdOf(
   const head = value.trimStart();
   if (!head.startsWith(tag)) return undefined;
   const next = head.charAt(tag.length);
-  return next === "" || /\s/.test(next) ? target.mentionCommentId : undefined;
+  return next === "" || !new RegExp(NICKNAME_CHARS).test(next)
+    ? target.mentionCommentId
+    : undefined;
 }
 
 /**

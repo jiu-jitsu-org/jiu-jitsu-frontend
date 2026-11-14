@@ -101,9 +101,13 @@ export async function POST(request: NextRequest) {
         ? rawParentId
         : undefined;
 
-    const rawMentionCommentId = Number(body?.mentionCommentId);
+    // 대댓글 작성(parentId 있음)일 때만 싣는다 — 최상위 댓글에 태그를 붙이면 업스트림이 400(R0002)이다.
+    const rawMentionCommentId = body?.mentionCommentId;
     mentionCommentId =
-      Number.isInteger(rawMentionCommentId) && rawMentionCommentId > 0
+      parentId !== undefined &&
+      typeof rawMentionCommentId === "number" &&
+      Number.isInteger(rawMentionCommentId) &&
+      rawMentionCommentId > 0
         ? rawMentionCommentId
         : undefined;
   } catch {
