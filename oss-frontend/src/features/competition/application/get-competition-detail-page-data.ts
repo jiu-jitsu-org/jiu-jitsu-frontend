@@ -10,6 +10,7 @@ import type { Competition } from "@/features/competition/domain/competition";
 import type { CompetitionAlertSettings } from "@/features/competition/domain/competition-alert";
 import {
   entryLinksOn,
+  isClubEntryOnly,
   type CompetitionEntryLink,
 } from "@/features/competition/domain/competition-entry-link";
 import {
@@ -38,6 +39,8 @@ export type CompetitionDetailPageData =
       fees: CompetitionFeeItem[];
       /** 지금 단계에 맞는 상태 링크(#469) — 두 개까지. 없으면 빈 배열. */
       entryLinks: CompetitionEntryLink[];
+      /** 도장(감독 · 코치)을 통해 신청하는 대회라고 알릴지(#470) */
+      clubEntryOnly: boolean;
       /** 오늘 — 응답의 today, 한국 날짜 "YYYY-MM-DD" */
       today: string;
       currentYear: number;
@@ -128,6 +131,7 @@ export async function getCompetitionDetailPageData({
     schedule: scheduleOf(competition, today),
     fees: feeItemsOn(competition.fees, today),
     entryLinks: entryLinksOn(competition, today),
+    clubEntryOnly: isClubEntryOnly(competition),
     today,
     currentYear: Number(today.slice(0, 4)),
     interested: competition.interested,

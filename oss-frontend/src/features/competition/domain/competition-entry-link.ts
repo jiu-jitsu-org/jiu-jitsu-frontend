@@ -23,6 +23,19 @@ export type CompetitionEntryLink = {
   siteName?: string;
 };
 
+/** 접수 사이트 종류 — 대한체육회(kjf)는 도장(감독 · 코치)만 신청할 수 있다. */
+export type CompetitionEntrySiteKind =
+  | "flowcomp"
+  | "street"
+  | "judaepl"
+  | "kjf"
+  | "other";
+
+export type CompetitionEntrySite = {
+  kind: CompetitionEntrySiteKind;
+  name: string;
+};
+
 /** 한 번에 보여 주는 상태 링크 수 — 당일처럼 여럿이어도 두 개까지. */
 export const MAX_ENTRY_LINKS = 2;
 
@@ -35,6 +48,7 @@ export const MAX_ENTRY_LINKS = 2;
  * - 대회 다음 날부터 → 결과
  *
  * 당일 · 종료는 상세 상태와 같은 날짜 계산(detailStatusOn)으로, 그 전은 서버가 정한 접수 상태로 나눈다.
+ * 대한체육회 대회는 신청 링크가 와도 보여 주지 않는다.
  */
 export function entryLinksOn(
   competition: Competition,
@@ -42,7 +56,10 @@ export function entryLinksOn(
 ): CompetitionEntryLink[] {
   const links = competition.entryLinks ?? [];
   if (links.length === 0) return [];
-  return stageKinds(competition, today)
+  const kinds = stageKinds(competition, today).filter(
+    (kind) => kind !== "register" || competition.entrySite?.kind !== "kjf",
+  );
+  return kinds
     .flatMap((kind) => {
       const link = links.find((candidate) => candidate.kind === kind);
       return link ? [link] : [];
@@ -66,6 +83,16 @@ function stageKinds(
     default:
       return [];
   }
+}
+
+/** 도장(감독 · 코치)을 통해 신청하는 대회인지 — 대한체육회 대회이고 아직 접수 전 · 접수 중일 때 알린다. */
+export function isClubEntryOnly(
+  competition: Pick<Competition, "entrySite" | "status">,
+): boolean {
+  return (
+    competition.entrySite?.kind === "kjf" &&
+    (competition.status === "upcoming" || competition.status === "open")
+  );
 }
 
 /** 링크로 열어도 되는 주소인지 — http(s)만. 다른 형식의 값이 눌리는 링크가 되지 않게. */

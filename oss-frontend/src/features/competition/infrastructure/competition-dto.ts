@@ -8,6 +8,8 @@ import {
   isWebUrl,
   type CompetitionEntryLink,
   type CompetitionEntryLinkKind,
+  type CompetitionEntrySite,
+  type CompetitionEntrySiteKind,
 } from "@/features/competition/domain/competition-entry-link";
 import type { CompetitionRegion } from "@/features/competition/domain/competition-region";
 import type { CompetitionRegistration } from "@/features/competition/domain/competition-registration";
@@ -65,8 +67,9 @@ export type CompetitionDetailDto = CompetitionListItemDto & {
   feeNote: string | null;
   lastVerifiedDate: string | null;
   noticeEnabled: boolean | null;
-  // 상태 링크(#469) — 백엔드 계약 전 임시 이름. 아직 오지 않아 선택 필드로 둔다.
+  // 상태 링크 · 접수 사이트(#469 · #470) — 백엔드 계약 전 임시 이름. 아직 오지 않아 선택 필드로 둔다.
   entryLinks?: CompetitionEntryLinkDto[] | null;
+  entrySite?: { type: string; name: string | null } | null;
 };
 
 type CompetitionEntryLinkDto = {
@@ -138,6 +141,13 @@ const ENTRY_LINK_KIND_BY_CODE: Record<string, CompetitionEntryLinkKind> = {
   RESULT: "result",
 };
 
+const ENTRY_SITE_KIND_BY_CODE: Record<string, CompetitionEntrySiteKind> = {
+  FLOWCOMP: "flowcomp",
+  STREET: "street",
+  JUDAEPL: "judaepl",
+  KJF: "kjf",
+};
+
 /** 참가 대상 제한 — 제한 없음(null)은 표시하지 않는다. */
 const AUDIENCE_LABELS: Record<string, string> = {
   ADULT: "성인",
@@ -191,6 +201,7 @@ export function toCompetitionDetail(dto: CompetitionDetailDto): Competition {
     ...(dto.host ? { host: dto.host } : {}),
     ...(dto.noticeUrl ? { noticeUrl: dto.noticeUrl } : {}),
     entryLinks: toEntryLinks(dto.entryLinks),
+    ...(dto.entrySite ? { entrySite: toEntrySite(dto.entrySite) } : {}),
     fees: (dto.fees ?? []).map(
       (fee): CompetitionFee => ({
         label: fee.label,
@@ -214,4 +225,15 @@ function toEntryLinks(
     const siteName = dto.siteName?.trim();
     return [{ kind, url: dto.url, ...(siteName ? { siteName } : {}) }];
   });
+}
+
+/** 모르는 사이트 종류는 기타로 둔다. */
+function toEntrySite(dto: {
+  type: string;
+  name: string | null;
+}): CompetitionEntrySite {
+  return {
+    kind: ENTRY_SITE_KIND_BY_CODE[dto.type] ?? "other",
+    name: dto.name?.trim() ?? "",
+  };
 }

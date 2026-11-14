@@ -1,4 +1,5 @@
 import {
+  isWebUrl,
   type CompetitionEntryLink,
   type CompetitionEntryLinkKind,
 } from "@/features/competition/domain/competition-entry-link";
@@ -15,19 +16,31 @@ const ENTRY_LINK_LABELS: Record<CompetitionEntryLinkKind, string> = {
   result: "결과 보기",
 };
 
-/** 상태 링크로 바닥 바에 놓을 버튼들. 첫째가 주 버튼이다. */
-function entryButtonsOf(links: CompetitionEntryLink[]) {
-  return links.map((link) => ({
-    key: link.kind,
-    url: link.url,
-    label: ENTRY_LINK_LABELS[link.kind],
-    primary: link === links[0],
-  }));
+/** 상태 링크 · 대회 공지로 바닥 바에 놓을 버튼들. 첫째가 주 버튼이다(대회 공지 하나뿐이면 보조 모양). */
+function entryButtonsOf(links: CompetitionEntryLink[], noticeUrl?: string) {
+  if (links.length > 0) {
+    return links.map((link) => ({
+      key: link.kind,
+      url: link.url,
+      label: ENTRY_LINK_LABELS[link.kind],
+      primary: link === links[0],
+    }));
+  }
+  return isWebUrl(noticeUrl)
+    ? [
+        {
+          key: "notice",
+          url: noticeUrl,
+          label: "대회사 사이트에서 확인하기",
+          primary: false,
+        },
+      ]
+    : [];
 }
 
 /** 바닥 바를 그리는지 — 그리면 본문 아래 여백을 바가 대신한다. */
-export function hasEntryBar(links: CompetitionEntryLink[]) {
-  return entryButtonsOf(links).length > 0;
+export function hasEntryBar(links: CompetitionEntryLink[], noticeUrl?: string) {
+  return entryButtonsOf(links, noticeUrl).length > 0;
 }
 
 /**
@@ -35,31 +48,38 @@ export function hasEntryBar(links: CompetitionEntryLink[]) {
  *
  * 하나면 꽉 찬 주 버튼 + 버튼 위에 어느 사이트인지 한 줄, 둘이면(당일) 가로 반반 — 왼쪽 보조 · 오른쪽 주.
  * 관심 등록(interestTarget)을 받으면 맨 왼쪽에 하트만 든 정사각 버튼을 두고, 나머지 폭을 버튼들이 나눈다.
- * 상태 링크가 없으면 바를 그리지 않는다.
+ * 상태 링크가 없으면 같은 자리에 대회 공지로 가는 보조 버튼을 두고, 공지 주소도 없으면 바를 그리지 않는다.
+ * 대한체육회 대회는 접수 전 · 접수 중에 도장을 통해 신청한다고 버튼 위에 알린다.
  * 링크는 새 창으로 연다 — 앱에서는 앱 위 브라우저로 뜬다(jiu-jitsu-ios#316).
  *
  * 앱바가 SubviewScrollShell 안에서 sticky로 위에 붙듯 바는 sticky로 아래에 붙는다 — 본문 끝까지 내리면 본문 바로
- * 뒤에 놓여 마지막 내용을 가리지 않고, 높이(사이트 글 유무)를 재지 않아도 된다. 셸이 세로 flex라 내용이
+ * 뒤에 놓여 마지막 내용을 가리지 않고, 높이(사이트 글 · 안내 글 유무)를 재지 않아도 된다. 셸이 세로 flex라 내용이
  * 짧으면 mt-auto로 화면 바닥에 내려간다.
  * 바닥은 댓글 입력줄처럼 홈 인디케이터 자리까지 바탕색으로 칠하고, 위 경계는 선 대신 바탕색 그라데이션으로 흐린다.
  * 토스트는 toast-inset-bottom-bar(-note)로 바 위에 띄운다(globals.css).
  */
 export function CompetitionEntryBar({
   links,
+  noticeUrl,
+  clubEntryOnly,
   interestTarget,
 }: {
   links: CompetitionEntryLink[];
+  noticeUrl?: string;
+  clubEntryOnly: boolean;
   /** 관심 등록 대상 — 있으면 바 왼쪽에 하트 버튼을 둔다(끝난 대회는 없다). */
   interestTarget?: CompetitionAlertTarget;
 }) {
-  const buttons = entryButtonsOf(links);
+  const buttons = entryButtonsOf(links, noticeUrl);
   if (buttons.length === 0) return null;
 
   const only = links.length === 1 ? links[0] : undefined;
   const caption = only?.siteName
     ? `${only.siteName}에서 ${only.kind === "register" ? "신청 · 결제" : "보기"}`
     : null;
-  const note = caption;
+  const note = clubEntryOnly
+    ? "도장(감독 · 코치)을 통해 신청하는 대회예요"
+    : caption;
 
   return (
     <div
@@ -73,7 +93,12 @@ export function CompetitionEntryBar({
         className="pointer-events-none absolute inset-x-0 bottom-full h-6 bg-linear-to-t from-surface-container to-surface-container/0"
       />
       {note ? (
-        <p className="mb-2 text-center text-[13px] leading-[18px] text-text-tertiary">
+        <p
+          className={cn(
+            "mb-2 text-center text-[13px] leading-[18px]",
+            clubEntryOnly ? "text-text-secondary" : "text-text-tertiary",
+          )}
+        >
           {note}
         </p>
       ) : null}
