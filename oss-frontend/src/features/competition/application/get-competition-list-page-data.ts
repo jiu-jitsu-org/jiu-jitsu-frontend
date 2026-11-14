@@ -161,6 +161,10 @@ export async function getCompetitionListPageData(): Promise<CompetitionListPageD
 /**
  * 필터를 건 첫 페이지·다음 페이지·달력 한 달(#419) — 화면의 Server Action이 부른다.
  * 관심만 보기는 로그인해야 한다 — 비로그인이면 부르지 않고 실패로 돌려준다.
+ *
+ * 오늘 기준 첫 페이지가 비었는데 지난 대회가 있으면(지난 대회만 있는 지역 등) 바로 앞 페이지 — 가장 최근 지난 대회들 — 를
+ * 대신 준다. 지역 시트는 지난 대회까지 세어 지역을 열어 두므로, 고른 지역이 빈 목록으로 끝나지 않게.
+ * 아래로 이어 받을 오늘 이후 대회는 없어 다음 커서는 비운다.
  */
 export async function loadCompetitionListChunk(
   query: CompetitionListQuery,
@@ -173,7 +177,20 @@ export async function loadCompetitionListChunk(
     return { ok: false, reason: "unauthenticated" };
   }
   try {
-    return { ok: true, chunk: toChunk(await fetchPage(query, accessToken)) };
+    const page = await fetchPage(query, accessToken);
+    if (
+      !query.cursor &&
+      !query.date &&
+      page.competitions.length === 0 &&
+      page.previousCursor
+    ) {
+      const past = await fetchPage(
+        { ...query, cursor: page.previousCursor },
+        accessToken,
+      );
+      return { ok: true, chunk: { ...toChunk(past), nextCursor: null } };
+    }
+    return { ok: true, chunk: toChunk(page) };
   } catch {
     return { ok: false, reason: "failed" };
   }
