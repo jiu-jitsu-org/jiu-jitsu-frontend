@@ -168,7 +168,9 @@ export function CompetitionCalendar({
   const selectedLabel = dayLabel(selected, currentYear);
 
   return (
-    <div className="pb-6">
+    // relative: 위에 깔린 띠 색 그라데이션(CompetitionTopTint, absolute·z 없음)보다 위에 그린다(#466).
+    // 위치 지정이 없으면 CSS 그리는 순서상 그라데이션 아래로 깔려 달력 위쪽이 덮인다 — 목록의 달 묶음과 같은 방식.
+    <div className="relative pb-6">
       <section
         aria-label="대회 달력"
         className="mx-3 mt-1 rounded-20 bg-surface-field px-2 pt-2 pb-3"
