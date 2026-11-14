@@ -2,7 +2,13 @@
 
 import { useEffect, useState } from "react";
 
-export type ViewportRect = { top: number; height: number; keyboardOpen: boolean };
+export type ViewportRect = {
+  top: number;
+  height: number;
+  keyboardOpen: boolean;
+  /** 핀치 확대 배율. 1이 아니면 height·keyboardOpen이 확대 때문에 줄어든 값이다. */
+  scale: number;
+};
 
 /** 키보드가 떴다고 볼 임계 높이(px). 작은 UI 변화로 인한 오탐을 거른다. */
 const KEYBOARD_THRESHOLD = 100;
@@ -16,13 +22,14 @@ const KEYBOARD_THRESHOLD = 100;
  * 유일하게 신뢰할 수 있는 가시 영역의 진실값이다. 셸을 이 값에 맞추면 키보드 위로 정확히 떨어진다.
  *
  * SSR/미지원 환경에선 null → 호출부가 100dvh 등으로 폴백한다.
+ * enabled가 false면 구독하지 않고 null — 닫혀 있는 시트처럼 지금 안 쓰는 곳이 키보드·스크롤마다 다시 그려지지 않게.
  */
-export function useViewportRect(): ViewportRect | null {
+export function useViewportRect(enabled = true): ViewportRect | null {
   const [rect, setRect] = useState<ViewportRect | null>(null);
 
   useEffect(() => {
     const viewport = window.visualViewport;
-    if (!viewport) return;
+    if (!enabled || !viewport) return;
 
     const update = () => {
       // overlay 모드(레이아웃 뷰포트는 그대로, 키보드만 덮음)에선 innerHeight−visualViewport.height가
@@ -36,6 +43,7 @@ export function useViewportRect(): ViewportRect | null {
         top: Math.round(viewport.offsetTop),
         height: Math.round(viewport.height),
         keyboardOpen: covered > KEYBOARD_THRESHOLD,
+        scale: viewport.scale,
       });
     };
 
@@ -46,7 +54,7 @@ export function useViewportRect(): ViewportRect | null {
       viewport.removeEventListener("resize", update);
       viewport.removeEventListener("scroll", update);
     };
-  }, []);
+  }, [enabled]);
 
-  return rect;
+  return enabled ? rect : null;
 }

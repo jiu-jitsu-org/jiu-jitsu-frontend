@@ -36,8 +36,13 @@ export function BottomSheetFrame({
   useNativeSheetOpen(open || mounted);
   // 키보드 위 '실제 보이는 영역'에 시트를 맞춘다(visualViewport). 이 WKWebView에선 키보드가 떠도 fixed inset-0가
   // 안 줄어, 바닥에 붙은 시트가 키보드 뒤로 깔린다 — 검색으로 목록이 짧아지면 시트 전체가 키보드에 가려졌다(#467).
-  // 글쓰기 셸(post-write-screen)과 같은 기준이다. 당겨서 새로고침으로 offsetTop이 음수가 되는 순간은 0으로 묶는다.
-  const rect = useViewportRect();
+  // 글쓰기 셸(post-write-screen)과 같은 기준이다. 키보드가 떠 있고 확대하지 않았을 때만 쓴다 — 브라우저에서 핀치 확대하면
+  // 보이는 영역이 줄어 시트가 엉뚱하게 줄고 밀리므로 그때는 전처럼 화면 전체에 붙인다. offsetTop이 음수인 순간은 0으로 묶는다.
+  const viewport = useViewportRect(mounted);
+  const rect =
+    viewport?.keyboardOpen && Math.abs(viewport.scale - 1) < 0.01
+      ? viewport
+      : null;
 
   // 열릴 때 한 프레임 뒤 전환 / 닫힐 때 내려간 뒤 언마운트. 딤은 페이드, 시트는 아래에서 올라온다.
   useEffect(() => {
@@ -90,9 +95,9 @@ export function BottomSheetFrame({
         // 올라올 때 500ms 감속(넘침 없음) / 내려갈 때 200ms 가속(호출부가 200ms 뒤 언마운트한다). 동작 줄이기면 이동 없이 바로 뜬다.
         // 아래 여백 20은 홈 인디케이터 위에서 센다 — 브라우저에서는 inset이 0이라 20 그대로다. 키보드가 떠 있으면
         // 시트가 키보드 바로 위에 앉으니 홈 인디케이터 몫은 뺀다.
-        // 보이는 영역보다 길어지면 상태바 + 16을 남기고 줄인다 — 줄어드는 몫은 안쪽 목록(min-h-0)이 스크롤로 맡는다.
+        // 보이는 영역보다 길어지면 상태바 + 16을 남기고 줄인다 — 안쪽 목록(min-h-0)이 먼저 줄고, 그런 목록이 없는 시트는 통째로 스크롤된다.
         className={cn(
-          "relative flex max-h-[calc(100%-env(safe-area-inset-top)-1rem)] w-full flex-col rounded-t-20 bg-bottom-sheet-selected-container-background px-5",
+          "relative flex max-h-[calc(100%-env(safe-area-inset-top)-1rem)] w-full flex-col overflow-y-auto overscroll-contain rounded-t-20 bg-bottom-sheet-selected-container-background px-5",
           rect?.keyboardOpen
             ? "pb-5"
             : "pb-[calc(1.25rem+env(safe-area-inset-bottom))]",
