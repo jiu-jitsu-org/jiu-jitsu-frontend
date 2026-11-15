@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type {
   CompetitionListChunk,
@@ -15,12 +15,16 @@ import {
   loadCompetitionListAction,
   type LoadCompetitionListResult,
 } from "@/features/competition/presentation/actions/load-competition-list-action";
+import { BottomSheetFrame } from "@/features/community/presentation/bottom-sheet-frame";
+import { WheelPicker } from "@/features/community/presentation/wheel-picker";
 import { CompetitionRow } from "@/features/competition/presentation/competition-month-section";
 import type { CompetitionInterest } from "@/features/competition/presentation/use-competition-interest";
 import { cn } from "@/shared/lib/cn";
+import { Button } from "@/shared/ui/button";
 import { EmptyState } from "@/shared/ui/empty-state";
-import { ChevronLeftIcon, HeartIcon } from "@/shared/ui/icons";
+import { ChevronDownIcon, ChevronLeftIcon, HeartIcon } from "@/shared/ui/icons";
 import { IconButton } from "@/shared/ui/icon-button";
+import { NEUTRAL_BUTTON_PRESS } from "@/shared/ui/press-styles";
 import { lastDayOf } from "@/features/competition/domain/competition-schedule";
 
 type YearMonth = { year: number; month: number };
@@ -41,6 +45,8 @@ type MonthData =
  * 달마다 서버에서 그 달 1일부터 받는다(#419, date=월초&size=100). 목록의 필터가 그대로 걸린다.
  * 지난 날은 고를 수 없어 이번 달보다 앞으로는 넘기지 않고, 지난 날의 대회도 그리지 않는다.
  * 다음 달은 받은 달 뒤에 대회가 더 있을 때만 넘긴다.
+ * 달 머리("2026년 11월 ⌄")를 누르면 연·월 휠 시트가 열려 멀리 있는 달로 바로 간다 — 휠이 가리키는 달의 대회 수를 미리 받아
+ * 보여 주고, 아직 대회가 없는 달도 고를 수 있다(빈 달이라고 알려 준다).
  */
 export function CompetitionCalendar({
   query,
@@ -81,55 +87,72 @@ export function CompetitionCalendar({
   const monthKey = `${queryKey}|${view.year}-${pad(view.month)}`;
   const [months, setMonths] = useState<Record<string, MonthData>>({});
   const monthData = months[monthKey];
+  // 받았거나 받는 중인 달 — 달력과 달 고르기 시트가 같은 달을 두 번 받지 않게. 실패한 달은 빼서 다시 받을 수 있다.
+  const requestedKeys = useRef(new Set<string>());
 
-  useEffect(() => {
-    if (monthData) return;
-    let cancelled = false;
-    const monthStart = `${view.year}-${pad(view.month)}-01`;
-    void loadCompetitionListAction({
-      ...query,
-      date: monthStart,
-      size: COMPETITION_FULL_PAGE_SIZE,
-    })
-      // 연결이 끊겨 호출 자체가 실패해도(오프라인·웹뷰 끊김) 같은 실패 갈래로 처리한다.
-      .catch((): LoadCompetitionListResult => ({ ok: false, reason: "failed" }))
-      .then((result) => {
-        if (cancelled) return;
-        if (!result.ok) {
-          // 못 받은 달은 실패로 남겨 다시 받기를 보여 준다 — 빈 달로 굳지 않게.
+  const loadMonth = useCallback(
+    (month: YearMonth) => {
+      const key = `${queryKey}|${month.year}-${pad(month.month)}`;
+      if (requestedKeys.current.has(key)) return;
+      requestedKeys.current.add(key);
+      void loadCompetitionListAction({
+        ...query,
+        date: `${month.year}-${pad(month.month)}-01`,
+        size: COMPETITION_FULL_PAGE_SIZE,
+      })
+        // 연결이 끊겨 호출 자체가 실패해도(오프라인·웹뷰 끊김) 같은 실패 갈래로 처리한다.
+        .catch((): LoadCompetitionListResult => ({
+          ok: false,
+          reason: "failed",
+        }))
+        .then((result) => {
+          if (!result.ok) {
+            requestedKeys.current.delete(key);
+            // 못 받은 달은 실패로 남겨 다시 받기를 보여 준다 — 빈 달로 굳지 않게.
+            setMonths((current) => ({ ...current, [key]: { failed: true } }));
+            return;
+          }
+          onLoad(result.chunk.items.map(({ competition }) => competition));
           setMonths((current) => ({
             ...current,
-            [monthKey]: { failed: true },
+            [key]: toMonthData(result.chunk, month),
           }));
-          return;
-        }
-        onLoad(result.chunk.items.map(({ competition }) => competition));
-        setMonths((current) => ({
-          ...current,
-          [monthKey]: toMonthData(result.chunk, view),
-        }));
-      });
-    return () => {
-      cancelled = true;
-    };
+        });
+    },
     // query는 queryKey로 본다 — 같은 조건이면 다시 받지 않는다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [monthKey, monthData]);
+    [queryKey],
+  );
+
+  useEffect(() => {
+    if (!monthData) loadMonth(view);
+    // view는 monthKey에 담겨 있다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [monthKey, monthData, loadMonth]);
+
+  /** 이 달에서 달력에 그릴 대회 — 끝난 대회와(관심만 볼 때) 관심이 아닌 대회를 뺀다. 아직 못 받았으면 null. */
+  const shownItemsOf = useCallback(
+    (data: MonthData | undefined): CompetitionListItem[] | null => {
+      if (!data || data.failed) return null;
+      return data.items.filter(
+        ({ competition }) =>
+          // 여러 날 대회는 마지막 날까지 첫날 칸에 남긴다 — 상세가 '오늘 대회'인 동안 달력에서 사라지지 않게.
+          lastDayOf(competition) >= today &&
+          (!interestedOnly || interest.interestedIds.has(competition.id)),
+      );
+    },
+    [interest.interestedIds, interestedOnly, today],
+  );
 
   const byDate = useMemo(() => {
     const map = new Map<string, CompetitionListItem[]>();
-    for (const item of monthData && !monthData.failed ? monthData.items : []) {
-      // 여러 날 대회는 마지막 날까지 첫날 칸에 남긴다 — 상세가 '오늘 대회'인 동안 달력에서 사라지지 않게.
-      if (lastDayOf(item.competition) < today) continue;
-      if (interestedOnly && !interest.interestedIds.has(item.competition.id)) {
-        continue;
-      }
+    for (const item of shownItemsOf(monthData) ?? []) {
       const list = map.get(item.competition.date);
       if (list) list.push(item);
       else map.set(item.competition.date, [item]);
     }
     return map;
-  }, [interest.interestedIds, interestedOnly, monthData, today]);
+  }, [monthData, shownItemsOf]);
 
   // 넘긴 달을 받으면 그 달의 첫 대회 날을 골라 둔다(받기 전에 사용자가 다른 날을 고르면 그대로 둔다).
   const [pendingFirstDay, setPendingFirstDay] = useState(seekFirstDay);
@@ -139,8 +162,11 @@ export function CompetitionCalendar({
   const canGoPrev = compareYearMonth(view, firstMonth) > 0;
   const canGoNext = monthData && !monthData.failed ? monthData.hasLater : false;
 
-  const moveMonth = (delta: 1 | -1) => {
-    const next = addMonth(view, delta);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  const moveMonth = (delta: 1 | -1) => goToMonth(addMonth(view, delta));
+
+  const goToMonth = (next: YearMonth) => {
     setView(next);
     // 넘긴 달의 첫 대회 날은 받은 뒤에 고른다 — 그 전에는 이번 달이면 오늘, 아니면 1일.
     const prefix = `${next.year}-${pad(next.month)}-`;
@@ -187,11 +213,21 @@ export function CompetitionCalendar({
           >
             <ChevronLeftIcon size={20} />
           </IconButton>
-          <h2
-            aria-live="polite"
-            className="text-[16px] leading-[22px] font-bold text-text-primary tabular-nums"
-          >
-            {view.year}년 {view.month}월
+          {/* 달 머리를 누르면 연·월 휠 시트 — 화살표로 한 달씩 넘기지 않고 멀리 있는 달로 바로 간다. */}
+          <h2 aria-live="polite">
+            <button
+              type="button"
+              aria-haspopup="dialog"
+              aria-label={`${view.year}년 ${view.month}월, 다른 달 고르기`}
+              onClick={() => setPickerOpen(true)}
+              className={cn(
+                "flex h-10 items-center gap-1 rounded-10 px-2 text-[17px] leading-[24px] font-bold text-text-primary tabular-nums",
+                NEUTRAL_BUTTON_PRESS,
+              )}
+            >
+              {view.year}년 {view.month}월
+              <ChevronDownIcon size={16} className="text-icon-secondary" />
+            </button>
           </h2>
           <IconButton
             aria-label="다음 달"
@@ -280,13 +316,166 @@ export function CompetitionCalendar({
           </ul>
         ) : (
           <p className="text-[14px] leading-[21px] text-text-secondary">
-            {filtered
-              ? "이 날은 조건에 맞는 대회가 없어요"
-              : "이 날은 대회가 없어요"}
+            {emptyMessage(
+              monthData && byDate.size === 0 ? "month" : "day",
+              filtered,
+            )}
           </p>
         )}
       </section>
+
+      <BottomSheetFrame
+        open={pickerOpen}
+        title="어느 달 대회를 볼까요?"
+        onDismiss={() => setPickerOpen(false)}
+      >
+        <MonthPickerBody
+          initial={view}
+          firstMonth={firstMonth}
+          filtered={filtered}
+          countOf={(month) => {
+            const shown = shownItemsOf(
+              months[`${queryKey}|${month.year}-${pad(month.month)}`],
+            );
+            return shown === null ? null : shown.length;
+          }}
+          failedOf={(month) =>
+            months[`${queryKey}|${month.year}-${pad(month.month)}`]?.failed ===
+            true
+          }
+          onPeek={loadMonth}
+          onPick={(month) => {
+            setPickerOpen(false);
+            if (compareYearMonth(month, view) !== 0) goToMonth(month);
+          }}
+        />
+      </BottomSheetFrame>
     </div>
+  );
+}
+
+/** 빈 날 문구 — 달 전체가 비었으면 달 기준으로 말한다(아직 대회가 올라오지 않은 달). */
+function emptyMessage(scope: "day" | "month", filtered: boolean) {
+  if (scope === "month") {
+    return filtered
+      ? "이 달은 조건에 맞는 대회가 없어요"
+      : "이 달은 아직 올라온 대회가 없어요";
+  }
+  return filtered
+    ? "이 날은 조건에 맞는 대회가 없어요"
+    : "이 날은 대회가 없어요";
+}
+
+/** 휠로 볼 수 있는 해 — 올해와 내년. 대회는 길어야 몇 달 앞까지 올라온다. */
+const PICKER_YEAR_SPAN = 2;
+
+/** 휠이 멈춘 뒤 그 달 대회 수를 받기까지 기다리는 시간(ms) — 굴리는 동안 달마다 받지 않게. */
+const PEEK_DELAY_MS = 250;
+
+/**
+ * 달 고르기 시트 안쪽 — 왼쪽 연도 · 오른쪽 월 휠(띠 고르기 시트와 같은 휠·같은 배치) + 그 달 대회 수 + 이동 버튼.
+ *
+ * 지난 달은 고를 수 없다(달력이 지난 날을 막는 것과 같다) — 올해를 고르면 월 휠은 이번 달부터다.
+ * 휠이 가리키는 달의 대회 수를 미리 받아 아래 한 줄로 알려 준다. 아직 대회가 없는 달도 고를 수 있다.
+ * 열 때마다 새로 마운트돼 지금 보는 달에서 시작한다.
+ */
+function MonthPickerBody({
+  initial,
+  firstMonth,
+  filtered,
+  countOf,
+  failedOf,
+  onPeek,
+  onPick,
+}: {
+  initial: YearMonth;
+  firstMonth: YearMonth;
+  filtered: boolean;
+  /** 그 달에 달력이 그릴 대회 수 — 아직 못 받았으면 null. */
+  countOf: (month: YearMonth) => number | null;
+  failedOf: (month: YearMonth) => boolean;
+  /** 그 달을 미리 받아 둔다(받았거나 받는 중이면 아무것도 안 한다). */
+  onPeek: (month: YearMonth) => void;
+  onPick: (month: YearMonth) => void;
+}) {
+  const [year, setYear] = useState(initial.year);
+  const [month, setMonth] = useState(initial.month);
+  const years = Array.from(
+    { length: Math.max(PICKER_YEAR_SPAN, initial.year - firstMonth.year + 1) },
+    (_, index) => firstMonth.year + index,
+  );
+  const firstMonthOfYear = year === firstMonth.year ? firstMonth.month : 1;
+  const monthsOfYear = Array.from(
+    { length: 13 - firstMonthOfYear },
+    (_, index) => firstMonthOfYear + index,
+  );
+  // 해를 바꿔 지난 달을 가리키게 되면 이번 달로 당긴다.
+  const shownMonth = Math.max(month, firstMonthOfYear);
+  const picked = { year, month: shownMonth };
+
+  useEffect(() => {
+    const timer = window.setTimeout(
+      () => onPeek({ year, month: shownMonth }),
+      PEEK_DELAY_MS,
+    );
+    return () => window.clearTimeout(timer);
+  }, [year, shownMonth, onPeek]);
+
+  const count = countOf(picked);
+  const status = failedOf(picked)
+    ? "대회 수를 불러오지 못했어요"
+    : count === null
+      ? "대회를 찾는 중…"
+      : count > 0
+        ? `대회 ${count}개`
+        : filtered
+          ? "조건에 맞는 대회가 없어요"
+          : "아직 올라온 대회가 없어요";
+
+  return (
+    <>
+      {/* 좌우 휠: 왼쪽 연도 · 오른쪽 월, 사이 24, 가운데 정렬(띠 고르기 시트와 같은 배치). */}
+      <div className="mt-5 flex justify-center gap-6">
+        <WheelPicker
+          label="연도"
+          items={years}
+          value={year}
+          getLabel={(value) => `${value}년`}
+          onChange={setYear}
+        />
+        <WheelPicker
+          // 해마다 고를 수 있는 달이 달라 새로 그린다 — 휠은 처음 뜰 때만 값 자리로 굴러간다.
+          key={firstMonthOfYear}
+          label="월"
+          items={monthsOfYear}
+          value={shownMonth}
+          getLabel={(value) => `${value}월`}
+          onChange={setMonth}
+        />
+      </div>
+
+      <p
+        aria-live="polite"
+        className={cn(
+          "mt-4 text-center text-[14px] leading-[21px] tabular-nums",
+          count !== null && count > 0
+            ? "font-medium text-text-primary"
+            : "text-text-secondary",
+        )}
+      >
+        {status}
+      </p>
+
+      {/* 하단 CTA: SelectSheet와 같은 높이 51 · radius 15. */}
+      <Button
+        variant="cta"
+        size="l"
+        onClick={() => onPick(picked)}
+        className="mt-5 w-full"
+      >
+        {year}년 {shownMonth}월 보기
+      </Button>
+    </>
   );
 }
 
