@@ -42,7 +42,7 @@ export function MyBalanceGameList({
   });
 
   return (
-    <div className="flex flex-col pt-4 pb-[env(safe-area-inset-bottom)]">
+    <div className="flex flex-col pt-4 pb-[var(--safe-area-bottom)]">
       <ul className="flex flex-col gap-7 px-4">
         {items.map((game) => (
           <li key={game.contentId}>

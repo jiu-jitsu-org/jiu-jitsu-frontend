@@ -111,6 +111,15 @@ html {
   overscroll-behavior: none;
 }
 
+/* 안전 영역(상태바·홈 막대 자리) — env(safe-area-inset-*)를 직접 쓰지 말고 이 변수를 쓴다(ESLint로 막음).
+   iOS 웹뷰는 env()를 문서를 다 불러온 뒤에도 0으로 두다가 나중에 채우는 때가 있어(WebKit 191872), 첫 화면의
+   헤더가 상태바 밑에 붙었다가 내려왔다. 앱은 값을 문서 시작 때 --app-safe-area-inset-*로 넣어 주므로(jiu-jitsu-ios#318)
+   그 값을 먼저 쓰고, 없으면(브라우저·구버전 앱) env()로 돌아간다. 값은 웹뷰가 실제로 겹치는 만큼이라 env()와 뜻이 같다. */
+:root {
+  --safe-area-top: var(--app-safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --safe-area-bottom: var(--app-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+}
+
 body {
   background: var(--background-default);
   color: var(--text-primary);

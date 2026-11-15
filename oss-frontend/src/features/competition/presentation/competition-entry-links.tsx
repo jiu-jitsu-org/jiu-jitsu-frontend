@@ -131,7 +131,7 @@ export function CompetitionEntryBar({
   return (
     <div
       className={cn(
-        "sticky bottom-0 z-20 mt-auto bg-surface-container px-4 pt-2 pb-[calc(env(safe-area-inset-bottom)+12px)]",
+        "sticky bottom-0 z-20 mt-auto bg-surface-container px-4 pt-2 pb-[calc(var(--safe-area-bottom)+12px)]",
         note ? "toast-inset-bottom-bar-note" : "toast-inset-bottom-bar",
       )}
     >

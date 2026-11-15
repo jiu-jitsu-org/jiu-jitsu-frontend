@@ -97,10 +97,10 @@ export function BottomSheetFrame({
         // 시트가 키보드 바로 위에 앉으니 홈 인디케이터 몫은 뺀다.
         // 보이는 영역보다 길어지면 상태바 + 16을 남기고 줄인다 — 안쪽 목록(min-h-0)이 먼저 줄고, 그런 목록이 없는 시트는 통째로 스크롤된다.
         className={cn(
-          "relative flex max-h-[calc(100%-env(safe-area-inset-top)-1rem)] w-full flex-col overflow-y-auto overscroll-contain rounded-t-20 bg-bottom-sheet-selected-container-background px-5",
+          "relative flex max-h-[calc(100%-var(--safe-area-top)-1rem)] w-full flex-col overflow-y-auto overscroll-contain rounded-t-20 bg-bottom-sheet-selected-container-background px-5",
           rect?.keyboardOpen
             ? "pb-5"
-            : "pb-[calc(1.25rem+env(safe-area-inset-bottom))]",
+            : "pb-[calc(1.25rem+var(--safe-area-bottom))]",
           "motion-safe:transition-[translate]",
           visible
             ? "translate-y-0 duration-500 ease-smooth-out"

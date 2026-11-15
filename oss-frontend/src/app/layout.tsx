@@ -54,7 +54,9 @@ export default function RootLayout({
   preconnect(IMAGEKIT_ORIGIN);
 
   return (
-    <html lang="ko" className="h-full antialiased">
+    // 앱(iOS)이 문서 시작 때 <html> 인라인 스타일에 안전 영역 변수(--app-safe-area-inset-*)를 넣는다(globals.css).
+    // 서버 HTML엔 없는 속성이라 하이드레이션 경고가 나므로 이 요소의 속성 비교만 끈다(자식에는 영향 없음).
+    <html lang="ko" className="h-full antialiased" suppressHydrationWarning>
       <body className="min-h-full flex flex-col">
         {/* "앱에서 계속하기" 안내가 AuthProvider 바깥에 있는 이유: 네이티브가 없을 때(외부 브라우저)
             requireAuth의 로그인 유도가 이 안내로 떨어져야 하므로 AuthProvider가 이를 소비한다. */}

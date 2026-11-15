@@ -179,7 +179,7 @@ export function PostImageViewer({
 
       {/* 하단 컨트롤: 현재 장 인디케이터 → 16 → 닫기 → 하단 24(+safe-area), 수평 가운데.
           이미지는 화면을 꽉 채우므로(letterbox) 그 위에 겹쳐 얹는다. */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-4 pb-[calc(24px+env(safe-area-inset-bottom))]">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-4 pb-[calc(24px+var(--safe-area-bottom))]">
         {images.length > 1 ? (
           // 한 장이면 넘길 곳이 없어 인디케이터를 두지 않는다(스펙).
           <span

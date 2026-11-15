@@ -975,7 +975,7 @@ export function PostWriteScreen({
         {/* absolute의 top은 셸 패딩(safe-area) 안쪽이 아니라 셸 상단 기준이라 인셋을 더해야 상태바 아래로 온다. */}
         <h1
           style={{
-            top: `calc(env(safe-area-inset-top) + ${APP_BAR_TITLE_TOP}px)`,
+            top: `calc(var(--safe-area-top) + ${APP_BAR_TITLE_TOP}px)`,
             height: APP_BAR_TITLE_HEIGHT,
           }}
           className="pointer-events-none absolute left-1/2 flex -translate-x-1/2 items-center whitespace-nowrap text-title-3 text-header-text"
@@ -1224,7 +1224,7 @@ export function PostWriteScreen({
       <div
         className={cn(
           "shrink-0 bg-[var(--bw-true-white)]",
-          rect?.keyboardOpen ? "pb-0" : "pb-[env(safe-area-inset-bottom)]",
+          rect?.keyboardOpen ? "pb-0" : "pb-[var(--safe-area-bottom)]",
         )}
       >
         {hasThumbnails && (!rect?.keyboardOpen || rect.height >= THUMBNAILS_WITH_KEYBOARD_MIN_HEIGHT) ? (

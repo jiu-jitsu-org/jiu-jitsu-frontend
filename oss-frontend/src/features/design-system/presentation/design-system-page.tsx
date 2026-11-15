@@ -103,7 +103,7 @@ export function DesignSystemPage() {
   return (
     <div className="min-h-dvh bg-background-default pb-24">
       {/* 머리 + 바로가기 — 스크롤해도 위에 붙어 있다. */}
-      <header className="sticky top-0 z-30 bg-surface-container/95 pt-[env(safe-area-inset-top)] backdrop-blur">
+      <header className="sticky top-0 z-30 bg-surface-container/95 pt-[var(--safe-area-top)] backdrop-blur">
         <div className="mx-auto max-w-5xl px-4 pb-3 pt-5">
           <h1 className="text-title-1 text-text-primary">디자인 시스템</h1>
           <nav className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none]">

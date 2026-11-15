@@ -43,7 +43,7 @@ export function PostEditImageViewer({
       </div>
 
       {/* 하단: 닫기(✕ tint)만 가운데. 완료 없음. 홈 인디케이터 위까지 여백. */}
-      <div className="flex shrink-0 justify-center pb-[calc(env(safe-area-inset-bottom)+12px)] pt-4">
+      <div className="flex shrink-0 justify-center pb-[calc(var(--safe-area-bottom)+12px)] pt-4">
         <IconButton
           variant="tint"
           size="l"

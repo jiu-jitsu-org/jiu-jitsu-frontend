@@ -44,7 +44,7 @@ export function BalanceCollapsedBar({
     // 웹 단독으로 열렸을 때만 상태바 인셋이 잡힌다(네이티브에선 0).
     <div
       className={cn(
-        "fixed inset-x-0 top-0 z-20 pt-[env(safe-area-inset-top)]",
+        "fixed inset-x-0 top-0 z-20 pt-[var(--safe-area-top)]",
         BOARD_PALETTE.bg,
         leaving && "pointer-events-none",
         leaving
