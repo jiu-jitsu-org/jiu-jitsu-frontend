@@ -112,11 +112,12 @@ export function CompetitionCalendar({
             setMonths((current) => ({ ...current, [key]: { failed: true } }));
             return;
           }
-          onLoad(result.chunk.items.map(({ competition }) => competition));
+          // 달을 먼저 채운다 — 관심 상태에 더하다 실패해도 달력이 빈 달로 멈추지 않게.
           setMonths((current) => ({
             ...current,
             [key]: toMonthData(result.chunk, month),
           }));
+          onLoad(result.chunk.items.map(({ competition }) => competition));
         });
     },
     // query는 queryKey로 본다 — 같은 조건이면 다시 받지 않는다.
@@ -177,7 +178,8 @@ export function CompetitionCalendar({
     setSeeking(false);
   };
 
-  if (pendingFirstDay && monthData) {
+  // 못 받은 달에서는 기다린다 — '다시 시도'로 받으면 그때 첫 대회 날을 고른다.
+  if (pendingFirstDay && monthData && !monthData.failed) {
     const firstDay = [...byDate.keys()].sort()[0];
     if (firstDay) {
       setSelected(firstDay);
@@ -214,7 +216,11 @@ export function CompetitionCalendar({
             <ChevronLeftIcon size={20} />
           </IconButton>
           {/* 달 머리를 누르면 연·월 휠 시트 — 화살표로 한 달씩 넘기지 않고 멀리 있는 달로 바로 간다. */}
-          <h2 aria-live="polite">
+          <h2>
+            {/* 달이 바뀌면 달 이름만 읽어 준다 — 버튼 이름("…, 다른 달 고르기")까지 매번 읽지 않게. */}
+            <span aria-live="polite" className="sr-only">
+              {view.year}년 {view.month}월
+            </span>
             <button
               type="button"
               aria-haspopup="dialog"
