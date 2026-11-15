@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
@@ -12,6 +13,7 @@ import { docToMarkdown } from "./doc-markdown";
 import {
   DOC_GROUP_LABEL,
   DOC_LIST,
+  decodeHash,
   docIdFromHash,
   findDoc,
   type DocGroup,
@@ -33,12 +35,17 @@ export function DocShell({ docs }: { docs: Record<string, ReactNode> }) {
   useEffect(() => {
     const sync = (scrollTop: boolean) => {
       const next = docIdFromHash(window.location.hash);
-      setActive(next);
-      setMenuOpen(false);
-      // 문서를 바꾼 뒤 그려진 다음 프레임에 위치를 잡는다 — 소제목 앵커면 그 소제목으로.
+      const apply = () => {
+        setActive(next);
+        setMenuOpen(false);
+      };
+      // 주소가 바뀐 경우엔 문서를 바로 그려 둔다 — 숨은 채로 소제목에 스크롤하면 움직이지 않는다.
+      if (scrollTop) flushSync(apply);
+      else apply();
+      // 그려진 다음 프레임에 위치를 잡는다 — 소제목 앵커면 그 소제목으로.
       requestAnimationFrame(() => {
         const target = window.location.hash.includes("--")
-          ? document.getElementById(decodeURIComponent(window.location.hash.slice(1)))
+          ? document.getElementById(decodeHash(window.location.hash))
           : null;
         if (target) target.scrollIntoView();
         else if (scrollTop) window.scrollTo(0, 0);

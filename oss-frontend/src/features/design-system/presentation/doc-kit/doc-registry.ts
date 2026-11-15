@@ -185,8 +185,18 @@ const LEGACY_ANCHOR: Record<string, string> = {
   component: "button",
 };
 
+/** 주소 앵커를 글자로 푼다. 깨진 %표기(#%E0)여도 페이지가 멈추지 않게 그대로 돌려준다. */
+export function decodeHash(hash: string): string {
+  const raw = hash.replace(/^#/, "");
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}
+
 export function docIdFromHash(hash: string): string {
-  const raw = decodeURIComponent(hash.replace(/^#/, "")).split("--")[0];
+  const raw = decodeHash(hash).split("--")[0];
   const id = LEGACY_ANCHOR[raw] ?? raw;
   return DOC_LIST.some((doc) => doc.id === id) ? id : "overview";
 }
