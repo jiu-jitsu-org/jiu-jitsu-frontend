@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 
 import { useAuth } from "@/features/auth/presentation/auth-provider";
 import type { UserProfile } from "@/features/profile/domain/profile";
-import { InboundMessageType } from "@/shared/lib/native-bridge";
+import { InboundMessageType, isNativeBridgeAvailable } from "@/shared/lib/native-bridge";
 import { BackButton } from "@/shared/ui";
 import type {
   ApiErrorResponse,
@@ -33,15 +33,18 @@ type ProfileTest =
   | { state: "success"; nickname: string; snsProvider: string; email: string }
   | { state: "error"; statusCode: number; message: string };
 
+const subscribeNoop = () => () => {};
+
 export function AuthPlaygroundPage() {
   const {
     status,
     events,
-    nativeAvailable,
     requireAuth,
     refresh,
     simulateInbound,
   } = useAuth();
+  // 개발용 화면이라 연결 여부를 여기서만 읽는다(AuthProvider는 하이드레이션 중 다시 그리지 않게 상태로 두지 않는다).
+  const nativeAvailable = useSyncExternalStore(subscribeNoop, isNativeBridgeAvailable, () => false);
 
   const [lastActionAt, setLastActionAt] = useState<string | null>(null);
   const [tokenInput, setTokenInput] = useState(DUMMY_ACCESS_TOKEN);
