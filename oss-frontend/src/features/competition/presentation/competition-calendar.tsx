@@ -19,7 +19,7 @@ import { CompetitionRow } from "@/features/competition/presentation/competition-
 import type { CompetitionInterest } from "@/features/competition/presentation/use-competition-interest";
 import { cn } from "@/shared/lib/cn";
 import { EmptyState } from "@/shared/ui/empty-state";
-import { ChevronLeftIcon } from "@/shared/ui/icons";
+import { ChevronLeftIcon, HeartIcon } from "@/shared/ui/icons";
 import { IconButton } from "@/shared/ui/icon-button";
 import { lastDayOf } from "@/features/competition/domain/competition-schedule";
 
@@ -33,7 +33,8 @@ type MonthData =
 /**
  * 대회 달력 보기 (#339) — 달 하나를 칸으로 펼치고, 날짜를 고르면 그날 대회를 목록과 같은 줄로 아래에 보여 준다.
  *
- * 대회가 있는 날은 숫자 아래 점 하나로 표시한다. 내 관심 대회가 있는 날은 점을 관심 하트와 같은 빨강으로 칠한다(#396). 대회의 대부분이 토·일에 몰려 주말마다 2~4개가 겹치는데,
+ * 대회가 있는 날은 숫자 아래 파랑 점 하나로 표시한다. 내 관심 대회가 있는 날은 점 대신 작은 빨강 하트다 — 빨강 점만으로는
+ * 파랑 점과 무엇이 다른지 읽히지 않아, 대회 줄·필터 줄의 관심 하트와 같은 모양으로 바꿨다. 대회의 대부분이 토·일에 몰려 주말마다 2~4개가 겹치는데,
  * 칸마다 숫자를 적으면 주말 줄이 숫자로 빽빽해진다. 몇 개인지는 날짜를 누르면 바로 아래에 보인다.
  * 처음에는 오늘 이후 가장 가까운 대회 날을 골라 둔다 — 오늘을 고르면 평일엔 거의 늘 빈 목록부터 보인다.
  *
@@ -290,12 +291,12 @@ export function CompetitionCalendar({
 }
 
 /**
- * 날짜 칸 — 숫자 원 + 아래 점.
+ * 날짜 칸 — 숫자 원 + 아래 표시(대회 있는 날 파랑 점 · 관심 대회 있는 날 빨강 하트).
  *
  * 고른 날은 파랑 원 채움, 오늘은 한 단계 진한 옅은 파랑 원(고르지 않았을 때) — 달력 바탕 회색(cool-gray-25) 위에서
  * 가장 옅은 파랑(blue-50)은 밝기가 거의 같아 보이지 않았다. 지난 날은 흐리게 막는다.
- * 점은 원 밖 아래에 둬 고른 날에도 같은 자리·같은 색으로 보인다. 관심 대회가 있는 날은 빨강 점 — 하트 필터를 켜지 않아도
- * 달력에서 내 대회 날이 바로 보인다. 지난 날은 관심이어도 흐린 점이다.
+ * 표시는 원 밖 아래에 둬 고른 날에도 같은 자리·같은 색으로 보인다. 관심 대회가 있는 날은 하트 — 하트 필터를 켜지 않아도
+ * 달력에서 내 대회 날이 바로 보이고, 대회 줄의 관심 하트와 같은 모양이라 뜻이 읽힌다. 지난 날은 흐린 색이다.
  */
 function DayCell({
   date,
@@ -343,19 +344,24 @@ function DayCell({
       >
         {day}
       </span>
-      <span
-        aria-hidden
-        className={cn(
-          "mt-1 size-[5px] rounded-full",
-          count > 0
-            ? past
-              ? "bg-icon-disabled"
-              : interested
-                ? "bg-reaction-bar-active-like-icon"
-                : "bg-primary"
-            : "bg-transparent",
+      <span aria-hidden className="mt-1 flex h-2.5 items-center">
+        {count === 0 ? null : interested ? (
+          <HeartIcon
+            filled
+            size={10}
+            className={
+              past ? "text-icon-disabled" : "text-reaction-bar-active-like-icon"
+            }
+          />
+        ) : (
+          <span
+            className={cn(
+              "size-[5px] rounded-full",
+              past ? "bg-icon-disabled" : "bg-primary",
+            )}
+          />
         )}
-      />
+      </span>
     </button>
   );
 }
