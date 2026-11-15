@@ -396,6 +396,7 @@ Server Action은 UI 이벤트 adapter에 가깝다.
 - `VersionInfoPage` Client Component와 `useActionState` 기반 Server Action 갱신 예시
 - 개발/운영 `.env` 분리
 - `design-tokens/` 기반 컬러 디자인 토큰 파이프라인 (`npm run tokens`)
+- `design-system` feature — `/ds` 디자인 시스템 문서(로컬·개발 서버에서만, `is-design-system-page-enabled.ts`). 문서 목록·순서는 `presentation/doc-kit/doc-registry.ts`, 문서 틀(머리·견본 판·표·좋은 예/피할 것·실측)은 `doc-kit/`, 문서 내용은 `docs/`(기초·부품·패턴 한 장씩). 새 공용 부품을 만들면 여기에도 한 장 더한다
 
 ## 작업 전 체크
 
