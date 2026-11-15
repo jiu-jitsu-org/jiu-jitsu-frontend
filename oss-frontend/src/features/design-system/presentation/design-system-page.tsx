@@ -25,6 +25,7 @@ import {
   TypographyDoc,
 } from "./docs/foundations";
 import { OverviewDoc } from "./docs/overview";
+import { BeltAvatarDoc, CompetitionRowDoc, FeedCardDoc } from "./docs/patterns";
 
 /**
  * /ds — 디자인 시스템 문서(당근 Seed 문서식: 기초 · 부품 · 패턴마다 문서 한 장).
@@ -57,6 +58,9 @@ const DOC_CONTENT: Record<string, ReactNode> = {
   "back-button": <BackButtonDoc />,
   "open-in-app-prompt": <OpenInAppPromptDoc />,
   "relative-time": <RelativeTimeDoc />,
+  "belt-avatar": <BeltAvatarDoc />,
+  "competition-row": <CompetitionRowDoc />,
+  "feed-card": <FeedCardDoc />,
 };
 
 export function DesignSystemPage() {
