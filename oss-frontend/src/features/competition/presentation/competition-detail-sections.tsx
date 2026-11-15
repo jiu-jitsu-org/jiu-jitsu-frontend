@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { Competition } from "@/features/competition/domain/competition";
 import type { CompetitionFeeItem } from "@/features/competition/domain/competition-fee";
 import {
+  dateRangeLabel,
   feeAmountLabel,
   feeNoteLines,
   longDateLabel,
@@ -68,7 +69,14 @@ export function CompetitionInfoSection({
   if (isDateKey(competition.date)) {
     rows.push({
       label: "일시",
-      value: `${longDateLabel(competition.date, currentYear)}${competition.startTime ? ` ${competition.startTime}~` : ""}`,
+      value: competition.endDate
+        ? dateRangeLabel(
+            competition.date,
+            competition.endDate,
+            currentYear,
+            competition.startTime,
+          )
+        : `${longDateLabel(competition.date, currentYear)}${competition.startTime ? ` ${competition.startTime}~` : ""}`,
     });
   }
   if (place) rows.push({ label: "장소", value: place });

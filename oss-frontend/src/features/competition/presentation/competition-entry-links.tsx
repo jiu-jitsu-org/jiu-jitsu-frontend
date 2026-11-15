@@ -18,13 +18,18 @@ const ENTRY_LINK_LABELS: Record<CompetitionEntryLinkKind, string> = {
   result: "결과 보기",
 };
 
+/** 버튼 색 — kit Button variant 중 바에서 쓰는 셋. */
+type EntryButtonVariant = "filled" | "tint" | "neutral";
+
 type EntryButton =
-  | { key: string; url: string; label: string; primary: boolean }
+  | { key: string; url: string; label: string; variant: EntryButtonVariant }
   /** 아직 갈 곳이 없는 단계(접수 전)를 알리는 누를 수 없는 버튼. */
-  | { key: string; url?: undefined; label: string; primary: false };
+  | { key: string; url?: undefined; label: string; variant: "neutral" };
 
 /**
- * 바닥 바에 놓을 버튼들. 첫째가 주 버튼이다.
+ * 바닥 바에 놓을 버튼들. 첫째가 주 버튼(꽉 찬 파랑)이고 둘째는 회색 보조다.
+ * 대진표 · 시간표는 대회 며칠 전에 먼저 나와 혼자 있을 수도, 실시간 매트 · 참가자 현황과 같이 있을 수도 있어
+ * 자리와 상관없이 늘 틴트로 둔다 — 신청 · 실시간 매트처럼 지금 할 일과 구분되면서 회색보다 눈에 띄게.
  * 상태 링크가 있으면 그것 → 접수 전이면 접수 시작일(또는 미정)을 적은 누를 수 없는 버튼 → 대회 공지로 가는 보조 버튼.
  * 접수 전 단계엔 상태 링크가 없다 — 공지는 정보 기준 줄의 '대회 공지' 링크로도 갈 수 있어 이 자리는 언제 열리는지 알리는 데 쓴다.
  */
@@ -40,7 +45,12 @@ function entryButtonsOf({
       key: link.kind,
       url: link.url,
       label: ENTRY_LINK_LABELS[link.kind],
-      primary: link === links[0],
+      variant:
+        link.kind === "bracket"
+          ? "tint"
+          : link === links[0]
+            ? "filled"
+            : "neutral",
     }));
   }
   if (status?.kind === "upcoming") {
@@ -48,13 +58,13 @@ function entryButtonsOf({
       {
         key: "opens",
         label: `${opensOnLabel(status.opensOn, currentYear)} 접수 시작`,
-        primary: false,
+        variant: "neutral",
       },
     ];
   }
   // 'unannounced'는 접수 중인데 마감일을 모를 때도 나온다 — 서버가 접수 예정이라 할 때만 미정이라고 적는다.
   if (status?.kind === "unannounced" && serverUpcoming) {
-    return [{ key: "opens", label: "접수 일정 미정", primary: false }];
+    return [{ key: "opens", label: "접수 일정 미정", variant: "neutral" }];
   }
   return isWebUrl(noticeUrl)
     ? [
@@ -62,7 +72,7 @@ function entryButtonsOf({
           key: "notice",
           url: noticeUrl,
           label: "대회사 사이트에서 확인하기",
-          primary: false,
+          variant: "neutral",
         },
       ]
     : [];
@@ -178,10 +188,13 @@ export function CompetitionEntryBar({
                 rel="noopener noreferrer"
                 className={cn(
                   buttonVariants({
-                    variant: button.primary ? "filled" : "neutral",
+                    variant: button.variant,
                     size: "l",
                   }),
                   "min-w-0 flex-1 px-2",
+                  // kit 틴트 면(blue-50)은 흰 바 위에서 거의 안 보여 한 단계 진한 면을 쓴다.
+                  button.variant === "tint" &&
+                    "bg-surface-primary-subtle-strong not-disabled:active:bg-surface-primary-subtle-strong-pressed",
                 )}
               >
                 {button.label}

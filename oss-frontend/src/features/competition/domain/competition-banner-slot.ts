@@ -4,6 +4,7 @@ import type {
 } from "@/features/competition/domain/competition-interest-banner";
 import { daysBetween } from "@/features/competition/domain/competition-registration";
 import type { ResultCardGroup } from "@/features/competition/domain/competition-result-prompt";
+import { lastDayOf } from "@/features/competition/domain/competition-schedule";
 
 /**
  * 대회 탭 맨 위 배너 자리 — 필터 줄 바로 아래에 한 번에 한 장만 띄운다.
@@ -90,7 +91,8 @@ function splitGroup(group: ResultCardGroup): ResultCardGroup[] {
   return group.competitions.map((competition) => ({
     key: `${group.key}:${competition.id}`,
     weekend: false,
-    daysAgo: group.daysAgo + daysBetween(competition.date, last.date),
+    daysAgo:
+      group.daysAgo + daysBetween(lastDayOf(competition), lastDayOf(last)),
     competitions: [competition],
   }));
 }

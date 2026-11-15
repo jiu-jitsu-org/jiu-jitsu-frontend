@@ -5,6 +5,7 @@ import type {
   CompetitionStatus,
 } from "@/features/competition/domain/competition";
 import {
+  entrySiteName,
   isWebUrl,
   type CompetitionEntryLink,
   type CompetitionEntryLinkKind,
@@ -15,7 +16,10 @@ import {
   COMPETITION_REGIONS,
   type CompetitionRegion,
 } from "@/features/competition/domain/competition-region";
-import type { CompetitionRegistration } from "@/features/competition/domain/competition-registration";
+import {
+  isDateKey,
+  type CompetitionRegistration,
+} from "@/features/competition/domain/competition-registration";
 
 /**
  * 대회 API 공통 응답 모양(backend#193)과 도메인 매핑 — 대회 목록·상세·고르기와 게시글 응답의 대회 카드가 같이 쓴다.
@@ -39,6 +43,8 @@ export type CompetitionListItemDto = {
   competitionId: number;
   name: string;
   openDate: string;
+  /** 여러 날 대회의 마지막 날(backend#227). 하루짜리면 null, 이 값을 모르는 서버면 오지 않는다. */
+  endDate?: string | null;
   region: string | null;
   place: string | null;
   uniforms: string[] | null;
@@ -72,16 +78,21 @@ export type CompetitionDetailDto = CompetitionListItemDto & {
   feeNote: string | null;
   lastVerifiedDate: string | null;
   noticeEnabled: boolean | null;
-  // 상태 링크 · 접수 사이트(#469 · #470) — 백엔드 계약 전 임시 이름. 아직 오지 않아 선택 필드로 둔다.
-  // 계약 전이라 모양을 믿지 않는다 — 원소가 null이거나 값 타입이 달라도 버리고 넘어간다.
-  entryLinks?: (CompetitionEntryLinkDto | null)[] | null;
-  entrySite?: { type: string } | null;
+  // 상태 링크 · 접수 사이트 · 도장 신청(backend#227). 서버가 승인했고 보이는 기간 안인 링크만 온다.
+  // 원소 모양은 믿지 않는다 — null이거나 값 타입이 달라도 버리고 넘어간다.
+  links?: (CompetitionLinkDto | null)[] | null;
+  /** FLOWCOMP · STREET_JIUJITSU · JIUDAEPL · KSOC · OTHER, 모르면 null */
+  registrationSite?: string | null;
+  /** 도장(감독 · 코치)을 통해 신청하는 대회 — 서버가 정한다(지금은 접수 사이트 = 대한체육회). */
+  clubRegistrationOnly?: boolean | null;
 };
 
-type CompetitionEntryLinkDto = {
+/** CompetitionLinkResponse — 보이는 기간은 서버가 이미 걸러서 웹은 쓰지 않는다. */
+type CompetitionLinkDto = {
   type: string;
   url: string;
-  siteName?: string | null;
+  visibleFrom?: string | null;
+  visibleUntil?: string | null;
 };
 
 /** CompetitionListResponse */
@@ -146,8 +157,8 @@ const DIVISION_BY_UNIFORM: Record<string, CompetitionDivision> = {
 
 // Map으로 찾는다 — 객체 조회는 "constructor" · "toString" 같은 코드에도 값이 나온다.
 const ENTRY_LINK_KIND_BY_CODE = new Map<string, CompetitionEntryLinkKind>([
-  ["REGISTER", "register"],
-  ["PARTICIPANTS", "participants"],
+  ["REGISTRATION", "register"],
+  ["ENTRY_LIST", "participants"],
   ["BRACKET", "bracket"],
   ["LIVE_MAT", "liveMat"],
   ["RESULT", "result"],
@@ -155,9 +166,9 @@ const ENTRY_LINK_KIND_BY_CODE = new Map<string, CompetitionEntryLinkKind>([
 
 const ENTRY_SITE_KIND_BY_CODE = new Map<string, CompetitionEntrySiteKind>([
   ["FLOWCOMP", "flowcomp"],
-  ["STREET", "street"],
-  ["JUDAEPL", "judaepl"],
-  ["KJF", "kjf"],
+  ["STREET_JIUJITSU", "street"],
+  ["JIUDAEPL", "judaepl"],
+  ["KSOC", "kjf"],
 ]);
 
 /** 참가 대상 제한 — 제한 없음(null)은 표시하지 않는다. */
@@ -199,6 +210,9 @@ export function toCompetition(dto: CompetitionListItemDto): Competition {
     id: dto.competitionId,
     name: dto.name,
     date: dto.openDate,
+    ...(dto.endDate && isDateKey(dto.endDate) && dto.endDate > dto.openDate
+      ? { endDate: dto.endDate }
+      : {}),
     place: dto.place ?? "",
     ...(region ? { region } : {}),
     divisions: (dto.uniforms ?? []).flatMap((uniform) => {
@@ -218,6 +232,10 @@ export function toCompetition(dto: CompetitionListItemDto): Competition {
 }
 
 export function toCompetitionDetail(dto: CompetitionDetailDto): Competition {
+  const entrySite =
+    typeof dto.registrationSite === "string"
+      ? toEntrySite(dto.registrationSite)
+      : undefined;
   return {
     ...toCompetition(dto),
     ...(dto.startTime ? { startTime: dto.startTime.slice(0, 5) } : {}),
@@ -225,12 +243,11 @@ export function toCompetitionDetail(dto: CompetitionDetailDto): Competition {
     ...(dto.host ? { host: dto.host } : {}),
     ...(dto.noticeUrl ? { noticeUrl: dto.noticeUrl } : {}),
     // 모르는 상태 코드는 toCompetition이 접수 중으로 두지만, 그 추측으로 신청하기를 띄우지는 않는다.
-    entryLinks: toEntryLinks(dto.entryLinks).filter(
+    entryLinks: toEntryLinks(dto.links, entrySite).filter(
       (link) => link.kind !== "register" || STATUS_BY_CODE.has(dto.status),
     ),
-    ...(isObject(dto.entrySite)
-      ? { entrySite: toEntrySite(dto.entrySite) }
-      : {}),
+    ...(entrySite ? { entrySite } : {}),
+    clubEntryOnly: dto.clubRegistrationOnly ?? false,
     fees: (dto.fees ?? []).map(
       (fee): CompetitionFee => ({
         label: fee.label,
@@ -245,26 +262,24 @@ export function toCompetitionDetail(dto: CompetitionDetailDto): Competition {
 }
 
 /** 모르는 종류 · http(s)가 아닌 주소 · 모양이 틀린 원소는 버린다 — 엉뚱한 버튼이나 이상한 링크가 생기지 않게. */
-function toEntryLinks(dtos: unknown): CompetitionEntryLink[] {
+function toEntryLinks(
+  dtos: unknown,
+  site: CompetitionEntrySite | undefined,
+): CompetitionEntryLink[] {
   if (!Array.isArray(dtos)) return [];
   return dtos.flatMap((dto: unknown): CompetitionEntryLink[] => {
     if (!isObject(dto) || typeof dto.type !== "string") return [];
     const kind = ENTRY_LINK_KIND_BY_CODE.get(dto.type);
     const url = typeof dto.url === "string" ? dto.url : undefined;
     if (!kind || !isWebUrl(url)) return [];
-    const siteName =
-      typeof dto.siteName === "string" ? dto.siteName.trim() : "";
+    const siteName = site ? entrySiteName(site.kind, kind, url) : undefined;
     return [{ kind, url, ...(siteName ? { siteName } : {}) }];
   });
 }
 
 /** 모르는 사이트 종류는 기타로 둔다. */
-function toEntrySite(dto: Record<string, unknown>): CompetitionEntrySite {
-  const kind =
-    typeof dto.type === "string"
-      ? ENTRY_SITE_KIND_BY_CODE.get(dto.type)
-      : undefined;
-  return { kind: kind ?? "other" };
+function toEntrySite(code: string): CompetitionEntrySite {
+  return { kind: ENTRY_SITE_KIND_BY_CODE.get(code) ?? "other" };
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {

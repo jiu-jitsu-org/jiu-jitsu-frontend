@@ -21,6 +21,8 @@ export type Competition = {
   name: string;
   /** 대회 날짜 — 한국 날짜 "YYYY-MM-DD". 시각은 없다. */
   date: string;
+  /** 여러 날 대회의 마지막 날 "YYYY-MM-DD"(backend#227) — 하루짜리면 없다. 있으면 date보다 늦다. */
+  endDate?: string;
   /** 목록에 그대로 보이는 짧은 장소 표기. 예: "서울 송파". 모르면 빈 문자열. */
   place: string;
   /** 시·도 — 지역 필터용. 장소가 아직 안 정해진 대회는 없다. */
@@ -55,6 +57,8 @@ export type Competition = {
   entryLinks?: CompetitionEntryLink[];
   /** 접수 사이트 종류(#470) — 서버가 모르면 없다. */
   entrySite?: CompetitionEntrySite;
+  /** 도장(감독 · 코치)을 통해 신청하는 대회인지(backend#227) — 상세에만 온다. */
+  clubEntryOnly?: boolean;
   /** 참가비 단계(#364) — 서버가 정한 순서. 모르면 빈 배열(목록 항목에는 없다). */
   fees?: CompetitionFee[];
   /** 참가비 기준 한 줄. 예: "성인 1종목 기준" */

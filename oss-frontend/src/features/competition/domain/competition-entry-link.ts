@@ -38,6 +38,41 @@ export type CompetitionEntrySite = {
   kind: CompetitionEntrySiteKind;
 };
 
+const ENTRY_SITES: Partial<
+  Record<CompetitionEntrySiteKind, { name: string; host?: string }>
+> = {
+  flowcomp: { name: "FLOWCOMP", host: "flowcomp.co.kr" },
+  street: { name: "스트릿 주짓수", host: "street-jiujitsu.com" },
+  judaepl: { name: "주대플" },
+  kjf: { name: "대한체육회", host: "sports.or.kr" },
+};
+
+/**
+ * 버튼 위 "○○에서 신청 · 결제 / 보기"에 쓰는 사이트 이름 — 기타 사이트는 이름을 모른다.
+ *
+ * 서버의 접수 사이트(registrationSite)는 신청하는 곳이라 신청 링크에는 늘 붙인다. 대진표 · 실시간 매트 · 결과는
+ * 다른 곳(예: 유튜브)일 수 있어 주소가 그 사이트일 때만 붙인다 — 엉뚱한 이름을 말하지 않게.
+ */
+export function entrySiteName(
+  site: CompetitionEntrySiteKind,
+  linkKind: CompetitionEntryLinkKind,
+  url: string,
+): string | undefined {
+  const entry = ENTRY_SITES[site];
+  if (!entry) return undefined;
+  if (linkKind === "register") return entry.name;
+  return entry.host && isOnHost(url, entry.host) ? entry.name : undefined;
+}
+
+function isOnHost(url: string, host: string): boolean {
+  try {
+    const { hostname } = new URL(url);
+    return hostname === host || hostname.endsWith(`.${host}`);
+  } catch {
+    return false;
+  }
+}
+
 /** 한 번에 보여 주는 상태 링크 수 — 당일처럼 여럿이어도 두 개까지. */
 export const MAX_ENTRY_LINKS = 2;
 
@@ -51,7 +86,7 @@ export const MAX_ENTRY_LINKS = 2;
  *
  * 단계는 상세 맨 위 상태 칩과 같은 계산(detailStatusOn)으로 나눈다 — 칩이 '접수 중'일 때만 신청을 보여 주고,
  * 서버 상태가 접수 중이어도 마감일이 지났거나 공지되지 않아 칩이 접수 중이 아니면 신청을 띄우지 않는다.
- * 대한체육회 대회는 신청 링크가 와도 보여 주지 않는다.
+ * 도장을 통해 신청하는 대회는 신청 링크가 와도 보여 주지 않는다(서버도 내려 주지 않는다).
  */
 export function entryLinksOn(
   competition: Competition,
@@ -60,7 +95,7 @@ export function entryLinksOn(
   const links = competition.entryLinks ?? [];
   if (links.length === 0) return [];
   const kinds = stageKinds(competition, today).filter(
-    (kind) => kind !== "register" || competition.entrySite?.kind !== "kjf",
+    (kind) => kind !== "register" || !competition.clubEntryOnly,
   );
   return kinds
     .flatMap((kind) => {
@@ -89,29 +124,29 @@ function stageKinds(
   }
 }
 
-/** 도장(감독 · 코치)을 통해 신청하는 대회인지 — 대한체육회 대회이고 아직 접수 전 · 접수 중일 때 알린다. */
+/** 도장(감독 · 코치)을 통해 신청하는 대회인지(서버가 정함) — 아직 접수 전 · 접수 중일 때만 알린다. */
 export function isClubEntryOnly(
-  competition: Pick<Competition, "entrySite" | "status">,
+  competition: Pick<Competition, "clubEntryOnly" | "status">,
 ): boolean {
   return (
-    competition.entrySite?.kind === "kjf" &&
+    competition.clubEntryOnly === true &&
     (competition.status === "upcoming" || competition.status === "open")
   );
 }
 
 /**
  * 참가비 아래 "신청과 결제는 대회 공지에서 해요"를 붙일지 — 공지 주소가 있고, 상태 칩이 접수 예정 · 접수 중이고,
- * 대한체육회 대회가 아니고(도장을 통해 신청한다), 아래 바에 신청하기가 없을 때(바가 신청 자리를 맡는다).
+ * 도장을 통해 신청하는 대회가 아니고, 아래 바에 신청하기가 없을 때(바가 신청 자리를 맡는다).
  * 마감 · 당일 · 종료면 신청할 일이 없어 붙이지 않는다.
  */
 export function pointsToNoticeForEntry(
-  competition: Pick<Competition, "noticeUrl" | "entrySite">,
+  competition: Pick<Competition, "noticeUrl" | "clubEntryOnly">,
   status: CompetitionDetailStatus | null,
   shownLinks: readonly CompetitionEntryLink[],
 ): boolean {
   return (
     isWebUrl(competition.noticeUrl) &&
-    competition.entrySite?.kind !== "kjf" &&
+    !competition.clubEntryOnly &&
     (status?.kind === "upcoming" || status?.kind === "open") &&
     !shownLinks.some((link) => link.kind === "register")
   );

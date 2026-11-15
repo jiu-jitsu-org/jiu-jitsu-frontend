@@ -10,6 +10,29 @@ export function longDateLabel(
   return `${prefix}${month}월 ${day}일(${weekdayOf(date).label})`;
 }
 
+/**
+ * 여러 날 대회 "11월 14일(토) ~ 16일(월)" — 달이 바뀌면 "11월 30일(월) ~ 12월 1일(화)", 해가 바뀌면 끝에도 연도.
+ * 마지막 날이 없으면 longDateLabel과 같다. time을 주면 첫날 뒤에 붙인다: "11월 14일(토) 09:00 ~ 16일(월)".
+ */
+export function dateRangeLabel(
+  date: string,
+  endDate: string | undefined,
+  currentYear: number | null,
+  time?: string,
+): string {
+  const first = `${longDateLabel(date, currentYear)}${time ? ` ${time}` : ""}`;
+  if (!endDate || endDate <= date) return first;
+  const [year, month] = date.split("-").map(Number);
+  const [endYear, endMonth, endDay] = endDate.split("-").map(Number);
+  const last =
+    endYear !== year
+      ? longDateLabel(endDate, null)
+      : endMonth !== month
+        ? longDateLabel(endDate, endYear)
+        : `${endDay}일(${weekdayOf(endDate).label})`;
+  return `${first} ~ ${last}`;
+}
+
 /** "11.8" — 해가 다르면 "2027.1.9". 일정·참가비 기한처럼 좁은 칸에 쓴다. */
 export function shortDateLabel(date: string, currentYear: number): string {
   const [year, month, day] = date.split("-").map(Number);

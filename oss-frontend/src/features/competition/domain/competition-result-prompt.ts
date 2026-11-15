@@ -3,6 +3,7 @@ import {
   daysBetween,
   isDateKey,
 } from "@/features/competition/domain/competition-registration";
+import { lastDayOf } from "@/features/competition/domain/competition-schedule";
 
 /**
  * 대회 탭 맨 위 결과 남기기 카드 규칙 (#403).
@@ -10,6 +11,7 @@ import {
  * 관심 등록한 대회가 끝나면 대회 탭 맨 위(곧 마감 배너 자리)에서 결과를 남길지 묻는다.
  * 대회 상세의 결과 남기기 배너(#368)와 같은 일을, 사람들이 자주 여는 대회 탭에서 끝난 직후 며칠만 한다.
  * 날짜는 모두 한국 날짜 "YYYY-MM-DD", "오늘"은 호출부가 서버 시각으로 정해 넘긴다.
+ * '끝난 날'은 마지막 날이다 — 여러 날 대회는 종료일(backend#227), 하루짜리는 대회일.
  */
 
 /** 끝난 뒤 카드를 보여 주는 날수 — 대회 다음 날부터 5일째까지. 토요일 대회는 하루 늘려 그 주 금요일까지. */
@@ -45,18 +47,20 @@ export function recentlyEndedInterested(
       (competition) =>
         interestedIds.has(competition.id) &&
         isDateKey(competition.date) &&
-        competition.date < today &&
-        isOnCardDay(competition.date, today),
+        lastDayOf(competition) < today &&
+        isOnCardDay(lastDayOf(competition), today),
     )
     .sort(
       (a, b) =>
-        a.date.localeCompare(b.date) || a.name.localeCompare(b.name, "ko"),
+        lastDayOf(a).localeCompare(lastDayOf(b)) ||
+        a.name.localeCompare(b.name, "ko"),
     );
 
   for (const competition of ended) {
-    const saturday = weekendSaturday(competition.date);
-    const key = saturday ? `weekend:${saturday}` : competition.date;
-    const daysAgo = daysBetween(competition.date, today);
+    const lastDay = lastDayOf(competition);
+    const saturday = weekendSaturday(lastDay);
+    const key = saturday ? `weekend:${saturday}` : lastDay;
+    const daysAgo = daysBetween(lastDay, today);
     const group = groups.get(key);
     if (group) {
       group.competitions.push(competition);
@@ -76,7 +80,7 @@ export function recentlyEndedInterested(
 }
 
 /**
- * 오늘이 카드를 보여 주는 마지막 날 이전인지 — 마지막 날은 대회일 + 5일, 토요일 대회면 + 6일(그 주 금요일).
+ * 오늘이 카드를 보여 주는 마지막 날 이전인지 — 마지막 날은 끝난 날 + 5일, 토요일에 끝났으면 + 6일(그 주 금요일).
  * 일요일 대회는 + 5일이 금요일이다. 달력에 없는 날짜면 false.
  */
 function isOnCardDay(date: string, today: string): boolean {

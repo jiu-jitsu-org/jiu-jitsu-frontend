@@ -78,6 +78,9 @@ export type CompetitionListPageData =
     }
   | { ok: false };
 
+/** 여러 날 대회의 첫날이 마지막 날보다 앞설 수 있는 여유 — 대회는 길어야 며칠이다. */
+const MULTI_DAY_LOOKBACK_DAYS = 7;
+
 /**
  * 대회 탭 목록 화면 데이터 — 오늘(서버 기준) 이후 대회를 날짜순으로, 대회마다 접수 상태를 붙여서(#419).
  *
@@ -88,9 +91,10 @@ export type CompetitionListPageData =
 export async function getCompetitionListPageData(): Promise<CompetitionListPageData> {
   const accessToken = await readSessionToken();
   // 끝난 관심 대회를 받기 시작할 날 — 정확한 오늘은 응답의 today로 다시 거른다(토요일 대회는 하루 더).
+  // 목록은 첫날 기준이라, 마지막 날로 거르는 여러 날 대회(backend#227)가 빠지지 않게 일주일 더 앞에서 받는다.
   const endedFrom = addDays(
     toKstDateKey(readServerNow()),
-    -(RESULT_CARD_DAYS + 2),
+    -(RESULT_CARD_DAYS + 2 + MULTI_DAY_LOOKBACK_DAYS),
   );
   try {
     const [

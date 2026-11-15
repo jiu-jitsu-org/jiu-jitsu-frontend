@@ -43,13 +43,15 @@ export function detailStatusOn(
 ): CompetitionDetailStatus | null {
   // 대회 날짜 모양이 틀렸으면 상태를 지어내지 않는다 — "종료"·"D-NaN"을 보여 주느니 상태 줄을 뺀다.
   if (!isDateKey(competition.date)) return null;
-  if (competition.status === "ended" || today > competition.date) {
+  const lastDay = lastDayOf(competition);
+  if (competition.status === "ended" || today > lastDay) {
     return {
       kind: "ended",
-      daysAgo: Math.max(0, daysBetween(competition.date, today)),
+      daysAgo: Math.max(0, daysBetween(lastDay, today)),
     };
   }
-  if (today === competition.date) return { kind: "today" };
+  // 여러 날 대회는 첫날부터 마지막 날까지 당일로 본다 — 서버는 이 동안 CLOSED를 준다(backend#227).
+  if (today >= competition.date) return { kind: "today" };
 
   const daysToCompetition = daysBetween(today, competition.date);
   // 접수 중이면 가장 가까운 마감 — 얼리버드 마감이 남았으면 그것(접수 마감을 몰라도 보여 준다).
@@ -78,6 +80,12 @@ export function detailStatusOn(
   }
 }
 
+/** 대회 마지막 날 — 여러 날 대회면 종료일, 아니면 대회일. 종료일 모양이 틀리면 대회일로 둔다. */
+export function lastDayOf(competition: Pick<Competition, "date" | "endDate">) {
+  const { date, endDate } = competition;
+  return endDate && isDateKey(endDate) && endDate > date ? endDate : date;
+}
+
 export type CompetitionScheduleKey =
   | "opens"
   | "early-bird"
@@ -89,6 +97,8 @@ export type CompetitionScheduleItem = {
   key: CompetitionScheduleKey;
   label: string;
   date: string;
+  /** 여러 날 대회의 마지막 날 — 대회 줄에만 있다. */
+  endDate?: string;
   state: "done" | "today" | "upcoming";
   daysLeft: number;
 };
@@ -124,11 +134,23 @@ export function scheduleOf(
     entries.push({ key: "competition", label: "대회", date: competition.date });
   }
 
+  const lastDay = lastDayOf(competition);
   return entries.map((entry) => {
     const daysLeft = daysBetween(today, entry.date);
+    // 여러 날 대회는 마지막 날까지 대회 줄을 '오늘'로 둔다 — 맨 위 '오늘 대회' 칩과 맞게.
+    const ongoing =
+      entry.key === "competition" && daysLeft < 0 && today <= lastDay;
     return {
       ...entry,
-      state: daysLeft < 0 ? "done" : daysLeft === 0 ? "today" : "upcoming",
+      ...(entry.key === "competition" && lastDay !== entry.date
+        ? { endDate: lastDay }
+        : {}),
+      state:
+        daysLeft === 0 || ongoing
+          ? "today"
+          : daysLeft < 0
+            ? "done"
+            : "upcoming",
       daysLeft: Math.max(0, daysLeft),
     };
   });
