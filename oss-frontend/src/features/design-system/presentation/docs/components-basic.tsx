@@ -197,6 +197,18 @@ export function ChipDoc() {
         칩 토큰에 파랑 켜짐 · 오류 색이 없어 의미 토큰(<Code>primary</Code> · <Code>border-error</Code>)을
         빌려 쓴다.
       </P>
+
+      <H doc={D} id="oss">오스에서</H>
+      <Sub>누르면 시트를 여는 칩</Sub>
+      <P>
+        대회 필터의 &lsquo;지역&rsquo;처럼 누르면 고르는 시트가 열리는 칩은 켜고 끄는 단추가 아니다 — 그래서{" "}
+        <Code>aria-pressed</Code>를 칩이 대신 붙이지 않고 호출부가 정한다.
+      </P>
+      <Sub>필수 선택을 비운 채 등록</Sub>
+      <P>
+        글쓰기에서 카테고리를 고르지 않고 등록을 누르면 꺼진 칩 테두리가 오류 색으로 바뀐다(
+        <Code>invalid</Code>). 어느 칸이 비었는지 &lsquo;카테고리를 선택해주세요&rsquo; 안내와 함께 짚어 준다.
+      </P>
     </DocPage>
   );
 }
