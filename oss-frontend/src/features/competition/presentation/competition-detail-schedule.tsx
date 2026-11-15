@@ -1,5 +1,5 @@
 import type { CompetitionScheduleItem } from "@/features/competition/domain/competition-schedule";
-import { longDateLabel } from "@/features/competition/presentation/competition-detail-format";
+import { dateRangeLabel } from "@/features/competition/presentation/competition-detail-format";
 import { DetailSection } from "@/features/competition/presentation/competition-detail-sections";
 import { ScheduleCurrentDot } from "@/features/competition/presentation/competition-schedule-current-dot";
 import { cn } from "@/shared/lib/cn";
@@ -113,7 +113,7 @@ export function CompetitionScheduleSection({
                   step.phase === "upcoming" && "text-text-secondary",
                 )}
               >
-                {longDateLabel(step.date, currentYear)}
+                {dateRangeLabel(step.date, step.endDate, currentYear)}
               </time>
             </li>
           );
