@@ -213,7 +213,7 @@ export function CompetitionCalendar({
           ))}
         </div>
 
-        <div className="mt-1 grid grid-cols-7 gap-y-0.5">
+        <div className="mt-2 grid grid-cols-7 gap-y-1">
           {monthCells(view).map((date, index) =>
             date === null ? (
               <span key={`blank-${index}`} />
@@ -292,7 +292,8 @@ export function CompetitionCalendar({
 /**
  * 날짜 칸 — 숫자 원 + 아래 점.
  *
- * 고른 날은 파랑 원 채움, 오늘은 옅은 파랑 원(고르지 않았을 때). 지난 날은 흐리게 막는다.
+ * 고른 날은 파랑 원 채움, 오늘은 한 단계 진한 옅은 파랑 원(고르지 않았을 때) — 달력 바탕 회색(cool-gray-25) 위에서
+ * 가장 옅은 파랑(blue-50)은 밝기가 거의 같아 보이지 않았다. 지난 날은 흐리게 막는다.
  * 점은 원 밖 아래에 둬 고른 날에도 같은 자리·같은 색으로 보인다. 관심 대회가 있는 날은 빨강 점 — 하트 필터를 켜지 않아도
  * 달력에서 내 대회 날이 바로 보인다. 지난 날은 관심이어도 흐린 점이다.
  */
@@ -323,16 +324,20 @@ function DayCell({
       disabled={past}
       aria-pressed={selected}
       aria-label={`${Number(date.slice(5, 7))}월 ${day}일${isToday ? " 오늘" : ""}${count > 0 ? `, 대회 ${count}개` : ""}${interested ? ", 관심 대회 있음" : ""}`}
-      className="flex h-11 flex-col items-center"
+      className="flex h-[54px] flex-col items-center"
     >
       <span
         className={cn(
-          "flex size-8 items-center justify-center rounded-full text-[15px] leading-none tabular-nums motion-safe:transition-colors motion-safe:duration-120",
+          "flex size-9 items-center justify-center rounded-full text-[16px] leading-none tabular-nums motion-safe:transition-colors motion-safe:duration-120",
           selected
             ? "bg-primary font-bold text-primary-on-primary"
             : cn(
-                isToday && "bg-surface-primary-subtle font-bold",
-                past ? "text-text-disabled" : weekdayColor(weekday, true),
+                // 오늘은 요일 색(일 빨강·토 파랑) 대신 진한 글자 — 파랑 면 위 빨강 숫자는 고른 날처럼 튀어 보인다.
+                isToday
+                  ? "bg-primary-subtle font-bold text-text-primary"
+                  : past
+                    ? "text-text-disabled"
+                    : weekdayColor(weekday, true),
               ),
         )}
       >
@@ -341,7 +346,7 @@ function DayCell({
       <span
         aria-hidden
         className={cn(
-          "mt-0.5 size-1 rounded-full",
+          "mt-1 size-[5px] rounded-full",
           count > 0
             ? past
               ? "bg-icon-disabled"
