@@ -186,9 +186,7 @@ export function toStatusCode(status: CompetitionStatus): string {
 }
 
 /** 시·도 enum 목록을 화면 이름으로 — 모르는 값은 버리고 표준 순서로 맞춘다. */
-export function toRegions(
-  codes: readonly string[] | null,
-): CompetitionRegion[] {
+export function toRegions(codes: readonly string[] | null): CompetitionRegion[] {
   const regions = new Set(
     (codes ?? []).flatMap((code) => {
       const region = REGION_BY_CODE.get(code);
@@ -200,9 +198,7 @@ export function toRegions(
 
 export function toCompetition(dto: CompetitionListItemDto): Competition {
   const registration: CompetitionRegistration = {
-    ...(dto.registrationStartDate
-      ? { opensOn: dto.registrationStartDate }
-      : {}),
+    ...(dto.registrationStartDate ? { opensOn: dto.registrationStartDate } : {}),
     ...(dto.registrationDeadline ? { closesOn: dto.registrationDeadline } : {}),
     ...(dto.earlyBirdDeadline
       ? { earlyBirdClosesOn: dto.earlyBirdDeadline }
@@ -252,11 +248,13 @@ export function toCompetitionDetail(dto: CompetitionDetailDto): Competition {
     ),
     ...(entrySite ? { entrySite } : {}),
     clubEntryOnly: dto.clubRegistrationOnly ?? false,
-    fees: (dto.fees ?? []).map((fee): CompetitionFee => ({
-      label: fee.label,
-      amount: fee.amount,
-      ...(fee.until ? { until: fee.until } : {}),
-    })),
+    fees: (dto.fees ?? []).map(
+      (fee): CompetitionFee => ({
+        label: fee.label,
+        amount: fee.amount,
+        ...(fee.until ? { until: fee.until } : {}),
+      }),
+    ),
     ...(dto.feeNote ? { feeNote: dto.feeNote } : {}),
     ...(dto.lastVerifiedDate ? { verifiedOn: dto.lastVerifiedDate } : {}),
     noticeEnabled: dto.noticeEnabled ?? false,

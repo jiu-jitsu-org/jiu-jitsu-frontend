@@ -87,7 +87,10 @@ export function lastDayOf(competition: Pick<Competition, "date" | "endDate">) {
 }
 
 export type CompetitionScheduleKey =
-  "opens" | "early-bird" | "closes" | "competition";
+  | "opens"
+  | "early-bird"
+  | "closes"
+  | "competition";
 
 /** 일정 한 줄 — 지났으면 done, 오늘이면 today, 남았으면 daysLeft(1 이상). */
 export type CompetitionScheduleItem = {
@@ -109,11 +112,8 @@ export function scheduleOf(
   competition: Competition,
   today: string,
 ): CompetitionScheduleItem[] {
-  const entries: {
-    key: CompetitionScheduleKey;
-    label: string;
-    date: string;
-  }[] = [];
+  const entries: { key: CompetitionScheduleKey; label: string; date: string }[] =
+    [];
   // 서버가 일정 순서(접수 시작 ≤ 얼리버드 마감 ≤ 접수 마감 ≤ 대회일)를 지켜 저장하므로, 아는 날만 줄로 둔다.
   const { opensOn, earlyBirdClosesOn, closesOn } =
     competition.registration ?? {};

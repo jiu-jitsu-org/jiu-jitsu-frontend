@@ -12,7 +12,11 @@ import {
  */
 
 export type CompetitionEntryLinkKind =
-  "register" | "participants" | "bracket" | "liveMat" | "result";
+  | "register"
+  | "participants"
+  | "bracket"
+  | "liveMat"
+  | "result";
 
 export type CompetitionEntryLink = {
   kind: CompetitionEntryLinkKind;
@@ -24,7 +28,11 @@ export type CompetitionEntryLink = {
 
 /** 접수 사이트 종류 — 대한체육회(kjf)는 도장(감독 · 코치)만 신청할 수 있다. */
 export type CompetitionEntrySiteKind =
-  "flowcomp" | "street" | "judaepl" | "kjf" | "other";
+  | "flowcomp"
+  | "street"
+  | "judaepl"
+  | "kjf"
+  | "other";
 
 export type CompetitionEntrySite = {
   kind: CompetitionEntrySiteKind;
