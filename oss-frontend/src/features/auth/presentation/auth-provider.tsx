@@ -2,13 +2,13 @@
 
 import {
   createContext,
+  startTransition,
   useCallback,
   useContext,
   useEffect,
   useMemo,
   useRef,
   useState,
-  useSyncExternalStore,
   type ReactNode,
 } from "react";
 
@@ -64,8 +64,6 @@ export type RequireAuthOptions = {
 type AuthContextValue = {
   status: AuthStatus;
   events: BridgeEvent[];
-  /** 네이티브 브릿지 연결 여부(웹 단독이면 false). */
-  nativeAvailable: boolean;
   /**
    * 보호된 행위를 실행한다. 로그인 상태면 즉시 실행, 아니면 행위를 보관 후 로그인 유도.
    * 유도는 AUTH_LOGIN_PROMPT(안내 알럿 → 사용자가 동의해야 모달, 소프트 유도)다.
@@ -98,9 +96,11 @@ const SESSION_ENDPOINT = "/api/auth/session";
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-// 네이티브 브릿지 연결 여부는 클라이언트 전용(window) 외부 상태다.
-// useSyncExternalStore로 읽어 SSR 하이드레이션 불일치와 effect 내 setState를 피한다.
-const subscribeNoop = () => () => {};
+// 이 Provider의 상태는 화면 전체가 읽는 컨텍스트라, 바뀌면 아직 하이드레이션이 끝나지 않은 구간(Suspense)까지 다시
+// 그리게 된다. 첫 진입에서 그 화면의 JS가 아직 오는 중이면 React가 서버 HTML을 버리고 가장 가까운 로딩(루트 피드
+// 스켈레톤)을 보였다가 다시 그린다 — 앱 게시글 상세 첫 로드에 검은 판이 잠깐 비치던 원인. 그래서 상태 변경은 모두
+// startTransition으로 낮춰 하이드레이션이 끝날 때까지 기다리게 하고, 서버(false)와 앱(true)에서 값이 갈려 하이드레이션
+// 직후 즉시 다시 그리게 만드는 네이티브 연결 여부는 상태로 두지 않고 쓰는 순간 읽는다.
 
 
 async function fetchSessionState(
@@ -122,11 +122,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loginCount, setLoginCount] = useState(0);
   // 세션 수립 콜백에서 "직전에 비로그인이었는지"를 읽기 위한 최신값(렌더와 무관한 판정용).
   const statusRef = useRef<AuthStatus>("loading");
-  const nativeAvailable = useSyncExternalStore(
-    subscribeNoop,
-    isNativeBridgeAvailable,
-    () => false,
-  );
 
   // 외부 브라우저 로그인 유도 폴백 — 네이티브 프롬프트 메시지를 받을 상대가 없을 때 띄운다.
   const openInApp = useOpenInAppPrompt();
@@ -148,7 +143,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         payload,
       };
 
-      setEvents((prev) => [entry, ...prev].slice(0, MAX_EVENT_LOG));
+      startTransition(() => {
+        setEvents((prev) => [entry, ...prev].slice(0, MAX_EVENT_LOG));
+      });
     },
     [],
   );
@@ -156,7 +153,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const applyState = useCallback((state: SessionState | null) => {
     const next: AuthStatus = state?.authenticated ? "authenticated" : "anonymous";
     statusRef.current = next;
-    setStatus(next);
+    startTransition(() => {
+      setStatus(next);
+    });
   }, []);
 
   const refresh = useCallback(async () => {
@@ -178,7 +177,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const loggedIn =
         statusRef.current === "anonymous" && state?.authenticated === true;
       applyState(state);
-      if (loggedIn) setLoginCount((count) => count + 1);
+      if (loggedIn) {
+        startTransition(() => {
+          setLoginCount((count) => count + 1);
+        });
+      }
 
       // 만료 복구로 세션 재수립을 기다리던 BFF 호출을 진행/중단시킨다.
       if (state?.authenticated) {
@@ -251,7 +254,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     (reason?: string) => {
       // 외부 브라우저에는 로그인 UI를 그릴 네이티브가 없다 — 메시지를 보내봐야 아무 일도 안 생기고
       // 사용자는 "눌렀는데 반응이 없다"로 읽는다. 앱에서 로그인해 이어가라는 안내로 대체한다.
-      if (!nativeAvailable) {
+      if (!isNativeBridgeAvailable()) {
         openInApp.prompt();
         return;
       }
@@ -261,7 +264,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logEvent("out", type, payload);
       postToNative({ type, payload });
     },
-    [logEvent, nativeAvailable, openInApp],
+    [logEvent, openInApp],
   );
 
   const requireAuth = useCallback(
@@ -301,7 +304,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       status,
       events,
-      nativeAvailable,
       requireAuth,
       promptLogin,
       loginCount,
@@ -311,7 +313,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [
       status,
       events,
-      nativeAvailable,
       requireAuth,
       promptLogin,
       loginCount,
