@@ -21,6 +21,7 @@ import { cn } from "@/shared/lib/cn";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { ChevronLeftIcon } from "@/shared/ui/icons";
 import { IconButton } from "@/shared/ui/icon-button";
+import { lastDayOf } from "@/features/competition/domain/competition-schedule";
 
 type YearMonth = { year: number; month: number };
 
@@ -117,7 +118,8 @@ export function CompetitionCalendar({
   const byDate = useMemo(() => {
     const map = new Map<string, CompetitionListItem[]>();
     for (const item of monthData && !monthData.failed ? monthData.items : []) {
-      if (item.competition.date < today) continue;
+      // 여러 날 대회는 마지막 날까지 첫날 칸에 남긴다 — 상세가 '오늘 대회'인 동안 달력에서 사라지지 않게.
+      if (lastDayOf(item.competition) < today) continue;
       if (interestedOnly && !interest.interestedIds.has(item.competition.id)) {
         continue;
       }
