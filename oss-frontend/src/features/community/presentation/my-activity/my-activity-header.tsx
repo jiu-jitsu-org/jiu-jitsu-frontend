@@ -65,7 +65,7 @@ export function MyActivityHeader({
       style={
         {
           "--p": 0,
-          top: `calc(env(safe-area-inset-top) + 2.75rem - ${COLLAPSE_DISTANCE}px)`,
+          top: `calc(var(--safe-area-top) + 2.75rem - ${COLLAPSE_DISTANCE}px)`,
         } as CSSProperties
       }
     >

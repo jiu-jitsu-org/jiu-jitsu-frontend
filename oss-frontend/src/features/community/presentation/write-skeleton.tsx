@@ -61,7 +61,7 @@ export function WriteSkeleton({
         {/* 글쓰기 앱바와 같은 자리의 제목 — absolute top은 셸 상단 기준이라 인셋을 더한다. */}
         <h1
           style={{
-            top: `calc(env(safe-area-inset-top) + ${APP_BAR_TITLE_TOP}px)`,
+            top: `calc(var(--safe-area-top) + ${APP_BAR_TITLE_TOP}px)`,
             height: APP_BAR_TITLE_HEIGHT,
           }}
           className="pointer-events-none absolute left-1/2 flex -translate-x-1/2 items-center whitespace-nowrap text-title-3 text-header-text"

@@ -187,7 +187,7 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
         // toast-inset-comment-bar: 이 바가 떠 있는 화면에서는 토스트를 바 위로 올린다(globals.css).
         // 토스트는 body 직속 fixed라 부모 레이아웃으로는 위치를 못 알려줘, html:has()로 신호를 준다.
         "toast-inset-comment-bar bg-comment-input-bar-container-bg",
-        rect?.keyboardOpen ? "pb-0" : "pb-[env(safe-area-inset-bottom)]",
+        rect?.keyboardOpen ? "pb-0" : "pb-[var(--safe-area-bottom)]",
       )}
     >
       {/* 답장 대상 행 — 답글 모드일 때만. 높이 44 고정, 수직 가운데, 좌우 16.

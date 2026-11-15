@@ -22,7 +22,7 @@ export function OpenInAppBanner() {
 
   return (
     // 처음 그려질 때 옅게 나타난다(200ms).
-    <div className="box-content bg-surface-container pt-[env(safe-area-inset-top)] motion-safe:animate-fade-in">
+    <div className="box-content bg-surface-container pt-[var(--safe-area-top)] motion-safe:animate-fade-in">
       <div className="flex items-center gap-3 border-b border-border-subtle px-4 py-3">
         {/* 앱 아이콘 — iOS 홈 화면 아이콘과 같은 라운드(약 22%)를 준다. 정적 자산이라 next/image 불필요. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}

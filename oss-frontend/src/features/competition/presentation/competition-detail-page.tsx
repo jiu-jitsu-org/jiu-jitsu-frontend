@@ -84,7 +84,7 @@ export function CompetitionDetailPage({
           {/* 바가 있으면 바가 홈 인디케이터 자리를 덮으므로 본문은 바 그라데이션만큼만 띄운다. */}
           <div
             className={
-              entryBar ? "pb-8" : "pb-[calc(env(safe-area-inset-bottom)+40px)]"
+              entryBar ? "pb-8" : "pb-[calc(var(--safe-area-bottom)+40px)]"
             }
           >
             {data.promptResult && status?.kind === "ended" ? (

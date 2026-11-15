@@ -90,7 +90,7 @@ export function BlockedMembersView({
       {members.length === 0 ? (
         <BlockedMembersEmptyState />
       ) : (
-        <ul className="pt-2 pb-[calc(16px+env(safe-area-inset-bottom))]">
+        <ul className="pt-2 pb-[calc(16px+var(--safe-area-bottom))]">
           {members.map((member) => (
             <BlockedMemberItem
               key={member.userId}

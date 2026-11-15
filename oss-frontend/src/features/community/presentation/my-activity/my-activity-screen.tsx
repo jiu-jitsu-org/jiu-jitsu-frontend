@@ -127,7 +127,7 @@ function MyActivityPanel({ list, tab }: { list: PostList; tab: MyPostTab }) {
       listUrl={myPostListUrl(tab)}
       hideAuthor={tab === "posts"}
       authorLink={false}
-      className="pt-1 pb-[env(safe-area-inset-bottom)]"
+      className="pt-1 pb-[var(--safe-area-bottom)]"
     />
   );
 }

@@ -32,7 +32,7 @@ export function InboxAppBar({
   showBack?: boolean;
 }) {
   return (
-    <AppBarShell className="h-10 items-start px-4 pt-[calc(env(safe-area-inset-top)+12px)]">
+    <AppBarShell className="h-10 items-start px-4 pt-[calc(var(--safe-area-top)+12px)]">
       {/* 좌측 뒤로가기 — 터치 영역 = 둥근 사각(36). */}
       {showBack ? (
         <IconButton
