@@ -3,7 +3,11 @@
 import { useEffect, useState, type ReactNode } from "react";
 
 import { cn } from "@/shared/lib/cn";
+import { Button } from "@/shared/ui/button";
 import { ChevronDownIcon } from "@/shared/ui/icons";
+import { useToast } from "@/shared/ui/toast";
+
+import { docToMarkdown } from "./doc-markdown";
 
 import {
   DOC_GROUP_LABEL,
@@ -76,6 +80,9 @@ export function DocShell({ docs }: { docs: Record<string, ReactNode> }) {
         </button>
         {menuOpen ? (
           <div className="max-h-[70dvh] overflow-y-auto px-2 pb-4">
+            <div className="px-2 pb-4">
+              <CopyForAi active={active} />
+            </div>
             <SideNav active={active} />
           </div>
         ) : null}
@@ -103,10 +110,35 @@ export function DocShell({ docs }: { docs: Record<string, ReactNode> }) {
         </main>
 
         <aside className="sticky top-0 hidden h-dvh w-52 shrink-0 overflow-y-auto pt-10 pr-6 xl:block">
+          <CopyForAi active={active} />
           <Toc active={active} />
         </aside>
       </div>
     </div>
+  );
+}
+
+/** 지금 문서를 마크다운으로 복사 — AI에게 부품 규칙을 그대로 넘길 때. */
+function CopyForAi({ active }: { active: string }) {
+  const toast = useToast();
+  return (
+    <Button
+      variant="tint"
+      size="s"
+      className="mb-6"
+      onClick={async () => {
+        const pane = document.querySelector(`[data-doc="${active}"]`);
+        if (!pane) return;
+        try {
+          await navigator.clipboard.writeText(docToMarkdown(pane));
+          toast.show("이 문서를 마크다운으로 복사했어요", { tone: "success" });
+        } catch {
+          toast.show("복사하지 못했어요", { tone: "error" });
+        }
+      }}
+    >
+      AI용 복사
+    </Button>
   );
 }
 

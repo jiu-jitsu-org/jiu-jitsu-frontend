@@ -25,7 +25,8 @@ function GroupPreview({ group }: { group: DocGroup }) {
             style={{ background: `var(--${token})` }}
           />
         ))}
-        <span className="ml-2 text-title-2 text-text-primary">가</span>
+        {" "}
+        <span className="ml-1 text-title-2 text-text-primary">가</span>
       </div>
     );
   }
@@ -76,7 +77,8 @@ export function OverviewDoc() {
               </div>
               <h3 className="mt-4 text-title-3 text-text-primary">
                 {DOC_GROUP_LABEL[group]}
-                <span className="ml-2 text-label-m text-text-tertiary">{docs.length}</span>
+                {" "}
+                <span className="ml-1 text-label-m text-text-tertiary">{docs.length}</span>
               </h3>
               <ul className="mt-2 flex flex-col">
                 {docs.map((doc) => (

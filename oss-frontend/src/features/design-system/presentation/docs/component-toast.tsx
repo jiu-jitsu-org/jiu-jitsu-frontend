@@ -75,7 +75,8 @@ export function ToastDoc() {
             <ToastStage message={tone.message} tone={tone.tone} className="h-28" />
             <p className="font-mono text-label-m text-text-primary">
               {tone.tone}
-              <span className="ml-2 font-sans text-text-tertiary">
+              {" "}
+              <span className="ml-1 font-sans text-text-tertiary">
                 {tone.label} · {tone.count}번
               </span>
             </p>

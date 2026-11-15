@@ -87,7 +87,7 @@ export function IconButtonDoc() {
           </div>
           <div>
             <p className="font-mono text-label-m text-text-primary">
-              ghost<span className="ml-2 text-text-tertiary">18번</span>
+              ghost <span className="ml-1 text-text-tertiary">18번</span>
             </p>
             <p className="text-label-m text-text-tertiary">앱바 뒤로·⋮·알림, 댓글 입력 바</p>
           </div>
@@ -103,7 +103,7 @@ export function IconButtonDoc() {
           </div>
           <div>
             <p className="font-mono text-label-m text-text-primary">
-              tint<span className="ml-2 text-text-tertiary">5번</span>
+              tint <span className="ml-1 text-text-tertiary">5번</span>
             </p>
             <p className="text-label-m text-text-tertiary">글쓰기·사진 편집 앱바, 사진 보기 닫기</p>
           </div>

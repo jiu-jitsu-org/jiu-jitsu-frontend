@@ -149,7 +149,8 @@ export function ButtonDoc() {
             <div>
               <p className="font-mono text-label-m text-text-primary">
                 {variant.name}
-                <span className="ml-2 text-text-tertiary">{variant.count}번</span>
+                {" "}
+                <span className="ml-1 text-text-tertiary">{variant.count}번</span>
               </p>
               <p className="text-label-m text-text-tertiary">{variant.use}</p>
             </div>
