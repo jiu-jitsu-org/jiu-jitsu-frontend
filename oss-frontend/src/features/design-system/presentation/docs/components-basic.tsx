@@ -74,12 +74,12 @@ export function ChipDoc() {
         <Anatomy
           marks={[
             { top: "0%", left: "15%" },
-            { top: "50%", left: "50%" },
+            { top: "100%", left: "50%" },
           ]}
         >
           <Chip selected={false}>서울</Chip>
         </Anatomy>
-        <Anatomy start={3} marks={[{ top: "100%", left: "50%" }]}>
+        <Anatomy start={3} marks={[{ top: "0%", left: "85%" }]}>
           <Chip selected tone="primary">
             접수 중
           </Chip>

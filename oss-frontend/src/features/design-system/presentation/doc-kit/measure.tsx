@@ -7,7 +7,11 @@ type Reading = Record<string, string>;
 const READERS: Record<string, (style: CSSStyleDeclaration, el: HTMLElement) => string> = {
   높이: (_, el) => `${Math.round(el.getBoundingClientRect().height)}`,
   폭: (_, el) => `${Math.round(el.getBoundingClientRect().width)}`,
-  모서리: (style) => style.borderTopLeftRadius.replace("px", ""),
+  // rounded-full은 아주 큰 값(약 3천만 px)으로 그려진다 — 숫자 대신 '둥글게'로 적는다.
+  모서리: (style, el) =>
+    parseFloat(style.borderTopLeftRadius) >= el.getBoundingClientRect().height / 2
+      ? "둥글게"
+      : style.borderTopLeftRadius.replace("px", ""),
   좌우: (style) => style.paddingLeft.replace("px", ""),
   글자: (style) =>
     `${style.fontSize.replace("px", "")} / ${style.lineHeight.replace("px", "")} · ${style.fontWeight}`,
