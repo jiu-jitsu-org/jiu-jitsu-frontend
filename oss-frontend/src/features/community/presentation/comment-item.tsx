@@ -36,6 +36,7 @@ export function CommentItem({
   postAuthorId,
   isReply = false,
   threadId,
+  inFirstPage = true,
 }: {
   comment: Comment;
   /** 대댓글 추가 조회에 그대로 넘길 정렬 — 목록과 어긋나면 중복·누락이 생긴다. */
@@ -46,23 +47,29 @@ export function CommentItem({
   isReply?: boolean;
   /** 대댓글이 속한 최상위 댓글 id — 대댓글의 답글 버튼이 이 스레드 끝에 답글을 붙인다(#451). */
   threadId?: number;
+  /** 최상위 댓글이 서버 렌더 첫 페이지에서 왔는지(방금 단 답글의 서버 것이 언제 오는지 판정, #486). */
+  inFirstPage?: boolean;
 }) {
+  // 방금 등록한 댓글이면 펼쳐지며 반짝인다(아래 li에 건다 — 가린 댓글 자리표시에는 걸지 않는다).
+  const { justPostedId, posted } = useCommentReply();
+  const arriveRef = useArriveMotion<HTMLLIElement>(comment.id === justPostedId);
+
   // 대댓글 렌더는 원문·placeholder가 공유한다 — 부모가 가려져도 스레드는 유지되기 때문.
   // 미리보기가 비어도 총 개수가 있으면 그려야 한다 — 「대댓글 더보기」가 유일한 접근 경로다.
+  // 답글이 없던 댓글에 방금 단 답글도 서버 렌더 전에 보이도록 묶음을 연다(#486).
+  const hasPostedReply =
+    !isReply && posted.some((entry) => entry.parentId === comment.id);
   const replies =
-    comment.replies.length > 0 || comment.replyCount > 0 ? (
+    comment.replies.length > 0 || comment.replyCount > 0 || hasPostedReply ? (
       <CommentReplies
         parentId={comment.id}
         sort={sort}
         totalCount={comment.replyCount}
         replies={comment.replies}
         postAuthorId={postAuthorId}
+        inFirstPage={inFirstPage}
       />
     ) : null;
-
-  // 방금 등록한 댓글이면 펼쳐지며 반짝인다(아래 li에 건다 — 가린 댓글 자리표시에는 걸지 않는다).
-  const { justPostedId } = useCommentReply();
-  const arriveRef = useArriveMotion<HTMLLIElement>(comment.id === justPostedId);
 
   // 삭제된 댓글은 목록에서 빼지 않고 자리 표시만 남긴다 — 대댓글(children)은 그대로 노출된다.
   // 신고보다 먼저 본다: 신고해 둔 댓글이 뒤이어 삭제됐다면 최종 상태는 삭제다.

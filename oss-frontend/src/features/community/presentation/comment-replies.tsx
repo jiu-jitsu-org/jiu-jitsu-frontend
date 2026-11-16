@@ -9,6 +9,12 @@ import {
 } from "@/features/community/domain/comment";
 import type { CommentSort } from "@/features/community/domain/post";
 import { CommentItem } from "@/features/community/presentation/comment-item";
+import {
+  postedNotIn,
+  useCommentReply,
+  usePlacement,
+  useSettlePosted,
+} from "@/features/community/presentation/comment-reply-context";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 
 /** 버튼 자리를 유지한 채 문구만 바꾼다 — 로딩·실패로 레이아웃이 흔들리지 않게. */
@@ -37,6 +43,9 @@ type RepliesState = {
   hasNext: boolean | null;
   status: keyof typeof BUTTON_LABEL;
 };
+
+/** 서버가 상세 응답에 실어 주는 대댓글 미리보기 개수(backend#111). */
+const REPLY_PREVIEW_SIZE = 3;
 
 function initialState(resetKey: string, preview: Comment[]): RepliesState {
   return {
@@ -118,8 +127,9 @@ async function fetchReplyPage(
  * 같은 범위를 다시 받아 바꿔 끼운다(댓글 목록과 같은 방식). 다시 받는 동안은 옛 줄이 그대로 보인다.
  * 정렬·로그인이 바뀔 때만 접는다.
  *
- * 작성된 순에서 대댓글이 3개를 넘고 접혀 있으면 방금 단 답글은 뒤라 바로 안 보인다 — 그 한 경우를
- * 위해 답글을 달 때마다 자동 요청을 깔지 않기로 했다. 그때는 「대댓글 더보기」로 본다.
+ * 방금 단 답글은 등록 응답으로 바로 묶음 맨 아래에 넣는다(#486).
+ * 작성된 순에서 대댓글이 3개를 넘고 접혀 있으면 방금 단 답글은 뒤라 넣지 않는다(입력 바가 토스트로
+ * 알린다) — 그 한 경우를 위해 답글을 달 때마다 자동 요청을 깔지 않기로 했다. 그때는 「대댓글 더보기」로 본다.
  */
 export function CommentReplies({
   parentId,
@@ -127,6 +137,7 @@ export function CommentReplies({
   totalCount,
   replies,
   postAuthorId,
+  inFirstPage,
 }: {
   /** 이 묶음의 부모(최상위) 댓글 id. */
   parentId: number;
@@ -138,6 +149,8 @@ export function CommentReplies({
   replies: Comment[];
   /** 게시글 작성자 id — 추가 로드분의 "작성자" 배지 판정용. 밸런스 게임은 작성자가 없어 생략한다. */
   postAuthorId?: number | null;
+  /** 부모 댓글이 서버 렌더 첫 페이지에서 왔는지 — 아니면 미리보기도 목록의 다시 받기가 가져온다. */
+  inFirstPage: boolean;
 }) {
   // 정렬이 바뀌면 이어 받은 페이지의 범위 자체가 달라져 버린다.
   // 로그인 전환도 버린다 — 비로그인으로 받은 추가분은 좋아요 · 소유자가 전부 "아님"이다(#173).
@@ -166,12 +179,37 @@ export function CommentReplies({
   }
 
   // 새 데이터가 앞에 오게 모아 중복을 지운 뒤(먼저 온 것이 남는다), 단 순서로 줄 세운다.
-  const items = dedupeById([
+  // 방금 단 답글은 서버 렌더를 기다리지 않고 함께 넣는다(#486) — 서버 목록에 같은 id가 오면 그쪽을 쓴다.
+  const { posted } = useCommentReply();
+  const loaded = dedupeById([
     ...replies,
     ...current.pages.flat(),
     ...current.carry,
-  ]).sort(byPostedOrder);
+  ]);
+  const items = [
+    ...loaded,
+    ...markPostAuthorComments(postedNotIn(posted, parentId, loaded), postAuthorId),
+  ].sort(byPostedOrder);
   const hasMore = current.hasNext ?? totalCount > replies.length;
+  // 단 순서로 줄 세우므로 방금 단 답글은 늘 맨 아래다. 최신순은 서버 미리보기가 마지막 3개라 늘 든다.
+  // 작성된 순은 뒤 답글이 접혀 있으면 그 앞에 끼게 되어 넣지 않고, 펼치지 않은 채 미리보기가
+  // (아직 서버에 안 든 사본까지 세어) 꽉 찼으면 서버 렌더 뒤 미리보기 밖으로 밀려 서버 것이 오지 않으니
+  // 넣지 않는다. 펼쳐 둔 상태면 다시 받기가 끝 페이지까지 받아 온다(위 effect).
+  // 서버 것은 미리보기면 서버 렌더가, 펼친 페이지나 부모가 이어 받은 페이지에 있으면 다시 받기가 가져온다.
+  useSettlePosted(parentId, loaded);
+  usePlacement(parentId, () => {
+    const pending = items.length - loaded.length;
+    if (
+      sort !== "latest" &&
+      (hasMore ||
+        (current.pages.length === 0 &&
+          totalCount + pending >= REPLY_PREVIEW_SIZE))
+    )
+      return null;
+    return current.pages.length > 0 || !inFirstPage
+      ? "refetch"
+      : "server-render";
+  });
   // 최신순은 앞의(오래된) 답글이 남아 있으므로 버튼이 위로 간다.
   const loadsEarlier = sort === "latest";
 

@@ -41,7 +41,7 @@ export function BalanceDetailView({
   sort: CommentSort;
 }) {
   return (
-    <CommentReplyProvider>
+    <CommentReplyProvider serverComments={comments} sort={sort}>
       {/* 댓글 직후 띠를 묻는 시트(#275). */}
       <BeltPromptProvider>
         {/* 비로그인으로 보다가 로그인하면 투표 · 좋아요 · 알림 상태를 다시 읽는다(#173). */}
