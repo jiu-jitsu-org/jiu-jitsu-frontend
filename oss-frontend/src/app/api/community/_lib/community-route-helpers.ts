@@ -53,6 +53,18 @@ export function parseCommentId(
   return { commentId };
 }
 
+/** 이미지 `[id]` 동적 세그먼트를 양의 정수로 파싱한다(parsePostId와 동일 규약). */
+export function parseImageId(
+  raw: string,
+): { imageId: number } | { response: NextResponse } {
+  const imageId = Number(raw);
+  if (!Number.isInteger(imageId) || imageId <= 0) {
+    return { response: jsonError("잘못된 이미지 ID입니다.", 400) };
+  }
+
+  return { imageId };
+}
+
 /**
  * 보호된 쓰기 진입부의 세션 가드.
  * 토큰이 있으면 반환, 없으면 401 응답을 반환한다.

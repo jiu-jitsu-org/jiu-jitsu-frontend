@@ -11,6 +11,7 @@ import { GetImageUploadAuthUseCase } from "@/features/community/application/get-
 import { GetRepliesUseCase } from "@/features/community/application/get-replies";
 import { SaveMyBeltUseCase } from "@/features/community/application/save-my-belt";
 import { RegisterImageUseCase } from "@/features/community/application/register-image";
+import { DeleteImageUseCase } from "@/features/community/application/delete-image";
 import { GetPostDetailUseCase } from "@/features/community/application/get-post-detail";
 import { GetPostCategoriesUseCase } from "@/features/community/application/get-post-categories";
 import { GetPostListUseCase } from "@/features/community/application/get-post-list";
@@ -185,6 +186,12 @@ export function createRegisterImageUseCase(
   accessToken: string,
 ): RegisterImageUseCase {
   return new RegisterImageUseCase(createWriteRepository(accessToken));
+}
+
+export function createDeleteImageUseCase(
+  accessToken: string,
+): DeleteImageUseCase {
+  return new DeleteImageUseCase(createWriteRepository(accessToken));
 }
 
 export function createCreatePostUseCase(

@@ -199,6 +199,30 @@ export async function uploadImageAndRegister(file: File): Promise<number> {
   return registerImage(uploaded.fileId, uploaded.url);
 }
 
+/**
+ * 글에 붙지 않고 버려진 업로드를 서버에서 지운다(#146, best-effort).
+ *
+ * 응답을 기다리지 않고 실패는 로그만 남긴다 — 못 지운 이미지는 서버 정리 배치(backend#144)가 수거한다.
+ * 작성 취소 직후 화면이 닫혀도 요청이 끝까지 가도록 keepalive로 보낸다.
+ * 글에 붙은(ACTIVE) 이미지 id는 넘기지 않는다 — 업스트림은 내 이미지면 상태와 관계없이 지운다.
+ */
+export function deleteUploadedImage(imageId: number): void {
+  void bffFetch(`/api/community/image/${imageId}`, {
+    method: "DELETE",
+    keepalive: true,
+  })
+    .then((response) => {
+      if (!response.ok) {
+        console.warn(
+          `[community-write] image-delete ${imageId} ${response.status} 실패(배치가 수거)`,
+        );
+      }
+    })
+    .catch((error) => {
+      console.warn(`[community-write] image-delete ${imageId} 실패(배치가 수거)`, error);
+    });
+}
+
 /** ④ 게시글 생성. 401이면 status를 실어 throw(호출부가 네이티브 로그인 유도). */
 export async function createPost(input: CreatePostInput): Promise<CreatedPost> {
   const response = await bffFetch("/api/community/board", {

@@ -219,6 +219,13 @@ export class ExternalCommunityWriteRepository implements CommunityWriteRepositor
     return response.data;
   }
 
+  async deleteImage(imageId: number): Promise<void> {
+    // DELETE /image/{id} — 내 이미지 삭제(CDN 포함). 응답 본문은 없다.
+    await this.httpClient.delete<unknown>({
+      path: `${IMAGE_ENDPOINT_PATH}/${imageId}`,
+    });
+  }
+
   async createPost(input: CreatePostInput): Promise<CreatedPost> {
     const response = await this.httpClient.post<Envelope<CreatedPost>>({
       path: BOARD_ENDPOINT_PATH,

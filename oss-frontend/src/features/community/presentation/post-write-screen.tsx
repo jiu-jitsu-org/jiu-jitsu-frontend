@@ -345,6 +345,7 @@ export function PostWriteScreen({
     expireUploaded,
     remove,
     discardAll,
+    abandonAll,
   } = useImageAttachments();
   // 사진 버튼 → 우리 선택창(앨범에서 선택 / 촬영하기, #250). 시스템 메뉴 대신 이 시트가 뜬다.
   const [photoSheetOpen, setPhotoSheetOpen] = useState(false);
@@ -633,7 +634,8 @@ export function PostWriteScreen({
   );
 
   function closeScreen() {
-    // 화면을 떠나므로 로컬 첨부(미리보기 object URL)를 정리한다(원격 TEMP 이미지 정리는 훅 FIXME 참고).
+    // 화면을 떠나므로 로컬 첨부(미리보기 object URL)를 정리한다. 서버 이미지는 지우지 않는다 — 수정 성공에서도
+    // 불리므로 작성 취소만 requestClose에서 abandonAll로 지운다(#146).
     discardAll();
     // 네이티브 서브뷰(풀 웹뷰)면 CLOSE_SUBVIEW로 네이티브가 pop → 리스트 웹뷰로 복귀.
     if (isNativeBridgeAvailable()) {
@@ -703,6 +705,8 @@ export function PostWriteScreen({
       // 취소("계속 작성")면 화면을 유지한다 — CLOSE_SUBVIEW를 보내지 않는다.
       if (!confirmed) return;
     }
+    // 작성 취소 — 올려 두고 글에 붙이지 않은 이미지를 서버에서 지운다(#146). 등록 · 수정 성공은 closeScreen만 거친다.
+    abandonAll();
     closeScreen();
   }
 
