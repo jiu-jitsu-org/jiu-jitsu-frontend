@@ -23,6 +23,7 @@ export type {
   SelectSheetResult,
   ShareSheetPayload,
   SheetOpenPayload,
+  UserBlockChangedPayload,
 } from "./messages";
 export {
   closeNativeSubview,

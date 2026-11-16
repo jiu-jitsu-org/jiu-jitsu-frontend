@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
@@ -12,6 +13,7 @@ import {
   FeedLoadMoreError,
   FeedLoadingMore,
 } from "@/features/community/presentation/community-feed-list";
+import { useOnBlockChange } from "@/features/community/presentation/block-change-watcher";
 import { CommentItem } from "@/features/community/presentation/comment-item";
 import { useInfiniteScroll } from "@/features/community/presentation/use-infinite-scroll";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
@@ -117,6 +119,11 @@ export function CommentList({
 
   const items = dedupeById([...comments, ...current.pages.flat()]);
   const hasMore = current.hasNext ?? hasNext;
+
+  // 앱에서 회원 차단이 바뀌면 서버 렌더를 다시 돌린다(#488) — 그 회원의 댓글이 자리 표시로(해제면 본문으로) 바뀐다.
+  // 이어 받은 페이지는 아래 다시 받기 경로가, 펼친 대댓글은 CommentReplies가 같은 범위로 갈아 끼운다.
+  const router = useRouter();
+  useOnBlockChange(() => router.refresh());
 
   // 관찰자가 연달아 불러도 한 번만 나가게 막는다(state는 다음 렌더에야 반영된다).
   const loadingRef = useRef(false);

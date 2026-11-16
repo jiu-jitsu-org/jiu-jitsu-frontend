@@ -94,6 +94,10 @@ export const InboundMessageType = {
   // 웹은 내 띠를 다시 읽어 바뀌었으면 화면을 새로 그린다. payload 없음. 이 메시지가 없어도 웹뷰가 다시 보일 때
   // 한 번 더 확인하므로(MyBeltWatcher) 구버전 앱에서도 결국 맞춰진다 — 이 메시지는 가려지지 않은 화면을 위한 것이다.
   PROFILE_UPDATED: "PROFILE_UPDATED",
+  // 앱에서 회원 차단·해제가 바뀌었음(jiu-jitsu-frontend#488, 남의 프로필 ⋯ 메뉴 — jiu-jitsu-ios#328). 떠 있는 모든 웹뷰에 보낸다.
+  // 웹은 떠 있는 화면(피드 · 상세 · 댓글)을 다시 불러와 그 회원의 글 · 댓글을 가리거나 다시 보여 준다(BlockChangeWatcher).
+  // 이 메시지를 모르는 구버전 앱은 보내지 않을 뿐이라 지금 동작 그대로다.
+  USER_BLOCK_CHANGED: "USER_BLOCK_CHANGED",
 } as const;
 export type InboundMessageType =
   (typeof InboundMessageType)[keyof typeof InboundMessageType];
@@ -280,6 +284,14 @@ export type PhotosPickedPayload = {
   failedCount?: number;
 };
 
+/** `USER_BLOCK_CHANGED` payload. 웹은 다시 불러오기에만 쓰고 이 값으로 화면을 직접 바꾸지 않는다. */
+export type UserBlockChangedPayload = {
+  /** 차단·해제한 회원 id. */
+  userId: number;
+  /** 바뀐 뒤 상태. true=차단. */
+  blocked: boolean;
+};
+
 /** `AUTH_LOGIN_SUCCESS` payload. refreshToken은 네이티브가 보관하고 웹엔 accessToken만 전달. */
 export type AuthLoginSuccessPayload = {
   accessToken: string;
@@ -324,4 +336,8 @@ export type InboundMessage =
       type: typeof InboundMessageType.PHOTOS_PICKED;
       payload: PhotosPickedPayload;
     }
-  | { type: typeof InboundMessageType.PROFILE_UPDATED };
+  | { type: typeof InboundMessageType.PROFILE_UPDATED }
+  | {
+      type: typeof InboundMessageType.USER_BLOCK_CHANGED;
+      payload: UserBlockChangedPayload;
+    };
