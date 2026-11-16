@@ -4,6 +4,7 @@ import {
   type InboundMessage,
   type CompetitionAlertsEnabledPayload,
   type CompetitionHeaderTintPayload,
+  type ContentCreatedPayload,
   type OpenCompetitionRecordPayload,
   type OpenSubviewPayload,
   type OpenUserProfilePayload,
@@ -143,6 +144,18 @@ export function notifyCompetitionAlertsEnabled(
   postToNative({
     type: OutboundMessageType.COMPETITION_ALERTS_ENABLED,
     payload,
+  });
+}
+
+/**
+ * 글 · 댓글을 등록했다고 알린다(#495). 앱은 이걸로 알림 권한 안내를 띄울지 정한다.
+ * 등록에 성공했을 때만, 한 번 등록에 한 번 부른다. 브릿지가 없는 브라우저에서는 보내지 않는다.
+ */
+export function notifyContentCreated(kind: ContentCreatedPayload["kind"]): void {
+  if (!isNativeBridgeAvailable()) return;
+  postToNative({
+    type: OutboundMessageType.CONTENT_CREATED,
+    payload: { kind } satisfies ContentCreatedPayload,
   });
 }
 

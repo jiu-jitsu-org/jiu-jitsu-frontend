@@ -17,7 +17,11 @@ import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { cn } from "@/shared/lib/cn";
 import { useViewportRect } from "@/features/community/presentation/use-viewport-rect";
 import { CloseIcon, LoadingIcon, ReplyBranchIcon, SendIcon } from "@/shared/ui/icons";
-import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
+import {
+  notifyContentCreated,
+  OutboundMessageType,
+  postToNative,
+} from "@/shared/lib/native-bridge";
 import { useToast } from "@/shared/ui";
 import { IconButton } from "@/shared/ui/icon-button";
 
@@ -163,6 +167,8 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
 
       setValue("");
       setSentCount((n) => n + 1);
+      // 앱이 알림 권한 안내를 띄울지 정하게 알린다(#495). 답글 · 밸런스 게임 댓글도 이 바로 등록돼 여기서 한 번만 나간다.
+      notifyContentCreated("COMMENT");
       // 응답에 만든 댓글이 통째로 온다 — 서버 렌더를 기다리지 않고 목록에 바로 넣는다(#486).
       // 새 댓글 id를 알려 두면 목록에 들어올 때 그 댓글만 펼쳐지며 들어온다.
       const created = (await response.json().catch(() => null)) as {
