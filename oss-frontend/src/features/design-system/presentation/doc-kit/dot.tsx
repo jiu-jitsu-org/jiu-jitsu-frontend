@@ -46,7 +46,7 @@ export function Dot({
   const hex = raw ?? tokenHex(token) ?? "—";
   if (hexOnly) {
     return (
-      <span className="flex min-w-0 items-center gap-2" title={token}>
+      <span className="relative flex min-w-0 items-center gap-2" title={token}>
         {swatch}
         <span className="font-mono text-label-m text-text-secondary tabular-nums">{hex}</span>
         <span className="sr-only">{token}</span>

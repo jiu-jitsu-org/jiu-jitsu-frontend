@@ -197,7 +197,8 @@ function Tile({ id, title }: { id: string; title: string }) {
       </div>
       <a
         href={`#${id}`}
-        className="mt-2 block px-1 text-body-s text-text-primary after:absolute after:inset-0 after:rounded-20"
+        data-md="item"
+        className="mt-2 block px-1 text-body-s text-text-primary outline-none after:absolute after:inset-0 after:rounded-20 focus-visible:after:ring-2 focus-visible:after:ring-primary"
       >
         {title}
       </a>

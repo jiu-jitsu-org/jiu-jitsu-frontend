@@ -11,6 +11,8 @@ export function docToMarkdown(pane: Element): string {
 
   const walk = (el: Element) => {
     if (el.tagName === "DETAILS" || el.tagName === "FIGURE") return;
+    // 그림으로만 보여 주는 견본(썸네일 · 해부도 번호)은 뺀다.
+    if (el.getAttribute("aria-hidden") === "true") return;
     const tag = el.tagName;
     if (tag === "H1") return void lines.push(`# ${text(el)}`, "");
     if (tag === "H2") return void lines.push("", `## ${text(el)}`, "");
@@ -26,7 +28,8 @@ export function docToMarkdown(pane: Element): string {
       return void lines.push(...rows, "");
     }
     if (tag === "P") return void (text(el) && lines.push(text(el)));
-    if (tag === "LI") return void (text(el) && lines.push(`- ${text(el)}`));
+    if (tag === "LI" || el.getAttribute("data-md") === "item")
+      return void (text(el) && lines.push(`- ${text(el)}`));
     for (const child of el.children) walk(child);
   };
 

@@ -223,10 +223,19 @@ export function ColorDoc() {
   );
 }
 
-/** 밝은 칸 위에는 어두운 글자, 어두운 칸 위에는 밝은 글자 — 칸 안 단계 숫자가 읽히게. */
-function isDarkHex(hex: string): boolean {
-  const value = hex.replace("#", "").slice(0, 6);
-  const [r, g, b] = [0, 2, 4].map((i) => parseInt(value.slice(i, i + 2), 16) / 255);
+/**
+ * 밝은 칸 위에는 어두운 글자, 어두운 칸 위에는 밝은 글자 — 칸 안 단계 숫자가 읽히게.
+ * 반투명 색(#rrggbbaa)은 아래 바탕(기본 흰색)에 섞인 색으로 밝기를 잰다.
+ */
+function isDarkHex(hex: string, base = "#ffffff"): boolean {
+  const value = hex.replace("#", "");
+  const under = base.replace("#", "");
+  const alpha = value.length === 8 ? parseInt(value.slice(6, 8), 16) / 255 : 1;
+  const [r, g, b] = [0, 2, 4].map(
+    (i) =>
+      (parseInt(value.slice(i, i + 2), 16) / 255) * alpha +
+      (parseInt(under.slice(i, i + 2), 16) / 255) * (1 - alpha),
+  );
   return 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.6;
 }
 
@@ -240,6 +249,10 @@ const RAMP_COLUMNS = Math.max(
  * (AI용 복사에는 hex까지 들어가게 화면에 안 보이는 글로 함께 둔다.)
  * 반투명 흰색은 흰 바탕에서 안 보여 짙은 바탕 위에 얹는다.
  */
+/** 반투명 흰색을 얹는 짙은 바탕(cool-gray-900) — 글자색 계산에도 같은 값을 쓴다. */
+const DARK_BASE_HEX =
+  primitiveTokens.find((token) => token.name === "cool-gray-900")?.hex ?? "#292a2e";
+
 function PrimitiveRamp({ family, tokens }: { family: string; tokens: TokenEntry[] }) {
   const onDark = family === "opacity-white";
   return (
@@ -253,8 +266,8 @@ function PrimitiveRamp({ family, tokens }: { family: string; tokens: TokenEntry[
           <li
             key={token.name}
             title={`${token.name} · ${token.hex}`}
-            className={`flex h-10 min-w-0 items-end overflow-hidden px-0.5 pb-1 text-[10px] leading-none whitespace-nowrap sm:px-1.5 sm:text-[11px] shadow-[inset_0_0_0_1px_rgb(0_0_0/0.05)] first:rounded-l-10 last:rounded-r-10 ${
-              onDark || isDarkHex(token.hex) ? "text-text-on-dark" : "text-text-secondary"
+            className={`relative flex h-10 min-w-0 items-end overflow-hidden px-0.5 pb-1 text-[10px] leading-none whitespace-nowrap sm:px-1.5 sm:text-[11px] shadow-[inset_0_0_0_1px_rgb(0_0_0/0.05)] first:rounded-l-10 last:rounded-r-10 ${
+              isDarkHex(token.hex, onDark ? DARK_BASE_HEX : undefined) ? "text-text-on-dark" : "text-text-secondary"
             }`}
             style={{
               background: `linear-gradient(var(--${token.name}), var(--${token.name})), var(${
@@ -276,7 +289,7 @@ function SemanticSwatch({ token, group }: { token: TokenEntry; group: string }) 
   const short = group === "기타" ? token.name : token.name.replace(`${group}-`, "");
   const target = `${token.alias ? `${token.alias} · ` : ""}${token.hex}`;
   return (
-    <li className="min-w-0" title={`${token.name} → ${target}`}>
+    <li className="relative min-w-0" title={`${token.name} → ${target}`}>
       <div
         className="h-10 rounded-10 shadow-[inset_0_0_0_1px_rgb(0_0_0/0.08)]"
         style={{ background: `var(--${token.name})` }}
@@ -314,7 +327,7 @@ function ComponentRow({ group, tokens }: { group: string; tokens: TokenEntry[] }
                   <li
                     key={token.name}
                     title={`${token.name} → ${target}`}
-                    className="size-6 rounded-full shadow-[inset_0_0_0_1px_rgb(0_0_0/0.08)]"
+                    className="relative size-6 rounded-full shadow-[inset_0_0_0_1px_rgb(0_0_0/0.08)]"
                     style={{ background: `var(--${token.name})` }}
                   >
                     <span className="sr-only">
