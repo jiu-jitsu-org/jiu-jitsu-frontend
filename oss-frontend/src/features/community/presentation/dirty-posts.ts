@@ -20,12 +20,18 @@ const DIRTY_POSTS_KEY = "feed-dirty-posts";
 const CREATED_POST_KEY = "feed-created-post";
 
 /**
- * 등록 표시의 유효 시간(ms). 등록 → 닫기 → 복귀는 즉시 일어나므로 넉넉하다.
+ * 등록 표시의 유효 시간(ms). 묵은 표시를 치우는 용도일 뿐, 복귀 시간을 재는 값이 아니다.
  *
- * localStorage는 세션이 끝나도 남으므로 만료를 둔다 — 없으면 며칠 뒤 앱을 켰을 때
- * 엉뚱하게 최상단으로 튀는 일이 생긴다.
+ * WHY 짧게 두지 않는가(#485): 등록하면 바로 목록으로 가지 않고 방금 쓴 글의 상세로 넘어간다(#157).
+ * 상세에서 댓글을 달며 머무는 시간은 정할 수 없어, 짧은 만료는 "돌아왔는데 내 글이 없음"을 만든다.
+ * 그래서 갱신 대상 기록(markPostDirty)과 같이 "소비될 때까지 유지"로 두고, 표시를 보고 화면을 다시
+ * 그린 곳은 모두 지운다(목록: clearRevalidated, 대회 이야기: clearPostCreated). 남는 곳이 없어야
+ * 나중에 엉뚱한 때 최상단으로 튀지 않는다.
+ *
+ * 그래도 만료는 둔다 — localStorage는 세션이 끝나도 남아, 소비되지 못한 표시(상세에서 앱 종료 등)가
+ * 며칠 뒤까지 살아 있으면 안 된다.
  */
-const CREATED_TTL_MS = 30_000;
+const CREATED_TTL_MS = 24 * 60 * 60_000;
 
 /**
  * 갱신 대상 한 건. mark는 "이번 진입"을 구분하는 표식이다.
@@ -116,6 +122,22 @@ export function markPostCreated(postId: number): void {
       CREATED_POST_KEY,
       JSON.stringify({ postId, at: Date.now() }),
     );
+  } catch {
+    // 위와 같음.
+  }
+}
+
+/**
+ * 등록 표시를 지운다 — 목록이 아닌 곳이 표시 대신 자기 방식으로 새 글을 반영했을 때 호출.
+ *
+ * 대회 이야기에서 쓴 글은 대회 상세가 다시 읽어 보여 준다. 표시를 남겨 두면 나중에 홈 피드가 드러날 때
+ * 그 글 때문에 읽던 자리에서 최상단으로 튄다.
+ */
+export function clearPostCreated(): void {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.removeItem(CREATED_POST_KEY);
   } catch {
     // 위와 같음.
   }
