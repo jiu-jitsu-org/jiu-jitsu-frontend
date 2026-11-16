@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import type { Comment } from "@/features/community/domain/comment";
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
 import { useRequestBeltPrompt } from "@/features/community/presentation/belt-prompt";
 import {
@@ -28,8 +29,8 @@ export const COMMENT_INPUT_ELEMENT_ID = "community-comment-input";
 /**
  * 하단 댓글 입력 바 (클라이언트 leaf).
  *
- * 제출 시 BFF로 POST한 뒤 router.refresh()로 서버 렌더 댓글 목록을 다시 가져온다
- * (클라이언트에 목록 상태를 중복으로 들지 않음). 401이면 네이티브 로그인 유도.
+ * 제출 시 BFF로 POST하고, 응답의 댓글을 목록에 바로 넣은 뒤(#486) router.refresh()로 서버 렌더
+ * 댓글 목록을 뒤에서 다시 가져온다. 401이면 네이티브 로그인 유도.
  *
  * 답글 모드: 댓글의 답글 버튼이 대상을 지정하면 입력창 위에 "○○님에게 답글" 칩이 뜨고,
  * 전송 시 parentId가 함께 나간다(대댓글에서 연 답글이면 누른 대댓글 id도 mentionCommentId로, #473).
@@ -49,7 +50,7 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [value, setValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const { target, cancelReply, markPosted } = useCommentReply();
+  const { target, cancelReply, markPosted, addPosted } = useCommentReply();
   // 답장 행이 접히는 동안에도 글자가 비지 않게 마지막 대상을 들고 있는다 — 컨텍스트 대상은
   // 취소 즉시 null이 되지만, 행은 300ms에 걸쳐 닫히므로 그동안 직전 닉네임을 그대로 보여준다.
   const [lastTarget, setLastTarget] = useState(target);
@@ -161,16 +162,23 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
 
       setValue("");
       setSentCount((n) => n + 1);
-      // 새 댓글 id를 알려 두면 목록이 새로 그려질 때 그 댓글만 펼쳐지며 들어온다.
+      // 응답에 만든 댓글이 통째로 온다 — 서버 렌더를 기다리지 않고 목록에 바로 넣는다(#486).
+      // 새 댓글 id를 알려 두면 목록에 들어올 때 그 댓글만 펼쳐지며 들어온다.
       const created = (await response.json().catch(() => null)) as {
-        data?: { id?: unknown };
+        data?: Comment;
       } | null;
-      if (typeof created?.data?.id === "number") markPosted(created.data.id);
-      // 답글도 최상위 댓글도 대상 해제만 한다. 서버가 대댓글을 상위 3개로 잘라 내려주므로
-      // 작성된 순에서 답글이 3개를 넘으면 방금 쓴 답글이 미리보기 밖(맨 뒤)에 남는다 —
-      // 그때는 「대댓글 더보기」로 확인한다(#62).
+      const comment = created?.data;
+      if (typeof comment?.id === "number") {
+        markPosted(comment.id);
+        // 작성된 순에서 뒤 페이지를 아직 안 받았거나 대댓글이 접혀 있으면 끼울 자리가 없다 —
+        // 맨 뒤에 붙이면 안 받은 댓글보다 앞에 보여 순서가 틀린다. 그때는 등록됐다고만 알린다.
+        if (!addPosted(comment, parentId)) {
+          toast.show("댓글을 등록했어요", { tone: "success" });
+        }
+      }
+      // 답글도 최상위 댓글도 대상 해제만 한다.
       cancelReply();
-      // 서버 렌더 목록 재요청 — 새 댓글이 정렬 규칙에 맞게 반영된다.
+      // 서버 렌더 목록 재요청 — 뒤에서 돌아 댓글 수·정렬을 맞추고, 같은 id는 서버 것으로 바뀐다.
       router.refresh();
       // 띠가 없는 회원이면 띠를 묻는다(#275). 노출 규칙은 Provider가 본다.
       requestBeltPrompt();

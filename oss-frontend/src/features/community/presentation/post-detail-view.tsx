@@ -41,7 +41,7 @@ export function PostDetailView({
   attachment?: ReactNode;
 }) {
   return (
-    <CommentReplyProvider>
+    <CommentReplyProvider serverComments={comments} sort={sort}>
       {/* 글 등록·댓글 직후 띠를 묻는 시트(#275). 방금 쓴 글이면 열자마자 확인한다. */}
       <BeltPromptProvider postId={post.id}>
         <PostDetailReturnListener postId={post.id} />
