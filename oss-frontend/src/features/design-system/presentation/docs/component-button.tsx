@@ -314,7 +314,10 @@ export function ButtonDoc() {
       />
 
       <H doc={D} id="spec">스펙</H>
-      <P>색 점은 토큰 변수를 그대로 칠한 실제 색이다.</P>
+      <P>
+        이름은 <Code>button-변형-상태-자리</Code>(예: <Code>button-tint-pressed-bg</Code>). 점에 손을 올리면
+        전체 이름이 보인다.
+      </P>
       <DocTable
         cols="104px repeat(4, minmax(0, 1fr))"
         head={["variant", "바탕", "글자", "누름", "비활성 바탕"]}
@@ -322,17 +325,17 @@ export function ButtonDoc() {
           <span key="n" className="font-mono text-label-m">
             {variant.name}
           </span>,
-          <Dot key="b" token={variant.bg} withName />,
-          <Dot key="t" token={variant.text} withName />,
+          <Dot key="b" token={variant.bg} hexOnly />,
+          <Dot key="t" token={variant.text} hexOnly />,
           variant.pressed ? (
-            <Dot key="p" token={variant.pressed} withName />
+            <Dot key="p" token={variant.pressed} hexOnly />
           ) : (
             <span key="p" className="text-label-m text-text-tertiary">
               밝기 90%
             </span>
           ),
           variant.disabled ? (
-            <Dot key="x" token={variant.disabled} withName />
+            <Dot key="x" token={variant.disabled} hexOnly />
           ) : (
             <span key="x" className="text-label-m text-text-tertiary">
               —

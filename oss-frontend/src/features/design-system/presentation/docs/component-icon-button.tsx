@@ -235,17 +235,17 @@ export function IconButtonDoc() {
         rows={[
           [
             "ghost",
-            <Dot key="i" token="icon-primary" withName />,
+            <Dot key="i" token="icon-primary" hexOnly />,
             <span key="b" className="text-label-m text-text-tertiary">
               없음
             </span>,
-            <Dot key="p" token="surface-container-pressed" withName />,
+            <Dot key="p" token="surface-container-pressed" hexOnly />,
           ],
           [
             "tint",
-            <Dot key="i" token="button-tint-default-text" withName />,
-            <Dot key="b" token="button-tint-default-bg" withName />,
-            <Dot key="p" token="button-tint-pressed-bg" withName />,
+            <Dot key="i" token="button-tint-default-text" hexOnly />,
+            <Dot key="b" token="button-tint-default-bg" hexOnly />,
+            <Dot key="p" token="button-tint-pressed-bg" hexOnly />,
           ],
         ]}
       />
