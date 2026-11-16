@@ -1,12 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
 import { EmptyState } from "@/shared/ui/empty-state";
+import { useOpenInAppPrompt } from "@/shared/ui/open-in-app-prompt";
+import { RelativeTime } from "@/shared/ui/relative-time";
 import { SearchField } from "@/shared/ui/search-field";
-import { useToast } from "@/shared/ui/toast";
+import { ToastProvider, useToast, type ToastTone } from "@/shared/ui/toast";
 
 /** motion.css의 공통 움직임 — 화면 전용(밸런스 캐릭터 등)은 빼고 여러 곳이 같이 쓰는 것만. */
 const MOTIONS = [
@@ -112,5 +120,164 @@ export function SearchFieldDemo() {
         aria-label="검색어"
       />
     </div>
+  );
+}
+
+/* ───────── 문서용 실물 견본(2026-11 문서 개편) ───────── */
+
+/**
+ * 토스트 판 — 진짜 ToastProvider를 판 안에 하나 더 두고 그 안에서 띄운다.
+ * 판에 transform을 걸면 토스트의 `fixed`가 화면 대신 이 판을 기준으로 잡혀, 문서 안에 제자리로 놓인다.
+ * 판이 화면에 들어올 때 한 번 뜨고, 판을 누르면 다시 뜬다(토스트는 2초 · 버튼이 있으면 5초 뒤 사라진다).
+ */
+export function ToastStage({
+  message,
+  tone,
+  actionLabel,
+  marks,
+  className,
+}: {
+  message: string;
+  tone: ToastTone;
+  actionLabel?: string;
+  /** 판 위에 얹는 해부도 번호. */
+  marks?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "relative h-36 w-full overflow-hidden rounded-20 bg-surface-field-subtle [transform:translateZ(0)]",
+        className,
+      )}
+    >
+      <ToastProvider>
+        <ToastAutoShow message={message} tone={tone} actionLabel={actionLabel} />
+      </ToastProvider>
+      {marks}
+    </div>
+  );
+}
+
+function ToastAutoShow({
+  message,
+  tone,
+  actionLabel,
+}: {
+  message: string;
+  tone: ToastTone;
+  actionLabel?: string;
+}) {
+  const toast = useToast();
+  const ref = useRef<HTMLButtonElement>(null);
+
+  const fire = useCallback(() => {
+    toast.show(message, {
+      tone,
+      action: actionLabel ? { label: actionLabel, onAction: () => {} } : undefined,
+    });
+  }, [toast, message, tone, actionLabel]);
+
+  // 띄우면 토스트 상태가 바뀌어 fire도 새로 만들어진다 — 관찰은 한 번만 걸고 최신 fire를 ref로 부른다.
+  const fireRef = useRef(fire);
+  useEffect(() => {
+    fireRef.current = fire;
+  }, [fire]);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    // 문서가 열려 판이 보이게 될 때 띄운다 — 숨은 문서에서 미리 떠 버리면 볼 때는 이미 사라져 있다.
+    let visible = false;
+    const observer = new IntersectionObserver((entries) => {
+      const now = entries.some((entry) => entry.isIntersecting);
+      if (now && !visible) fireRef.current();
+      visible = now;
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <button
+      ref={ref}
+      type="button"
+      onClick={fire}
+      className="absolute inset-0 flex items-start justify-center pt-4 text-label-m text-text-tertiary"
+    >
+      눌러서 다시 띄우기
+    </button>
+  );
+}
+
+/** 검색칸 상태 견본 — 빈 칸 · 글자 있음은 실제로 입력 가능한 칸이다. */
+export function SearchFieldSample({
+  initial = "",
+  placeholder = "대회 이름으로 찾기",
+  className,
+}: {
+  initial?: string;
+  placeholder?: string;
+  className?: string;
+}) {
+  const [value, setValue] = useState(initial);
+  return (
+    <SearchField
+      value={value}
+      onValueChange={setValue}
+      placeholder={placeholder}
+      aria-label="검색어"
+      className={className}
+    />
+  );
+}
+
+/** '앱에서 보기' 안내 — 루트의 진짜 OpenInAppPromptProvider로 띄운다. */
+export function OpenInAppPromptDemo() {
+  const { prompt } = useOpenInAppPrompt();
+  return (
+    <div className="flex flex-wrap gap-2">
+      <Button variant="neutral" onClick={() => prompt()}>
+        기본 문구로 띄우기
+      </Button>
+      <Button
+        variant="neutral"
+        onClick={() => prompt({ message: "댓글은 OSS 앱에서 로그인 후 남길 수 있어요." })}
+      >
+        문구 바꿔 띄우기
+      </Button>
+    </div>
+  );
+}
+
+/** 상대 시간 견본 — 지금 시각에서 뺀 ISO를 그린다(서버 시계가 없으면 기기 시계). */
+export function RelativeTimeSamples() {
+  // 서버와 브라우저의 '지금'이 달라 그린 뒤에 정한다(같은 값으로 그려야 화면이 어긋나지 않는다).
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setNow(Date.now());
+  }, []);
+  const samples = [
+    { label: "40초 전", ms: 40_000 },
+    { label: "3분 전", ms: 3 * 60_000 },
+    { label: "5시간 전", ms: 5 * 3_600_000 },
+    { label: "3일 전", ms: 3 * 86_400_000 },
+    { label: "40일 전", ms: 40 * 86_400_000 },
+  ];
+  return (
+    <ul className="flex flex-col gap-2">
+      {samples.map((sample) => (
+        <li key={sample.label} className="flex items-center gap-4">
+          <span className="w-24 text-label-m text-text-tertiary">{sample.label}에 쓴 글</span>
+          {now === null ? null : (
+            <RelativeTime
+              iso={new Date(now - sample.ms).toISOString()}
+              className="text-label-m text-text-secondary"
+            />
+          )}
+        </li>
+      ))}
+    </ul>
   );
 }
