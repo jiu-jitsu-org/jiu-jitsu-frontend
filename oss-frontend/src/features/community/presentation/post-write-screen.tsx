@@ -52,6 +52,13 @@ import {
 import { markBeltPromptAfterPost } from "@/features/community/presentation/belt-prompt-policy";
 import { POST_EDITED_ACTION } from "@/features/community/presentation/post-edit-return";
 import {
+  abandonWriteTiming,
+  expectDetailFor,
+  logWriteStep,
+  resetWriteTiming,
+  startWriteTiming,
+} from "@/features/community/presentation/write-timing";
+import {
   createPost,
   updatePost,
   WriteRequestError,
@@ -393,6 +400,8 @@ export function PostWriteScreen({
   const looksDisabled = isEdit && !isDirty;
   // 전송 중 표시는 렌더를 기다리지 않고 바로 보는 값 — 이어서 등록과 사용자의 탭이 같은 순간 겹쳐도 한 번만 보낸다.
   const submittingRef = useRef(false);
+  // 등록을 끝내지 못하고 화면을 떠나면 시간 기록을 버린다(#486) — 다음 글이 옛 시작 시각으로 재지 않게.
+  useEffect(() => abandonWriteTiming, []);
   const attachmentKey = attachments.map((item) => item.localId).join(",");
   const hasUploadingImage = attachments.some((item) => item.status === "uploading");
   useEffect(() => {
@@ -402,10 +411,13 @@ export function PostWriteScreen({
     if (waitingKey !== attachmentKey) {
       toast.show(SUBMIT_TOAST.uploadChanged, { tone: "info" });
     } else if (isUploadSettled) {
+      logWriteStep("사진 업로드 대기 끝");
       void submit();
+      return;
     } else {
       toast.show(SUBMIT_TOAST.uploadFailed, { tone: "warning" });
     }
+    resetWriteTiming();
     // submit·toast는 넣지 않는다 — 업로드가 끝난 그 렌더의 최신 입력으로 한 번만 보낸다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasUploadingImage, isUploadSettled, attachmentKey]);
@@ -648,7 +660,11 @@ export function PostWriteScreen({
   function goToDetail(postId: number, toastMessage: string) {
     discardAll();
     enqueuePendingToast(toastMessage, { tone: "success" });
-    router.replace(`/community/${postId}`);
+    // 상세는 동적 경로라 미리 받아 두지 않으면 loading.tsx 스켈레톤도 서버 응답을 기다린 뒤에야 뜬다 —
+    // 그동안 이 화면의 등록 오버레이가 남는다. 이동 직전에 받아 두어 스켈레톤이 먼저 뜨게 한다(#486).
+    const href = `/community/${postId}`;
+    router.prefetch(href);
+    router.replace(href);
   }
 
   /**
@@ -854,18 +870,24 @@ export function PostWriteScreen({
       setTitleShort(validationError.field === "title");
       return;
     }
+    // 단계별 시간 로그(#486) — 새 글만 잰다. 사진을 기다렸다 이어서 등록하면 첫 탭부터 이어 잰다.
+    if (!edit) startWriteTiming();
     // 입력은 다 됐지만 사진이 아직 올라가는 중이면 알리고, 다 올라가면 이어서 등록한다(#390).
     if (!edit && !isUploadSettled) {
       if (hasUploadingImage) {
         submitAfterUploadRef.current = attachmentKey;
         toast.show(SUBMIT_TOAST.waitingUpload, { tone: "info" });
       } else {
+        resetWriteTiming();
         toast.show(SUBMIT_TOAST.uploadFailed, { tone: "warning" });
       }
       return;
     }
     // 수정 내용이 없는 잠금 등은 지금처럼 조용히 무시한다.
-    if (isSubmitLocked || categoryId === null) return;
+    if (isSubmitLocked || categoryId === null) {
+      resetWriteTiming();
+      return;
+    }
     submitAfterUploadRef.current = null;
     submittingRef.current = true;
     setSubmitting(true);
@@ -895,6 +917,7 @@ export function PostWriteScreen({
       }
       // 이미지는 고를 때 이미 ①②③을 마쳤고 isSubmitLocked가 전 장 done을 보장하므로 표시 순서 imageId를 그대로 보낸다.
       // ④ 게시글 생성.
+      logWriteStep("글 생성 요청");
       const created = await createPost({
         categoryId,
         title: title.trim(),
@@ -905,6 +928,8 @@ export function PostWriteScreen({
       });
       // 여기 도달 = 생성 성공(2xx). created.id로 실제 추가 여부를 확인할 수 있다.
       console.info("[post-write] 게시글 생성 성공:", created);
+      logWriteStep("글 생성 응답");
+      expectDetailFor(created.id);
       // 목록이 복귀 시 첫 페이지를 다시 읽어 이 글을 앞에 붙이고 최상단으로 올린다(#38).
       // 성공했을 때만 남긴다 — 취소로 닫으면 목록은 아무것도 하지 않는다.
       markPostCreated(created.id);
@@ -914,6 +939,7 @@ export function PostWriteScreen({
       goToDetail(created.id, SUBMIT_TOAST.createDone);
     } catch (error) {
       // 실패 경로 — 절대 화면을 떠나지 않는다(입력 유지). 잠금은 여기서만 풀어 재시도할 수 있게 한다.
+      resetWriteTiming();
       submittingRef.current = false;
       setSubmitting(false);
       console.error("[post-write] 게시글 저장 실패:", error);

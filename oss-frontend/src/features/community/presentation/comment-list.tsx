@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
 import {
   markPostAuthorComments,
@@ -15,6 +15,13 @@ import {
 } from "@/features/community/presentation/community-feed-list";
 import { useOnBlockChange } from "@/features/community/presentation/block-change-watcher";
 import { CommentItem } from "@/features/community/presentation/comment-item";
+import {
+  postedNotIn,
+  ROOT_PLACEMENT,
+  useCommentReply,
+  usePlacement,
+  useSettlePosted,
+} from "@/features/community/presentation/comment-reply-context";
 import { useInfiniteScroll } from "@/features/community/presentation/use-infinite-scroll";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 
@@ -27,6 +34,9 @@ type ExtraPagesState = {
   hasNext: boolean | null;
   status: "idle" | "loading" | "error";
 };
+
+/** 서버가 최상위 댓글을 주는 한 페이지 크기(backend#161) — 방금 단 댓글이 받은 범위 안에 드는지 판정에 쓴다. */
+const COMMENT_PAGE_SIZE = 20;
 
 function initialState(signature: string): ExtraPagesState {
   return { signature, pages: [], hasNext: null, status: "idle" };
@@ -84,8 +94,12 @@ async function fetchCommentPage(
  * 같은 범위를 다시 받아 바꿔 끼운다. 다시 받는 동안은 옛 줄이 보이고, 실패하면 옛 줄을 그대로 둔다.
  * 글이나 정렬이 바뀔 때만 통째로 버린다 — 그때는 화면이 새 첫 페이지부터 다시 그려진다.
  *
- * 작성된 순에서 아직 안 받은 페이지가 있으면 방금 단 댓글은 맨 뒤라 바로 안 보인다. 대댓글 더보기와
- * 같은 판단으로, 그 한 경우를 위해 끝까지 받아 오지 않는다 — 끝까지 내리면 나타난다.
+ * 방금 단 댓글은 서버 렌더를 기다리지 않고 등록 응답으로 바로 끼운다(#486) — 최신순은 맨 위,
+ * 작성된 순은 끝까지 받았을 때만 맨 아래. 서버 목록에 같은 id가 오면 그쪽을 쓴다.
+ * 작성된 순에서 아직 안 받은 페이지가 있으면 끼울 자리가 없어 넣지 않는다(입력 바가 토스트로 알린다).
+ * 대댓글 더보기와 같은 판단으로, 그 한 경우를 위해 끝까지 받아 오지 않는다 — 끝까지 내리면 나타난다.
+ *
+ * 댓글이 하나도 없으면 빈 상태(empty)를 그린다 — 첫 댓글도 바로 목록으로 바뀌게 여기서 고른다.
  *
  * sort·postAuthorId는 대댓글 더보기(CommentReplies)까지 내려보내는 값이기도 하다. 추가로 불러온
  * 대댓글이 목록과 같은 정렬을 쓰고 "작성자" 배지도 같은 기준으로 붙으려면 둘 다 필요하다.
@@ -96,6 +110,7 @@ export function CommentList({
   hasNext,
   sort,
   postAuthorId,
+  empty,
 }: {
   /** 댓글이 달린 컨텐츠(게시글·밸런스 게임) id — 다음 페이지 조회에 쓴다. */
   contentId: number;
@@ -105,6 +120,8 @@ export function CommentList({
   hasNext: boolean;
   sort: CommentSort;
   postAuthorId?: number | null;
+  /** 댓글이 하나도 없을 때 그릴 빈 상태. */
+  empty: ReactNode;
 }) {
   const signature = `${contentId}:${sort}`;
   const [state, setState] = useState(() => initialState(signature));
@@ -117,13 +134,39 @@ export function CommentList({
     setState(current);
   }
 
-  const items = dedupeById([...comments, ...current.pages.flat()]);
+  const loaded = dedupeById([...comments, ...current.pages.flat()]);
   const hasMore = current.hasNext ?? hasNext;
 
   // 앱에서 회원 차단이 바뀌면 서버 렌더를 다시 돌린다(#488) — 그 회원의 댓글이 자리 표시로(해제면 본문으로) 바뀐다.
   // 이어 받은 페이지는 아래 다시 받기 경로가, 펼친 대댓글은 CommentReplies가 같은 범위로 갈아 끼운다.
   const router = useRouter();
   useOnBlockChange(() => router.refresh());
+
+  // 방금 단 댓글 중 서버 목록에 아직 없는 것 — 등록한 순서대로 쌓여 있다.
+  const { posted } = useCommentReply();
+  const fresh = markPostAuthorComments(
+    postedNotIn(posted, undefined, loaded),
+    postAuthorId,
+  );
+  const items =
+    sort === "latest" ? [...fresh.reverse(), ...loaded] : [...loaded, ...fresh];
+  // 최신순은 늘 맨 위(서버 첫 페이지 맨 앞)라 서버 렌더가 바로 서버 것을 가져온다.
+  // 작성된 순은 끝까지 받았고, 아직 서버에 안 든 사본까지 세어 새 댓글이 지금 받은 페이지 안에 들어갈 때만
+  // 끼운다 — 꽉 찼으면 다음 페이지로 밀려 서버 것이 오지 않는다. 이어 받은 페이지가 있으면 맨 아래는
+  // 그 페이지라, 서버 렌더 뒤 다시 받기가 끝나야 서버 것이 온다.
+  useSettlePosted(undefined, loaded);
+  usePlacement(ROOT_PLACEMENT, () => {
+    if (sort === "latest") return "server-render";
+    if (
+      hasMore ||
+      loaded.length + fresh.length >=
+        (current.pages.length + 1) * COMMENT_PAGE_SIZE
+    )
+      return null;
+    return current.pages.length > 0 ? "refetch" : "server-render";
+  });
+  // 첫 페이지(서버 렌더)에서 온 댓글 — 그 미리보기 답글만 서버 렌더가 바로 가져온다.
+  const firstPageIds = new Set(comments.map((comment) => comment.id));
 
   // 관찰자가 연달아 불러도 한 번만 나가게 막는다(state는 다음 렌더에야 반영된다).
   const loadingRef = useRef(false);
@@ -203,8 +246,11 @@ export function CommentList({
     resetKey: items.length,
   });
 
+  if (items.length === 0 && !hasMore) return empty;
+
   return (
-    <>
+    // 최신순 버튼 바텀↔첫 댓글 24 = 정렬 row pb-3(12) + 여기 pt-3(12). 하단 여유 pb-4.
+    <div className="px-4 pb-4 pt-3">
       <ul className="flex flex-col gap-6">
         {items.map((comment) => (
           <CommentItem
@@ -212,6 +258,7 @@ export function CommentList({
             comment={comment}
             sort={sort}
             postAuthorId={postAuthorId}
+            inFirstPage={firstPageIds.has(comment.id)}
           />
         ))}
       </ul>
@@ -229,6 +276,6 @@ export function CommentList({
           message="댓글을 더 불러오지 못했어요"
         />
       ) : null}
-    </>
+    </div>
   );
 }

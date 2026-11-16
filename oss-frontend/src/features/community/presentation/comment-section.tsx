@@ -26,8 +26,6 @@ export function CommentSection({
       밸런스 게임은 작성자가 없는 컨텐츠라 넘기지 않는다. */
   postAuthorId?: number | null;
 }) {
-  const hasComments = comments.items.length > 0;
-
   return (
     <section className="flex flex-col">
       {/* 댓글 수는 리액션바의 댓글 버튼이 카운트로 보여주므로 이 행에는 두지 않는다. */}
@@ -39,20 +37,15 @@ export function CommentSection({
         </Suspense>
       </div>
 
-      {hasComments ? (
-        // 최신순 버튼 바텀↔첫 댓글 24 = 정렬 row pb-3(12) + 여기 pt-3(12). 하단 여유 pb-4.
-        <div className="px-4 pb-4 pt-3">
-          <CommentList
-            contentId={contentId}
-            comments={comments.items}
-            hasNext={comments.hasNext}
-            sort={sort}
-            postAuthorId={postAuthorId}
-          />
-        </div>
-      ) : (
-        <CommentEmpty />
-      )}
+      {/* 빈 상태도 목록이 고른다 — 첫 댓글을 달면 서버 렌더를 기다리지 않고 바로 목록으로 바뀐다(#486). */}
+      <CommentList
+        contentId={contentId}
+        comments={comments.items}
+        hasNext={comments.hasNext}
+        sort={sort}
+        postAuthorId={postAuthorId}
+        empty={<CommentEmpty />}
+      />
     </section>
   );
 }

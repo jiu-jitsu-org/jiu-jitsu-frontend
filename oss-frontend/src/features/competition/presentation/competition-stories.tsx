@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
+import { clearPostCreated } from "@/features/community/presentation/dirty-posts";
 import { useOpenPostDetail } from "@/features/community/presentation/use-open-post-detail";
 import { useOpenPostWrite } from "@/features/community/presentation/use-open-post-write";
 import type { CompetitionStory } from "@/features/competition/domain/competition-story";
@@ -146,7 +147,11 @@ function useRefreshAfterWrite(competitionId: number) {
   useEffect(() => {
     const refreshIfReturned = () => {
       if (document.visibilityState !== "visible") return;
-      if (takeWriteOpened(competitionId)) router.refresh();
+      if (!takeWriteOpened(competitionId)) return;
+      // 새 글은 여기서 다시 읽어 보여 준다. 홈 피드용 등록 표시는 지운다 — 남으면 나중에 홈 피드가
+      // 이 글 때문에 읽던 자리에서 최상단으로 튄다(#485).
+      clearPostCreated();
+      router.refresh();
     };
     refreshIfReturned();
     document.addEventListener("visibilitychange", refreshIfReturned);
