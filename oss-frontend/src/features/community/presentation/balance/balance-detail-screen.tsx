@@ -3,6 +3,7 @@ import { getBalanceDetailPageData } from "@/features/community/application/get-b
 import type { CommentSort } from "@/features/community/domain/post";
 import { DetailErrorState } from "@/features/community/presentation/detail-error-state";
 import { DetailSkeleton } from "@/features/community/presentation/detail-skeleton";
+import { KeepDetailOnRefreshFailure } from "@/features/community/presentation/keep-detail-on-refresh-failure";
 import { BalanceDetailGone } from "@/features/community/presentation/balance/balance-detail-gone";
 import { BalanceDetailView } from "@/features/community/presentation/balance/balance-detail-view";
 import { NativePageReady } from "@/shared/lib/native-bridge";
@@ -38,17 +39,24 @@ export async function BalanceDetailScreen({
       return <BalanceDetailGone />;
     }
 
-    return <DetailErrorState title="밸런스 게임을 불러오지 못했습니다." />;
+    // 이미 보던 판을 다시 그리다 실패했으면 보던 화면을 지키고 토스트만 띄운다(#493).
+    return (
+      <KeepDetailOnRefreshFailure
+        contentId={contentId}
+        ok={false}
+        fallback={<DetailErrorState title="밸런스 게임을 불러오지 못했습니다." />}
+      />
+    );
   }
 
   const { game, comments } = result.data;
 
   return (
-    <>
+    <KeepDetailOnRefreshFailure contentId={contentId} ok>
       <BalanceDetailView game={game} comments={comments} sort={sort} />
       {/* 다 그려지면 앱이 그림·글꼴을 다 받기 전에 로딩 덮개를 걷는다(jiu-jitsu-ios#261).
           게시글 상세와 같이 만료 복구·오류 화면에서는 보내지 않는다 — 그때는 load 때 걷힌다. */}
       <NativePageReady />
-    </>
+    </KeepDetailOnRefreshFailure>
   );
 }

@@ -3,6 +3,7 @@ import { SessionExpiredRecovery } from "@/features/auth/presentation/session-exp
 import type { CommentSort } from "@/features/community/domain/post";
 import { DetailErrorState } from "@/features/community/presentation/detail-error-state";
 import { DetailSkeleton } from "@/features/community/presentation/detail-skeleton";
+import { KeepDetailOnRefreshFailure } from "@/features/community/presentation/keep-detail-on-refresh-failure";
 import { PostDetailGone } from "@/features/community/presentation/post-detail-gone";
 import { PostDetailView } from "@/features/community/presentation/post-detail-view";
 import { CompetitionAlertProvider } from "@/features/competition/presentation/competition-alert-provider";
@@ -44,7 +45,14 @@ export async function PostDetailScreen({
     if (result.code === ApiErrorCode.BOARD_NOT_FOUND || result.status === 404) {
       return <PostDetailGone />;
     }
-    return <DetailErrorState title="게시글을 불러오지 못했습니다." />;
+    // 이미 보던 상세를 다시 그리다 실패했으면 보던 화면을 지키고 토스트만 띄운다(#493).
+    return (
+      <KeepDetailOnRefreshFailure
+        contentId={postId}
+        ok={false}
+        fallback={<DetailErrorState title="게시글을 불러오지 못했습니다." />}
+      />
+    );
   }
 
   const { post, comments, competitionAlertSettings } = result.data;
@@ -66,15 +74,20 @@ export async function PostDetailScreen({
       <NativePageReady />
     </>
   );
-  if (!competition) return view;
-
-  // 대회 카드 하트로 처음 관심 등록하면 마감 알림 시트를 띄운다(#375).
+  // 실패 분기와 같은 자리에 두어야 다시 그리다 실패해도 기억해 둔 이 화면을 쓸 수 있다(#493).
   return (
-    <CompetitionAlertProvider
-      settings={competitionAlertSettings}
-      today={toKstDateKey(readServerNow())}
-    >
-      {view}
-    </CompetitionAlertProvider>
+    <KeepDetailOnRefreshFailure contentId={postId} ok>
+      {competition ? (
+        // 대회 카드 하트로 처음 관심 등록하면 마감 알림 시트를 띄운다(#375).
+        <CompetitionAlertProvider
+          settings={competitionAlertSettings}
+          today={toKstDateKey(readServerNow())}
+        >
+          {view}
+        </CompetitionAlertProvider>
+      ) : (
+        view
+      )}
+    </KeepDetailOnRefreshFailure>
   );
 }
