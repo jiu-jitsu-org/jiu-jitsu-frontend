@@ -39,20 +39,48 @@ export function useViewportRect(enabled = true): ViewportRect | null {
       // 읽지 않게 0 아래는 자른다.
       const covered =
         window.innerHeight - viewport.height - Math.max(0, viewport.offsetTop);
-      setRect({
+      const next: ViewportRect = {
         top: Math.round(viewport.offsetTop),
         height: Math.round(viewport.height),
         keyboardOpen: covered > KEYBOARD_THRESHOLD,
         scale: viewport.scale,
-      });
+      };
+      // 다시 재도 값이 같으면 이전 객체를 그대로 둬 쓰는 화면이 다시 그려지지 않게 한다.
+      setRect((prev) =>
+        prev &&
+        prev.top === next.top &&
+        prev.height === next.height &&
+        prev.keyboardOpen === next.keyboardOpen &&
+        prev.scale === next.scale
+          ? prev
+          : next,
+      );
+    };
+
+    // 키보드가 이 웹뷰가 가려진 사이(네이티브 화면을 쌓은 동안 등)에 내려가면 visualViewport의
+    // resize가 오지 않아 키보드 높이가 빠진 값이 남는다(#484). 다시 보일 때·창 크기가 바뀔 때도 재고,
+    // 값이 한 박자 늦게 바뀌는 경우를 위해 다음 프레임에 한 번 더 잰다.
+    let frame = 0;
+    const remeasure = () => {
+      update();
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(update);
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") remeasure();
     };
 
     update();
     viewport.addEventListener("resize", update);
     viewport.addEventListener("scroll", update);
+    window.addEventListener("resize", remeasure);
+    document.addEventListener("visibilitychange", onVisibilityChange);
     return () => {
+      cancelAnimationFrame(frame);
       viewport.removeEventListener("resize", update);
       viewport.removeEventListener("scroll", update);
+      window.removeEventListener("resize", remeasure);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [enabled]);
 
