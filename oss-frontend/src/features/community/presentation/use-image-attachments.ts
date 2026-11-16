@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ChangeEvent, RefObject } from "react";
 
-import { uploadImageAndRegister } from "@/features/community/presentation/community-write-client";
+import {
+  deleteUploadedImage,
+  uploadImageAndRegister,
+} from "@/features/community/presentation/community-write-client";
 import {
   OutboundMessageType,
   requestNativePhotos,
@@ -96,8 +99,10 @@ export function isAttachmentOutOfAspect(item: Attachment): boolean {
  * 편집(크롭)은 `replaceFile`로 파일만 갈아 끼우고 다시 올린다. 원본은 `source`에 남겨 다음 편집이
  * 크롭본이 아니라 원본에서 다시 잘라내게 한다(등록 전까지는 몇 번이든 되돌릴 수 있음).
  *
- * FIXME(미아 정리): 업로드 완료 후 ✕로 지우거나 편집으로 교체하거나 작성을 취소하면 CDN/서버(TEMP)
- * 이미지가 남는다. 게시글에 연결되지 않은 TEMP 이미지의 서버 측 정리 정책이 확정되면 삭제 API 호출을 붙인다.
+ * 버려진 업로드 정리(#146): 업로드가 끝난 장을 ✕로 지우거나(`remove`), 크롭으로 갈아 끼우거나(`replaceFile`),
+ * 작성을 취소하면(`abandonAll`) 그 imageId를 서버에서 바로 지운다(best-effort, 실패는 서버 배치가 수거).
+ * 편집 · 삭제 · 백그라운드 복귀로 세대가 바뀐 뒤 늦게 도착한 업로드 결과도 받는 즉시 지운다.
+ * 등록 · 수정에 성공한 뒤 화면을 비우는 `discardAll`은 지우지 않는다 — 그 이미지는 이미 글에 붙어 있다.
  */
 export function useImageAttachments() {
   const toast = useToast();
@@ -153,7 +158,11 @@ export function useImageAttachments() {
         );
       try {
         const imageId = await uploadImageAndRegister(file);
-        if (!isCurrent()) return;
+        // 기다리는 사이 이 장이 지워졌거나 편집으로 바뀌었다 — 어디에도 붙지 않을 이미지라 바로 지운다.
+        if (!isCurrent()) {
+          deleteUploadedImage(imageId);
+          return;
+        }
         patch(localId, { status: "done", imageId });
       } catch (error) {
         console.error("[post-write] 이미지 업로드 실패:", file.name, error);
@@ -326,6 +335,8 @@ export function useImageAttachments() {
       );
       if (!target) return;
       URL.revokeObjectURL(target.preview);
+      // 크롭 전 파일로 이미 올라간 이미지는 이제 붙지 않는다.
+      if (target.imageId !== undefined) deleteUploadedImage(target.imageId);
       const seq = target.uploadSeq + 1;
       patch(localId, {
         file,
@@ -357,6 +368,12 @@ export function useImageAttachments() {
 
   /** 썸네일 삭제(업로드 중이어도 가능, 확인 없음). 뒤 장이 앞으로 당겨져 순서는 유지된다. */
   const remove = useCallback((localId: string) => {
+    // 서버 삭제는 상태 갱신 함수 밖에서 한 번만 부른다(갱신 함수는 개발 모드에서 두 번 돈다).
+    // 업로드 중인 장은 아직 id가 없다 — 결과가 늦게 오면 startUpload가 지운다.
+    const removed = attachmentsRef.current.find(
+      (item) => item.localId === localId,
+    );
+    if (removed?.imageId !== undefined) deleteUploadedImage(removed.imageId);
     setAttachments((prev) => {
       const target = prev.find((item) => item.localId === localId);
       if (target) URL.revokeObjectURL(target.preview);
@@ -364,13 +381,27 @@ export function useImageAttachments() {
     });
   }, []);
 
-  /** 작성 취소/이탈 시 전체 비우기(object URL 회수). */
+  /**
+   * 등록 · 수정에 성공해 화면을 떠날 때 전체 비우기(object URL 회수). 서버 이미지는 지우지 않는다 —
+   * 이미 글에 붙었다. 작성 취소는 `abandonAll`.
+   */
   const discardAll = useCallback(() => {
     setAttachments((prev) => {
       prev.forEach((item) => URL.revokeObjectURL(item.preview));
       return [];
     });
   }, []);
+
+  /**
+   * 작성 취소 · 이탈: 올려 둔 이미지를 서버에서 지우고 전체를 비운다(#146). 업로드 중인 장은 결과가 오면
+   * startUpload가 지운다(목록에서 빠져 세대가 맞지 않음).
+   */
+  const abandonAll = useCallback(() => {
+    attachmentsRef.current.forEach((item) => {
+      if (item.imageId !== undefined) deleteUploadedImage(item.imageId);
+    });
+    discardAll();
+  }, [discardAll]);
 
   return {
     attachments,
@@ -388,5 +419,6 @@ export function useImageAttachments() {
     expireUploaded,
     remove,
     discardAll,
+    abandonAll,
   };
 }

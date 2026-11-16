@@ -164,6 +164,11 @@ export interface CommunityWriteRepository {
   getImageUploadAuth(): Promise<ImageUploadAuth>;
   /** ③ ImageKit 업로드 결과를 서버에 등록(POST /image) → TEMP 이미지. */
   registerImage(input: RegisterImageInput): Promise<RegisteredImage>;
+  /**
+   * 글에 붙지 않고 버려진 내 TEMP 이미지 삭제(DELETE /image/{id}, #146). 소유자 확인은 업스트림이 한다.
+   * 업스트림은 내 이미지면 상태와 관계없이 지우므로 글에 붙은(ACTIVE) 이미지 id는 넘기지 않는다.
+   */
+  deleteImage(imageId: number): Promise<void>;
   /** ④ 게시글 생성(POST /board). 등록된 imageId를 imageFileIdList로 연결. */
   createPost(input: CreatePostInput): Promise<CreatedPost>;
   /** 게시글 수정(PUT /board/{id}). 본인 글 권한은 업스트림이 검사한다. 응답(BoardResponse)은 쓰지 않는다. */
