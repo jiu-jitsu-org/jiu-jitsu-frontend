@@ -227,8 +227,8 @@ export function CompetitionRowDoc() {
         접수 칩. 상자 어디를 눌러도 대회 상세가 열리고 하트만 따로 눌린다. 아래 대회는 지어낸 견본이다 —
         하트는 눌러 볼 수 있고 상세로는 가지 않는다.
       </P>
-      <Stage tone="plain" align="start">
-        <ul className="flex flex-col gap-3" onClickCapture={stopDetailLinks}>
+      <Stage device>
+        <ul className="flex flex-col gap-3 px-4" onClickCapture={stopDetailLinks}>
           {SAMPLE_ITEMS.map((item, index) => (
             <CompetitionRow
               key={item.competition.id}
@@ -306,7 +306,7 @@ export function FeedCardDoc() {
         커뮤니티 글 한 장 — 머리(띠 아바타 · 닉네임 · ⋮) · 본문(제목 · 카테고리 · 시간 · 두 줄 미리보기) ·
         사진 · 반응(댓글 · 좋아요 · 저장). 아래 글은 지어낸 견본이다 — 좋아요·저장은 눌러 볼 수 있다.
       </P>
-      <Stage tone="plain" align="start">
+      <Stage device>
         <div onClickCapture={stopDetailLinks}>
           <FeedCard
             author={{ name: "오스매트", belt: { rank: "blue", grau: 2 }, isCoach: false }}
