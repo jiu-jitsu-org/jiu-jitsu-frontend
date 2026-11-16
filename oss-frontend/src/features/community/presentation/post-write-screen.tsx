@@ -17,6 +17,7 @@ import { useViewportRect } from "@/features/community/presentation/use-viewport-
 import {
   closeNativeSubview,
   isNativeBridgeAvailable,
+  notifyContentCreated,
   OutboundMessageType,
   postToNative,
   useNativeLeaveGuard,
@@ -935,6 +936,9 @@ export function PostWriteScreen({
       markPostCreated(created.id);
       // 띠가 없는 회원이면 상세에서 띠를 묻는다(#275). 같은 웹뷰에서 상세로 바뀌므로 표시만 남긴다.
       markBeltPromptAfterPost(created.id);
+      // 앱이 알림 권한 안내를 띄울지 정하게 알린다(#495). 생성 성공에서만 — 수정 · 실패는 보내지 않고,
+      // 이어 열리는 상세는 보내지 않으므로 한 번 등록에 한 번이다.
+      notifyContentCreated("POST");
       // 성공일 때만 떠난다(goToDetail이 로컬 미리보기까지 정리). 잠금은 유지 — 위 수정 성공과 같은 이유.
       goToDetail(created.id, SUBMIT_TOAST.createDone);
     } catch (error) {

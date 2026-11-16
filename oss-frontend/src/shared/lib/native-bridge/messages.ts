@@ -72,6 +72,11 @@ export const OutboundMessageType = {
   // 앱은 열려 있는 동안 떠 있는 탭 바를 숨기고 가린 높이(obscuredContentInsets)를 0으로 돌려, 시트가 탭 바 자리까지
   // 내려오고 딤이 그 자리를 덮게 한다. 구버전 앱은 모르므로 지원 목록에 있을 때만 보낸다(useNativeSheetOpen).
   SET_SHEET_OPEN: "SET_SHEET_OPEN",
+  // 글 · 댓글 등록 성공(#495 · jiu-jitsu-ios#333). 글이면 kind:"POST", 댓글 · 답글 · 밸런스 게임 댓글이면 "COMMENT".
+  // 앱은 이걸 받아 알림 권한 안내를 띄울지 정한다 — 언제 · 몇 번 물을지는 앱이 정하고 웹은 등록할 때마다 보내기만 한다.
+  // 수정 · 실패 · 예시(데모)에서는 보내지 않는다. 결과 회신이 없고, 모르는 앱(구버전 iOS · 안드로이드)은 무시하므로
+  // 지원 목록을 보지 않고 보낸다.
+  CONTENT_CREATED: "CONTENT_CREATED",
 } as const;
 export type OutboundMessageType =
   (typeof OutboundMessageType)[keyof typeof OutboundMessageType];
@@ -231,6 +236,11 @@ export type CompetitionAlertsEnabledPayload = {
 /** `SET_SHEET_OPEN` payload — 웹 시트가 하나라도 떠 있으면 true, 마지막 시트가 다 내려가면 false. */
 export type SheetOpenPayload = {
   open: boolean;
+};
+
+/** `CONTENT_CREATED` payload — 방금 등록한 것. 답글 · 밸런스 게임 댓글도 COMMENT다. */
+export type ContentCreatedPayload = {
+  kind: "POST" | "COMMENT";
 };
 
 /** `COMPETITION_HEADER_TINT` payload — 앱 머리를 칠할 색. "#RRGGBB" 이거나 null(앱 기본 머리색으로). */
