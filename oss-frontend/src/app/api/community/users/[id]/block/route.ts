@@ -12,14 +12,14 @@ import {
 import type { ApiSuccessResponse } from "@/shared/types/api";
 
 /**
- * POST /api/community/users/{id}/block — 유저 차단 토글(인증 필요).
+ * POST /api/community/users/{id}/block — 유저 차단(인증 필요).
  *
- * 업스트림 POST /user/block/{id}로 위임한다(단일 엔드포인트 차단/차단해제).
+ * 업스트림 POST /user/block/{id}(단일 엔드포인트 차단/차단해제 토글)로 위임한다.
  * 대상은 댓글 id가 아니라 작성자 userId다 — 차단은 회원 단위 동작이라 그 회원의 게시글·댓글
  * 전체가 함께 비노출된다.
  *
- * 응답으로 토글 후 차단 상태(blocked)를 돌려준다. 호출부(댓글 ⋮ 차단)는 항상 "차단"만
- * 의도하지만 업스트림이 토글이라, 이미 차단된 유저면 해제될 수 있어 상태를 숨기지 않는다.
+ * 이미 차단한 회원이라 토글이 해제로 끝나면 BlockUserUseCase가 한 번 더 토글해 차단으로 돌려놓는다(#488).
+ * 응답의 blocked는 그 뒤의 차단 상태다 — 호출부는 true일 때만 차단 완료로 안내한다.
  * 해제(설정 > 차단한 회원)는 토글이 아니라 아래 DELETE를 쓴다.
  */
 export async function POST(
