@@ -17,6 +17,7 @@ import { PostDetailImages } from "@/features/community/presentation/post-detail-
 import { PostDetailReturnListener } from "@/features/community/presentation/post-detail-return-listener";
 import { PostTags } from "@/features/community/presentation/post-tags";
 import { KeyboardAwareShell } from "@/features/community/presentation/keyboard-aware-shell";
+import { WriteTimingReport } from "@/features/community/presentation/write-timing";
 import { Divider } from "@/shared/ui/divider";
 
 /**
@@ -45,6 +46,8 @@ export function PostDetailView({
       {/* 글 등록·댓글 직후 띠를 묻는 시트(#275). 방금 쓴 글이면 열자마자 확인한다. */}
       <BeltPromptProvider postId={post.id}>
         <PostDetailReturnListener postId={post.id} />
+        {/* 방금 등록한 글이면 상세가 그려진 시점을 남긴다(#486 측정). */}
+        <WriteTimingReport postId={post.id} />
         {/* 비로그인으로 보다가 로그인하면 viewer 상태를 다시 읽는다(#173). */}
         <RefreshOnLogin />
         {/* 고정 높이 셸: 헤더(앱바)는 상단 고정, 본문+댓글만 스크롤, 댓글 입력 바는 키보드 위에 붙는다. */}
