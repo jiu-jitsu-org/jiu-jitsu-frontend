@@ -3,7 +3,8 @@ import type { ReactNode } from "react";
 import { cn } from "@/shared/lib/cn";
 
 /**
- * 해부도 번호 — 견본 위 가리키는 자리에 얹는 파란 동그라미.
+ * 해부도 번호 — 견본 위 가리키는 자리에 얹는 먹색 동그라미.
+ * 부품이 파랑이어도 묻히지 않게 먹색 + 흰 테를 두른다.
  * Stage 안에서 absolute로 놓는다(top·left는 판 기준 px 또는 %).
  */
 export function Marker({
@@ -21,7 +22,7 @@ export function Marker({
     <span
       aria-hidden
       className={cn(
-        "pointer-events-none absolute z-10 flex size-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-primary text-label-m text-text-on-primary",
+        "pointer-events-none absolute z-10 flex size-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-text-primary text-label-m text-text-on-dark ring-2 ring-surface-container",
         className,
       )}
       style={{ top, left }}
@@ -41,7 +42,7 @@ export function MarkerLegend({
     <ol className="mt-4 grid gap-x-6 gap-y-2 sm:grid-cols-2">
       {items.map((item, index) => (
         <li key={index} className="flex items-start gap-2">
-          <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-label-m text-text-on-primary">
+          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-text-primary text-label-m text-text-on-dark">
             {index + 1}
           </span>
           <span className="min-w-0">
