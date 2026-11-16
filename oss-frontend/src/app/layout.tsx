@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { preconnect } from "react-dom";
 
 import { AuthProvider } from "@/features/auth/presentation/auth-provider";
+import { BlockChangeWatcher } from "@/features/community/presentation/block-change-watcher";
 import { MyBeltWatcher } from "@/features/community/presentation/my-belt-watcher";
 import { OpenInAppPromptProvider, ToastProvider } from "@/shared/ui";
 import { IMAGEKIT_ORIGIN } from "@/shared/lib/image-resize";
@@ -65,6 +66,8 @@ export default function RootLayout({
           <AuthProvider>
             {/* 앱에서 띠를 바꾸면 떠 있던 화면을 새로 그린다(#413) */}
             <MyBeltWatcher />
+            {/* 앱에서 회원 차단이 바뀌면 떠 있던 화면을 다시 불러온다(#488) */}
+            <BlockChangeWatcher />
             <ToastProvider>{children}</ToastProvider>
           </AuthProvider>
         </OpenInAppPromptProvider>

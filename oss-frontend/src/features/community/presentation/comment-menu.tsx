@@ -34,7 +34,7 @@ import { MoreVerticalIcon } from "@/shared/ui/icons";
  *   진입 지점에 따라 신고 경험이 갈리지 않는다. 성공 시 router.refresh() → 서버가 isReported로
  *   내려주면 본문이 "신고된 댓글입니다." placeholder로 바뀐다(#48). 댓글은 게시글과 달리 제거하지
  *   않는다 — 자리를 없애면 아래 대댓글이 부모를 잃어 스레드가 끊기기 때문.
- * 차단: 확인 알럿 → BFF POST /api/community/users/{authorId}/block → 성공 시 router.refresh().
+ * 차단: 확인 알럿 → BFF POST /api/community/users/{authorId}/block → 응답 blocked가 true면 router.refresh().
  *   대상이 댓글 1건이 아니라 작성자 회원이라 commentId가 아닌 authorId를 넘긴다 — 그 회원의
  *   게시글은 목록에서 빠지고 댓글은 placeholder로 바뀐다(#53).
  * 작성자 id/댓글 id는 웹이 들고 있다가 API에 직접 넘긴다(브릿지로 보내지 않음).
@@ -54,6 +54,18 @@ async function isRestoreExpired(response: Response): Promise<boolean> {
       details?: { code?: string };
     } | null;
     return body?.details?.code === "C0008";
+  } catch {
+    return false;
+  }
+}
+
+/** 차단 BFF 응답의 data.blocked가 true인지 — 읽지 못하면 차단을 확인하지 못한 것으로 본다. */
+async function isBlockedResult(response: Response): Promise<boolean> {
+  try {
+    const body = (await response.json()) as {
+      data?: { blocked?: unknown };
+    } | null;
+    return body?.data?.blocked === true;
   } catch {
     return false;
   }
@@ -189,6 +201,12 @@ export function CommentMenu({
       if (response.status === 401) {
         postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
       }
+      toast.show("유저를 차단하지 못했어요", { tone: "error" });
+      return;
+    }
+
+    // 업스트림이 토글이라 성공 응답이어도 차단이 풀린 채 끝날 수 있다(#488) — 결과가 차단일 때만 차단 완료로 안내한다.
+    if (!(await isBlockedResult(response))) {
       toast.show("유저를 차단하지 못했어요", { tone: "error" });
       return;
     }

@@ -42,6 +42,10 @@ export function useBoardFeed(
   const [status, setStatus] = useState<FeedStatus>("idle");
   // setState는 비동기라 연속 호출 사이 가드가 새므로, 진행 여부는 ref로 즉시 판정한다.
   const loadingRef = useRef(false);
+  // reloadLoaded용 — 다음 페이지가 붙었는지를 await 뒤에 바로 알아야 해서 setPage와 같은 자리에서 맞춘다.
+  const pageRef = useRef(initial.page);
+  // reloadLoaded가 늦게 온 응답을 버리는 기준 — 마지막 다시 읽기 순번.
+  const reloadSeqRef = useRef(0);
 
   const loadMore = useCallback(async () => {
     if (loadingRef.current || isLast) return;
@@ -63,6 +67,7 @@ export function useBoardFeed(
       if (!list) throw new Error("board list response has no data");
 
       setItems((prev) => mergeUnique(prev, list.items));
+      pageRef.current = list.page;
       setPage(list.page);
       setIsLast(list.isLast);
       setStatus("idle");
@@ -174,6 +179,43 @@ export function useBoardFeed(
     setItems((prev) => prev.map((post) => fresh.get(post.id) ?? post));
   }, [listUrl, page]);
 
+  /**
+   * 지금까지 불러온 페이지를 다시 읽어 목록을 서버 기준으로 통째로 바꾼다 — 앱에서 회원 차단이 바뀐 뒤용(#488).
+   *
+   * refreshLoaded와 달리 빠지고 더해진 글도 반영한다. 차단은 그 회원의 글이 목록에서 빠지고(해제면 다시 나타나고)
+   * 카드의 author.userId는 목록 응답에 없을 수 있어(0) 웹이 직접 골라낼 수 없다. 불러온 페이지 수는 그대로 둔다 —
+   * 해제로 글이 늘면 끝의 몇 장은 다음 페이지로 밀려 빠지고(다음 loadMore가 다시 붙인다), 위에서 글이 빠지거나 끼면
+   * 보던 카드도 그만큼 밀린다. 메시지는 피드가 가려진 동안 오고 다시 보일 때 한 번 반영되므로 감수한다.
+   * 한 페이지라도 실패하면 손대지 않는다 — 일부만 바꾸면 페이지 사이 글이 빠지거나 겹친다.
+   * 더 새 다시 읽기가 시작됐으면 이 결과는 버리고, 다시 읽는 사이 다음 페이지가 붙었으면 늘어난 범위로 다시 읽는다
+   * (붙은 페이지는 차단 전 기준일 수 있고, 지금 결과로 바꾸면 그 페이지가 빠진다).
+   */
+  const reloadLoaded = useCallback(async () => {
+    const seq = ++reloadSeqRef.current;
+
+    for (;;) {
+      const lastPage = pageRef.current;
+      const pages = Array.from({ length: lastPage + 1 }, (_, index) => index);
+      const lists = await Promise.all(
+        pages.map((index) => fetchFeedPage(listUrl, index)),
+      );
+      if (seq !== reloadSeqRef.current) return;
+      if (pageRef.current !== lastPage) continue;
+      if (lists.some((list) => list === null)) return;
+
+      const loaded = lists as PostList[];
+      // 페이지 경계에서 같은 글이 두 번 올 수 있어 먼저 온 쪽만 남긴다.
+      setItems(
+        loaded.reduce<PostSummary[]>(
+          (merged, list) => mergeUnique(merged, list.items),
+          [],
+        ),
+      );
+      setIsLast(loaded[loaded.length - 1].isLast);
+      return;
+    }
+  }, [listUrl]);
+
   return {
     items,
     isLast,
@@ -185,6 +227,7 @@ export function useBoardFeed(
     replacePost,
     prependNew,
     refreshLoaded,
+    reloadLoaded,
   };
 }
 
