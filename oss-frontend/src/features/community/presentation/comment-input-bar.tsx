@@ -130,6 +130,7 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
       setValue("");
       cancelReply();
       setSentCount((n) => n + 1);
+      textareaRef.current?.blur();
       return;
     }
 
@@ -175,6 +176,10 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
       // 띠가 없는 회원이면 띠를 묻는다(#275). 노출 규칙은 Provider가 본다.
       requestBeltPrompt();
     } finally {
+      // 등록 중 readOnly로 바뀌는 순간 iOS 웹뷰는 키보드를 내리고 커서만 남긴다(#484). 끝나면 성공이든
+      // 실패든 포커스까지 풀어 커서만 깜빡이는 상태를 없앤다 — 실패면 쓴 글은 남아 다시 탭해 이어 쓴다.
+      // 기다리는 사이 답글·×를 눌러도 readOnly라 키보드는 없으므로 같이 푼다.
+      textareaRef.current?.blur();
       setSubmitting(false);
     }
   }
@@ -262,7 +267,8 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
             rows={1}
             value={value}
             // 등록 중엔 글을 고칠 수 없게 한다 — 고쳐도 등록이 끝나면 비워져 사라진다.
-            // disabled가 아닌 readOnly라 포커스·키보드는 그대로 남는다.
+            // readOnly여도 iOS 웹뷰는 포커스된 입력의 키보드를 내린다(포커스·커서는 남음) — 그래서
+            // 등록이 끝나면 submit에서 포커스를 푼다(#484).
             readOnly={submitting}
             aria-busy={submitting}
             onChange={(event) => setValue(event.target.value)}

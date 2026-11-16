@@ -91,12 +91,26 @@ export function postToNative(message: BridgeMessage): void {
 }
 
 /**
+ * 네이티브 화면을 쌓기 전에 입력 포커스를 푼다(#484).
+ *
+ * 키보드를 올린 채 화면을 쌓으면 키보드가 이 웹뷰가 가려진 사이에 내려가, 돌아왔을 때
+ * visualViewport가 키보드 높이를 뺀 옛 값으로 남는다(댓글 입력 바가 떠 있음). 보이는 동안 내려야
+ * resize가 제때 온다.
+ */
+function releaseFocus(): void {
+  if (document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur();
+  }
+}
+
+/**
  * 풀스크린 웹뷰 서브뷰를 열도록 네이티브에 요청한다(게시글 상세 등).
  *
  * url은 동일 origin 절대경로여야 새 웹뷰가 세션 쿠키를 공유한다.
  * "언제 이걸 쓸지(네이티브 vs 웹 라우터)"는 호출부가 `isNativeBridgeAvailable()`로 판단한다.
  */
 export function openNativeSubview(url: string): void {
+  releaseFocus();
   postToNative({
     type: OutboundMessageType.OPEN_SUBVIEW,
     payload: { url } satisfies OpenSubviewPayload,
@@ -114,6 +128,7 @@ export function closeNativeSubview(): void {
  * 프로필 화면은 네이티브 소유라 이 메시지에는 웹 폴백이 없다 — 호출부가 `isNativeBridgeAvailable()`로 가른다.
  */
 export function openNativeUserProfile(payload: OpenUserProfilePayload): void {
+  releaseFocus();
   postToNative({ type: OutboundMessageType.OPEN_USER_PROFILE, payload });
 }
 
@@ -136,6 +151,7 @@ export function notifyCompetitionAlertsEnabled(
  */
 export function openNativeHomeFeed(): boolean {
   if (!supportsNativeMessage(OutboundMessageType.OPEN_HOME_FEED)) return false;
+  releaseFocus();
   postToNative({ type: OutboundMessageType.OPEN_HOME_FEED });
   return true;
 }
@@ -149,6 +165,7 @@ export function openNativeCompetitionRecord(
   if (!supportsNativeMessage(OutboundMessageType.OPEN_COMPETITION_RECORD)) {
     return false;
   }
+  releaseFocus();
   postToNative({ type: OutboundMessageType.OPEN_COMPETITION_RECORD, payload });
   return true;
 }
