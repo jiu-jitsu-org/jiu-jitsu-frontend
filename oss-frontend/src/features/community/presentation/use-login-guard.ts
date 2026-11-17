@@ -22,7 +22,10 @@ import { useOpenInAppPrompt } from "@/shared/ui";
  * WHY 외부 브라우저는 안내인가: 공유 링크로 들어온 사용자에게 좋아요·댓글·저장이 회색으로 죽어 있으면
  * 고장난 것으로 읽히고, 로그인 UI를 띄울 네이티브도 없다. 요청은 보내지 않는다(401 확정 왕복).
  *
- * 세션 판정 중(loading)에는 탭을 무시한다 — 비로그인으로 보면 로그인 사용자에게 알럿이 뜬다.
+ * 세션 판정 중(loading)에는 서버가 요청 쿠키로 본 힌트(useIsSignedIn)를 따른다 — 앱은 화면을 부르기 전에
+ * 쿠키를 심어 두므로, 판정을 기다리며 탭을 버리면 상세를 열자마자 누른 좋아요·저장이 무시된다(#526).
+ * 토큰이 만료됐으면 요청 쪽(bffFetch)이 갱신 뒤 다시 보낸다. 힌트가 없거나 비로그인이면 지금처럼 무시한다 —
+ * 비로그인으로 보면 로그인 사용자에게 알럿이 뜬다.
  * 예시(데모)는 네트워크 없이 UX만 보여주는 화면이라 가로채지 않는다.
  *
  * `message`는 외부 브라우저 안내 문구다. 완성된 문장으로 넘긴다(조사 처리를 피하기 위함).
@@ -49,14 +52,17 @@ export function useLoginGuard(): {
         action();
         return;
       }
-      if (status === "loading") return;
+      if (status === "loading") {
+        if (signedIn) action();
+        return;
+      }
       if (status === "anonymous") {
         promptLogin();
         return;
       }
       action();
     },
-    [demo, externalBrowser, openInApp, promptLogin, status],
+    [demo, externalBrowser, openInApp, promptLogin, signedIn, status],
   );
 
   return {
