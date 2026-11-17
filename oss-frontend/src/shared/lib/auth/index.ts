@@ -5,4 +5,5 @@ export {
   readSessionToken,
   writeSessionToken,
 } from "./session-cookie";
+export { readTokenSubject } from "./token-subject";
 export { SessionRequiredError, requireSessionToken } from "./require-session";

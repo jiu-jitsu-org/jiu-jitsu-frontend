@@ -38,7 +38,8 @@ import { useOpenInAppPrompt } from "@/shared/ui";
  * - 비로그인 시 행위를 가로채 로그인을 유도하고(requireAuth), 성공 후 원래 행위를 복귀한다.
  *   복귀 없이 유도만 하는 경로(promptLogin)도 있다 — 좋아요·저장처럼 토글이라 자동 실행이 위험한 행위용.
  *   네이티브가 없는 외부 브라우저(공유 링크)에서는 "앱에서 계속하기" 안내로 대신한다.
- * - 비로그인 → 로그인 전환을 loginCount로 알린다 — 화면이 viewer 상태(좋아요·소유자 등)를 다시 읽는 신호.
+ * - 비로그인 → 로그인 전환(다른 계정으로 바뀐 것 포함)을 loginCount로, 로그인 → 비로그인 전환을 logoutCount로
+ *   알린다 — 화면이 viewer 상태(좋아요·소유자 등)를 다시 읽는 신호.
  * - (개발용) 송수신 브릿지 이벤트 로그를 노출한다. 개발 서버에서만 쌓는다 — 쌓을 때마다 이 Provider와
  *   useAuth를 쓰는 부품(댓글마다 로그인 확인 등)이 모두 다시 그려진다(#442). 지금 이 로그를 보여 주는 화면은 없다
  *   (auth-playground는 라우트가 되지 않는 app/_backup 아래에 있다).
@@ -76,10 +77,15 @@ type AuthContextValue = {
    */
   promptLogin: (options?: RequireAuthOptions) => void;
   /**
-   * 비로그인 → 로그인으로 바뀐 횟수. 값이 바뀌면 화면이 viewer 상태를 다시 읽어야 한다(useOnLogin).
-   * 토큰 갱신(로그인 상태에서 재주입)이나 최초 세션 판정은 세지 않는다 — 화면이 이미 그 상태로 그려져 있다.
+   * 비로그인 → 로그인으로, 또는 다른 계정으로 바뀐 횟수(#511). 값이 바뀌면 화면이 viewer 상태를 다시 읽어야 한다(useOnLogin).
+   * 같은 계정의 토큰 갱신(로그인 상태에서 재주입)이나 최초 세션 판정은 세지 않는다 — 화면이 이미 그 상태로 그려져 있다.
    */
   loginCount: number;
+  /**
+   * 로그인 → 비로그인으로 바뀐 횟수(#516). 값이 바뀌면 화면이 이전 계정의 viewer 상태를 비워야 한다(useOnLogout).
+   * 이미 비로그인이던 화면에 온 로그아웃(쿠키가 없던 경우)은 세지 않는다.
+   */
+  logoutCount: number;
   /** 서버 세션을 다시 읽어 상태를 갱신한다. */
   refresh: () => Promise<void>;
   /**
@@ -120,8 +126,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [events, setEvents] = useState<BridgeEvent[]>([]);
   const [loginCount, setLoginCount] = useState(0);
+  const [logoutCount, setLogoutCount] = useState(0);
   // 세션 수립 콜백에서 "직전에 비로그인이었는지"를 읽기 위한 최신값(렌더와 무관한 판정용).
   const statusRef = useRef<AuthStatus>("loading");
+  // 직전 세션의 사용자 — 다른 계정 토큰이 오면 로그인 전환으로 세기 위한 비교 기준(#511). 모르면 null.
+  const userIdRef = useRef<string | null>(null);
+  // 첫 세션 조회. 세션 수립·정리는 이것이 끝난 뒤 반영한다 — 늦게 온 첫 조회가 새 세션을 덮지 않고,
+  // 이 결과(페이지를 그릴 때의 쿠키)와 비교해 전환을 가린다.
+  const initialSessionRef = useRef<Promise<void>>(Promise.resolve());
 
   // 외부 브라우저 로그인 유도 폴백 — 네이티브 프롬프트 메시지를 받을 상대가 없을 때 띄운다.
   const openInApp = useOpenInAppPrompt();
@@ -153,6 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const applyState = useCallback((state: SessionState | null) => {
     const next: AuthStatus = state?.authenticated ? "authenticated" : "anonymous";
     statusRef.current = next;
+    userIdRef.current = state?.authenticated ? state.userId : null;
     startTransition(() => {
       setStatus(next);
     });
@@ -172,10 +185,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ accessToken }),
       });
 
-      // loading에서 온 경우는 세지 않는다 — 네이티브가 WEBVIEW_READY에 기존 토큰을 재주입하는
-      // 평범한 진입이라 화면은 이미 로그인 상태로 그려져 있다.
+      // 첫 조회가 끝난 뒤에 비교한다 — 네이티브가 WEBVIEW_READY에 기존 토큰을 재주입하는 평범한 진입이면
+      // 첫 조회도 같은 계정이라 세지 않는다(화면은 이미 그 상태로 그려져 있다). 첫 조회는 이 요청보다 먼저
+      // 보낸 것이라 페이지를 그릴 때의 쿠키를 본다.
+      await initialSessionRef.current;
+
+      const previousUserId = userIdRef.current;
+      const nextUserId = state?.authenticated ? state.userId : null;
+      // 비로그인 → 로그인, 또는 남아 있던 이전 계정 세션 위에 다른 계정이 들어온 경우(#511).
+      // 어느 한쪽 사용자를 모르면 같은 계정의 갱신으로 본다 — 지금처럼 다시 읽지 않는다.
       const loggedIn =
-        statusRef.current === "anonymous" && state?.authenticated === true;
+        state?.authenticated === true &&
+        (statusRef.current === "anonymous" ||
+          (previousUserId !== null &&
+            nextUserId !== null &&
+            previousUserId !== nextUserId));
       applyState(state);
       if (loggedIn) {
         startTransition(() => {
@@ -202,8 +226,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const clearSession = useCallback(async () => {
     pendingActionRef.current = null;
-    await fetchSessionState({ method: "DELETE" });
-    applyState({ authenticated: false });
+    const result = await fetchSessionState({ method: "DELETE" });
+    await initialSessionRef.current;
+
+    // 로그인으로 보던 화면이거나 실제로 지운 쿠키가 있었으면 이전 계정 표시를 비워야 한다(#516).
+    // 이미 비로그인이던 화면에 온 로그아웃(앱이 게스트 진입마다 보내는 정리 등)은 다시 읽지 않는다.
+    const loggedOut =
+      statusRef.current === "authenticated" || result?.cleared === true;
+    applyState({ authenticated: false, userId: null });
+    if (loggedOut) {
+      startTransition(() => {
+        setLogoutCount((count) => count + 1);
+      });
+    }
   }, [applyState]);
 
   const handleInbound = useCallback(
@@ -245,7 +280,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     postToNative({ type: OutboundMessageType.WEBVIEW_READY });
 
     // 초기 세션 동기화. 상태 갱신은 비동기 콜백에서 수행한다(effect 본문 직접 setState 회피).
-    void fetchSessionState({ method: "GET" }).then(applyState);
+    initialSessionRef.current = fetchSessionState({ method: "GET" }).then(
+      applyState,
+    );
 
     return unregister;
   }, [applyState, logEvent]);
@@ -307,6 +344,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       requireAuth,
       promptLogin,
       loginCount,
+      logoutCount,
       refresh,
       simulateInbound,
     }),
@@ -316,6 +354,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       requireAuth,
       promptLogin,
       loginCount,
+      logoutCount,
       refresh,
       simulateInbound,
     ],
@@ -369,4 +408,26 @@ export function useOnLogin(callback: () => void): void {
     seenRef.current = loginCount;
     callbackRef.current();
   }, [loginCount]);
+}
+
+/**
+ * 로그인 → 비로그인 전환 시 콜백을 한 번 실행한다(마운트 시점에는 실행하지 않는다).
+ *
+ * 앱은 로그아웃·세션 만료 때 웹뷰를 다시 불러오지 않고 메시지만 보낸다 — 다시 읽지 않으면 이전 계정의
+ * 좋아요·저장·내 글 메뉴가 그대로 남는다(#516).
+ */
+export function useOnLogout(callback: () => void): void {
+  const { logoutCount } = useAuth();
+  const callbackRef = useRef(callback);
+  const seenRef = useRef(logoutCount);
+
+  useEffect(() => {
+    callbackRef.current = callback;
+  });
+
+  useEffect(() => {
+    if (seenRef.current === logoutCount) return;
+    seenRef.current = logoutCount;
+    callbackRef.current();
+  }, [logoutCount]);
 }

@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { useOnLogin } from "@/features/auth/presentation/auth-provider";
+import {
+  useOnLogin,
+  useOnLogout,
+} from "@/features/auth/presentation/auth-provider";
 import {
   BalanceCollapsedBar,
   COLLAPSED_BAR_OUT_MS,
@@ -150,6 +153,7 @@ export function BalanceGameSection({
   }, []);
 
   useOnLogin(() => void reload());
+  useOnLogout(() => void reload());
 
   useEffect(() => {
     // 앱은 스플래시 동안 홈 피드를 숨김 상태로 미리 불러 두고, 홈에 붙이는 순간 보이게 한다(#409).
