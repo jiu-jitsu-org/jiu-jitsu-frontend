@@ -31,8 +31,8 @@ import { Spinner } from "@/shared/ui/spinner";
 /**
  * 메인 화면 — 커뮤니티 게시글 피드.
  *
- * 목록과 오늘의 밸런스 게임을 **병렬로** 조회한다. 순차로 부르면 밸런스 조회만큼 첫 페인트가
- * 늦고, 나중에 붙이면 카드가 뒤늦게 끼어들어 목록이 아래로 밀린다.
+ * 목록과 오늘의 밸런스 게임(로그인이면 대회 알림 설정까지)을 **병렬로** 조회한다. 순차로 부르면
+ * 밸런스 조회만큼 첫 페인트가 늦고, 나중에 붙이면 카드가 뒤늦게 끼어들어 목록이 아래로 밀린다.
  *
  * Server Component가 초기 목록을 조회(GET /board)해 FeedCard 목록으로 렌더한다.
  * 데이터 조회는 application page data query에 위임하고(page는 라우팅/조립만),
@@ -53,17 +53,17 @@ export default async function Home({
   const params = await searchParams;
   const beltSample = readBeltAvatarSample(params.belt);
   const balanceIntroForced = readBalanceIntroForced(params.intro);
-  const [result, balanceGame, sessionToken, cookieStore] = await Promise.all([
-    getBoardListPageData(DEFAULT_BOARD_LIST_QUERY, beltSample),
-    getBalanceGamePageData(),
-    readSessionToken(),
-    cookies(),
-  ]);
-  // 글 속 대회 카드(#379)의 하트로 처음 관심 등록하면 마감 알림 시트를 띄운다 — 알림 설정을 함께 읽는다.
-  const alertSettings =
-    sessionToken !== null && isCompetitionEnabled()
-      ? await loadCompetitionAlertSettings()
-      : null;
+  const [result, balanceGame, sessionToken, cookieStore, alertSettings] =
+    await Promise.all([
+      getBoardListPageData(DEFAULT_BOARD_LIST_QUERY, beltSample),
+      getBalanceGamePageData(),
+      readSessionToken(),
+      cookies(),
+      // 글 속 대회 카드(#379)의 하트로 처음 관심 등록하면 마감 알림 시트를 띄운다 — 알림 설정도
+      // 목록과 나란히 읽는다(#534). 따로 기다리면 로그인한 홈이 BE 왕복 한 번만큼 늦게 그려진다.
+      // 비로그인이면 조회하지 않고(토큰이 없으면 null), 실패해도 null이라 홈은 그려진다.
+      isCompetitionEnabled() ? loadCompetitionAlertSettings() : null,
+    ]);
   const now = readServerNow();
   // 그날 게임을 처음 볼 때만 히어로 인트로를 돌린다(balance-intro의 BALANCE_INTRO_COOKIE).
   const balanceIntro =
