@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useRef } from "react";
 
 import { isDevelopmentRuntime } from "@/config/env";
-import { useAuth } from "@/features/auth/presentation/auth-provider";
+import {
+  useAuth,
+  useIsSignedIn,
+} from "@/features/auth/presentation/auth-provider";
 import { markBalanceVoted } from "@/features/community/presentation/balance/balance-voted-at";
 import type {
   BalanceGame,
@@ -120,6 +123,7 @@ export function useBalanceVote({
   onVoted: (next: BalanceGame) => void;
 }): (option: BalanceOptionKey) => void {
   const { status, promptLogin } = useAuth();
+  const signedIn = useIsSignedIn();
   const toast = useToast();
 
   // 서버와 맞추는 중인 투표(#324). 탭은 막지 않는다 — 누를 때마다 화면은 바로 바뀌고, 요청은 한 번에
@@ -148,9 +152,10 @@ export function useBalanceVote({
 
   return useCallback(
     (option: BalanceOptionKey) => {
-      // 세션 판정 전에는 아무 판단도 하지 않는다. loading을 비로그인으로 보면
+      // 세션 판정 전에는 서버 힌트가 로그인일 때만 진행한다(#526 — 상세를 열자마자 누른 투표가 버려지지 않게).
+      // 힌트가 없거나 비로그인이면 아무 판단도 하지 않는다. loading을 비로그인으로 보면
       // 로그인한 사용자에게 로그인 유도가 뜬다.
-      if (status === "loading") return;
+      if (status === "loading" && !signedIn) return;
 
       // 마감 확인이 로그인보다 앞선다: 마감된 판은 로그인해도 투표할 수 없어, 먼저 물으면
       // 아무것도 할 수 없는 사용자에게 로그인을 요구하게 된다.
@@ -172,7 +177,7 @@ export function useBalanceVote({
         return;
       }
 
-      if (status !== "authenticated") {
+      if (!signedIn) {
         // 유도만 한다 — 정책은 "로그인 후 다시 눌러야 함"이라 투표를 자동 복귀시키지 않는다.
         promptLogin({ reason: "밸런스 게임 투표" });
         return;
@@ -256,6 +261,6 @@ export function useBalanceVote({
       })();
     },
     // 이유를 모르는 실패는 문구가 정해지지 않았다 → 롤백만 한다(정책: 동작 안 함). 마감·시작 전만 알린다.
-    [applySettled, game, onVoted, promptLogin, status, toast],
+    [applySettled, game, onVoted, promptLogin, signedIn, status, toast],
   );
 }
