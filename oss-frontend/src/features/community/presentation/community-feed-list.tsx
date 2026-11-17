@@ -42,6 +42,9 @@ import {
   useToast,
 } from "@/shared/ui";
 
+/** 다음 페이지를 미리 받기 시작하는 거리 — 화면 1~1.5개 높이(#535). */
+const FEED_PREFETCH_MARGIN = "1200px";
+
 /**
  * 커뮤니티 메인 피드 목록(무한 스크롤).
  *
@@ -321,10 +324,13 @@ export function CommunityFeedList({
   }, [items]);
 
   // 에러 상태에선 자동 재요청을 멈추고, 사용자가 재시도 버튼으로만 다시 시도하게 한다.
+  // 다음 페이지는 끝에서 화면 1.5개쯤 앞에서 미리 받는다 — 튕겨 내리면 200px 앞으로는 응답(0.4~0.6초)이
+  // 오기 전에 끝에 닿아 스피너를 본다(#535).
   const sentinelRef = useInfiniteScroll({
     onReach: loadMore,
     enabled: !isLast && status !== "error",
     resetKey: items.length,
+    rootMargin: FEED_PREFETCH_MARGIN,
   });
 
   return (
