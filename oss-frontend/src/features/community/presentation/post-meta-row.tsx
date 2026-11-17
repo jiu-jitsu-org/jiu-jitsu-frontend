@@ -1,3 +1,4 @@
+import { ContentViewCount } from "@/features/community/presentation/content-view-count";
 import { PostDetailTime } from "@/features/community/presentation/post-detail-time";
 import { cn } from "@/shared/lib/cn";
 
@@ -11,11 +12,13 @@ import { cn } from "@/shared/lib/cn";
  * 수정됨은 시간 우측에 " · "로 붙인다(정책 5) — 독립 항목으로 두면 조회수와 같은 간격으로 떨어져
  * 무엇이 수정됐다는 건지 읽히지 않는다. 표시 시간 자체는 수정해도 작성 시각 그대로다(정책 4).
  * 조회수(views)는 0이어도 노출한다(디자인 기준). 필드 자체가 없을 때만 생략.
+ * viewPath가 있으면 화면이 처음 그려질 때 '봤음'을 한 번 보내고 센 값으로 바꾼다(ContentViewCount, #523).
  */
 export function PostMetaRow({
   categoryName,
   createdAt,
   views,
+  viewPath,
   edited,
   className,
 }: {
@@ -23,6 +26,8 @@ export function PostMetaRow({
   categoryName?: string;
   createdAt: string;
   views?: number;
+  /** 상세를 연 것으로 세는 BFF 경로(#523). 없으면 받은 숫자만 그린다. */
+  viewPath?: string;
   edited: boolean;
   className?: string;
 }) {
@@ -42,7 +47,13 @@ export function PostMetaRow({
         <PostDetailTime createdAt={createdAt} />
         {edited ? " · 수정됨" : null}
       </span>
-      {typeof views === "number" ? <span>조회 {views}</span> : null}
+      {typeof views === "number" ? (
+        viewPath ? (
+          <ContentViewCount viewPath={viewPath} initialViews={views} />
+        ) : (
+          <span>조회 {views}</span>
+        )
+      ) : null}
     </div>
   );
 }

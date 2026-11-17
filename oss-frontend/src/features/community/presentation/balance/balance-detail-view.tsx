@@ -76,6 +76,8 @@ export function BalanceDetailView({
               {/* 판 아래 12 */}
               <BalanceDetailMetaRow
                 views={game.views}
+                // 상세가 처음 그려질 때 한 번만 센다 — 마감 전환 · 투표 · 포그라운드 복귀 갱신은 세지 않는다(#523).
+                viewPath={`/api/community/balance-game/${game.contentId}/views`}
                 gameDate={game.gameDate}
                 className="mt-3 px-1"
               />

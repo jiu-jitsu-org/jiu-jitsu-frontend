@@ -167,6 +167,13 @@ export class ExternalBalanceGameRepository implements BalanceGameRepository {
     }
   }
 
+  async recordView(contentId: number): Promise<number> {
+    const response = await this.httpClient.post<
+      Envelope<{ contentId: number; viewCount: number }>
+    >({ path: `${BALANCE_GAME_ENDPOINT_PATH}/${contentId}/views` });
+    return response.data.viewCount;
+  }
+
   async getParticipated(query: BalanceGameListQuery): Promise<BalanceGameList> {
     // 내가 쓴 글(GET /board/write)처럼 Spring Pageable만 평탄한 쿼리스트링으로 보낸다.
     const response = await this.httpClient.get<Envelope<BalanceGameListDto>>({

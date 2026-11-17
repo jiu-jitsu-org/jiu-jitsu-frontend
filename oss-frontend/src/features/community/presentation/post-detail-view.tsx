@@ -91,6 +91,8 @@ export function PostDetailView({
                   categoryName={post.categoryName}
                   createdAt={post.createdAt}
                   views={post.views}
+                  // 상세가 처음 그려질 때 한 번만 센다 — 다시 그리기 · 피드 카드 갱신은 세지 않는다(#523).
+                  viewPath={`/api/community/posts/${post.id}/views`}
                   edited={post.edited}
                 />
               </div>

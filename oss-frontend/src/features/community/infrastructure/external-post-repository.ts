@@ -328,6 +328,13 @@ export class ExternalPostRepository implements PostRepository {
     return toPostDetail(response.data);
   }
 
+  async recordView(postId: number): Promise<number> {
+    const response = await this.httpClient.post<
+      Envelope<{ contentId: number; viewCount: number }>
+    >({ path: `${BOARD_ENDPOINT_PATH}/${postId}/views` });
+    return response.data.viewCount;
+  }
+
   async getComments(
     postId: number,
     sort: CommentSort,

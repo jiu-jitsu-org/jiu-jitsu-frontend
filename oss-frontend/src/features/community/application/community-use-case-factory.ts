@@ -28,6 +28,10 @@ import { UnblockUserUseCase } from "@/features/community/application/unblock-use
 import { GetBalanceGameDetailUseCase } from "@/features/community/application/get-balance-game-detail";
 import { GetCurrentBalanceGameUseCase } from "@/features/community/application/get-current-balance-game";
 import { GetParticipatedBalanceGamesUseCase } from "@/features/community/application/get-participated-balance-games";
+import {
+  RecordBalanceGameViewUseCase,
+  RecordPostViewUseCase,
+} from "@/features/community/application/record-content-view";
 import { VoteBalanceGameUseCase } from "@/features/community/application/vote-balance-game";
 import { GetInboxNotificationsUseCase } from "@/features/community/application/get-inbox-notifications";
 import { MarkAllInboxNotificationsReadUseCase } from "@/features/community/application/mark-all-inbox-notifications-read";
@@ -86,6 +90,13 @@ export function createGetPostDetailUseCase(
   accessToken: string | null,
 ): GetPostDetailUseCase {
   return new GetPostDetailUseCase(createReadRepository(accessToken));
+}
+
+/** 글 상세 조회수 +1(#523). 비로그인도 셈 — 토큰이 있으면 붙여 작성자 본인은 첫 1회만 세게 한다. */
+export function createRecordPostViewUseCase(
+  accessToken: string | null,
+): RecordPostViewUseCase {
+  return new RecordPostViewUseCase(createReadRepository(accessToken));
 }
 
 export function createGetCommentsUseCase(
@@ -251,6 +262,15 @@ export function createGetBalanceGameDetailUseCase(
   accessToken: string | null,
 ): GetBalanceGameDetailUseCase {
   return new GetBalanceGameDetailUseCase(
+    createBalanceGameRepository(accessToken),
+  );
+}
+
+/** 밸런스 게임 상세 조회수 +1(#523). 비로그인도 셈. */
+export function createRecordBalanceGameViewUseCase(
+  accessToken: string | null,
+): RecordBalanceGameViewUseCase {
+  return new RecordBalanceGameViewUseCase(
     createBalanceGameRepository(accessToken),
   );
 }
