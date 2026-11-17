@@ -111,8 +111,13 @@ export function FeedCardMenu({
     }
 
     const hidden = await toggleHidePost(postId);
-    if (!hidden) {
+    if (hidden === null) {
       toast.show(HIDE_TOAST.failed, { tone: "error" });
+      return;
+    }
+    // 이미 숨긴 글(저장 목록 등)이라 풀렸다 — 카드는 그대로 두고 결과만 알린다(#530).
+    if (!hidden) {
+      toast.show(HIDE_TOAST.unhidden, { tone: "info" });
       return;
     }
 
@@ -128,8 +133,9 @@ export function FeedCardMenu({
 
   /** 숨기기 되돌리기 — 토글 재호출로 숨김을 해제하고 카드를 원래 자리에 복원한다. */
   async function handleUndoHide() {
-    const restored = await toggleHidePost(postId);
-    if (!restored) {
+    // 토글이라 결과가 풀림(false)일 때만 되돌린 것이다 — 그 밖에는 카드를 복원하지 않는다(#530).
+    const hidden = await toggleHidePost(postId);
+    if (hidden !== false) {
       toast.show(HIDE_TOAST.undoFailed, { tone: "error" });
       return;
     }
