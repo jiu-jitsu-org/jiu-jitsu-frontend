@@ -9,7 +9,10 @@ import { OpenInAppBanner } from "@/features/community/presentation/open-in-app-b
 import { shareCurrentPage } from "@/features/community/presentation/share-current-page";
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
 import { useCompetitionAlerts } from "@/features/competition/presentation/competition-alert-provider";
-import type { CompetitionAlertTarget } from "@/features/competition/presentation/competition-alert-sheet";
+import {
+  DEADLINE_ALERT_PASSED_MESSAGE,
+  type CompetitionAlertTarget,
+} from "@/features/competition/presentation/competition-alert-sheet";
 import { useCompetitionDetailInterest } from "@/features/competition/presentation/competition-detail-interest";
 import { cn } from "@/shared/lib/cn";
 import { useIsExternalBrowser } from "@/shared/lib/native-bridge";
@@ -74,6 +77,7 @@ export function CompetitionDetailHeader({
  * 끄기: 관심은 그대로 두고 이 대회 알림만 멈춘다 — 신청을 마친 대회처럼(DELETE /competitions/{id}/notice).
  * 켜기: PUT /competitions/{id}/notice — 관심이 없으면 서버가 관심도 함께 등록하고, 돌려준 관심 상태로 관심 버튼을 맞춘다.
  *   설정이 꺼져 있으면 마감 알림 시트를 다시 띄운다(#375).
+ *   화면을 연 채 저녁 6시를 넘겨 오늘 알림이 이미 나갔으면 켜지 않고 그렇다고만 알린다(#548).
  * 비로그인은 글 상세처럼 종을 두지 않는다.
  */
 function CompetitionAlertButton({
@@ -115,6 +119,10 @@ function CompetitionAlertButton({
           setTurn((value) => value + 1);
           toast.show("이 대회의 알림을 받지 않아요", { tone: "info" });
         }
+        return;
+      }
+      if (alerts.alertsPassedToday(target)) {
+        toast.show(DEADLINE_ALERT_PASSED_MESSAGE, { tone: "info" });
         return;
       }
       const result = await alerts.setNotice(target.id, true);

@@ -2,6 +2,7 @@ export {
   formatExactDateTime,
   formatRelativeTime,
   toKstDateKey,
+  toKstHour,
   toKstIso,
 } from "./server-date-time";
 

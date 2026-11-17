@@ -4,6 +4,7 @@ import { BottomSheetFrame } from "@/features/community/presentation/bottom-sheet
 import {
   upcomingDeadlineAlerts,
   type CompetitionDeadlineKind,
+  type DeadlineAlertClock,
 } from "@/features/competition/domain/competition-alert";
 import type { CompetitionRegistration } from "@/features/competition/domain/competition-registration";
 import { shortDateLabel } from "@/features/competition/presentation/competition-detail-format";
@@ -22,34 +23,38 @@ const DEADLINE_LABEL: Record<CompetitionDeadlineKind, string> = {
   final: "접수 마감 전날",
 };
 
+/** 내일 접수가 마감되는 대회를 오늘 알림이 나간 뒤에 고르면, 시트 대신 이 말만 띄운다(#548). */
+export const DEADLINE_ALERT_PASSED_MESSAGE =
+  "접수가 내일 마감이에요 · 오늘 알림은 이미 나갔어요";
+
 /**
  * 관심 대회 마감 알림 시트 (#375) — "이 대회 마감 알림을 받을까요?"
  *
  * 처음 관심 등록할 때 한 번 묻는다. 무엇을 언제 받는지 알아야 정할 수 있어, 이 대회에 남은 마감 전날을 줄로 보여 준다.
- * 지난 마감은 빼고, 남은 마감이 없으면(접수 일정 미정 등) 날짜 없이 묻는다.
+ * 지난 마감과 보내는 시각이 지난 오늘 알림은 빼고(#548), 남은 마감이 없으면(접수 일정 미정 등) 날짜 없이 묻는다.
  * '알림 받기'는 설정의 '관심 대회 알림'을 켜는 것이라 이 대회만이 아니라 관심 대회 전체에 해당한다 — 아래 한 줄로 알린다.
  * 띠 묻기 시트와 같은 껍데기·같은 버튼 두 개(채운 버튼 + 글자 버튼)다.
  */
 export function CompetitionAlertSheet({
   target,
   open,
-  today,
+  clock,
   onAccept,
   onLater,
 }: {
   /** 닫히는 동안에도 내용이 비지 않게 마지막 대회를 그대로 넘긴다. */
   target: CompetitionAlertTarget | null;
   open: boolean;
-  /** 한국 날짜 "YYYY-MM-DD" — 지난 마감을 뺀다. */
-  today: string;
+  /** 시트를 연 순간의 한국 날짜 · 시 — 지난 마감과 이미 나간 오늘 알림을 뺀다. */
+  clock: DeadlineAlertClock;
   onAccept: () => void;
   /** '나중에'와 바깥 탭 모두 여기로 온다 — 관심은 그대로, 알림은 꺼진 채. */
   onLater: () => void;
 }) {
   const alerts = target
-    ? upcomingDeadlineAlerts(target.registration, today)
+    ? upcomingDeadlineAlerts(target.registration, clock)
     : [];
-  const currentYear = Number(today.slice(0, 4));
+  const currentYear = Number(clock.today.slice(0, 4));
 
   return (
     <BottomSheetFrame
