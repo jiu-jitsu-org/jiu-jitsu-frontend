@@ -1,9 +1,11 @@
+import { SessionExpiredRecovery } from "@/features/auth/presentation/session-expired-recovery";
 import type { CompetitionDetailPageData } from "@/features/competition/application/get-competition-detail-page-data";
 import { DetailErrorState } from "@/features/community/presentation/detail-error-state";
 import { canReceiveDeadlineAlerts } from "@/features/competition/domain/competition-alert";
 import { CompetitionAlertProvider } from "@/features/competition/presentation/competition-alert-provider";
 import { CompetitionDetailInterestProvider } from "@/features/competition/presentation/competition-detail-interest";
 import { CompetitionDetailHeader } from "@/features/competition/presentation/competition-detail-header";
+import { CompetitionDetailSkeleton } from "@/features/competition/presentation/competition-detail-skeleton";
 import {
   CompetitionFeeSection,
   CompetitionInfoSection,
@@ -34,6 +36,10 @@ export function CompetitionDetailPage({
 }: {
   data: Exclude<CompetitionDetailPageData, { ok: false; reason: "not-found" }>;
 }) {
+  // 토큰이 만료됐으면 앱에 갱신을 맡기고 다시 그린다 — 익명으로 그리면 관심 · 알림이 비고 다시 그려지지 않는다(#524).
+  if (!data.ok && data.reason === "session-expired") {
+    return <SessionExpiredRecovery loading={<CompetitionDetailSkeleton />} />;
+  }
   if (!data.ok) {
     return (
       <SubviewScrollShell className="bg-surface-container">

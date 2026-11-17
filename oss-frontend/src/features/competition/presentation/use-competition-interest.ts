@@ -8,6 +8,7 @@ import {
 } from "@/features/auth/presentation/auth-provider";
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
 import { setCompetitionInterestAction } from "@/features/competition/presentation/actions/set-competition-interest-action";
+import { retryAfterSessionRefresh } from "@/features/competition/presentation/retry-after-session-refresh";
 import { useCompetitionAlerts } from "@/features/competition/presentation/competition-alert-provider";
 import type { CompetitionAlertTarget } from "@/features/competition/presentation/competition-alert-sheet";
 import { COMPETITION_GONE_MESSAGE } from "@/features/community/presentation/notifications/inbox-copy";
@@ -128,7 +129,10 @@ export function useCompetitionInterest({
       }));
 
       try {
-        const result = await setCompetitionInterestAction(id, next);
+        // 토큰이 만료됐으면 앱 갱신 뒤 한 번 다시 부른다(#524).
+        const result = await retryAfterSessionRefresh(() =>
+          setCompetitionInterestAction(id, next),
+        );
         if (!result.ok && result.reason === "unauthenticated") {
           // 화면은 로그인으로 알았는데 서버 세션이 끝났다 — 다시 눌러도 안 되니 로그인부터 안내한다.
           setOverrides((current) => ({ ...current, [id]: before }));

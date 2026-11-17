@@ -76,7 +76,7 @@ export type CompetitionListPageData =
        */
       availableRegions: readonly CompetitionRegion[];
     }
-  | { ok: false };
+  | { ok: false; reason: "session-expired" | "failed" };
 
 /** 여러 날 대회의 첫날이 마지막 날보다 앞설 수 있는 여유 — 대회는 길어야 며칠이다. */
 const MULTI_DAY_LOOKBACK_DAYS = 7;
@@ -157,8 +157,12 @@ export async function getCompetitionListPageData(): Promise<CompetitionListPageD
         ? availableRegions
         : COMPETITION_REGIONS,
     };
-  } catch {
-    return { ok: false };
+  } catch (error) {
+    // 만료 토큰이면 익명으로 내리지 않고 화면의 복구(앱 갱신 → 다시 그리기)에 맡긴다 — 글 상세와 같은 방식(#524).
+    return {
+      ok: false,
+      reason: isExpiredToken(error) ? "session-expired" : "failed",
+    };
   }
 }
 
@@ -174,7 +178,7 @@ export async function loadCompetitionListChunk(
   query: CompetitionListQuery,
 ): Promise<
   | { ok: true; chunk: CompetitionListChunk }
-  | { ok: false; reason: "unauthenticated" | "failed" }
+  | { ok: false; reason: "unauthenticated" | "expired" | "failed" }
 > {
   const accessToken = await readSessionToken();
   if (query.interested && !accessToken) {
@@ -195,31 +199,25 @@ export async function loadCompetitionListChunk(
       return { ok: true, chunk: { ...toChunk(past), nextCursor: null } };
     }
     return { ok: true, chunk: toChunk(page) };
-  } catch {
-    return { ok: false, reason: "failed" };
+  } catch (error) {
+    // 만료 토큰이면 화면이 앱에 갱신을 맡기고 다시 부른다 — 익명으로 받은 결과로 관심 상태를 덮지 않게(#524).
+    return { ok: false, reason: isExpiredToken(error) ? "expired" : "failed" };
   }
 }
 
 /**
- * 로그인 토큰이 만료됐으면 익명으로 다시 읽는다 — 서버는 토큰을 갱신할 수 없고, 목록 자체는 익명으로도 볼 수 있다.
- * 관심만 보기는 익명으로 읽을 수 없어 그대로 실패한다.
+ * 목록 한 페이지. 로그인 토큰이 만료돼도 익명으로 다시 읽지 않는다 — 익명 결과는 관심이 모두 빠져 화면의 관심 상태를
+ * 덮는다(#524). 서버는 토큰을 갱신할 수 없어 만료를 그대로 올리고, 화면이 앱에 갱신을 맡긴다.
  */
-async function fetchPage(
+function fetchPage(
   query: CompetitionListQuery,
   accessToken: string | null,
 ): Promise<CompetitionPage> {
-  try {
-    return await createGetCompetitionListUseCase(accessToken).execute(query);
-  } catch (error) {
-    if (
-      accessToken &&
-      !query.interested &&
-      toApiError(error).code === ApiErrorCode.EXPIRED_TOKEN
-    ) {
-      return createGetCompetitionListUseCase(null).execute(query);
-    }
-    throw error;
-  }
+  return createGetCompetitionListUseCase(accessToken).execute(query);
+}
+
+function isExpiredToken(error: unknown): boolean {
+  return toApiError(error).code === ApiErrorCode.EXPIRED_TOKEN;
 }
 
 function toChunk(page: CompetitionPage): CompetitionListChunk {

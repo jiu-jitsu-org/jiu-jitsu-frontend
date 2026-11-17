@@ -23,7 +23,7 @@ const MAX_TEXT_LENGTH = 200;
 
 export type LoadCompetitionListResult =
   | { ok: true; chunk: CompetitionListChunk }
-  | { ok: false; reason: "unauthenticated" | "failed" };
+  | { ok: false; reason: "unauthenticated" | "expired" | "failed" };
 
 /**
  * 대회 목록 이어 받기 Server Action (#419) — 필터를 바꾼 첫 페이지 · 아래로 내린 다음 페이지 · 달력 한 달.

@@ -1,6 +1,8 @@
+import { SessionExpiredRecovery } from "@/features/auth/presentation/session-expired-recovery";
 import type { CompetitionListPageData } from "@/features/competition/application/get-competition-list-page-data";
 import { FeedErrorState } from "@/features/community/presentation/feed-error-state";
 import { CompetitionAlertProvider } from "@/features/competition/presentation/competition-alert-provider";
+import { CompetitionListSkeleton } from "@/features/competition/presentation/competition-list-skeleton";
 import { CompetitionListView } from "@/features/competition/presentation/competition-list-view";
 import { EmptyState } from "@/shared/ui/empty-state";
 
@@ -16,6 +18,11 @@ export function CompetitionListPage({
 }: {
   data: CompetitionListPageData;
 }) {
+  // 토큰이 만료됐으면 앱에 갱신을 맡기고 다시 그린다 — 익명으로 그리면 관심 · 배너가 비고 다시 그려지지 않는다(#524).
+  // 스켈레톤이 화면 틀(main)까지 그린다.
+  if (!data.ok && data.reason === "session-expired") {
+    return <SessionExpiredRecovery loading={<CompetitionListSkeleton />} />;
+  }
   return (
     // 홈 피드처럼 맨 위에서 당기면 앱의 당겨서 새로고침이 걸리게 바운스를 연다(feed-bounce-scroll, globals.css).
     <main className="feed-bounce-scroll relative min-h-screen bg-surface-container">

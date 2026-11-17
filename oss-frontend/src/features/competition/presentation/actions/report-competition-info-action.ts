@@ -18,6 +18,7 @@ export type ReportCompetitionInfoResult =
       ok: false;
       reason:
         | "unauthenticated"
+        | "expired"
         | "not-found"
         | "detail-required"
         | "limit"

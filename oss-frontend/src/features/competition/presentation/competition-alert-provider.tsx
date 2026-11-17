@@ -23,6 +23,7 @@ import {
   answerCompetitionAlertPromptAction,
   setCompetitionNoticeAction,
 } from "@/features/competition/presentation/actions/competition-alert-actions";
+import { retryAfterSessionRefresh } from "@/features/competition/presentation/retry-after-session-refresh";
 import {
   CompetitionAlertSheet,
   type CompetitionAlertTarget,
@@ -122,7 +123,9 @@ export function CompetitionAlertProvider({
       if (!available || pending.current.has(id)) return null;
       pending.current.add(id);
       try {
-        const result = await setCompetitionNoticeAction(id, on);
+        const result = await retryAfterSessionRefresh(() =>
+          setCompetitionNoticeAction(id, on),
+        );
         if (!result.ok && result.reason === "not-found") {
           toast.show(COMPETITION_GONE_MESSAGE, { tone: "info" });
           return null;
@@ -159,7 +162,9 @@ export function CompetitionAlertProvider({
     setEnabledOverride(true);
     setAskedOverride(true);
     try {
-      const result = await answerCompetitionAlertPromptAction(true);
+      const result = await retryAfterSessionRefresh(() =>
+        answerCompetitionAlertPromptAction(true),
+      );
       if (!result.ok && result.reason === "unauthenticated") {
         setEnabledOverride(before);
         promptLogin({ reason: "대회 알림" });
@@ -186,7 +191,9 @@ export function CompetitionAlertProvider({
     closeSheet();
     if (answering.current) return;
     setAskedOverride(true);
-    void answerCompetitionAlertPromptAction(false).catch(() => undefined);
+    void retryAfterSessionRefresh(() =>
+      answerCompetitionAlertPromptAction(false),
+    ).catch(() => undefined);
   };
 
   const value = useMemo<CompetitionAlerts>(
