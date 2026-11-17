@@ -13,6 +13,7 @@ import {
 } from "@/features/community/presentation/menu-box";
 import { useNativeDialog } from "@/features/community/presentation/use-native-dialog";
 import { useOpenPostEdit } from "@/features/community/presentation/use-open-post-edit";
+import type { BlockTarget } from "@/features/community/presentation/use-block-member";
 import { useReportFlow } from "@/features/community/presentation/use-report-flow";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
@@ -36,14 +37,20 @@ import { MoreVerticalIcon } from "@/shared/ui/icons";
 export function FeedCardMenu({
   postId,
   isOwner,
+  author,
   onDeleted,
   onRestored,
+  onAuthorBlocked,
 }: {
   postId: number;
   isOwner: boolean;
+  /** 글 작성자 — 신고 완료 토스트의 [차단] 대상(#550). id를 모르면 0이고 [차단]을 붙이지 않는다. */
+  author: BlockTarget;
   onDeleted: () => void;
   /** 숨기기 되돌리기 — 걷어낸 카드를 원래 자리에 복원한다. */
   onRestored: () => void;
+  /** 신고 완료 토스트의 [차단]으로 작성자를 차단했을 때 — 목록이 그 회원 글을 빼도록 다시 읽는다. */
+  onAuthorBlocked: () => void;
 }) {
   const toast = useToast();
   const demo = useIsDemoMode();
@@ -84,9 +91,12 @@ export function FeedCardMenu({
     onDeleted();
   }
 
-  /** 신고: 확인 알럿 → 사유 시트 → POST(useReportFlow) → 성공 시 목록에서 제거(숨김). */
+  /** 신고: 사유 시트 → POST(useReportFlow) → 성공 시 목록에서 제거(숨김). 완료 토스트에 [차단](#550). */
   async function handleReport() {
-    const reported = await report({ reportType: "BOARD", targetId: postId });
+    const reported = await report(
+      { reportType: "BOARD", targetId: postId },
+      { blockTarget: author, onBlocked: onAuthorBlocked },
+    );
     if (reported) onDeleted();
   }
 

@@ -18,7 +18,14 @@ import { useNativeDialog } from "@/features/community/presentation/use-native-di
 import { POST_EDIT_FROM_DETAIL } from "@/features/community/presentation/post-edit-return";
 import { useOpenPostEdit } from "@/features/community/presentation/use-open-post-edit";
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
-import { useReportFlow } from "@/features/community/presentation/use-report-flow";
+import {
+  type BlockTarget,
+  MEMBER_BLOCK_ACTION,
+} from "@/features/community/presentation/use-block-member";
+import {
+  BLOCK_ACTION_LABEL,
+  useReportFlow,
+} from "@/features/community/presentation/use-report-flow";
 import { REACTION_PRESS_MOTION } from "@/features/community/presentation/comment-reaction-styles";
 import { cn } from "@/shared/lib/cn";
 import { IconButton } from "@/shared/ui/icon-button";
@@ -53,10 +60,13 @@ import {
 export function PostDetailAppBar({
   postId,
   isOwner,
+  author,
   initialNoticeEnabled,
 }: {
   postId: number;
   isOwner: boolean;
+  /** 글 작성자 — 신고 뒤 목록 토스트의 [차단] 대상(#550). id를 모르면 0이고 [차단]을 붙이지 않는다. */
+  author: BlockTarget;
   initialNoticeEnabled: boolean;
 }) {
   const toast = useToast();
@@ -218,7 +228,8 @@ export function PostDetailAppBar({
     await report(
       { reportType: "BOARD", targetId: postId },
       {
-        onReported: (message) => {
+        blockTarget: author,
+        onReported: (message, blockTarget) => {
           // 예시(데모)에선 화면을 닫지 않으므로 이 화면에서 바로 띄운다.
           if (demo) {
             toast.show(message, { tone: "success" });
@@ -226,7 +237,18 @@ export function PostDetailAppBar({
           }
 
           // 닫히는 화면에 띄우면 토스트도 함께 사라진다 → 문구만 넘기고 목록이 띄운다.
-          enqueuePendingToast(message, { tone: "success" });
+          // 작성자를 알면 목록 토스트에 [차단]을 붙이도록 액션을 함께 남긴다(#550).
+          enqueuePendingToast(message, {
+            tone: "success",
+            action: blockTarget
+              ? {
+                  label: BLOCK_ACTION_LABEL,
+                  type: MEMBER_BLOCK_ACTION,
+                  userId: blockTarget.userId,
+                  name: blockTarget.nickname,
+                }
+              : undefined,
+          });
           closeDetail();
         },
       },

@@ -8,14 +8,37 @@ import {
   type ReportTargetType,
 } from "@/features/community/domain/report";
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
+import {
+  type BlockTarget,
+  useBlockMember,
+} from "@/features/community/presentation/use-block-member";
 import { useNativeDialog } from "@/features/community/presentation/use-native-dialog";
 import { ApiErrorCode } from "@/shared/lib/http/api-error";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
 import { useToast } from "@/shared/ui";
 
+/** 신고 완료 토스트의 차단 버튼 문구(#550). 상세 → 목록 토스트도 같은 문구를 쓴다. */
+export const BLOCK_ACTION_LABEL = "차단";
+
+export type ReportOptions = {
+  /**
+   * 신고가 처리로 확정됐을 때(신규 접수·중복 신고 공통) 호출된다. 인자는 노출할 문구와, 차단할 작성자(알 때).
+   * 넘기지 않으면 훅이 현재 화면에 그대로 토스트를 띄운다.
+   */
+  onReported?: (message: string, blockTarget?: BlockTarget) => void;
+  /** 신고한 글 · 댓글의 작성자 — 있으면 완료 토스트에 [차단]을 붙인다(#550). id가 0(모름)이면 붙이지 않는다. */
+  blockTarget?: BlockTarget;
+  /** 완료 토스트의 [차단]으로 차단됐을 때 — 이 화면의 목록을 다시 읽는다. */
+  onBlocked?: () => void;
+};
+
 /**
- * 신고 플로우 — 확인 알럿 → 사유 시트 → POST /reports.
+ * 신고 플로우 — 사유 시트 → POST /reports → 완료 토스트에 [차단](#550).
+ *
+ * 확인 알럿은 두지 않는다 — 시트의 [신고하기]가 이미 확인이다(확인을 자주 띄우면 읽지 않고 누르게 된다, #550).
+ * 남의 글 · 댓글이면 완료 토스트에 [차단]을 붙여, 불쾌한 글을 본 그 자리에서 작성자를 막을 수 있게 한다
+ * (useBlockMember — 댓글 ⋮ 차단과 같은 확인 · 결과 확인).
  *
  * 피드 카드 ⋮와 상세 앱바 ⋮가 같은 흐름을 쓰므로 훅으로 모은다(문구가 갈리면 같은 글인데
  * 진입 지점에 따라 다른 경험이 된다).
@@ -32,15 +55,41 @@ import { useToast } from "@/shared/ui";
 export function useReportFlow() {
   const toast = useToast();
   const demo = useIsDemoMode();
-  const { confirm, selectSheet, dialog } = useNativeDialog();
+  const { selectSheet, dialog: sheetDialog } = useNativeDialog();
+  const { block, dialog: blockDialog } = useBlockMember();
 
-  /** 성공 문구를 호출부에 넘기거나(화면이 닫히는 진입점), 없으면 여기서 띄운다. */
+  /**
+   * 성공 문구를 호출부에 넘기거나(화면이 닫히는 진입점), 없으면 여기서 띄운다.
+   * 차단할 작성자를 알면(blockTarget, id가 0이 아님) 이 화면 토스트에 [차단]을 붙인다 — 넘기는 경우엔 호출부가
+   * 다음 화면 토스트에 붙인다(onReported의 둘째 인자).
+   */
   const notifyReported = useCallback(
-    (message: string, onReported?: (message: string) => void) => {
-      if (onReported) onReported(message);
-      else toast.show(message, { tone: "success" });
+    (message: string, options?: ReportOptions) => {
+      const target =
+        options?.blockTarget && options.blockTarget.userId > 0
+          ? options.blockTarget
+          : undefined;
+      if (options?.onReported) {
+        options.onReported(message, target);
+        return;
+      }
+      if (!target) {
+        toast.show(message, { tone: "success" });
+        return;
+      }
+      toast.show(message, {
+        tone: "success",
+        action: {
+          label: BLOCK_ACTION_LABEL,
+          onAction: () => {
+            void block(target).then((blocked) => {
+              if (blocked) options?.onBlocked?.();
+            });
+          },
+        },
+      });
     },
-    [toast],
+    [block, toast],
   );
 
   const report = useCallback(
@@ -49,24 +98,10 @@ export function useReportFlow() {
         reportType: ReportTargetType;
         targetId: number;
       },
-      options?: {
-        /**
-         * 신고가 처리로 확정됐을 때(신규 접수·중복 신고 공통) 호출된다. 인자는 노출할 문구.
-         * 넘기지 않으면 훅이 현재 화면에 그대로 토스트를 띄운다.
-         */
-        onReported?: (message: string) => void;
-      },
+      options?: ReportOptions,
     ): Promise<boolean> => {
       const isPost = target.reportType === "BOARD";
       const noun = isPost ? "게시글" : "댓글";
-
-      const confirmed = await confirm({
-        title: `${noun} 신고`,
-        message: `신고된 ${noun}은 검토 후 처리돼요.`,
-        confirmText: "신고",
-        destructive: true,
-      });
-      if (!confirmed) return false;
 
       const outcome = await selectSheet({
         title: "어떤 문제인가요?",
@@ -80,7 +115,7 @@ export function useReportFlow() {
 
       // 예시(데모)에선 네트워크 없이 안내만(실제 신고 없음).
       if (demo) {
-        notifyReported(`${noun}을 신고했어요`, options?.onReported);
+        notifyReported(`${noun}을 신고했어요`, options);
         return true;
       }
 
@@ -105,20 +140,28 @@ export function useReportFlow() {
         // 이미 신고한 상태이므로 호출부는 성공과 동일하게 후처리(목록에서 감추기)한다 — 계속 보이는
         // 편이 더 어색하다.
         if (await isAlreadyReported(response)) {
-          notifyReported(`이미 신고한 ${noun}이에요`, options?.onReported);
+          notifyReported(`이미 신고한 ${noun}이에요`, options);
           return true;
         }
         toast.show(`${noun}을 신고하지 못했어요`, { tone: "error" });
         return false;
       }
 
-      notifyReported(`${noun}을 신고했어요`, options?.onReported);
+      notifyReported(`${noun}을 신고했어요`, options);
       return true;
     },
-    [confirm, demo, notifyReported, selectSheet, toast],
+    [demo, notifyReported, selectSheet, toast],
   );
 
-  return { report, dialog };
+  return {
+    report,
+    dialog: (
+      <>
+        {sheetDialog}
+        {blockDialog}
+      </>
+    ),
+  };
 }
 
 /** 중복 신고 응답인지 — 400 + 업스트림 code `U0008`. 상태코드만으론 일반 400과 구분되지 않는다. */
