@@ -20,9 +20,9 @@ type ServerEnv = {
   apiDebugLog: boolean;
   /**
    * 대회 화면(대회 탭·상세·글 속 대회 카드·글쓰기 대회 고르기·알림함 대회 줄)을 열지.
-   * COMPETITION_ENABLED가 "true"/"false"면 그 값을 따른다. 비어 있으면 대회 API(backend#193)가 있는
-   * 곳에서만 켠다 — 로컬 개발 서버이거나 dev-api를 바라볼 때. 배포 환경 값은 저장소 밖이라, 비워 둬도
-   * 개발 웹은 켜지고 운영은 꺼진다. 운영 백엔드에 대회 API가 올라가면 운영에 "true"를 넣는다.
+   * COMPETITION_ENABLED가 "false"일 때만 끈다. 비어 있으면 켠다 — 앱은 대회 탭을 늘 띄우고 숨길 방법이
+   * 없어, 배포에 값이 빠져 꺼지면 탭 전체가 오류 화면이 된다(#502). 대회 API가 없는 백엔드를 바라보는
+   * 배포만 "false"를 넣는다.
    */
   competitionEnabled: boolean;
 };
@@ -69,10 +69,7 @@ export function getServerEnv(): ServerEnv {
     apiDebugLog:
       process.env.NODE_ENV !== "production" &&
       process.env.API_DEBUG_LOG === "true",
-    competitionEnabled: resolveCompetitionEnabled(
-      process.env.COMPETITION_ENABLED,
-      process.env.INTERNAL_API_BASE_URL ?? process.env.API_BASE_URL,
-    ),
+    competitionEnabled: resolveCompetitionEnabled(process.env.COMPETITION_ENABLED),
   };
 
   return cachedEnv;
@@ -98,17 +95,11 @@ export function getImageKitClientEnv(): ImageKitClientEnv {
 }
 
 /**
- * 대회 화면을 열지(ServerEnv.competitionEnabled) — COMPETITION_ENABLED가 "true"/"false"(대소문자·앞뒤 공백 무시)면
- * 그 값을, 비어 있으면 로컬 개발 서버이거나 dev-api를 바라볼 때만 켠다.
+ * 대회 화면을 열지(ServerEnv.competitionEnabled) — COMPETITION_ENABLED가 "false"(대소문자·앞뒤 공백 무시)면 끄고,
+ * 그 밖(비어 있음 · "true")은 켠다(#502).
  */
-function resolveCompetitionEnabled(
-  flag: string | undefined,
-  apiBaseUrl: string | undefined,
-): boolean {
-  const value = flag?.trim().toLowerCase();
-  if (value === "true") return true;
-  if (value === "false") return false;
-  return isDevelopmentRuntime() || (apiBaseUrl ?? "").includes("dev-api");
+function resolveCompetitionEnabled(flag: string | undefined): boolean {
+  return flag?.trim().toLowerCase() !== "false";
 }
 
 /**
