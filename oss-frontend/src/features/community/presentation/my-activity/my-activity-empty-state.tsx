@@ -10,6 +10,7 @@ import { useOpenPostWrite } from "@/features/community/presentation/use-open-pos
 import {
   closeNativeSubview,
   isNativeBridgeAvailable,
+  openNativeHomeFeed,
 } from "@/shared/lib/native-bridge";
 
 /**
@@ -85,16 +86,18 @@ function useRefreshOnPostCreated(enabled: boolean) {
 /**
  * 커뮤니티 홈(오늘의 밸런스 게임이 맨 위에 있는 메인 피드)으로 간다.
  *
- * 앱에서 이 화면은 서브뷰라 닫으면 연 화면으로 돌아간다(뒤로가기와 같은 CLOSE_SUBVIEW). 홈 탭으로
- * 바로 옮기는 브릿지 메시지는 아직 없다. 웹 단독이면 히스토리가 아니라 홈(/)으로 직접 이동한다 —
- * 직전 페이지가 홈이라는 보장이 없다.
+ * 앱에서는 홈 피드로 보내 달라고 한다(OPEN_HOME_FEED, #532 — 대회 이야기의 피드 가기와 같다). 앱이 쌓인 화면을
+ * 닫아 피드를 보여 준다 — 피드를 맨 위(오늘의 게임)까지 올리는 건 앱 몫이다(jiu-jitsu-ios#386).
+ * 이 웹뷰가 그 메시지를 받지 않으면(MY 탭에서 연 활동은 jiu-jitsu-ios#386 전까지, 구버전 앱) 지금처럼
+ * 서브뷰를 닫아 연 화면으로 돌아간다(뒤로가기와 같은 CLOSE_SUBVIEW).
+ * 웹 단독이면 히스토리가 아니라 홈(/)으로 직접 이동한다 — 직전 페이지가 홈이라는 보장이 없다.
  */
 function useOpenCommunityHome() {
   const router = useRouter();
 
   return () => {
     if (isNativeBridgeAvailable()) {
-      closeNativeSubview();
+      if (!openNativeHomeFeed()) closeNativeSubview();
       return;
     }
     router.push("/");
