@@ -8,6 +8,7 @@ import { getCompetitionDetailPageData } from "@/features/competition/application
 import { isCompetitionEnabled } from "@/features/competition/application/is-competition-enabled";
 import { parseCompetitionId } from "@/features/competition/domain/competition";
 import { competitionShareSummary } from "@/features/competition/presentation/competition-share-summary";
+import { CompetitionDetailGone } from "@/features/competition/presentation/competition-detail-gone";
 import { CompetitionDetailPage } from "@/features/competition/presentation/competition-detail-page";
 import { readSessionToken } from "@/shared/lib/auth";
 import { getRequestOrigin } from "@/shared/lib/request-origin";
@@ -62,7 +63,8 @@ export default async function CompetitionDetailRoutePage({
   const signedIn = (await readSessionToken()) !== null;
   const now = readServerNow();
   const data = await getCompetitionDetailPageData({ competitionId });
-  if (!data.ok && data.reason === "not-found") notFound();
+  // 없는 대회는 404가 아니라 안내 화면(#503). 대회 화면이 꺼진 배포 · 잘못된 id는 위에서 404로 둔다.
+  if (!data.ok && data.reason === "not-found") return <CompetitionDetailGone />;
 
   return (
     // 관심 버튼이 로그인 여부로 갈린다 — 세션 판정 전에도 맞게 그리고, 로그인하면 다시 읽는다.

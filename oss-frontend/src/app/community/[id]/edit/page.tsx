@@ -4,6 +4,7 @@ import { SessionExpiredRecovery } from "@/features/auth/presentation/session-exp
 import { createGetPostDetailUseCase } from "@/features/community/application/community-use-case-factory";
 import { getPostCategoriesOrFallback } from "@/features/community/application/get-post-write-page-data";
 import type { PostEditInitial } from "@/features/community/domain/post";
+import { PostEditLoadFailed } from "@/features/community/presentation/post-edit-load-failed";
 import { PostWriteScreen } from "@/features/community/presentation/post-write-screen";
 import { WriteSkeleton } from "@/features/community/presentation/write-skeleton";
 import {
@@ -79,8 +80,12 @@ export default async function CommunityPostEditPage({
     if (apiError.code === ApiErrorCode.EXPIRED_TOKEN) {
       return <SessionExpiredRecovery loading={<WriteSkeleton mode="edit" showBack />} />;
     }
-    // 삭제·숨김 등으로 열 수 없는 글 — 상세와 같은 404 처리.
-    notFound();
+    // 삭제·숨김 등으로 열 수 없는 글 — 상세와 같은 기준(C0002 / 404)으로 없는 글 화면.
+    if (apiError.code === ApiErrorCode.BOARD_NOT_FOUND || apiError.status === 404) {
+      notFound();
+    }
+    // 시간 초과 · 5xx 등은 없는 글이 아니다 — 다시 시도할 수 있게 한다(#503).
+    return <PostEditLoadFailed />;
   }
 
   const now = readServerNow();
