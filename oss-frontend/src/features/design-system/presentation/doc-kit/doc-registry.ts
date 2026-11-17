@@ -113,6 +113,12 @@ export const DOC_LIST: DocMeta[] = [
     summary: "목록이 비었을 때 제목 · 설명 · 버튼.",
   },
   {
+    id: "fallback-screen",
+    group: "component",
+    title: "FallbackScreen",
+    summary: "없음 · 오류로 화면을 그릴 수 없을 때 안내와 나갈 길.",
+  },
+  {
     id: "skeleton",
     group: "component",
     title: "Skeleton",

@@ -14,6 +14,7 @@ export { SearchField } from "./search-field";
 export { Skeleton } from "./skeleton";
 export { Divider } from "./divider";
 export { EmptyState } from "./empty-state";
+export { FallbackScreen } from "./fallback-screen";
 export {
   FILLED_BUTTON_PRESS,
   FILLED_BUTTON_PRESSED_BG,

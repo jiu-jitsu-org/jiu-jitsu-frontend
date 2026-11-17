@@ -452,3 +452,57 @@ export function RelativeTimeDoc() {
     </DocPage>
   );
 }
+
+/* ───────────────────────── FallbackScreen ───────────────────────── */
+
+export function FallbackScreenDoc() {
+  const D = "fallback-screen";
+  return (
+    <DocPage id={D} meta={[{ label: "쓰는 곳", value: "5개 파일 · 5번 (2026-11-17 기준)" }]}>
+      <H doc={D} id="overview">개요</H>
+      <P>
+        없는 주소 · 화면 오류 · 없는 대회 · 글 수정 불러오기 실패에서 화면 전체를 대신하는 안내(#503). 제목 +
+        (설명) + 지금 자리에서 나갈 버튼. 화면 높이 전체를 쓰므로 여기서는 실물 대신 규칙만 둔다 — 실물은
+        없는 주소(예: <Code>/zzz</Code>)로 본다.
+      </P>
+
+      <H doc={D} id="places">자리별 버튼</H>
+      <DocTable
+        cols="140px minmax(0,1fr)"
+        head={["자리", "버튼"]}
+        rows={[
+          ["앱 서브뷰", "(다시 시도) + 닫기 — 앱에 CLOSE_SUBVIEW"],
+          ["앱 탭 첫 화면", "다시 시도만 — / · /competition은 닫을 곳이 없다"],
+          ["브라우저", "(다시 시도) + browserLink (기본 '홈으로' /)"],
+        ]}
+      />
+      <P>
+        자리는 브릿지와 주소로 정해 서버는 브라우저 모양으로 그리고 하이드레이션 뒤 바뀐다. 버튼 줄 높이를
+        고정해 문구가 움직이지 않는다. PAGE_READY는 보내지 않는다(앱이 정상 화면으로 여겨 스와이프를 막지
+        않게).
+      </P>
+
+      <H doc={D} id="related">비슷한 부품</H>
+      <DocTable
+        cols="160px minmax(0,1fr)"
+        head={["부품", "언제"]}
+        rows={[
+          ["FallbackScreen", "화면 자체를 그릴 수 없을 때 — 나갈 길이 필요"],
+          ["DetailErrorState", "상세 조회만 실패, 앱 헤더 · 뒤로가기는 살아 있을 때"],
+          ["EmptyState", "불러오기는 끝났는데 보여 줄 것이 없을 때"],
+        ]}
+      />
+
+      <H doc={D} id="spec">스펙</H>
+      <DocTable
+        cols="140px minmax(0,1fr)"
+        head={["자리", "토큰"]}
+        rows={[
+          ["제목", <Dot key="a" token="empty-state-default-title-text" withName />],
+          ["설명", <Dot key="b" token="empty-state-default-description-text" withName />],
+          ["버튼 바탕", <Dot key="c" token="button-neutral-default-bg" withName />],
+        ]}
+      />
+    </DocPage>
+  );
+}
