@@ -7,6 +7,7 @@ import type { CompetitionAlertTarget } from "@/features/competition/presentation
 import { RegistrationIcon } from "@/features/competition/presentation/competition-icons";
 import { shortDateLabel } from "@/features/competition/presentation/competition-detail-format";
 import { recordCompetitionViewAction } from "@/features/competition/presentation/actions/record-competition-view-action";
+import { callServerAction } from "@/features/competition/presentation/reload-on-stale-action";
 import { useCompetitionDetailInterest } from "@/features/competition/presentation/competition-detail-interest";
 import { cn } from "@/shared/lib/cn";
 import { HeartIcon } from "@/shared/ui/icons";
@@ -41,7 +42,8 @@ export function CompetitionDetailSummary({
   useEffect(() => {
     if (counted.current) return;
     counted.current = true;
-    void recordCompetitionViewAction(competitionId)
+    // 배포가 바뀌어 서버가 액션을 모르면 상세를 한 번 새로 불러온다(#515).
+    void callServerAction(() => recordCompetitionViewAction(competitionId))
       .then((next) => {
         if (next !== null) setViews(next);
       })
