@@ -12,21 +12,28 @@ import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
  * 목록 카드 ⋮와 상세 앱바 ⋮가 같은 동작을 하므로 호출을 한곳에 모은다. 토스트·화면 전환처럼
  * 진입 지점마다 다른 후처리는 호출부가 맡는다(목록은 카드 제거, 상세는 화면 닫기).
  *
- * @returns 성공 여부. 401이면 네이티브 로그인 유도까지 하고 false를 돌려준다.
+ * 토글이라 누른 결과가 숨김인지 풀림인지는 응답(hidden)으로만 안다 — 이미 숨긴 글을 저장 목록 · 링크로 열고
+ * 다시 누르면 숨김이 풀린다(#530). 호출부는 이 값으로 안내와 후처리를 가른다.
+ *
+ * @returns 토글 뒤 숨김 상태. 실패면 null — 401이면 네이티브 로그인 유도까지 한다.
  */
-export async function toggleHidePost(postId: number): Promise<boolean> {
+export async function toggleHidePost(postId: number): Promise<boolean | null> {
   const response = await bffFetch(`/api/community/posts/${postId}/hide`, {
     method: "POST",
-  });
+  }).catch(() => null);
 
-  if (!response.ok) {
-    if (response.status === 401) {
+  if (!response?.ok) {
+    if (response?.status === 401) {
       postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
     }
-    return false;
+    return null;
   }
 
-  return true;
+  const body = (await response.json().catch(() => null)) as {
+    data?: { hidden?: unknown };
+  } | null;
+  const hidden = body?.data?.hidden;
+  return typeof hidden === "boolean" ? hidden : null;
 }
 
 /**
@@ -43,6 +50,8 @@ export const POST_HIDDEN_ACTION = "post-hidden";
 /** 목록·상세가 공유하는 숨김 문구. 진입 지점에 따라 갈리면 안 된다. */
 export const HIDE_TOAST = {
   done: "게시글을 숨겼어요",
+  /** 이미 숨긴 글에서 숨기기를 눌러 풀린 경우(#530) — 화면을 닫거나 카드를 걷지 않는다. */
+  unhidden: "숨김을 풀었어요",
   undoLabel: "되돌리기",
   failed: "게시글을 숨기지 못했어요",
   undoFailed: "되돌리지 못했어요",

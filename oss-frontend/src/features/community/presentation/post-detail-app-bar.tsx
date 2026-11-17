@@ -193,8 +193,13 @@ export function PostDetailAppBar({
     }
 
     const hidden = await toggleHidePost(postId);
-    if (!hidden) {
+    if (hidden === null) {
       toast.show(HIDE_TOAST.failed, { tone: "error" });
+      return;
+    }
+    // 이미 숨긴 글(저장 목록 · 링크로 연 경우)이라 풀렸다 — 화면은 그대로 두고 결과만 알린다(#530).
+    if (!hidden) {
+      toast.show(HIDE_TOAST.unhidden, { tone: "info" });
       return;
     }
 

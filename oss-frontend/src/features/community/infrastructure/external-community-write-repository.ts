@@ -162,16 +162,21 @@ export class ExternalCommunityWriteRepository implements CommunityWriteRepositor
 
   async toggleHide(postId: number): Promise<boolean> {
     // PUT /board/hide/{id} — 단일 엔드포인트 토글(숨김/숨김해제).
-    // 좋아요·저장과 달리 Swagger 응답 예시가 봉투 없는 raw `true`라, 두 형태를 모두 허용한다
-    // (봉투가 오면 data를, 아니면 본문 자체를 토글 후 상태로 읽는다).
+    // 컨트롤러는 Boolean을 돌려주고 공통 봉투가 감싸 `{ data: true | false }`로 온다. 봉투 없는 raw boolean,
+    // `{ data: { isHidden } }`도 받아 둔다. 모르는 모양이면 숨김으로 추정하지 않고 실패로 올린다 —
+    // 화면은 이 값으로 '숨겼어요 / 숨김을 풀었어요'와 되돌리기 성공을 가른다(#530).
     const response = await this.httpClient.put<
-      Envelope<{ contentID: number; isHidden?: boolean }> | boolean
+      | Envelope<boolean | { contentID: number; isHidden?: boolean }>
+      | boolean
     >({
       path: `${BOARD_ENDPOINT_PATH}/hide/${postId}`,
     });
 
     if (typeof response === "boolean") return response;
-    return response.data?.isHidden ?? true;
+    const data = response.data;
+    if (typeof data === "boolean") return data;
+    if (typeof data?.isHidden === "boolean") return data.isHidden;
+    throw new Error("Unexpected hide toggle response shape.");
   }
 
   async getNoticeEnabled(contentId: number): Promise<boolean> {

@@ -212,8 +212,9 @@ export function CommunityFeedList({
 
       const postId = action.postId;
       void (async () => {
-        const restored = await toggleHidePost(postId);
-        if (!restored) {
+        // 토글이라 결과가 풀림(false)일 때만 되돌린 것이다 — 그 밖에는 카드를 복원하지 않는다(#530).
+        const hidden = await toggleHidePost(postId);
+        if (hidden !== false) {
           toast.show(HIDE_TOAST.undoFailed, { tone: "error" });
           return;
         }
