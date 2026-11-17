@@ -170,7 +170,7 @@ export function CommentItem({
             프로필 행(32) 안에서 닉네임 글줄(21) 아래로 이미 5.5가 비어 있어, 2를 더하면 글줄 사이가 7.5 —
             프로필 행이 24일 때(간격 7)처럼 닉네임과 본문이 붙어 읽힌다(#299).
             Body S(14/21), feed-card/body/body-text */}
-        <p className="mt-0.5 whitespace-pre-wrap text-body-s text-feed-card-body-text">
+        <p className="mt-0.5 whitespace-pre-wrap wrap-anywhere text-body-s text-feed-card-body-text">
           {/* `@닉네임` 태그(#451)는 같은 글자 크기에 파란 글씨로만 구분한다 — 면·밑줄 없이. */}
           {splitMentions(comment.body).map((part, index) =>
             part.mention ? (
