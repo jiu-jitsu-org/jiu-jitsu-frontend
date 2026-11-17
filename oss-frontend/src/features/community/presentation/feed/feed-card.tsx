@@ -467,7 +467,7 @@ export function FeedCardBody({
           <Title
             type={onPress ? "button" : undefined}
             onClick={onPress}
-            className="line-clamp-2 min-w-0 flex-1 text-left text-[18px] leading-6 font-bold text-feed-card-body-title-text"
+            className="line-clamp-2 min-w-0 flex-1 text-left text-[18px] leading-6 font-bold wrap-anywhere text-feed-card-body-title-text"
           >
             {title}
           </Title>
@@ -480,7 +480,7 @@ export function FeedCardBody({
           type={onPress ? "button" : undefined}
           onClick={onPress}
           className={cn(
-            "line-clamp-2 pr-8 text-left text-[18px] leading-6 font-bold text-feed-card-body-title-text",
+            "line-clamp-2 pr-8 text-left text-[18px] leading-6 font-bold wrap-anywhere text-feed-card-body-title-text",
           )}
         >
           {title}
@@ -501,7 +501,7 @@ export function FeedCardBody({
       <p
         ref={bodyRef}
         className={cn(
-          "mt-1 whitespace-pre-wrap text-base leading-6 font-normal text-feed-card-body-text",
+          "mt-1 whitespace-pre-wrap wrap-anywhere text-base leading-6 font-normal text-feed-card-body-text",
           !expanded && "line-clamp-3",
         )}
       >

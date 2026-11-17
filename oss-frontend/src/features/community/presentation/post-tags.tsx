@@ -19,7 +19,7 @@ export function PostTags({
   return (
     <ul className={cn("flex flex-wrap gap-2", className)}>
       {tags.map((tag) => (
-        <li key={tag} className="text-label-m text-feed-card-tag-text">
+        <li key={tag} className="min-w-0 wrap-anywhere text-label-m text-feed-card-tag-text">
           # {tag}
         </li>
       ))}

@@ -29,7 +29,7 @@ export function PostDetailBody({
     // 시각 보정: 위 동그란 띠 아바타보다 글줄이 왼쪽으로 튀어 보이지 않게 2 들인다(피드 카드와 같다).
     <div className="flex flex-col pl-0.5">
       {/* 제목: Body M, 멀티라인 허용 */}
-      <h1 className="text-body-m text-feed-card-body-title-text">
+      <h1 className="text-body-m wrap-anywhere text-feed-card-body-title-text">
         {title}
       </h1>
       {/* 카테고리·날짜·조회·수정됨: 제목 바로 아래 6 */}
@@ -41,7 +41,7 @@ export function PostDetailBody({
         className="mt-1.5"
       />
       {/* 본문: Body S(14/21), 메타 아래 12, 줄 수 제한 없음(클램프 없음) */}
-      <p className="mt-3 whitespace-pre-wrap text-body-s text-feed-card-body-text">
+      <p className="mt-3 whitespace-pre-wrap wrap-anywhere text-body-s text-feed-card-body-text">
         {body}
       </p>
     </div>
