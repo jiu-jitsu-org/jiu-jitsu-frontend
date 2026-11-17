@@ -35,18 +35,6 @@ export default function Home() {
               repository, and normalizes success or failure into one JSON shape.
             </p>
 
-            <div className="mt-8 grid gap-4 sm:grid-cols-2">
-              <NavCard
-                href="/version-info"
-                title="VersionInfoPage"
-                description="View the live bootstrap response, then reload it through a feature-owned Server Action."
-              />
-              <NavCard
-                href="/service-info"
-                title="ServiceInfoPage"
-                description="Read the service introduction for Jiu-Jitsu, the community space for practitioners."
-              />
-            </div>
           </article>
 
           <article className="rounded-[2rem] border border-zinc-200 bg-white p-8 shadow-sm">
@@ -67,30 +55,5 @@ export default function Home() {
         </section>
       </div>
     </main>
-  );
-}
-
-function NavCard({
-  href,
-  title,
-  description,
-}: {
-  href: string;
-  title: string;
-  description: string;
-}) {
-  return (
-    <a
-      href={href}
-      className="rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-6 transition hover:-translate-y-0.5 hover:bg-zinc-100"
-    >
-      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-zinc-500">
-        Page
-      </p>
-      <h3 className="mt-3 text-xl font-semibold tracking-tight text-zinc-950">
-        {title}
-      </h3>
-      <p className="mt-3 text-sm leading-7 text-zinc-600">{description}</p>
-    </a>
   );
 }

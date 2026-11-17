@@ -60,9 +60,7 @@
 ```txt
 oss-frontend/src/
 ├── app/
-│   ├── service-info/
 │   ├── styles/
-│   ├── version-info/
 │   ├── globals.css
 │   ├── layout.tsx
 │   └── page.tsx
@@ -190,6 +188,8 @@ Presentation -> Application -> Domain
 - `infrastructure`는 외부 세계와 연결되지만, 그 사실을 상위 계층에 과하게 새지 않게 한다.
 
 ## 현재 데이터 흐름
+
+> 아래 예시의 `/version-info` 화면과 그 파일(`version-info-page.tsx`, `load-bootstrap-info-action.ts`, `bootstrap-info-action-state.ts`, `get-bootstrap-info-page-data.ts`)은 #512에서 지웠다. 흐름 설명용으로만 남긴다. 같은 흐름의 실제 코드: 초기 조회는 글 상세(`src/app/community/[id]/page.tsx` → `src/features/community/application/get-post-detail-page-data.ts`), Server Action은 대회 관심(`src/features/competition/presentation/actions/set-competition-interest-action.ts`).
 
 ### 초기 Server Component 조회
 

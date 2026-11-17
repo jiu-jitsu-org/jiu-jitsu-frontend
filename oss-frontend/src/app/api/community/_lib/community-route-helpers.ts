@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { isCompetitionEnabled } from "@/features/competition/application/is-competition-enabled";
 import { SessionRequiredError, requireSessionToken } from "@/shared/lib/auth";
-import { HttpError } from "@/shared/lib/http";
+import { HttpError, clientErrorDetails } from "@/shared/lib/http";
 import type { ApiErrorResponse } from "@/shared/types/api";
 
 /**
@@ -85,7 +85,7 @@ export async function requireSessionOr401(): Promise<
 
 /**
  * 업스트림 호출 실패를 표준 에러 응답으로 변환한다.
- * - HttpError: 상태코드 그대로 전달(401/403은 재로그인 유도 메시지).
+ * - HttpError: 상태코드 그대로 전달(401/403은 재로그인 유도 메시지). 본문은 4xx만 details로 싣는다(clientErrorDetails).
  * - 그 외(예: env 누락): 진짜 500.
  */
 export function toErrorResponse(
@@ -106,7 +106,7 @@ export function toErrorResponse(
         ? "인증에 실패했습니다. 다시 로그인해 주세요."
         : fallbackMessage;
 
-    return jsonError(message, error.status, error.body);
+    return jsonError(message, error.status, clientErrorDetails(error));
   }
 
   console.error(`[community:${context}] unexpected (non-HTTP) error:`, error);

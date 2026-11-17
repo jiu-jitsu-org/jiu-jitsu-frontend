@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { createGetBootstrapInfoUseCase } from "@/features/bootstrap/application/bootstrap-use-case-factory";
-import { HttpError } from "@/shared/lib/http";
+import { HttpError, clientErrorDetails } from "@/shared/lib/http";
 import type {
   ApiErrorResponse,
   ApiSuccessResponse,
@@ -47,12 +47,19 @@ export async function GET(request: NextRequest) {
     );
   } catch (error) {
     if (error instanceof HttpError) {
+      // 5xx는 원본 오류(연결 원인 등)를 응답에 싣지 않고 로그에만 남긴다(#512).
+      if (error.status >= 500) {
+        console.error("[bootstrap] upstream call failed:", error.status, error.url, error.message);
+      }
       return NextResponse.json<ApiErrorResponse>(
         {
           success: false,
-          message: error.message,
+          message:
+            error.status >= 500
+              ? "Upstream server error occurred while loading bootstrap info."
+              : error.message,
           statusCode: error.status,
-          details: error.body,
+          details: clientErrorDetails(error),
         },
         { status: error.status },
       );

@@ -19,7 +19,7 @@
  * 피할 수 있다.
  */
 export { HttpClient } from "./http-client";
-export { HttpError } from "./http-error";
+export { HttpError, clientErrorDetails } from "./http-error";
 export {
   ApiError,
   ApiErrorCode,

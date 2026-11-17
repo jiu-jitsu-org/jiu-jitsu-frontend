@@ -67,8 +67,6 @@
 ```txt
 oss-frontend/src/
 ├── app/
-│   ├── service-info/
-│   │   └── page.tsx
 │   ├── styles/
 │   │   ├── motion.css         # 모션 토큰 (스프링 이징·키프레임, 손으로 관리)
 │   │   └── tokens/            # 자동 생성 (npm run tokens)
@@ -76,8 +74,6 @@ oss-frontend/src/
 │   │       ├── semantic.css
 │   │       ├── component.css
 │   │       └── theme.css
-│   ├── version-info/
-│   │   └── page.tsx
 │   ├── favicon.ico
 │   ├── globals.css
 │   ├── layout.tsx
@@ -88,21 +84,12 @@ oss-frontend/src/
 │   ├── bootstrap/
 │   │   ├── application/
 │   │   │   ├── bootstrap-use-case-factory.ts
-│   │   │   ├── get-bootstrap-info-page-data.ts
 │   │   │   └── get-bootstrap-info.ts
 │   │   ├── domain/
 │   │   │   ├── bootstrap-info.ts
 │   │   │   └── bootstrap-repository.ts
-│   │   ├── infrastructure/
-│   │   │   └── external-bootstrap-repository.ts
-│   │   └── presentation/
-│   │       ├── actions/
-│   │       │   ├── bootstrap-info-action-state.ts
-│   │       │   └── load-bootstrap-info-action.ts
-│   │       ├── README.md
-│   │       └── version-info-page.tsx
-│   └── service/
-│       └── presentation/
+│   │   └── infrastructure/
+│   │       └── external-bootstrap-repository.ts
 └── shared/
     ├── lib/
     │   └── http/
@@ -167,9 +154,8 @@ UI와 사용자 상호작용을 담당한다.
 
 현재 예시:
 
-- `bootstrap/presentation/version-info-page.tsx`
-- `bootstrap/presentation/actions/load-bootstrap-info-action.ts`
-- `bootstrap/presentation/actions/bootstrap-info-action-state.ts`
+- `community/presentation/post-detail-screen.tsx`
+- `competition/presentation/actions/set-competition-interest-action.ts`
 
 ### `src/features/[feature]/application`
 
@@ -287,6 +273,8 @@ Presentation -> Application -> Domain
 - Server Component는 초기 데이터 조회 시 application page data query를 직접 호출한다.
 
 ## 실제 파일 흐름
+
+> 아래 예시의 `/version-info` 화면과 그 파일(`version-info-page.tsx`, `load-bootstrap-info-action.ts`, `bootstrap-info-action-state.ts`, `get-bootstrap-info-page-data.ts`)은 #512에서 지웠다. 흐름 설명용으로만 남긴다. 같은 흐름의 실제 코드: 초기 조회는 글 상세(`src/app/community/[id]/page.tsx` → `src/features/community/application/get-post-detail-page-data.ts`), Server Action은 대회 관심(`src/features/competition/presentation/actions/set-competition-interest-action.ts`).
 
 ### 초기 Server Component 조회 후 Client Component 전달
 
@@ -476,7 +464,7 @@ npm run lint
 npm run build
 ```
 
-화면 또는 사용자 동작을 바꿨다면 `/version-info?osName=ANDROID`에서 초기 렌더링과 버튼 갱신을 함께 확인한다.
+화면 또는 사용자 동작을 바꿨다면 바꾼 화면에서 초기 렌더링과 사용자 동작을 함께 확인한다.
 
 ## 참고
 
