@@ -172,7 +172,7 @@ import { mapBootstrapError } from "./map-bootstrap-error";
 - `src/features/bootstrap/application/get-bootstrap-info.ts`
 - `src/features/bootstrap/infrastructure/external-bootstrap-repository.ts`
 - `src/app/api/bootstrap/info/route.ts`
-- `src/app/version-info/page.tsx`
+- `src/app/community/[id]/page.tsx`
 
 ### 변수와 함수
 
@@ -193,8 +193,8 @@ import { mapBootstrapError } from "./map-bootstrap-error";
 
 예시:
 
-- 파일: `version-info-page.tsx`
-- 컴포넌트: `VersionInfoPage`
+- 파일: `post-detail-screen.tsx`
+- 컴포넌트: `PostDetailScreen`
 
 ### 타입과 인터페이스
 

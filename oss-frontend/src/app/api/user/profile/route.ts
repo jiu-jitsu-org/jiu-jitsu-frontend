@@ -5,7 +5,7 @@ import {
   SessionRequiredError,
   requireSessionToken,
 } from "@/shared/lib/auth";
-import { HttpError } from "@/shared/lib/http";
+import { HttpError, clientErrorDetails } from "@/shared/lib/http";
 import type {
   ApiErrorResponse,
   ApiSuccessResponse,
@@ -71,7 +71,7 @@ export async function GET() {
           success: false,
           message,
           statusCode: error.status,
-          details: error.body,
+          details: clientErrorDetails(error),
         },
         { status: error.status },
       );

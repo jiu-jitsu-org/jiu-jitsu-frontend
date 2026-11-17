@@ -43,20 +43,20 @@
 예시:
 
 ```txt
-src/app/version-info/page.tsx
-  -> src/features/bootstrap/application/get-bootstrap-info-page-data.ts
-  -> src/features/bootstrap/application/get-bootstrap-info.ts
-  -> src/features/bootstrap/infrastructure/external-bootstrap-repository.ts
+src/app/community/[id]/page.tsx
+  -> src/features/community/application/get-post-detail-page-data.ts
+  -> src/features/community/application/get-post-detail.ts
+  -> src/features/community/infrastructure/external-post-repository.ts
   -> src/shared/lib/http/http-client.ts
 ```
 
-사용자가 `/version-info`에서 버튼을 눌러 다시 조회하는 흐름:
+사용자가 대회 관심 하트를 누르는 흐름:
 
 ```txt
-src/features/bootstrap/presentation/version-info-page.tsx
-  -> src/features/bootstrap/presentation/actions/load-bootstrap-info-action.ts
-  -> src/features/bootstrap/application/get-bootstrap-info-page-data.ts
-  -> src/features/bootstrap/infrastructure/external-bootstrap-repository.ts
+src/features/competition/presentation/use-competition-interest.ts
+  -> src/features/competition/presentation/actions/set-competition-interest-action.ts
+  -> src/features/competition/application/set-competition-interest.ts
+  -> src/features/competition/infrastructure/ (대회 repository)
   -> src/shared/lib/http/http-client.ts
 ```
 
