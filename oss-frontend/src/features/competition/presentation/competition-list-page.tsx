@@ -4,6 +4,7 @@ import { FeedErrorState } from "@/features/community/presentation/feed-error-sta
 import { CompetitionAlertProvider } from "@/features/competition/presentation/competition-alert-provider";
 import { CompetitionListSkeleton } from "@/features/competition/presentation/competition-list-skeleton";
 import { CompetitionListView } from "@/features/competition/presentation/competition-list-view";
+import { readServerNow } from "@/shared/lib/time";
 import { EmptyState } from "@/shared/ui/empty-state";
 
 /**
@@ -45,7 +46,10 @@ function renderBody(data: CompetitionListPageData) {
   }
   return (
     // 처음 관심 등록하면 마감 알림을 받을지 묻는 시트(#375)를 이 아래 어디서든 띄운다.
-    <CompetitionAlertProvider settings={data.alertSettings} today={data.today}>
+    <CompetitionAlertProvider
+      settings={data.alertSettings}
+      serverNow={readServerNow()}
+    >
       <CompetitionListView
         list={data.list}
         currentYear={data.currentYear}

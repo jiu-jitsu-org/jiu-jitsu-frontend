@@ -24,7 +24,7 @@ import { isCompetitionEnabled } from "@/features/competition/application/is-comp
 import { loadCompetitionAlertSettings } from "@/features/competition/application/load-competition-alert-settings";
 import { CompetitionAlertProvider } from "@/features/competition/presentation/competition-alert-provider";
 import { readSessionToken } from "@/shared/lib/auth";
-import { readServerNow, toKstDateKey } from "@/shared/lib/time";
+import { readServerNow } from "@/shared/lib/time";
 import { ServerClockProvider } from "@/shared/ui/server-clock";
 import { Spinner } from "@/shared/ui/spinner";
 
@@ -81,7 +81,7 @@ export default async function Home({
       <ServerClockProvider serverNow={now}>
         <CompetitionAlertProvider
           settings={alertSettings}
-          today={toKstDateKey(now)}
+          serverNow={now}
         >
           <main className="feed-bounce-scroll min-h-screen bg-surface-container">
             {/* 새로고침이면 이전 위치 대신 맨 위에서 시작한다(#260). */}

@@ -21,7 +21,6 @@ import {
 import { CompetitionAlertInboxItem } from "@/features/competition/presentation/competition-alert-inbox-item";
 import { useOpenCompetitionDetail } from "@/features/competition/presentation/competition-detail-link";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
-import { toKstDateKey } from "@/shared/lib/time";
 import { usePendingToast, useToast } from "@/shared/ui";
 import { useServerNow } from "@/shared/ui/server-clock";
 
@@ -54,9 +53,12 @@ export function InboxView({
   initialNotifications: InboxNotification[];
   competitionAlertSettings: CompetitionAlertSettings | null;
 }) {
-  const today = toKstDateKey(useServerNow());
+  const serverNow = useServerNow();
   return (
-    <CompetitionAlertProvider settings={competitionAlertSettings} today={today}>
+    <CompetitionAlertProvider
+      settings={competitionAlertSettings}
+      serverNow={serverNow}
+    >
       <InboxList initialNotifications={initialNotifications} />
     </CompetitionAlertProvider>
   );

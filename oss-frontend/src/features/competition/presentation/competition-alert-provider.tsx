@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -15,17 +16,21 @@ import {
   useIsSignedIn,
 } from "@/features/auth/presentation/auth-provider";
 import { COMPETITION_GONE_MESSAGE } from "@/features/community/presentation/notifications/inbox-copy";
-import type {
-  CompetitionAlertSettings,
-  CompetitionNoticeResult,
+import {
+  deadlineAlertsPassedToday,
+  type CompetitionAlertSettings,
+  type CompetitionNoticeResult,
+  type DeadlineAlertClock,
 } from "@/features/competition/domain/competition-alert";
 import {
   answerCompetitionAlertPromptAction,
   setCompetitionNoticeAction,
 } from "@/features/competition/presentation/actions/competition-alert-actions";
 import { retryAfterSessionRefresh } from "@/features/competition/presentation/retry-after-session-refresh";
+import { deadlineAlertClockAt } from "@/features/competition/presentation/competition-alert-clock";
 import {
   CompetitionAlertSheet,
+  DEADLINE_ALERT_PASSED_MESSAGE,
   type CompetitionAlertTarget,
 } from "@/features/competition/presentation/competition-alert-sheet";
 import { notifyCompetitionAlertsEnabled } from "@/shared/lib/native-bridge";
@@ -38,8 +43,13 @@ export type CompetitionAlerts = {
   enabled: boolean;
   /** 마감 알림 시트를 연다 — 대회 상세에서 알림을 켜는데 설정이 꺼져 있을 때(#376). */
   ask: (target: CompetitionAlertTarget) => void;
-  /** 처음 관심 등록했을 때만 시트를 연다(#375) — 설정이 꺼져 있고 아직 물어본 적이 없을 때(서버 값). */
+  /**
+   * 처음 관심 등록했을 때만 시트를 연다(#375) — 설정이 꺼져 있고 아직 물어본 적이 없을 때(서버 값).
+   * 오늘 알림이 이미 나가 이 대회에 남은 알림이 없으면 묻지 않고 그렇다고만 알린다(#548) — 다음 대회에서 다시 묻는다.
+   */
   askOnFirstInterest: (target: CompetitionAlertTarget) => void;
+  /** 지금(서버 시각) 오늘 알림이 이미 나가 이 대회에 남은 알림이 없는지(#548) — 켜도 받을 알림이 없다. */
+  alertsPassedToday: (target: CompetitionAlertTarget) => boolean;
   /**
    * 이 대회 알림 켜기·끄기(#376 · #377). 켜면 관심도 함께 등록된다. 실패하면 토스트로 알리고 null.
    */
@@ -62,15 +72,17 @@ export function useCompetitionAlerts(): CompetitionAlerts | null {
  * 서버가 그린 설정(props) 위에 이 화면에서 바꾼 값을 덮어 쓴다 — 관심 등록 훅과 같은 방식이다.
  * 비로그인이면 설정이 없다(null) — 알림을 켤 수도 없고 시트도 뜨지 않는다.
  * 시트의 답은 '알림 받기'·'나중에' 모두 서버에 남긴다(PUT /notice/setting/competition) — 다음부터 묻지 않는다.
+ * 남은 알림은 시트를 여는 순간의 서버 시각으로 가른다(#548) — 대회 탭처럼 오래 떠 있는 화면에서도 저녁 6시가
+ * 지나면 오늘 알림을 약속하지 않는다. 서버가 그린 시각에 그 뒤 지난 시간만 더한다 — 기기 시각을 바꿔도 서버 기준이다.
  */
 export function CompetitionAlertProvider({
   settings,
-  today,
+  serverNow,
   children,
 }: {
   settings: CompetitionAlertSettings | null;
-  /** 한국 날짜 "YYYY-MM-DD" — 시트가 지난 마감을 뺀다. */
-  today: string;
+  /** 서버가 그린 시각(ms) — 시트를 여는 순간의 서버 시각을 여기서부터 센다. */
+  serverNow: number;
   children: ReactNode;
 }) {
   const signedIn = useIsSignedIn();
@@ -81,10 +93,34 @@ export function CompetitionAlertProvider({
   const [sheet, setSheet] = useState<{
     target: CompetitionAlertTarget | null;
     open: boolean;
-  }>({ target: null, open: false });
+    /** 연 순간의 시각 — 닫히는 동안에도 줄이 바뀌지 않게 같이 둔다. */
+    clock: DeadlineAlertClock;
+  }>(() => ({
+    target: null,
+    open: false,
+    clock: deadlineAlertClockAt(serverNow),
+  }));
   const pending = useRef(new Set<number>());
   // '알림 받기'를 빠르게 두 번 눌러도 한 번만 켠다 — 시트가 내려가는 동안 버튼이 남아 있다.
   const answering = useRef(false);
+  // 서버가 그린 시각을 받은 순간의 기기 시계 · 단조 시계. 마운트 전(서버 렌더)에는 없어 serverNow를 그대로 쓴다.
+  const clockBase = useRef<{ wall: number; mono: number } | null>(null);
+  useEffect(() => {
+    clockBase.current = { wall: Date.now(), mono: performance.now() };
+  }, [serverNow]);
+  // 지난 시간은 기기 시계와 단조 시계 중 큰 쪽으로 센다 — 화면을 연 채 기기 시각을 뒤로 돌려도
+  // 줄어들지 않고(단조 시계), 기기가 잠든 동안 멈추는 단조 시계 대신 기기 시계가 잠든 시간을 센다.
+  // 앞으로 돌리면 늦게 센 만큼 오늘 알림을 약속하지 않는 쪽이라 안전하다.
+  const clockNow = useCallback(() => {
+    const base = clockBase.current;
+    if (!base) return deadlineAlertClockAt(serverNow);
+    const elapsed = Math.max(
+      Date.now() - base.wall,
+      performance.now() - base.mono,
+      0,
+    );
+    return deadlineAlertClockAt(serverNow + elapsed);
+  }, [serverNow]);
 
   // 서버 값이 새로 오거나 로그인 상태가 바뀌면 덮어 쓴 값을 비운다(관심 등록 훅과 같은 이유).
   const [seen, setSeen] = useState({ settings, signedIn });
@@ -99,23 +135,35 @@ export function CompetitionAlertProvider({
     signedIn && settings !== null && (enabledOverride ?? settings.enabled);
   const asked = askedOverride || (settings?.asked ?? false);
 
+  const alertsPassedToday = useCallback(
+    (target: CompetitionAlertTarget) =>
+      deadlineAlertsPassedToday(target.registration, clockNow()),
+    [clockNow],
+  );
+
   const ask = useCallback(
     (target: CompetitionAlertTarget) => {
       if (!available) return;
-      setSheet({ target, open: true });
+      setSheet({ target, open: true, clock: clockNow() });
     },
-    [available],
+    [available, clockNow],
   );
 
   const askOnFirstInterest = useCallback(
     (target: CompetitionAlertTarget) => {
       // 앱 설정에서 이미 켰거나 한 번 물어본 사람에게는 묻지 않는다.
       if (!available || enabled || asked) return;
+      const clock = clockNow();
+      // 받을 알림이 남지 않았으면 묻지 않는다 — 물어본 것으로도 남기지 않아 다음 대회에서 묻는다.
+      if (deadlineAlertsPassedToday(target.registration, clock)) {
+        toast.show(DEADLINE_ALERT_PASSED_MESSAGE, { tone: "info" });
+        return;
+      }
       // 답을 기다리는 동안 다른 대회를 눌러도 다시 묻지 않게 먼저 표시한다.
       setAskedOverride(true);
-      setSheet({ target, open: true });
+      setSheet({ target, open: true, clock });
     },
-    [asked, available, enabled],
+    [asked, available, clockNow, enabled, toast],
   );
 
   const setNotice = useCallback(
@@ -197,8 +245,15 @@ export function CompetitionAlertProvider({
   };
 
   const value = useMemo<CompetitionAlerts>(
-    () => ({ available, enabled, ask, askOnFirstInterest, setNotice }),
-    [ask, askOnFirstInterest, available, enabled, setNotice],
+    () => ({
+      available,
+      enabled,
+      ask,
+      askOnFirstInterest,
+      alertsPassedToday,
+      setNotice,
+    }),
+    [alertsPassedToday, ask, askOnFirstInterest, available, enabled, setNotice],
   );
 
   return (
@@ -207,7 +262,7 @@ export function CompetitionAlertProvider({
       <CompetitionAlertSheet
         target={sheet.target}
         open={sheet.open}
-        today={today}
+        clock={sheet.clock}
         onAccept={() => void accept()}
         onLater={later}
       />

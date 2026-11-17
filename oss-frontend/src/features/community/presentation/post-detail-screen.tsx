@@ -10,7 +10,7 @@ import { CompetitionAlertProvider } from "@/features/competition/presentation/co
 import { PostCompetitionCard } from "@/features/competition/presentation/post-competition-card";
 import { ApiErrorCode } from "@/shared/lib/http";
 import { NativePageReady } from "@/shared/lib/native-bridge";
-import { readServerNow, toKstDateKey } from "@/shared/lib/time";
+import { readServerNow } from "@/shared/lib/time";
 
 /**
  * 게시글 상세 화면 루트 (서버 컴포넌트).
@@ -81,7 +81,7 @@ export async function PostDetailScreen({
         // 대회 카드 하트로 처음 관심 등록하면 마감 알림 시트를 띄운다(#375).
         <CompetitionAlertProvider
           settings={competitionAlertSettings}
-          today={toKstDateKey(readServerNow())}
+          serverNow={readServerNow()}
         >
           {view}
         </CompetitionAlertProvider>

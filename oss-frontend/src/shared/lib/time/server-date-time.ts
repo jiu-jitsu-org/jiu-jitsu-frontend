@@ -56,6 +56,11 @@ export function toKstDateKey(epochMs: number): string {
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+/** 시각(ms) → 그 순간의 한국 시(0~23). 하루 중 정해진 시각이 지났는지 볼 때 쓴다. */
+export function toKstHour(epochMs: number): number {
+  return kstCalendar(epochMs).hours;
+}
+
 /**
  * 공통 상대 시간 표기 — 게시글 리스트 · 상세 · 댓글 · 대댓글 · 알림함이 모두 이 규칙을 쓴다.
  *
