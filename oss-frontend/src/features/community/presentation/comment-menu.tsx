@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { markBlockChanged } from "@/features/community/presentation/block-change-watcher";
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
 import {
   COMMENT_REACTION_BUTTON,
@@ -212,6 +213,8 @@ export function CommentMenu({
     }
 
     toast.show("유저를 차단했어요", { tone: "success" });
+    // 뒤에 떠 있는 홈 피드 등이 다시 보일 때 그 회원 글을 빼게 알린다(#531).
+    markBlockChanged();
     // 서버 렌더 목록 재요청 — 차단된 회원의 댓글은 placeholder로, 게시글은 목록에서 빠진다.
     router.refresh();
   }

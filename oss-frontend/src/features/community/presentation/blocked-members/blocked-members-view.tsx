@@ -4,7 +4,10 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
 import type { BlockedMember } from "@/features/community/domain/blocked-member";
-import { useOnBlockChange } from "@/features/community/presentation/block-change-watcher";
+import {
+  markBlockChanged,
+  useOnBlockChange,
+} from "@/features/community/presentation/block-change-watcher";
 import { BlockedMemberItem } from "@/features/community/presentation/blocked-members/blocked-member-item";
 import { BlockedMembersAppBar } from "@/features/community/presentation/blocked-members/blocked-members-app-bar";
 import { BlockedMembersEmptyState } from "@/features/community/presentation/blocked-members/blocked-members-empty-state";
@@ -100,6 +103,8 @@ export function BlockedMembersView({
       }
 
       setRemoved(userId, "done");
+      // 뒤에 떠 있는 홈 피드 등이 다시 보일 때 그 회원 글을 다시 넣게 알린다(#531).
+      markBlockChanged();
       toast.show("차단을 해제했어요", { tone: "success" });
     } finally {
       pendingIds.current.delete(userId);
