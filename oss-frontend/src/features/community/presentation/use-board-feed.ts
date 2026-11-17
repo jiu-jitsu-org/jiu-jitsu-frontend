@@ -18,6 +18,8 @@ import { bffFetch } from "@/shared/lib/http/bff-fetch";
  *
  * - 동시/중복 로드는 진행 플래그(loadingRef)로 막는다.
  * - 페이지 사이에 새 글이 끼어들면 page 기준 오프셋이 겹칠 수 있어 id로 중복 제거한다(키 충돌 방지).
+ * - 카드를 걷어 내면(숨기기 · 신고 · 삭제 · 차단) 서버 목록도 그만큼 당겨져, 다음 페이지가 경계의 글을 건너뛴다.
+ *   걷어 낸 뒤 첫 loadMore는 당겨진 만큼 앞 페이지까지 다시 받아 메운다(#522).
  * - 실패하면 status="error"로 두고 loadMore 재호출(재시도)로 같은 페이지를 다시 시도한다.
  *
  * listUrl은 목록 출처(BFF 경로)다. 기본은 메인 피드이고, 내 커뮤니티 활동(쓴 글 · 저장)처럼
@@ -46,6 +48,12 @@ export function useBoardFeed(
   const pageRef = useRef(initial.page);
   // reloadLoaded가 늦게 온 응답을 버리는 기준 — 마지막 다시 읽기 순번.
   const reloadSeqRef = useRef(0);
+  // 마지막으로 페이지 경계를 맞춘 뒤 걷어 낸 글 — 서버 목록이 이만큼 당겨져 있다(#522). 되돌리면 뺀다.
+  const shiftedIdsRef = useRef(new Set<number>());
+
+  // 걷어낸 항목을 원래 위치와 함께 기억한다 — 되돌리기가 복원할 데이터를 목록만 알고 있기 때문.
+  // (상세에서 숨긴 경우 상세는 이미 닫혀 있어 게시글 데이터를 들고 있지 않다.)
+  const removedRef = useRef(new Map<number, { post: PostSummary; index: number }>());
 
   const loadMore = useCallback(async () => {
     if (loadingRef.current || isLast) return;
@@ -53,20 +61,41 @@ export function useBoardFeed(
     loadingRef.current = true;
     setStatus("loading");
     const nextPage = page + 1;
+    // 걷어 낸 k개만큼 서버 목록이 당겨져, 건너뛸 글은 서버 기준 (nextPage·size − k)번째부터다 — 그 페이지부터
+    // 다시 받아 중복 제거로 붙인다. 걷어 낸 게 없으면 다음 페이지 하나만(지금과 같다).
+    const shifted = [...shiftedIdsRef.current];
+    const firstPage = Math.max(
+      0,
+      Math.floor((nextPage * FEED_PAGE_SIZE - shifted.length) / FEED_PAGE_SIZE),
+    );
 
     try {
-      const response = await bffFetch(feedPageUrl(listUrl, nextPage));
-      if (!response.ok) {
-        throw new Error(`board list request failed: ${response.status}`);
+      const lists = await Promise.all(
+        Array.from({ length: nextPage - firstPage + 1 }, (_, index) =>
+          fetchFeedPage(listUrl, firstPage + index),
+        ),
+      );
+      if (lists.some((list) => list === null)) {
+        throw new Error("board list request failed");
       }
+      const loaded = lists as PostList[];
+      const list = loaded[loaded.length - 1];
 
-      const body = (await response.json().catch(() => null)) as
-        | { data?: PostList }
-        | null;
-      const list = body?.data;
-      if (!list) throw new Error("board list response has no data");
-
-      setItems((prev) => mergeUnique(prev, list.items));
+      // 걷어 낸 글은 다시 붙이지 않는다 — 다시 받은 앞 페이지에 남아 있을 수 있다(저장 목록은 숨김 · 신고 글을
+      // 빼지 않고, 받는 사이 걷어 낸 글은 서버가 아직 빼기 전일 수 있다).
+      const removed = removedRef.current;
+      setItems((prev) =>
+        loaded.reduce(
+          (merged, each) =>
+            mergeUnique(
+              merged,
+              each.items.filter((post) => !removed.has(post.id)),
+            ),
+          prev,
+        ),
+      );
+      // 이제 당겨진 서버 목록 기준으로 이어지므로 메운 만큼 비운다. 받는 사이 걷어 낸 글은 남긴다.
+      for (const id of shifted) shiftedIdsRef.current.delete(id);
       pageRef.current = list.page;
       setPage(list.page);
       setIsLast(list.isLast);
@@ -78,13 +107,9 @@ export function useBoardFeed(
     }
   }, [isLast, listUrl, page]);
 
-  // 걷어낸 항목을 원래 위치와 함께 기억한다 — 되돌리기가 복원할 데이터를 목록만 알고 있기 때문.
-  // (상세에서 숨긴 경우 상세는 이미 닫혀 있어 게시글 데이터를 들고 있지 않다.)
-  const removedRef = useRef(new Map<number, { post: PostSummary; index: number }>());
-
   // 카드 ⋮ 메뉴에서 삭제가 성공하면 목록에서 걷어낸다(서버 재조회 없이 즉시 반영).
-  // page/isLast는 건드리지 않는다 — 한 건 빠졌다고 페이지 경계가 달라지지 않고,
-  // 뒤이은 loadMore는 여전히 서버 기준 page+1을 이어 받아야 하기 때문.
+  // page/isLast는 건드리지 않는다. 서버 목록은 그만큼 당겨지므로 걷어 낸 글을 기억해 두고, 다음 loadMore가
+  // 당겨진 만큼 앞 페이지까지 다시 받아 경계의 글을 메운다(#522).
   const removePost = useCallback((postId: number) => {
     setItems((prev) => {
       const at = prev.findIndex((post) => post.id === postId);
@@ -92,6 +117,7 @@ export function useBoardFeed(
 
       // 같은 값을 두 번 써도 결과가 같아 updater가 재실행돼도 안전하다.
       removedRef.current.set(postId, { post: prev[at], index: at });
+      shiftedIdsRef.current.add(postId);
       return prev.filter((post) => post.id !== postId);
     });
   }, []);
@@ -106,6 +132,8 @@ export function useBoardFeed(
   const restorePost = useCallback((post: PostSummary, index: number) => {
     setItems((prev) => {
       if (prev.some((item) => item.id === post.id)) return prev;
+      // 되돌린 글은 서버 목록에도 돌아온다 — 경계를 맞추기 전이면 당겨진 수에서 뺀다.
+      shiftedIdsRef.current.delete(post.id);
       const at = Math.min(Math.max(index, 0), prev.length);
       return [...prev.slice(0, at), post, ...prev.slice(at)];
     });
@@ -212,6 +240,8 @@ export function useBoardFeed(
         ),
       );
       setIsLast(loaded[loaded.length - 1].isLast);
+      // 서버 기준으로 통째로 바꿨으니 페이지 경계도 맞춰졌다.
+      shiftedIdsRef.current.clear();
       return;
     }
   }, [listUrl]);
