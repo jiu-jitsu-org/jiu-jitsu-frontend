@@ -13,7 +13,8 @@ import { CloseIcon, EditIcon } from "@/shared/ui/icons";
 /**
  * 관심 대회가 끝난 뒤 대회 탭 배너 자리의 결과 남기기 배너 (#403).
  *
- * 곧 마감 배너와 짜임(네모·두 줄 글·✕ 자리)이 같고, 밝은 면에 '남기기' 버튼을 더한다.
+ * 곧 마감 배너와 짜임(네모·두 줄 글·✕ 자리)과 짙은 면이 같고, '남기기' 버튼을 더한다.
+ * 연한 파란 면은 대회 탭 위쪽 띠 색 그라데이션에 묻혀 같은 자리의 곧 마감 배너와 같은 짙은 면을 쓴다.
  * 한 장에 대회 하나만 — 끝난 관심 대회가 여럿이면 배너 자리가 대회마다 한 장씩 따로 띄운다.
  * ✕는 그 대회를 닫는다(호출부가 한다) — 상세 배너(#368)와 닫은 기록을 함께 써서 두 곳 모두 다시 뜨지 않는다.
  * 앱 밖 브라우저에서는 띄우지 않는다 — '내 기록에 남기기'가 앱 화면을 여는 일이라서다(배너 자리가 거른다).
@@ -54,18 +55,18 @@ export function CompetitionResultCard({
     <aside aria-label="대회 결과 남기기" className="relative">
       {/* 곧 마감 배너와 같은 짜임 — 왼쪽 44 네모, 작은 글 + 굵은 대회 이름, ✕ 자리(오른쪽 48)를 비운다.
           할 일이 있는 배너라 이름 오른쪽에 '남기기' 버튼을 둬 바로 누르게 한다. */}
-      <div className="flex w-full items-center gap-3 rounded-20 bg-surface-primary-subtle py-3 pr-12 pl-4">
+      <div className="flex w-full items-center gap-3 rounded-20 bg-[var(--cool-gray-900)] py-3 pr-12 pl-4 text-text-on-dark">
         <span
           aria-hidden
-          className="flex size-11 flex-none items-center justify-center rounded-10 bg-surface-container text-primary"
+          className="flex size-11 flex-none items-center justify-center rounded-10 bg-[var(--opacity-white-20)]"
         >
           <EditIcon size={20} />
         </span>
         <span className="flex min-w-0 flex-1 flex-col">
-          <span className="text-[12px] leading-[16px] text-text-secondary">
+          <span className="text-[12px] leading-[16px] text-[var(--opacity-white-60)]">
             {endedLabel(group.daysAgo)} 관심 대회
           </span>
-          <span className="truncate text-[16px] leading-[22px] font-bold text-text-primary">
+          <span className="truncate text-[16px] leading-[22px] font-bold">
             {only.name}
           </span>
         </span>
@@ -83,7 +84,7 @@ export function CompetitionResultCard({
         size="l"
         aria-label="결과 남기기 안내 닫기"
         onClick={onClose}
-        className={`${BANNER_CLOSE_POSITION} text-icon-secondary`}
+        className={`${BANNER_CLOSE_POSITION} text-[var(--opacity-white-60)] active:bg-[var(--opacity-white-20)]`}
       >
         <CloseIcon size={20} />
       </IconButton>
