@@ -5,6 +5,8 @@ import type { CSSProperties } from "react";
 import { AppBarShell } from "@/features/community/presentation/app-bar-shell";
 import { BalanceBoardSkeleton } from "@/features/community/presentation/balance/balance-board-skeleton";
 import { closeDetail } from "@/features/community/presentation/close-detail";
+import { OpenInAppBanner } from "@/features/community/presentation/open-in-app-banner";
+import { useIsExternalBrowser } from "@/shared/lib/native-bridge";
 import { Divider } from "@/shared/ui/divider";
 import { IconButton } from "@/shared/ui/icon-button";
 import { BackArrowIcon } from "@/shared/ui/icons";
@@ -26,11 +28,7 @@ function pulseDelay(order: number): CSSProperties {
 export function DetailSkeleton({ variant }: { variant: "post" | "balance" }) {
   return (
     <div className="min-h-dvh bg-[var(--bw-true-white)]">
-      <AppBarShell>
-        <IconButton onClick={closeDetail} aria-label="뒤로 가기">
-          <BackArrowIcon size={24} />
-        </IconButton>
-      </AppBarShell>
+      <DetailSkeletonAppBar />
 
       <div aria-hidden>
         {variant === "post" ? <PostBodySkeleton /> : <BalanceBodySkeleton />}
@@ -112,5 +110,21 @@ function BalanceBodySkeleton() {
         <Skeleton className="h-3 w-32" />
       </div>
     </div>
+  );
+}
+
+/**
+ * 상세 스켈레톤의 머리 — 실제 상세 머리와 같은 갈림(#510): 앱이면 뒤로 가기 앱바, 브라우저면 '앱으로 보기' 배너.
+ * loading.tsx가 깐 User-Agent 힌트로 첫 렌더부터 갈라, 브라우저에서 앱바가 스쳤다가 배너로 바뀌지 않게 한다.
+ */
+export function DetailSkeletonAppBar() {
+  const externalBrowser = useIsExternalBrowser();
+  if (externalBrowser) return <OpenInAppBanner />;
+  return (
+    <AppBarShell>
+      <IconButton onClick={closeDetail} aria-label="뒤로 가기">
+        <BackArrowIcon size={24} />
+      </IconButton>
+    </AppBarShell>
   );
 }

@@ -21,8 +21,9 @@ export function OpenInAppBanner() {
   const openInAppHref = useOpenInAppHref();
 
   return (
-    // 처음 그려질 때 옅게 나타난다(200ms).
-    <div className="box-content bg-surface-container pt-[var(--safe-area-top)] motion-safe:animate-fade-in">
+    // 페이드 없이 바로 그린다 — 서버가 User-Agent로 브라우저를 알아 첫 프레임부터 이 배너를 그리고(#510),
+    // 로딩 스켈레톤 → 실제 화면으로 바뀔 때 같은 자리의 배너가 다시 옅어지지 않게.
+    <div className="box-content bg-surface-container pt-[var(--safe-area-top)]">
       <div className="flex items-center gap-3 border-b border-border-subtle px-4 py-3">
         {/* 앱 아이콘 — iOS 홈 화면 아이콘과 같은 라운드(약 22%)를 준다. 정적 자산이라 next/image 불필요. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}

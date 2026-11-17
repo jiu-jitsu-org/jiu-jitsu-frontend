@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 
 import { SessionHintProvider } from "@/features/auth/presentation/session-hint";
+import { AppClientHint } from "@/shared/lib/app-client/app-client-hint";
 import { RefreshOnLogin } from "@/features/auth/presentation/refresh-on-login";
 import { getCompetitionDetailPageData } from "@/features/competition/application/get-competition-detail-page-data";
 import { isCompetitionEnabled } from "@/features/competition/application/is-competition-enabled";
@@ -69,11 +70,13 @@ export default async function CompetitionDetailRoutePage({
   return (
     // 관심 버튼이 로그인 여부로 갈린다 — 세션 판정 전에도 맞게 그리고, 로그인하면 다시 읽는다.
     <SessionHintProvider authenticated={signedIn}>
-      <RefreshOnLogin />
-      {/* 대회 이야기의 "2일 전"을 서버 시각 기준으로 계산한다. */}
-      <ServerClockProvider serverNow={now}>
-        <CompetitionDetailPage data={data} />
-      </ServerClockProvider>
+      <AppClientHint>
+        <RefreshOnLogin />
+        {/* 대회 이야기의 "2일 전"을 서버 시각 기준으로 계산한다. */}
+        <ServerClockProvider serverNow={now}>
+          <CompetitionDetailPage data={data} />
+        </ServerClockProvider>
+      </AppClientHint>
     </SessionHintProvider>
   );
 }

@@ -2,11 +2,8 @@
 
 import type { CSSProperties } from "react";
 
-import { AppBarShell } from "@/features/community/presentation/app-bar-shell";
-import { closeDetail } from "@/features/community/presentation/close-detail";
+import { DetailSkeletonAppBar } from "@/features/community/presentation/detail-skeleton";
 import { SubviewScrollShell } from "@/features/community/presentation/subview-scroll-shell";
-import { IconButton } from "@/shared/ui/icon-button";
-import { BackArrowIcon } from "@/shared/ui/icons";
 import { Skeleton } from "@/shared/ui/skeleton";
 
 /** 덩어리마다 150ms씩 늦춰 위에서 아래로 물결치게 깜빡인다(상세 스켈레톤과 같은 방식). */
@@ -24,11 +21,7 @@ function pulseDelay(order: number): CSSProperties {
 export function CompetitionDetailSkeleton() {
   return (
     <SubviewScrollShell className="bg-surface-container">
-      <AppBarShell>
-        <IconButton onClick={closeDetail} aria-label="뒤로 가기">
-          <BackArrowIcon size={24} />
-        </IconButton>
-      </AppBarShell>
+      <DetailSkeletonAppBar />
 
       <div aria-hidden>
         {/* 요약: 위 16 · 상태 줄(칩 26) · 이름(줄 32, 위 8) · 조회 줄(32, 위 12) */}

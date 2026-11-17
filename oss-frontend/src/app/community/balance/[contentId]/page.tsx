@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { SessionHintProvider } from "@/features/auth/presentation/session-hint";
+import { AppClientHint } from "@/shared/lib/app-client/app-client-hint";
 import { getBalanceShareMetadata } from "@/features/community/application/get-balance-share-metadata";
 import { normalizeCommentSort } from "@/features/community/domain/post";
 import { BalanceDetailScreen } from "@/features/community/presentation/balance/balance-detail-screen";
@@ -75,13 +76,15 @@ export default async function BalanceGameDetailPage({
   // 앱바 알림 종·⋮, 댓글 입력창이 로그인 여부로 갈린다 — 세션 판정 전에도 맞게 그리도록 힌트를 깐다(#173).
   return (
     <SessionHintProvider authenticated={sessionToken !== null}>
-      {/* 상대 시간("5분 전")을 서버 시각 기준으로 계산하고 60초마다 갱신한다(#188). */}
-      <ServerClockProvider serverNow={readServerNow()}>
-        <BalanceDetailScreen
-          contentId={parsed}
-          sort={normalizeCommentSort(sort)}
-        />
-      </ServerClockProvider>
+      <AppClientHint>
+        {/* 상대 시간("5분 전")을 서버 시각 기준으로 계산하고 60초마다 갱신한다(#188). */}
+        <ServerClockProvider serverNow={readServerNow()}>
+          <BalanceDetailScreen
+            contentId={parsed}
+            sort={normalizeCommentSort(sort)}
+          />
+        </ServerClockProvider>
+      </AppClientHint>
     </SessionHintProvider>
   );
 }

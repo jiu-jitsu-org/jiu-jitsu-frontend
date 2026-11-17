@@ -4,6 +4,7 @@ import { connection } from "next/server";
 
 import { RefreshOnLogin } from "@/features/auth/presentation/refresh-on-login";
 import { SessionHintProvider } from "@/features/auth/presentation/session-hint";
+import { AppClientHint } from "@/shared/lib/app-client/app-client-hint";
 import { getCompetitionListPageData } from "@/features/competition/application/get-competition-list-page-data";
 import { isCompetitionEnabled } from "@/features/competition/application/is-competition-enabled";
 import { CompetitionListPage } from "@/features/competition/presentation/competition-list-page";
@@ -25,8 +26,10 @@ export default async function CompetitionRoutePage() {
     // 관심 필터가 로그인 여부로 갈린다 — 세션 판정 전에도 맞게 그리도록 힌트를 깔고,
     // 로그인하면 관심 목록을 다시 읽도록 서버 렌더를 다시 돌린다.
     <SessionHintProvider authenticated={signedIn}>
-      <RefreshOnLogin />
-      <CompetitionListPage data={data} />
+      <AppClientHint>
+        <RefreshOnLogin />
+        <CompetitionListPage data={data} />
+      </AppClientHint>
     </SessionHintProvider>
   );
 }
