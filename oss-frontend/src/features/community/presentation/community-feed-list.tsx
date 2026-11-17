@@ -29,6 +29,10 @@ import type { PostSummary } from "@/features/community/domain/post-summary";
 import { FeedCard } from "@/features/community/presentation/feed/feed-card";
 import { PostCompetitionCard } from "@/features/competition/presentation/post-competition-card";
 import { FeedCardMenu } from "@/features/community/presentation/feed/feed-card-menu";
+import {
+  MEMBER_BLOCK_ACTION,
+  useBlockMember,
+} from "@/features/community/presentation/use-block-member";
 import { FeedListEnd } from "@/features/community/presentation/feed/feed-list-end";
 import {
   HIDE_TOAST,
@@ -117,6 +121,8 @@ export function CommunityFeedList({
   className?: string;
 }) {
   const toast = useToast();
+  // 상세에서 신고한 뒤 목록 토스트의 [차단](#550) — 확인창 웹 폴백은 이 목록이 그린다.
+  const { block: blockMember, dialog: blockDialog } = useBlockMember();
   const {
     items,
     isLast,
@@ -171,6 +177,20 @@ export function CommunityFeedList({
     [removePost, setCollapsed],
   );
 
+  /**
+   * 차단한 회원의 글을 이 목록에서 걷어 낸다(#550) — 다시 읽지 않고 화면에서 바로 뺀다.
+   * 저장 목록은 서버가 차단 · 신고 글을 빼지 않아 다시 읽으면 오히려 방금 신고한 카드가 되살아난다.
+   * 피드는 걷어 낸 수만큼 다음 페이지 경계를 맞추므로(#522) 빠지는 글도 없다.
+   */
+  const removeAuthorPosts = useCallback(
+    (userId: number) => {
+      for (const post of items) {
+        if (post.author.userId === userId) collapseAndRemove(post.id);
+      }
+    },
+    [collapseAndRemove, items],
+  );
+
   /** 접힌 상태로 끼워 넣은 뒤 다음 프레임에 펼친다(넣자마자 펼치면 전환이 생략된다). */
   const expandAfterInsert = useCallback(
     (postId: number) => {
@@ -203,9 +223,23 @@ export function CommunityFeedList({
     [collapseAndRemove],
   );
 
-  /** 토스트의 되돌리기 — 숨김 해제 후 원래 자리에 다시 펼친다. */
-  const handleUndoHide = useCallback(
+  /**
+   * 상세에서 남긴 토스트의 버튼.
+   * - 숨기기 되돌리기 — 숨김 해제 후 원래 자리에 다시 펼친다.
+   * - 신고 뒤 [차단](#550) — 작성자를 차단하고 그 회원 글을 목록에서 걷어 낸다.
+   */
+  const handleToastAction = useCallback(
     (action: PendingToastAction) => {
+      if (action.type === MEMBER_BLOCK_ACTION) {
+        if (!action.userId) return;
+        const userId = action.userId;
+        void blockMember({ userId, nickname: action.name ?? "" }).then(
+          (blocked) => {
+            if (blocked) removeAuthorPosts(userId);
+          },
+        );
+        return;
+      }
       if (action.type !== POST_HIDDEN_ACTION || action.postId === undefined) {
         return;
       }
@@ -222,10 +256,10 @@ export function CommunityFeedList({
         if (restoreRemoved(postId)) expandAfterInsert(postId);
       })();
     },
-    [expandAfterInsert, restoreRemoved, toast],
+    [blockMember, expandAfterInsert, removeAuthorPosts, restoreRemoved, toast],
   );
 
-  usePendingToast(handlePendingAction, handleUndoHide);
+  usePendingToast(handlePendingAction, handleToastAction);
 
   // 로그인 · 로그아웃 · 계정 전환(#511 · #516)은 좋아요 · 저장 · 내 글 메뉴뿐 아니라 차단 · 숨김에 따라 목록 구성도
   // 달라진다 — 같은 id 교체(refreshLoaded)로는 이전 계정 기준으로 빠진 글 · 남은 글이 그대로라 통째로 다시 읽는다.
@@ -382,6 +416,8 @@ export function CommunityFeedList({
                   restorePost(post, index);
                   expandAfterInsert(post.id);
                 }}
+                // 신고 완료 토스트의 [차단]으로 작성자를 막으면 그 회원 글을 모두 걷어 낸다(#550).
+                onAuthorBlocked={() => removeAuthorPosts(post.author.userId)}
               />
             </div>
           </div>
@@ -395,6 +431,7 @@ export function CommunityFeedList({
       {status === "loading" ? <FeedLoadingMore /> : null}
       {status === "error" ? <FeedLoadMoreError onRetry={loadMore} /> : null}
       {isLast ? <FeedListEnd /> : null}
+      {blockDialog}
     </div>
   );
 }
@@ -421,12 +458,14 @@ function FeedCardItem({
   authorLink,
   onDeleted,
   onRestored,
+  onAuthorBlocked,
 }: {
   post: PostSummary;
   hideAuthor: boolean;
   authorLink: boolean;
   onDeleted: () => void;
   onRestored: () => void;
+  onAuthorBlocked: () => void;
 }) {
   const openPostDetail = useOpenPostDetail();
   const openAuthorProfile = useOpenAuthorProfile();
@@ -486,8 +525,13 @@ function FeedCardItem({
           <FeedCardMenu
             postId={post.id}
             isOwner={post.viewer.isOwner}
+            author={{
+              userId: post.author.userId,
+              nickname: post.author.nickname,
+            }}
             onDeleted={onDeleted}
             onRestored={onRestored}
+            onAuthorBlocked={onAuthorBlocked}
           />
         )
       }

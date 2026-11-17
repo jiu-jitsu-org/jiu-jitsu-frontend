@@ -59,6 +59,10 @@ export function PostDetailView({
                 <PostDetailAppBar
                   postId={post.id}
                   isOwner={post.viewer.isOwner}
+                  author={{
+                    userId: post.author.userId,
+                    nickname: post.author.nickname,
+                  }}
                   initialNoticeEnabled={post.noticeEnabled}
                 />
               }

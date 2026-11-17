@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { markBlockChanged } from "@/features/community/presentation/block-change-watcher";
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
 import {
   COMMENT_REACTION_BUTTON,
@@ -17,6 +16,7 @@ import {
 } from "@/features/community/presentation/menu-box";
 import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
+import { useBlockMember } from "@/features/community/presentation/use-block-member";
 import { useReportFlow } from "@/features/community/presentation/use-report-flow";
 import { useToast } from "@/shared/ui";
 import { useNativeDialog } from "@/features/community/presentation/use-native-dialog";
@@ -31,11 +31,11 @@ import { MoreVerticalIcon } from "@/shared/ui/icons";
  *
  * 삭제: 확인 알럿 → BFF DELETE /api/community/comments/{id} → 성공 시 router.refresh()로 목록 갱신.
  *   401이면 네이티브 로그인 유도. 데모(예시) 모드는 네트워크 없이 토스트만.
- * 신고: useReportFlow에 위임한다(확인 알럿 → 사유 시트 → POST /reports) — 게시글 ⋮와 같은 훅이라
+ * 신고: useReportFlow에 위임한다(사유 시트 → POST /reports, 완료 토스트에 [차단] #550) — 게시글 ⋮와 같은 훅이라
  *   진입 지점에 따라 신고 경험이 갈리지 않는다. 성공 시 router.refresh() → 서버가 isReported로
  *   내려주면 본문이 "신고된 댓글입니다." placeholder로 바뀐다(#48). 댓글은 게시글과 달리 제거하지
  *   않는다 — 자리를 없애면 아래 대댓글이 부모를 잃어 스레드가 끊기기 때문.
- * 차단: 확인 알럿 → BFF POST /api/community/users/{authorId}/block → 응답 blocked가 true면 router.refresh().
+ * 차단: useBlockMember(확인 알럿 → BFF POST /api/community/users/{authorId}/block → 응답 blocked가 true면 router.refresh().
  *   대상이 댓글 1건이 아니라 작성자 회원이라 commentId가 아닌 authorId를 넘긴다 — 그 회원의
  *   게시글은 목록에서 빠지고 댓글은 placeholder로 바뀐다(#53).
  * 작성자 id/댓글 id는 웹이 들고 있다가 API에 직접 넘긴다(브릿지로 보내지 않음).
@@ -60,18 +60,6 @@ async function isRestoreExpired(response: Response): Promise<boolean> {
   }
 }
 
-/** 차단 BFF 응답의 data.blocked가 true인지 — 읽지 못하면 차단을 확인하지 못한 것으로 본다. */
-async function isBlockedResult(response: Response): Promise<boolean> {
-  try {
-    const body = (await response.json()) as {
-      data?: { blocked?: unknown };
-    } | null;
-    return body?.data?.blocked === true;
-  } catch {
-    return false;
-  }
-}
-
 export function CommentMenu({
   commentId,
   authorId,
@@ -88,6 +76,7 @@ export function CommentMenu({
   const demo = useIsDemoMode();
   const { confirm, dialog } = useNativeDialog();
   const { report, dialog: reportDialog } = useReportFlow();
+  const { block: blockMember, dialog: blockDialog } = useBlockMember();
   const [open, setOpen] = useState(false);
   const toast = useToast();
   // 비로그인에게는 메뉴 자체를 감춘다 — 외부 브라우저(#72)도 앱 웹뷰(#173)도 같다.
@@ -175,60 +164,30 @@ export function CommentMenu({
     router.refresh();
   }
 
-  /** 차단: 확인 알럿 → POST → 성공 시 목록 갱신. */
+  /** 차단: 확인 알럿 → POST → 성공 시 목록 갱신(useBlockMember). */
   async function handleBlock() {
-    const confirmed = await confirm({
-      // title은 titleParts를 모르는 구버전 앱용 완성 문자열 — 둘의 내용이 어긋나면 안 된다.
-      title: `${authorNickname}님 차단`,
-      // 1줄 고정 정책: 긴 닉네임만 말줄임하고 "님 차단"은 항상 온전히 보이게 경계를 넘긴다.
-      titleParts: { truncatable: authorNickname, suffix: "님 차단" },
-      message: "차단하면 해당 유저의 글과 댓글이 보이지 않아요.",
-      confirmText: "차단",
-      destructive: true,
+    const blocked = await blockMember({
+      userId: authorId,
+      nickname: authorNickname,
     });
-    if (!confirmed) return;
-
-    // 예시(데모)에선 네트워크 없이 토스트만(실제 차단/목록 갱신 없음).
-    if (demo) {
-      toast.show("유저를 차단했어요", { tone: "success" });
-      return;
-    }
-
-    const response = await bffFetch(`/api/community/users/${authorId}/block`, {
-      method: "POST",
-    });
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
-      }
-      toast.show("유저를 차단하지 못했어요", { tone: "error" });
-      return;
-    }
-
-    // 업스트림이 토글이라 성공 응답이어도 차단이 풀린 채 끝날 수 있다(#488) — 결과가 차단일 때만 차단 완료로 안내한다.
-    if (!(await isBlockedResult(response))) {
-      toast.show("유저를 차단하지 못했어요", { tone: "error" });
-      return;
-    }
-
-    toast.show("유저를 차단했어요", { tone: "success" });
-    // 뒤에 떠 있는 홈 피드 등이 다시 보일 때 그 회원 글을 빼게 알린다(#531).
-    markBlockChanged();
     // 서버 렌더 목록 재요청 — 차단된 회원의 댓글은 placeholder로, 게시글은 목록에서 빠진다.
-    router.refresh();
+    if (blocked) router.refresh();
   }
 
   /**
-   * 신고: useReportFlow(확인 알럿 → 사유 시트 → POST) → 처리되면 목록을 다시 읽어 placeholder로 전환.
+   * 신고: useReportFlow(사유 시트 → POST) → 처리되면 목록을 다시 읽어 placeholder로 전환.
    *
    * 중복 신고(400 U0008)도 훅이 처리 완료로 돌려준다 — 이미 신고한 댓글이라 화면 결과가 같아야 한다.
    */
   async function handleReport() {
-    const reported = await report({
-      reportType: "COMMENT",
-      targetId: commentId,
-    });
+    const reported = await report(
+      { reportType: "COMMENT", targetId: commentId },
+      {
+        // 완료 토스트의 [차단](#550) — 차단되면 목록을 다시 읽어 그 회원 댓글을 자리 표시로 바꾼다.
+        blockTarget: { userId: authorId, nickname: authorNickname },
+        onBlocked: () => router.refresh(),
+      },
+    );
     // 예시(데모)는 네트워크 없이 안내만 하므로 서버 재조회도 하지 않는다.
     if (reported && !demo) router.refresh();
   }
@@ -274,6 +233,7 @@ export function CommentMenu({
 
       {/* 신고 알럿·사유 시트(웹 단독 폴백 전용 — 앱에서는 네이티브가 그린다) */}
       {reportDialog}
+      {blockDialog}
     </div>
   );
 }

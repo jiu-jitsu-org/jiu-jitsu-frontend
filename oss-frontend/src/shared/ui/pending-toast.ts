@@ -38,6 +38,9 @@ export type PendingToastAction = {
   label?: string;
   type: string;
   postId?: number;
+  /** 대상 회원 id · 이름 — 회원을 다루는 액션(차단 등)용. */
+  userId?: number;
+  name?: string;
 };
 
 type PendingToast = {
