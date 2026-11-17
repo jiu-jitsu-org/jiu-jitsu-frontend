@@ -154,8 +154,9 @@ export function CommentReplies({
 }) {
   // 정렬이 바뀌면 이어 받은 페이지의 범위 자체가 달라져 버린다.
   // 로그인 전환도 버린다 — 비로그인으로 받은 추가분은 좋아요 · 소유자가 전부 "아님"이다(#173).
-  const { loginCount } = useAuth();
-  const resetKey = `${sort}:${loginCount}`;
+  // 로그아웃 · 계정 전환도 마찬가지로 이전 계정의 표시가 남는다(#511 · #516).
+  const { loginCount, logoutCount } = useAuth();
+  const resetKey = `${sort}:${loginCount}:${logoutCount}`;
   const [state, setState] = useState(() => initialState(resetKey, replies));
 
   // 이번 렌더에서 유효한 상태(렌더 중 setState — prop 변경 시 상태 조정 패턴, CommentList와 같다).

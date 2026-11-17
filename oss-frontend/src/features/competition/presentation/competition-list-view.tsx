@@ -9,7 +9,10 @@ import {
   useState,
 } from "react";
 
-import { useIsSignedIn } from "@/features/auth/presentation/auth-provider";
+import {
+  useAuth,
+  useIsSignedIn,
+} from "@/features/auth/presentation/auth-provider";
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
 import type { BeltRank } from "@/features/community/domain/belt";
 import type {
@@ -130,6 +133,8 @@ export function CompetitionListView({
   const [passedMonthIndex, setPassedMonthIndex] = useState<number | null>(null);
 
   const signedIn = useIsSignedIn();
+  // 다른 계정으로 바뀌면 signedIn은 그대로라 이 값으로 가른다(#511).
+  const { loginCount } = useAuth();
   // 서버가 띠를 못 받아 흰띠로 그렸어도 화면에서 다시 읽어 내 띠로 바로잡는다(#388).
   const beltRank = useMyBeltRank(myBeltRank, signedIn);
   const { guard } = useLoginGuard();
@@ -159,15 +164,23 @@ export function CompetitionListView({
   });
   // 서버가 다시 그리면(상세에서 돌아옴 등) 이어 받은 페이지·필터 결과는 그대로 두고 관심 값만 맞춘다 —
   // 이 화면에서 누른 결과를 먼저 접어 넣고 새 서버 값으로 덮는다. 필터를 켠 채 돌아와도 거르지 않은 목록이 깜빡이지 않는다.
-  // 로그인 상태가 바뀌었으면 관심 값이 통째로 달라져 처음부터 다시 모은다.
-  const [seen, setSeen] = useState({ list, signedIn });
-  if (seen.list !== list || seen.signedIn !== signedIn) {
+  // 로그인 상태나 계정이 바뀌었으면 관심 값이 통째로 달라져 처음부터 다시 모은다. 계정 전환은 서버가 새 계정으로
+  // 다시 그리기 전에 먼저 알려지므로, 그다음 오는 서버 값으로 한 번 더 처음부터 모은다(이전 계정 관심이 남지 않게).
+  const [seen, setSeen] = useState({
+    list,
+    signedIn,
+    loginCount,
+    resetOnNextList: false,
+  });
+  const accountChanged =
+    seen.signedIn !== signedIn || seen.loginCount !== loginCount;
+  if (seen.list !== list || accountChanged) {
     const fresh = initialCompetitions(
       list,
       interestedUpcoming,
       endedInterested,
     );
-    if (seen.signedIn !== signedIn) {
+    if (accountChanged || seen.resetOnNextList) {
       setKnown(knownInterestOf(fresh));
       setBase(toListState(EMPTY_KEY, list));
       setFiltered(null);
@@ -176,7 +189,12 @@ export function CompetitionListView({
         mergeKnownInterest(foldInterest(current, interest), fresh),
       );
     }
-    setSeen({ list, signedIn });
+    setSeen({
+      list,
+      signedIn,
+      loginCount,
+      resetOnNextList: accountChanged && seen.list === list,
+    });
     setInterestResetKey(list);
   }
   // 상세에서 관심을 바꾸고 돌아오면 그 값으로 다시 그린다(#362).

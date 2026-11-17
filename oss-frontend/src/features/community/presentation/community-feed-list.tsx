@@ -9,7 +9,10 @@ import {
   type AnimationEvent,
 } from "react";
 
-import { useOnLogin } from "@/features/auth/presentation/auth-provider";
+import {
+  useOnLogin,
+  useOnLogout,
+} from "@/features/auth/presentation/auth-provider";
 import { useOpenAuthorProfile } from "@/features/community/presentation/use-open-author-profile";
 import { useOpenPostDetail } from "@/features/community/presentation/use-open-post-detail";
 import {
@@ -220,7 +223,10 @@ export function CommunityFeedList({
 
   usePendingToast(handlePendingAction, handleUndoHide);
 
-  useOnLogin(() => void refreshLoaded());
+  // 로그인 · 로그아웃 · 계정 전환(#511 · #516)은 좋아요 · 저장 · 내 글 메뉴뿐 아니라 차단 · 숨김에 따라 목록 구성도
+  // 달라진다 — 같은 id 교체(refreshLoaded)로는 이전 계정 기준으로 빠진 글 · 남은 글이 그대로라 통째로 다시 읽는다.
+  useOnLogin(() => void reloadLoaded());
+  useOnLogout(() => void reloadLoaded());
   // 앱에서 띠를 바꾸고 돌아오면 쌓아 둔 카드의 작성자 띠도 다시 읽는다(#413).
   useOnMyBeltChange(() => void refreshLoaded());
   // 앱에서 회원을 차단·해제하고 돌아오면 그 회원의 글을 빼거나 다시 넣는다(#488) — 같은 id 교체로는 안 빠진다.

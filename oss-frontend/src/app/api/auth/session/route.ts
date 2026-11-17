@@ -4,6 +4,7 @@ import type { SessionState } from "@/features/auth/domain/session";
 import {
   clearSessionToken,
   readSessionToken,
+  readTokenSubject,
   writeSessionToken,
 } from "@/shared/lib/auth";
 import type {
@@ -16,7 +17,9 @@ import type {
  *
  * - POST   : 네이티브가 전달한 accessToken을 httpOnly 쿠키로 발급(로그인 동기화)
  * - GET    : 토큰 보유 여부 = 로그인 여부 반환
- * - DELETE : 세션 쿠키 제거(로그아웃)
+ * - DELETE : 세션 쿠키 제거(로그아웃). 지우기 전에 쿠키가 있었는지(cleared)도 돌려준다
+ *
+ * 로그인 응답에는 토큰의 사용자(userId)를 싣는다 — 화면이 계정 전환을 알아채는 용도다(#511).
  *
  * BFF는 토큰을 검증하지 않는다. 인증은 네이티브가 끝낸 상태이고, 토큰 유효성은
  * 보호된 업스트림 호출에서 백엔드가 매 요청 검증한다(trusted-on-receipt, validated-on-use).
@@ -53,17 +56,21 @@ export async function POST(request: NextRequest) {
   // 쿠키 수명은 기본값(SESSION_COOKIE_MAX_AGE_SECONDS). 토큰 만료는 업스트림이 매 요청 검증한다.
   await writeSessionToken(accessToken);
 
-  return ok({ authenticated: true });
+  return ok({ authenticated: true, userId: readTokenSubject(accessToken) });
 }
 
 export async function GET() {
   const token = await readSessionToken();
 
-  return ok({ authenticated: token !== null });
+  return ok({
+    authenticated: token !== null,
+    userId: token !== null ? readTokenSubject(token) : null,
+  });
 }
 
 export async function DELETE() {
+  const hadToken = (await readSessionToken()) !== null;
   await clearSessionToken();
 
-  return ok({ authenticated: false });
+  return ok({ authenticated: false, userId: null, cleared: hadToken });
 }
