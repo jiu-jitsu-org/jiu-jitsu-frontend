@@ -64,6 +64,7 @@ import {
   loadCompetitionListAction,
   type LoadCompetitionListResult,
 } from "@/features/competition/presentation/actions/load-competition-list-action";
+import { retryAfterSessionRefresh } from "@/features/competition/presentation/retry-after-session-refresh";
 import { useCompetitionInterest } from "@/features/competition/presentation/use-competition-interest";
 import { useMyBeltRank } from "@/features/competition/presentation/use-my-belt-rank";
 import { cn } from "@/shared/lib/cn";
@@ -226,10 +227,13 @@ export function CompetitionListView({
     if (mode === "calendar") return;
     if (queryKey === EMPTY_KEY || filtered?.key === queryKey) return;
     let cancelled = false;
-    void loadCompetitionListAction({
-      ...serverQuery,
-      size: COMPETITION_LIST_PAGE_SIZE,
-    })
+    // 토큰이 만료됐으면 앱 갱신 뒤 한 번 다시 받는다 — 익명으로 받아 관심 상태를 덮지 않게(#524).
+    void retryAfterSessionRefresh(() =>
+      loadCompetitionListAction({
+        ...serverQuery,
+        size: COMPETITION_LIST_PAGE_SIZE,
+      }),
+    )
       // 연결이 끊겨 호출 자체가 실패해도(오프라인·웹뷰 끊김) 같은 실패 갈래로 처리한다.
       .catch((): LoadCompetitionListResult => ({ ok: false, reason: "failed" }))
       .then((result) => {
@@ -262,11 +266,14 @@ export function CompetitionListView({
     const key = shown.key;
     const cursor = shown.nextCursor;
     loadingMore.current = true;
-    void loadCompetitionListAction({
-      ...serverQuery,
-      cursor,
-      size: COMPETITION_LIST_PAGE_SIZE,
-    })
+    // 토큰이 만료됐으면 앱 갱신 뒤 한 번 다시 받는다 — 익명으로 받아 관심 상태를 덮지 않게(#524).
+    void retryAfterSessionRefresh(() =>
+      loadCompetitionListAction({
+        ...serverQuery,
+        cursor,
+        size: COMPETITION_LIST_PAGE_SIZE,
+      }),
+    )
       // 연결이 끊겨 호출 자체가 실패해도(오프라인·웹뷰 끊김) 같은 실패 갈래로 처리한다.
       .catch((): LoadCompetitionListResult => ({ ok: false, reason: "failed" }))
       .then((result) => {

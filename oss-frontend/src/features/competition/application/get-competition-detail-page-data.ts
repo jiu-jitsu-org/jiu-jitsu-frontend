@@ -59,7 +59,7 @@ export type CompetitionDetailPageData =
       /** 관심 대회 마감 알림 설정(#376). 비로그인이거나 못 읽으면 null */
       alertSettings: CompetitionAlertSettings | null;
     }
-  | { ok: false; reason: "not-found" | "failed" };
+  | { ok: false; reason: "not-found" | "session-expired" | "failed" };
 
 /**
  * 대회 하나 — 한 요청 안에서 한 번만 부른다. generateMetadata(공유 미리보기)와 본문이 같은 상세를 쓴다.
@@ -70,20 +70,11 @@ const loadCompetitionDetail = cache(
     competitionId: number,
     accessToken: string | null,
   ): Promise<CompetitionDetail | null> => {
-    try {
-      return await createGetCompetitionDetailUseCase(accessToken).execute(
-        competitionId,
-      );
-    } catch (error) {
-      // 만료 토큰이면 익명으로 다시 읽는다 — 관심 표시만 빠지고, 화면이 로그인 뒤 다시 그린다.
-      if (
-        accessToken &&
-        toApiError(error).code === ApiErrorCode.EXPIRED_TOKEN
-      ) {
-        return createGetCompetitionDetailUseCase(null).execute(competitionId);
-      }
-      throw error;
-    }
+    // 만료 토큰이어도 익명으로 다시 읽지 않는다 — 관심 · 알림이 빈 채로 그려지고 앱이 새 토큰을 넣어도 다시 그리지
+    // 않는다(#524). getCompetitionDetailPageData가 session-expired로 화면 복구(앱 갱신 → 다시 그리기)에 맡긴다.
+    return createGetCompetitionDetailUseCase(accessToken).execute(
+      competitionId,
+    );
   },
 );
 
@@ -118,7 +109,10 @@ export async function getCompetitionDetailPageData({
   let detail: CompetitionDetail | null;
   try {
     detail = await loadCompetitionDetail(competitionId, accessToken);
-  } catch {
+  } catch (error) {
+    if (accessToken && toApiError(error).code === ApiErrorCode.EXPIRED_TOKEN) {
+      return { ok: false, reason: "session-expired" };
+    }
     return { ok: false, reason: "failed" };
   }
   if (!detail) return { ok: false, reason: "not-found" };

@@ -13,6 +13,7 @@ import {
 } from "@/features/competition/domain/competition-info-report";
 import { isWebUrl } from "@/features/competition/domain/competition-entry-link";
 import { reportCompetitionInfoAction } from "@/features/competition/presentation/actions/report-competition-info-action";
+import { retryAfterSessionRefresh } from "@/features/competition/presentation/retry-after-session-refresh";
 import { fullDateLabel } from "@/features/competition/presentation/competition-detail-format";
 import { useAuth } from "@/features/auth/presentation/auth-provider";
 import { cn } from "@/shared/lib/cn";
@@ -84,10 +85,12 @@ export function CompetitionInfoBasis({
 
     setSending(true);
     try {
-      const result = await reportCompetitionInfoAction(
-        competitionId,
-        outcome.value,
-        outcome.customText,
+      const result = await retryAfterSessionRefresh(() =>
+        reportCompetitionInfoAction(
+          competitionId,
+          outcome.value,
+          outcome.customText,
+        ),
       );
       if (!result.ok && result.reason === "unauthenticated") {
         promptLogin({ reason: "대회 정보 제보" });

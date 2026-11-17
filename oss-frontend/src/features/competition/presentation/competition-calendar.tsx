@@ -15,6 +15,7 @@ import {
   loadCompetitionListAction,
   type LoadCompetitionListResult,
 } from "@/features/competition/presentation/actions/load-competition-list-action";
+import { retryAfterSessionRefresh } from "@/features/competition/presentation/retry-after-session-refresh";
 import { BottomSheetFrame } from "@/features/community/presentation/bottom-sheet-frame";
 import { WheelPicker } from "@/features/community/presentation/wheel-picker";
 import { CompetitionRow } from "@/features/competition/presentation/competition-month-section";
@@ -95,11 +96,14 @@ export function CompetitionCalendar({
       const key = `${queryKey}|${month.year}-${pad(month.month)}`;
       if (requestedKeys.current.has(key)) return;
       requestedKeys.current.add(key);
-      void loadCompetitionListAction({
-        ...query,
-        date: `${month.year}-${pad(month.month)}-01`,
-        size: COMPETITION_FULL_PAGE_SIZE,
-      })
+      // 토큰이 만료됐으면 앱 갱신 뒤 한 번 다시 받는다 — 익명으로 받아 관심 상태를 덮지 않게(#524).
+      void retryAfterSessionRefresh(() =>
+        loadCompetitionListAction({
+          ...query,
+          date: `${month.year}-${pad(month.month)}-01`,
+          size: COMPETITION_FULL_PAGE_SIZE,
+        }),
+      )
         // 연결이 끊겨 호출 자체가 실패해도(오프라인·웹뷰 끊김) 같은 실패 갈래로 처리한다.
         .catch((): LoadCompetitionListResult => ({
           ok: false,
