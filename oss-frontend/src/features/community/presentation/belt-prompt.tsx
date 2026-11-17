@@ -20,6 +20,7 @@ import {
   snoozeBeltPrompt,
 } from "@/features/community/presentation/belt-prompt-policy";
 import { BeltPromptSheet } from "@/features/community/presentation/belt-prompt-sheet";
+import { markMyBeltChanged } from "@/features/community/presentation/my-belt-watcher";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { useToast } from "@/shared/ui";
 
@@ -101,6 +102,8 @@ export function BeltPromptProvider({
       }
       setOpen(false);
       toast.show("내 띠를 저장했어요", { tone: "success" });
+      // 다른 웹뷰(홈 피드 · 대회 탭)가 다시 보일 때 내 띠를 다시 읽게 남긴다(#542).
+      markMyBeltChanged(belt);
       // 작성자 줄의 띠를 서버 값으로 다시 그린다.
       router.refresh();
     } catch (error) {
