@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 
 import { BalanceBoardSkeleton } from "@/features/community/presentation/balance/balance-board-skeleton";
+import { HomeOpenInAppBanner } from "@/features/community/presentation/feed/home-open-in-app-banner";
 
 /**
  * 메인 피드 로딩 스켈레톤.
@@ -11,10 +12,14 @@ import { BalanceBoardSkeleton } from "@/features/community/presentation/balance/
  * (진행 중인 판이 없는 날은 반대로 한 번 올라온다 — 판이 있는 날이 기본이라 이쪽에 맞춘다).
  *
  * 깜빡임(pulse)은 카드마다 150ms씩 늦춰 위에서 아래로 물결치게 하고, 동작 줄이기면 멈춘다.
+ *
+ * 브라우저면 홈처럼 맨 위에 '앱으로 보기' 배너(#518). 서버 힌트(AppClientHint)는 깔지 않는다 — 루트 loading이라
+ * 요청 헤더를 읽으면 모든 라우트(정책 문서 등 정적 페이지까지)가 동적으로 바뀐다. 하이드레이션 뒤 브릿지 유무로 그린다.
  */
 export default function Loading() {
   return (
     <main className="min-h-screen bg-surface-container" aria-hidden>
+      <HomeOpenInAppBanner />
       <BalanceGameSkeleton />
       <div className="flex flex-col gap-4 pt-6">
         {Array.from({ length: 4 }).map((_, index) => (

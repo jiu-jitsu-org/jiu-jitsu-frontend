@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import type { ReactNode } from "react";
 
@@ -19,15 +20,48 @@ import { CommunityFeedList } from "@/features/community/presentation/community-f
 import { FeedEmptyState } from "@/features/community/presentation/feed-empty-state";
 import { FeedErrorState } from "@/features/community/presentation/feed-error-state";
 import { FeedScrollTopOnReload } from "@/features/community/presentation/feed/feed-scroll-top-on-reload";
+import { HomeOpenInAppBanner } from "@/features/community/presentation/feed/home-open-in-app-banner";
 import { NativePageReady } from "@/shared/lib/native-bridge";
 import { PostWriteFab } from "@/features/community/presentation/post-write-fab";
 import { isCompetitionEnabled } from "@/features/competition/application/is-competition-enabled";
 import { loadCompetitionAlertSettings } from "@/features/competition/application/load-competition-alert-settings";
 import { CompetitionAlertProvider } from "@/features/competition/presentation/competition-alert-provider";
 import { readSessionToken } from "@/shared/lib/auth";
+import { getRequestOrigin } from "@/shared/lib/request-origin";
+import {
+  DEFAULT_OG_IMAGE_PATH,
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  buildOpenGraph,
+} from "@/shared/lib/site-metadata";
 import { readServerNow } from "@/shared/lib/time";
 import { ServerClockProvider } from "@/shared/ui/server-clock";
 import { Spinner } from "@/shared/ui/spinner";
+
+/**
+ * 홈 공유 미리보기(#518) — 루트 기본값에 기본 카드 이미지를 더한다.
+ *
+ * 루트 layout이 아니라 여기서 넣는 이유: 기본 카드는 상대 경로라 요청 origin으로 절대화해야 하는데, 루트에서
+ * 요청 헤더를 읽으면 정적 페이지(정책 문서 등)까지 동적으로 바뀐다. 홈은 이미 동적이다(쿠키 · 세션).
+ * origin을 모르면(host 없는 비정상 요청) 이미지 없이 둔다 — 상세의 buildShareMetadata와 같은 규칙.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const origin = await getRequestOrigin();
+  if (!origin) return {};
+
+  return {
+    metadataBase: origin,
+    openGraph: {
+      ...buildOpenGraph({ title: SITE_NAME, description: SITE_DESCRIPTION }),
+      images: [{ url: DEFAULT_OG_IMAGE_PATH, width: 1200, height: 630 }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: SITE_NAME,
+      description: SITE_DESCRIPTION,
+    },
+  };
+}
 
 /**
  * 메인 화면 — 커뮤니티 게시글 피드.
@@ -85,6 +119,8 @@ export default async function Home({
             <main className="feed-bounce-scroll min-h-screen bg-surface-container">
               {/* 새로고침이면 이전 위치 대신 맨 위에서 시작한다(#260). */}
               <FeedScrollTopOnReload />
+              {/* 브라우저(공유 링크로 들어온 첫 화면)면 맨 위에 '앱으로 보기' 배너(#518). 앱 웹뷰는 없음. */}
+              <HomeOpenInAppBanner />
               {/* 피드가 그려지면 앱이 사진을 다 받기 전에 로딩 덮개를 걷는다(jiu-jitsu-ios#261). */}
               <NativePageReady />
               {renderFeed(result, balanceGame, balanceIntro)}
