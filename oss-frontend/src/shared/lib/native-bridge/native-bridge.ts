@@ -1,5 +1,6 @@
 import {
   OutboundMessageType,
+  type AnalyticsEventPayload,
   type BridgeMessage,
   type InboundMessage,
   type CompetitionAlertsEnabledPayload,
@@ -81,14 +82,49 @@ export function postToNative(message: BridgeMessage): void {
       window.webkit?.messageHandlers?.[APP_BRIDGE_HANDLER_NAME]?.postMessage(
         message,
       );
-      return;
+      break;
     case "android":
       window.AppBridge?.postMessage(JSON.stringify(message));
-      return;
+      break;
     default:
       // 웹 단독(개발) 폴백: 네이티브가 없으므로 콘솔로만 흐름을 확인한다.
       console.info("[native-bridge] (web fallback) → native", message);
+      return;
   }
+
+  if (message.type === OutboundMessageType.WEBVIEW_READY) {
+    markWebViewReady();
+  }
+}
+
+/**
+ * WEBVIEW_READY를 보냈는지(#575). 문서마다 AuthProvider가 마운트 때 한 번 보낸다.
+ * 그 전(하이드레이션 전 등)에 생긴 메시지 중 순서가 중요하지 않은 것(분석 기록)은 이 뒤로 미룬다 —
+ * 앱이 이 웹뷰와 핸드셰이크를 끝낸 뒤에 받게 하기 위해서다.
+ */
+let webViewReady = false;
+const webViewReadyCallbacks: Array<() => void> = [];
+
+function markWebViewReady(): void {
+  if (webViewReady) return;
+  webViewReady = true;
+  const callbacks = webViewReadyCallbacks.splice(0);
+  for (const callback of callbacks) {
+    try {
+      callback();
+    } catch (error) {
+      console.error("[native-bridge] web view ready callback threw", error);
+    }
+  }
+}
+
+/** WEBVIEW_READY를 이미 보냈으면 바로, 아니면 보낸 직후에 한 번 부른다. */
+export function whenWebViewReady(callback: () => void): void {
+  if (webViewReady) {
+    callback();
+    return;
+  }
+  webViewReadyCallbacks.push(callback);
 }
 
 /**
@@ -157,6 +193,20 @@ export function notifyContentCreated(kind: ContentCreatedPayload["kind"]): void 
     type: OutboundMessageType.CONTENT_CREATED,
     payload: { kind } satisfies ContentCreatedPayload,
   });
+}
+
+/**
+ * 분석 기록 하나를 앱에 넘긴다(#575). 앱이 `ANALYTICS_EVENT`를 지원하지 않으면 보내지 않고 false.
+ * 꼬리표 정리 · 준비 전 대기는 `track()`(shared/lib/analytics)이 맡는다 — 화면 코드는 이걸 직접 부르지 않는다.
+ */
+export function postNativeAnalyticsEvent(
+  payload: AnalyticsEventPayload,
+): boolean {
+  if (!supportsNativeMessage(OutboundMessageType.ANALYTICS_EVENT)) {
+    return false;
+  }
+  postToNative({ type: OutboundMessageType.ANALYTICS_EVENT, payload });
+  return true;
 }
 
 /**
