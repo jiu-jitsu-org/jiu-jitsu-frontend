@@ -27,6 +27,23 @@ const APP_STORE_FALLBACK_DELAY_MS = 2000;
 
 export const APP_STORE_URL = `https://apps.apple.com/kr/app/id${APP_STORE_ID}`;
 
+/** 안드로이드 앱 패키지(jiu-jitsu-android `applicationId`). */
+const ANDROID_PACKAGE = "kr.bjj_oss";
+
+/**
+ * 안드로이드의 '앱으로 보기' 주소(#520) — Play 스토어 앱 페이지. 앱이 깔려 있으면 거기서 "열기"로 들어간다.
+ *
+ * WHY 앱을 바로 열지 않는가: 안드로이드 앱에는 아직 브라우저에서 열 수 있는 곳(BROWSABLE 스킴 · App Links)이 없다.
+ * Chrome은 `intent:` 링크에 BROWSABLE을 붙여 찾으므로 MAIN/LAUNCHER intent로도 앱이 열리지 않고 늘 폴백으로 간다.
+ * 앱이 링크를 받게 되면 이 주소를 그 글로 가는 주소로 바꾼다.
+ */
+export const PLAY_STORE_URL = `https://play.google.com/store/apps/details?id=${ANDROID_PACKAGE}`;
+
+/** 안드로이드 기기인지 — Chrome · 삼성 인터넷 · 인앱 브라우저 모두 User-Agent에 `Android`를 싣는다. */
+export function isAndroidUserAgent(userAgent: string): boolean {
+  return /\bAndroid\b/i.test(userAgent);
+}
+
 /**
  * 지금 보고 있는 페이지를 앱에서 열기 위한 스킴 URL.
  *
@@ -38,7 +55,7 @@ export function buildOpenInAppUrl(currentUrl: string): string {
 }
 
 /**
- * 스킴으로 앱이 열리지 않으면 App Store로 보낸다.
+ * 스킴으로 앱이 열리지 않으면 App Store로 보낸다. 안드로이드에서는 아무 일도 하지 않는다.
  *
  * 앱이 열리면 페이지가 백그라운드로 가면서 visibilitychange/pagehide가 발화하므로 그때 취소한다.
  * 미설치면 아무 일도 일어나지 않아 타이머가 그대로 만료된다.
@@ -49,6 +66,9 @@ export function buildOpenInAppUrl(currentUrl: string): string {
 export function scheduleAppStoreFallback(
   delayMs: number = APP_STORE_FALLBACK_DELAY_MS,
 ): void {
+  // 안드로이드는 Play 스토어로 바로 간다 — 여기서 App Store로 보내면 설치할 수 없다(#520).
+  if (isAndroidUserAgent(navigator.userAgent)) return;
+
   const timer = window.setTimeout(() => {
     cleanup();
     window.location.href = APP_STORE_URL;

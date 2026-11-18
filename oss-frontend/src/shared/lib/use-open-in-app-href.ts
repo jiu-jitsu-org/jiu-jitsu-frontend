@@ -2,7 +2,12 @@
 
 import { useSyncExternalStore } from "react";
 
-import { APP_STORE_URL, buildOpenInAppUrl } from "@/shared/lib/app-link";
+import {
+  APP_STORE_URL,
+  buildOpenInAppUrl,
+  isAndroidUserAgent,
+  PLAY_STORE_URL,
+} from "@/shared/lib/app-link";
 
 // 현재 주소는 클라이언트 전용(window) 외부 상태다.
 // useSyncExternalStore로 읽어 SSR 하이드레이션 불일치와 effect 내 setState를 피한다.
@@ -11,6 +16,10 @@ const subscribeNoop = () => () => {};
 const getCurrentUrl = () => window.location.href;
 
 const getServerSnapshot = () => null;
+
+const getIsAndroid = () => isAndroidUserAgent(navigator.userAgent);
+
+const getIsAndroidOnServer = () => false;
 
 /**
  * "지금 보고 있는 페이지를 앱에서 열기" 링크의 href.
@@ -23,6 +32,8 @@ const getServerSnapshot = () => null;
  * 브라우저면 배너가 서버 HTML부터 그려지지만(#510) 하이드레이션 전에는 미설치 폴백(onClick)이 붙지 않아,
  * 스킴 주소를 미리 넣으면 앱이 없는 사람(공유 링크를 받은 사람 대부분)이 오류 알림에서 멈춘다 — 그래서 그대로 둔다.
  *
+ * 안드로이드는 Play 스토어 앱 페이지다(#520, PLAY_STORE_URL). 하이드레이션 전에는 위와 같이 App Store.
+ *
  * 상단 배너와 "앱에서 계속하기" 다이얼로그가 함께 쓴다.
  */
 export function useOpenInAppHref(): string {
@@ -32,5 +43,12 @@ export function useOpenInAppHref(): string {
     getServerSnapshot,
   );
 
-  return currentUrl ? buildOpenInAppUrl(currentUrl) : APP_STORE_URL;
+  const android = useSyncExternalStore(
+    subscribeNoop,
+    getIsAndroid,
+    getIsAndroidOnServer,
+  );
+
+  if (!currentUrl) return APP_STORE_URL;
+  return android ? PLAY_STORE_URL : buildOpenInAppUrl(currentUrl);
 }
