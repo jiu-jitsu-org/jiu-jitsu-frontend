@@ -133,6 +133,8 @@ const SUBMIT_TOAST = {
   uploadFailed: "올리지 못한 사진이 있어요. 다시 올리거나 지워 주세요",
   /** 기다리는 사이 사진을 바꿔 이어서 등록하지 않았을 때(#390). */
   uploadChanged: "사진이 바뀌었어요. 다시 등록을 눌러 주세요",
+  /** 서버가 금칙어로 거절했을 때(C0015, #504). 입력 · 사진은 그대로 둔다. */
+  forbiddenWord: "사용할 수 없는 표현이 있어요",
 } as const;
 /** 첨부 미리보기 썸네일 한 변(px, 정책 64×64). */
 const THUMBNAIL_SIZE = 64;
@@ -965,6 +967,14 @@ export function PostWriteScreen({
       ) {
         expireUploaded();
         toast.show(SUBMIT_TOAST.createImageExpired, { tone: "error" });
+        return;
+      }
+      // 금칙어 거절(#504)은 다시 시도해도 같으니 재시도 안내 대신 표현을 고치라고 알린다. 수정도 같은 코드가 오면 같다.
+      if (
+        error instanceof WriteRequestError &&
+        error.code === ApiErrorCode.FORBIDDEN_WORD
+      ) {
+        toast.show(SUBMIT_TOAST.forbiddenWord, { tone: "error" });
         return;
       }
       toast.show(isEdit ? SUBMIT_TOAST.editFailed : SUBMIT_TOAST.createFailed, { tone: "error" });
