@@ -54,8 +54,17 @@ export function buildOpenInAppUrl(currentUrl: string): string {
   return `${APP_SCHEME}://open?url=${encodeURIComponent(currentUrl)}`;
 }
 
+/** 미설치 폴백을 기다리는 중인지(연타 방지). */
+let fallbackPending = false;
+
+/** '앱으로 보기'를 누른 결과(#579 `open_app_click` result). 앱이 떴는지(페이지가 숨음), 스토어로 넘겼는지. */
+export type OpenInAppResult = "app_opened" | "store_redirect";
+
 /**
- * 스킴으로 앱이 열리지 않으면 App Store로 보낸다. 안드로이드에서는 아무 일도 하지 않는다.
+ * 스킴으로 앱이 열리지 않으면 App Store로 보낸다. 안드로이드는 Play 스토어로 바로 가므로 결과만 알린다.
+ *
+ * onResult(#579): 페이지가 숨으면(앱이 뜸) "app_opened", 타이머가 끝나 App Store로 넘기면 "store_redirect".
+ * 이미 기다리는 중에 또 누르면(연타) 새로 걸지 않는다 — 결과가 한 번만 나오게.
  *
  * 앱이 열리면 페이지가 백그라운드로 가면서 visibilitychange/pagehide가 발화하므로 그때 취소한다.
  * 미설치면 아무 일도 일어나지 않아 타이머가 그대로 만료된다.
@@ -64,17 +73,25 @@ export function buildOpenInAppUrl(currentUrl: string): string {
  * 넘어간다. 알럿 취소를 감지할 웹 API가 없어 감수한다(스킴 방식의 알려진 트레이드오프).
  */
 export function scheduleAppStoreFallback(
+  onResult?: (result: OpenInAppResult) => void,
   delayMs: number = APP_STORE_FALLBACK_DELAY_MS,
 ): void {
   // 안드로이드는 Play 스토어로 바로 간다 — 여기서 App Store로 보내면 설치할 수 없다(#520).
-  if (isAndroidUserAgent(navigator.userAgent)) return;
+  if (isAndroidUserAgent(navigator.userAgent)) {
+    onResult?.("store_redirect");
+    return;
+  }
+  if (fallbackPending) return;
+  fallbackPending = true;
 
   const timer = window.setTimeout(() => {
     cleanup();
+    onResult?.("store_redirect");
     window.location.href = APP_STORE_URL;
   }, delayMs);
 
   function cleanup() {
+    fallbackPending = false;
     document.removeEventListener("visibilitychange", handleVisibilityChange);
     window.removeEventListener("pagehide", cancel);
   }
@@ -82,6 +99,7 @@ export function scheduleAppStoreFallback(
   function cancel() {
     window.clearTimeout(timer);
     cleanup();
+    onResult?.("app_opened");
   }
 
   function handleVisibilityChange() {

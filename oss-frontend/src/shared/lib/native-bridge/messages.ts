@@ -222,7 +222,7 @@ export type SelectSheetResultPayload = {
  * `SHOW_SHARE_SHEET` payload — 네이티브가 띄울 시스템 공유 시트.
  *
  * url은 공유 대상(게시글 상세)의 절대 URL이다. 환경별 origin을 그대로 실어 보내 dev는 dev,
- * 운영은 운영 링크가 공유된다. 정렬 등 쿼리 파라미터는 보류 — 파라미터 없는 형태로 보낸다.
+ * 운영은 운영 링크가 공유된다. 정렬 등 열람 쿼리는 떼고, 공유 표시(utm_source · utm_medium=share · utm_campaign, #579)만 붙인다.
  */
 export type ShareSheetPayload = {
   url: string;

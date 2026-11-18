@@ -1,5 +1,6 @@
 "use client";
 
+import { trackOpenAppClick } from "@/shared/lib/analytics";
 import { scheduleAppStoreFallback } from "@/shared/lib/app-link";
 import { useOpenInAppHref } from "@/shared/lib/use-open-in-app-href";
 import { cn } from "@/shared/lib/cn";
@@ -49,7 +50,11 @@ export function OpenInAppBanner() {
         */}
         <a
           href={openInAppHref}
-          onClick={() => scheduleAppStoreFallback()}
+          onClick={() =>
+            scheduleAppStoreFallback((result) =>
+              trackOpenAppClick("web_banner", result),
+            )
+          }
           className={cn(
             "text-button-s inline-flex h-8 shrink-0 items-center justify-center rounded-10 bg-button-filled-default-bg px-3 text-button-filled-default-text",
             FILLED_BUTTON_PRESS,

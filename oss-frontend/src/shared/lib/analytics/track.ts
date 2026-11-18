@@ -11,7 +11,8 @@ import {
  *
  * - 앱 웹뷰: 앱이 `ANALYTICS_EVENT`를 지원하면 앱에 넘긴다(앱이 GA에 대신 기록, `surface`=webview).
  *   WEBVIEW_READY 전이면 모았다가 보낸 직후에 넘긴다. 지원하지 않는 앱(구버전)이면 버린다.
- * - 앱 밖 브라우저: GA 웹 태그(`window.gtag`, GA-09)가 있으면 그쪽으로(`surface`=browser), 없으면 버린다.
+ * - 앱 밖 브라우저: GA 웹 태그(`window.gtag`, #579 web-tag.ts)로(`surface`=browser). 태그 준비(측정 ID 받기) 전
+ *   기록은 모았다가 보내고, 태그가 없기로 정해지면(앱 안 약관 웹뷰 · 측정 ID 없음) 버린다.
  * - 서버 렌더 중에는 아무것도 하지 않는다.
  *
  * 기록 실패가 화면 동작을 막지 않도록 던지지 않는다.
@@ -106,13 +107,61 @@ function sendToApp(event: AnalyticsEventPayload): void {
   });
 }
 
-function sendToWebTag(event: AnalyticsEventPayload): void {
-  const gtag = window.gtag;
-  if (typeof gtag !== "function") return;
-  gtag("event", event.name, { ...event.params, surface: "browser" });
+/** 웹 태그 상태. pending = 아직 모름(initWebTag가 설정을 받는 중). */
+type WebTagState = "pending" | "ready" | "none";
+let webTagState: WebTagState = "pending";
+/** 웹 태그로 보낼 기록 — 주소는 기록한 순간의 것(태그가 늦게 떠도 공유 utm 등이 그 화면 주소로 남게). */
+type WebTagEvent = AnalyticsEventPayload & { pageLocation: string };
+const pendingWebTag: WebTagEvent[] = [];
+
+/** web-tag.ts가 태그 준비 결과를 알린다. ready면 모아 둔 기록을 보내고, none이면 버린다. */
+export function markWebTagState(state: "ready" | "none"): void {
+  webTagState = state;
+  const events = pendingWebTag.splice(0);
+  if (state === "ready") events.forEach(postToWebTag);
 }
 
-export function track(name: string, params?: AnalyticsParams): void {
+function sendToWebTag(
+  payload: AnalyticsEventPayload,
+  pageLocation: string = window.location.href,
+): void {
+  if (webTagState === "none") return;
+  const event: WebTagEvent = { ...payload, pageLocation };
+  if (webTagState === "pending") {
+    pendingWebTag.push(event);
+    if (pendingWebTag.length > MAX_PENDING) pendingWebTag.shift();
+    return;
+  }
+  postToWebTag(event);
+}
+
+function postToWebTag(event: WebTagEvent): void {
+  const gtag = window.gtag;
+  if (typeof gtag !== "function") return;
+  // 화면이 바뀌면 이후 기록의 페이지 제목을 화면 이름으로(문서 제목 = 글 제목이 GA로 가지 않게).
+  // set(전역)으로 두고, 이 기록에는 page_location과 함께 이벤트 값으로도 싣는다(이벤트 값이 가장 우선).
+  const screenName =
+    event.name === "screen_view" && typeof event.params.screen_name === "string"
+      ? event.params.screen_name
+      : undefined;
+  if (screenName) gtag("set", { page_title: screenName });
+  gtag("event", event.name, {
+    ...event.params,
+    surface: "browser",
+    page_location: event.pageLocation,
+    ...(screenName ? { page_title: screenName } : {}),
+  });
+}
+
+/**
+ * options.pageLocation: 브라우저 웹 태그의 page_location(기본은 지금 주소). 늦게 보내는 화면 기록이
+ * 이동 중인 주소가 아니라 그 화면 주소로 남게 screen-view가 넘긴다. 앱 경로에는 쓰지 않는다.
+ */
+export function track(
+  name: string,
+  params?: AnalyticsParams,
+  options: { pageLocation?: string } = {},
+): void {
   if (typeof window === "undefined") return;
   try {
     if (!isValidAnalyticsName(name)) {
@@ -124,7 +173,7 @@ export function track(name: string, params?: AnalyticsParams): void {
       params: sanitizeAnalyticsParams(params),
     };
     if (detectPlatform() === "web") {
-      sendToWebTag(event);
+      sendToWebTag(event, options.pageLocation);
     } else {
       sendToApp(event);
     }

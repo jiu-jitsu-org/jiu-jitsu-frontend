@@ -8,5 +8,11 @@ export {
   track,
 } from "./track";
 export type { AnalyticsParams, AnalyticsParamValue } from "./track";
+export {
+  contentIdOf,
+  contentOfPath,
+  type AnalyticsContentType,
+} from "./content";
+export { trackOpenAppClick } from "./open-app-click";
 export { entryPath, reportScreen, setNextScreenFrom } from "./screen-view";
 export type { ScreenFrom } from "./screens";
