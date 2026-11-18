@@ -87,7 +87,7 @@ import {
  * 본문 최대 글자 수(카운터/입력 제한). 최소 글자 수는 두지 않는다(#246) — 질문·한 줄 후기 같은 짧은 글을
  * 막지 않기 위해서다. 빈 본문(공백만 포함)은 올리기 버튼 비활성(hasRequiredInput)이 막고, 서버도 빈 값만 거른다.
  */
-const BODY_MAX_LENGTH = 800;
+const BODY_MAX_LENGTH = 3000;
 /** 대회 고르기 칸을 여는 카테고리(#367). id보다 이름으로 본다 — 카테고리 API가 실패한 폴백 목록에서도 같은 이름이다. */
 const COMPETITION_CATEGORY_NAME = "대회";
 /** 제목 글자 수 범위(2~45). */
@@ -820,7 +820,7 @@ export function PostWriteScreen({
 
   /**
    * 등록 탭 시 검사(정책): 화면 위에서부터 카테고리 → 제목 → 본문 → 제목 최소 글자 수 순으로, 첫 번째
-   * 미충족 항목의 안내와 그 칸(field)을 돌려준다(#303). 최대(45/800)는 maxLength가 입력 단계에서 막으므로 보지 않는다.
+   * 미충족 항목의 안내와 그 칸(field)을 돌려준다(#303). 최대(45/3000)는 maxLength가 입력 단계에서 막으므로 보지 않는다.
    */
   function findValidationError(): {
     field: "category" | "title" | "body";
@@ -1149,7 +1149,7 @@ export function PostWriteScreen({
           error={titleShort}
         />
 
-        {/* 본문: Title 1(22 · 행간 Auto → 32 고정 · 600), 800자. 제목 카운터 아래 24(mt-6). 색·커서는 제목과 동일. */}
+        {/* 본문: Title 1(22 · 행간 Auto → 32 고정 · 600), 3,000자(#521). 제목 카운터 아래 24(mt-6). 색·커서는 제목과 동일. */}
         <textarea
           ref={bodyRef}
           value={body}
@@ -1158,7 +1158,7 @@ export function PostWriteScreen({
             notifyIfPasteOverflows(
               event,
               BODY_MAX_LENGTH,
-              `내용은 ${BODY_MAX_LENGTH}자까지 입력할 수 있어요`,
+              `내용은 ${BODY_MAX_LENGTH.toLocaleString("ko-KR")}자까지 입력할 수 있어요`,
             )
           }
           maxLength={BODY_MAX_LENGTH}
