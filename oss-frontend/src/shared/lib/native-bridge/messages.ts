@@ -77,6 +77,11 @@ export const OutboundMessageType = {
   // 수정 · 실패 · 예시(데모)에서는 보내지 않는다. 결과 회신이 없고, 모르는 앱(구버전 iOS · 안드로이드)은 무시하므로
   // 지원 목록을 보지 않고 보낸다.
   CONTENT_CREATED: "CONTENT_CREATED",
+  // 분석 기록(GA) 하나를 앱에 넘김(#575 · jiu-jitsu-ios#424). 웹뷰 화면의 행동도 앱이 대신 GA에 기록해,
+  // 같은 사람이 앱 · 웹뷰에서 한 명으로 세어지게 한다. 웹은 `track()`(shared/lib/analytics)만 부른다.
+  // 앱은 사전 검사 뒤 `surface`=webview를 붙여 기록한다. 결과 회신은 없다.
+  // 구버전 앱은 모르므로 지원 목록에 있을 때만 보낸다 — 없으면 기록을 버린다.
+  ANALYTICS_EVENT: "ANALYTICS_EVENT",
 } as const;
 export type OutboundMessageType =
   (typeof OutboundMessageType)[keyof typeof OutboundMessageType];
@@ -241,6 +246,19 @@ export type SheetOpenPayload = {
 /** `CONTENT_CREATED` payload — 방금 등록한 것. 답글 · 밸런스 게임 댓글도 COMMENT다. */
 export type ContentCreatedPayload = {
   kind: "POST" | "COMMENT";
+};
+
+/**
+ * `ANALYTICS_EVENT` payload — GA 이벤트 하나.
+ *
+ * - name: 이벤트 사전의 이름(영문자로 시작, 영문 · 숫자 · 밑줄, 40자 이내).
+ * - params: 꼬리표. 값은 문자열 또는 정수뿐이다(참 · 거짓은 "true" · "false" 문자열, 빈 값은 키째 빠짐).
+ *   문자열은 100자 이내 코드 값이다(안내 문구 · 사람이 쓴 글 · 검색어는 싣지 않는다).
+ *   `surface`는 싣지 않는다 — 앱이 붙인다. 꼬리표가 없으면 빈 객체다.
+ */
+export type AnalyticsEventPayload = {
+  name: string;
+  params: Record<string, string | number>;
 };
 
 /** `COMPETITION_HEADER_TINT` payload — 앱 머리를 칠할 색. "#RRGGBB" 이거나 null(앱 기본 머리색으로). */

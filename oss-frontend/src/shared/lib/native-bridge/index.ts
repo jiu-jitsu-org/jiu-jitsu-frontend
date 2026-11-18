@@ -2,6 +2,7 @@
 // 메시지 계약과 런타임 adapter를 한 경로에서 import하되, ambient global 선언(.d.ts)은 export하지 않는다.
 export { InboundMessageType, OutboundMessageType } from "./messages";
 export type {
+  AnalyticsEventPayload,
   AuthLoginPayload,
   AuthLoginSuccessPayload,
   BridgeMessage,
@@ -37,10 +38,12 @@ export {
   openNativeHomeFeed,
   openNativeSubview,
   openNativeUserProfile,
+  postNativeAnalyticsEvent,
   postToNative,
   registerWebBridge,
   showNativeShareSheet,
   supportsNativeMessage,
+  whenWebViewReady,
 } from "./native-bridge";
 export type { BridgePlatform } from "./native-bridge";
 export { useNativeLeaveGuard } from "./native-leave-guard";
