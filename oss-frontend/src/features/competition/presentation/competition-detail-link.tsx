@@ -7,6 +7,7 @@ import {
   isNativeBridgeAvailable,
   openNativeSubview,
 } from "@/shared/lib/native-bridge";
+import { entryPath, type ScreenFrom } from "@/shared/lib/analytics";
 import { cn } from "@/shared/lib/cn";
 
 /** 대회 상세 웹 경로(#361). */
@@ -42,15 +43,16 @@ function takeDetailOpened(): boolean {
  * 대회 상세 열기 — 게시글 상세와 같은 갈래다.
  * 앱 웹뷰는 OPEN_SUBVIEW로 풀스크린 웹뷰를 띄워(목록 웹뷰는 그대로 남아 스크롤·필터가 유지된다),
  * 웹 단독은 같은 창에서 이동한다.
+ * from: 들어온 길(GA, #576 — `entryPath`). 주지 않으면 지금 화면 이름(대회 목록 · 달력 · 알림함 등)을 쓴다.
  */
-export function useOpenCompetitionDetail() {
+export function useOpenCompetitionDetail(from?: ScreenFrom) {
   const router = useRouter();
   const lockedUntil = useRef(0);
   return (competitionId: number) => {
     const now = Date.now();
     if (now < lockedUntil.current) return;
     lockedUntil.current = now + OPEN_LOCK_MS;
-    const path = competitionDetailPath(competitionId);
+    const path = entryPath(competitionDetailPath(competitionId), from);
     markDetailOpened();
     if (isNativeBridgeAvailable()) {
       openNativeSubview(`${window.location.origin}${path}`);
@@ -69,12 +71,15 @@ export function CompetitionDetailLink({
   competitionId,
   children,
   className,
+  from,
 }: {
   competitionId: number;
   children: ReactNode;
   className?: string;
+  /** 들어온 길(GA). 주지 않으면 지금 화면 이름. */
+  from?: ScreenFrom;
 }) {
-  const open = useOpenCompetitionDetail();
+  const open = useOpenCompetitionDetail(from);
 
   function handleClick(event: MouseEvent<HTMLAnchorElement>) {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;

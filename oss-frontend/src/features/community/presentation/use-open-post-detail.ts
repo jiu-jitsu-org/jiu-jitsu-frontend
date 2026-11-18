@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 
+import { entryPath, type ScreenFrom } from "@/shared/lib/analytics";
 import { markPostDirty } from "@/features/community/presentation/dirty-posts";
 import { isNativeBridgeAvailable, openNativeSubview } from "@/shared/lib/native-bridge";
 
@@ -18,14 +19,16 @@ function postDetailPath(postId: number): string {
  *   (리스트 웹뷰는 별도 인스턴스로 보존 → 닫고 돌아와도 스크롤/상태 유지)
  * - 웹 단독: 같은 웹뷰 내 라우터 이동.
  *
+ * from: 들어온 길(GA, #576 — `entryPath`). 주지 않으면 지금 화면 이름(홈 피드 · 내 활동 · 대회 상세 등)을 쓴다.
+ *
  * 여는 시점에 이 글을 갱신 대상으로 기록한다 — 상세에서 좋아요·저장·댓글·수정·삭제 중 무엇이
  * 일어날지 모르므로, 목록은 "값이 바뀌었을 수 있다"만 알고 복귀 시 서버 최신값을 다시 읽는다(#73).
  */
-export function useOpenPostDetail() {
+export function useOpenPostDetail(from?: ScreenFrom) {
   const router = useRouter();
 
   return (postId: number) => {
-    const path = postDetailPath(postId);
+    const path = entryPath(postDetailPath(postId), from);
     markPostDirty(postId);
 
     if (isNativeBridgeAvailable()) {

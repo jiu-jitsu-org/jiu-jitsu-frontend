@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useRef } from "react";
 
 import type { BalanceGame } from "@/features/community/domain/balance-game";
+import { setNextScreenFrom } from "@/shared/lib/analytics";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { useToast } from "@/shared/ui";
 
@@ -98,6 +99,8 @@ export function useBalanceCloseTransition({
           onAction: () => {
             // push가 아니라 replace다 — 마감된 판은 뒤로가기로 돌아갈 곳이 아니다.
             // 뒤로가면 들어온 곳(피드)으로 나가는 편이 자연스럽다.
+            // 다음 판의 화면 기록에 "마감 뒤 오늘의 밸런스 게임 보기"로 들어왔다고 남긴다(GA, #576).
+            setNextScreenFrom("balance_closed");
             router.replace(`/community/balance/${nextGame.contentId}`);
           },
         },

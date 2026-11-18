@@ -8,6 +8,7 @@ import { useOpenPostDetail } from "@/features/community/presentation/use-open-po
 import { useOpenPostWrite } from "@/features/community/presentation/use-open-post-write";
 import type { CompetitionStory } from "@/features/competition/domain/competition-story";
 import { DetailSection } from "@/features/competition/presentation/competition-detail-sections";
+import { entryPath } from "@/shared/lib/analytics";
 import { cn } from "@/shared/lib/cn";
 import {
   isNativeBridgeAvailable,
@@ -32,7 +33,7 @@ export function CompetitionStories({
   competitionId: number;
   stories: CompetitionStory[];
 }) {
-  const openPost = useOpenPostDetail();
+  const openPost = useOpenPostDetail("competition_story");
   const openFeed = useOpenFeed();
   const openPostWrite = useOpenPostWrite({ competitionId });
   const openWrite = () => {
@@ -102,7 +103,7 @@ function useOpenFeed() {
   return () => {
     if (isNativeBridgeAvailable()) {
       if (!openNativeHomeFeed())
-        openNativeSubview(`${window.location.origin}/`);
+        openNativeSubview(`${window.location.origin}${entryPath("/")}`);
       return;
     }
     router.push("/");

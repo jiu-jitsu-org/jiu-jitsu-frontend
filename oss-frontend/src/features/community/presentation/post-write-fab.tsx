@@ -15,7 +15,7 @@ import { EditIcon } from "@/shared/ui/icons";
  * 브릿지 분기를 위해 클라이언트 컴포넌트로 둔다(서버 페이지에 끼워 넣는 작은 island).
  */
 export function PostWriteFab() {
-  const openWrite = useOpenPostWrite();
+  const openWrite = useOpenPostWrite({ from: "feed_button" });
   // 누를 때마다 1씩 — 연필 key로 써서 흔들림을 처음부터 다시 재생한다.
   const [taps, setTaps] = useState(0);
 

@@ -71,10 +71,10 @@ function InboxList({
 }) {
   const [notifications, setNotifications] = useState(initialNotifications);
   const alerts = useCompetitionAlerts();
-  const openCompetitionDetail = useOpenCompetitionDetail();
+  const openCompetitionDetail = useOpenCompetitionDetail("notification");
   const [markAllPending, setMarkAllPending] = useState(false);
-  const openPostDetail = useOpenPostDetail();
-  const openBalanceDetail = useOpenBalanceDetail();
+  const openPostDetail = useOpenPostDetail("notification");
+  const openBalanceDetail = useOpenBalanceDetail("notification");
   const toast = useToast();
   usePendingToast();
 
