@@ -13,6 +13,7 @@ import {
 } from "@/features/community/presentation/comment-mention";
 import { useCommentReply } from "@/features/community/presentation/comment-reply-context";
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
+import { ApiErrorCode } from "@/shared/lib/http/api-error";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { cn } from "@/shared/lib/cn";
 import { useViewportRect } from "@/features/community/presentation/use-viewport-rect";
@@ -159,6 +160,9 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
       if (!response.ok) {
         if (response.status === 401) {
           postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
+        } else if (await isForbiddenWord(response)) {
+          // 금칙어 거절(#504) — 쓴 글은 그대로 두고 표현을 고치게 한다.
+          toast.show("사용할 수 없는 표현이 있어요", { tone: "error" });
         } else {
           toast.show("댓글을 등록하지 못했어요", { tone: "error" });
         }
@@ -322,4 +326,13 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
       </div>
     </div>
   );
+}
+
+/** 금칙어 거절 응답인지 — 400 + 업스트림 code `C0015`(#504). 상태코드만으론 일반 400과 구분되지 않는다. */
+async function isForbiddenWord(response: Response): Promise<boolean> {
+  if (response.status !== 400) return false;
+  const json = (await response.json().catch(() => null)) as {
+    details?: { code?: unknown };
+  } | null;
+  return json?.details?.code === ApiErrorCode.FORBIDDEN_WORD;
 }
