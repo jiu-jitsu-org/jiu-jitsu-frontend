@@ -1,12 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect } from "react";
 
+import { OpenInAppBanner } from "@/features/community/presentation/open-in-app-banner";
+import { cn } from "@/shared/lib/cn";
 import {
   closeNativeSubview,
   isNativeBridgeAvailable,
+  useIsExternalBrowser,
 } from "@/shared/lib/native-bridge";
 import { enqueuePendingToast } from "@/shared/ui";
+import { buttonVariants } from "@/shared/ui/button";
 
 /** 사유를 구분하지 않는 문구 — 404는 삭제 · 신고 · 차단 · 숨김이 모두 수렴한다. */
 const GONE_MESSAGE = "삭제된 게시글이에요";
@@ -23,9 +28,12 @@ const GONE_MESSAGE = "삭제된 게시글이에요";
  * 목록에서 카드가 사라지는 것은 여기서 관여하지 않는다 — 복귀 시 단건 재조회가 404를 받아
  * 걷어낸다(#73). 이 화면은 "닫고 안내"까지만 책임진다.
  *
- * 웹 단독 진입은 닫을 곳이 없어 아래 안내 화면이 그대로 남는다(현재 앱 전용 서비스라 허용).
+ * 브라우저(공유 링크로 연 지워진 글)는 닫을 곳이 없어 이 화면이 남는다 — 앱 배너와 홈으로 가는 길을
+ * 붙여 막다른 화면이 되지 않게 한다(#518). 글자 · 버튼은 없음 화면(FallbackScreen)과 같은 모양이다.
  */
 export function PostDetailGone() {
+  const externalBrowser = useIsExternalBrowser();
+
   useEffect(() => {
     if (!isNativeBridgeAvailable()) return;
 
@@ -33,8 +41,32 @@ export function PostDetailGone() {
     closeNativeSubview();
   }, []);
 
+  if (externalBrowser) {
+    return (
+      <div className="flex min-h-dvh flex-col">
+        <OpenInAppBanner />
+        <main className="flex flex-1 flex-col items-center justify-center px-6 text-center motion-safe:animate-fade-in">
+          <h1 className="text-body-m text-empty-state-default-title-text">
+            {GONE_MESSAGE}
+          </h1>
+          <p className="mt-1 text-body-s text-empty-state-default-description-text">
+            작성자가 지웠거나 볼 수 없는 글이에요.
+          </p>
+          <div className="mt-[13px] flex h-[38px] items-center">
+            <Link
+              href="/"
+              className={cn(buttonVariants({ variant: "neutral", size: "m" }))}
+            >
+              다른 글 보러 가기
+            </Link>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
-    // 빈 화면과 같이 8px 아래에서 올라오며 나타난다(웹 단독 진입에서만 보인다).
+    // 빈 화면과 같이 8px 아래에서 올라오며 나타난다(앱에서 닫히기 전 잠깐 보인다).
     <div className="flex min-h-dvh flex-col items-center justify-center gap-2 px-6 text-center motion-safe:animate-rise-in">
       <p className="text-body-m text-text-primary">{GONE_MESSAGE}</p>
     </div>
