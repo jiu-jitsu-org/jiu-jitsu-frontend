@@ -54,7 +54,7 @@ export function FeedCardMenu({
 }) {
   const toast = useToast();
   const demo = useIsDemoMode();
-  const openPostEdit = useOpenPostEdit();
+  const openPostEdit = useOpenPostEdit("feed_menu");
   const { confirm, dialog } = useNativeDialog();
   const { report, dialog: reportDialog } = useReportFlow();
   const [open, setOpen] = useState(false);

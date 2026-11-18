@@ -65,7 +65,10 @@ export async function PostDetailScreen({
         sort={sort}
         attachment={
           competition ? (
-            <PostCompetitionCard competition={competition} />
+            <PostCompetitionCard
+              competition={competition}
+              from="post_competition_card"
+            />
           ) : undefined
         }
       />

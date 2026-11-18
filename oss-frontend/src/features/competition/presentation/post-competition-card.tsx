@@ -13,6 +13,7 @@ import {
   StatusChip,
 } from "@/features/competition/presentation/competition-month-section";
 import { useCompetitionInterest } from "@/features/competition/presentation/use-competition-interest";
+import type { ScreenFrom } from "@/shared/lib/analytics";
 import { cn } from "@/shared/lib/cn";
 import { toKstDateKey } from "@/shared/lib/time";
 import { useServerNow } from "@/shared/ui/server-clock";
@@ -35,9 +36,12 @@ import { useServerNow } from "@/shared/ui/server-clock";
 export function PostCompetitionCard({
   competition,
   className,
+  from,
 }: {
   competition: Competition;
   className?: string;
+  /** 들어온 길(GA): 피드 카드 "feed_competition_card" · 글 상세 "post_competition_card". */
+  from?: ScreenFrom;
 }) {
   const today = toKstDateKey(useServerNow());
   const currentYear = Number(today.slice(0, 4));
@@ -80,6 +84,7 @@ export function PostCompetitionCard({
         <p className="truncate text-[15px] leading-[21px] font-bold text-text-primary">
           <CompetitionDetailLink
             competitionId={competition.id}
+            from={from}
             className="after:rounded-2xl"
           >
             {competition.name}

@@ -11,6 +11,7 @@ import {
 } from "react";
 import { flushSync } from "react-dom";
 
+import { setNextScreenFrom } from "@/shared/lib/analytics";
 import { cn } from "@/shared/lib/cn";
 import { ApiErrorCode } from "@/shared/lib/http/api-error";
 import { useViewportRect } from "@/features/community/presentation/use-viewport-rect";
@@ -946,6 +947,8 @@ export function PostWriteScreen({
       // 이어 열리는 상세는 보내지 않으므로 한 번 등록에 한 번이다.
       notifyContentCreated("POST");
       // 성공일 때만 떠난다(goToDetail이 로컬 미리보기까지 정리). 잠금은 유지 — 위 수정 성공과 같은 이유.
+      // 이어 바뀌는 상세의 화면 기록에 "글 등록 직후"로 들어왔다고 남긴다(GA, #576).
+      setNextScreenFrom("post_create");
       goToDetail(created.id, SUBMIT_TOAST.createDone);
     } catch (error) {
       // 실패 경로 — 절대 화면을 떠나지 않는다(입력 유지). 잠금은 여기서만 풀어 재시도할 수 있게 한다.

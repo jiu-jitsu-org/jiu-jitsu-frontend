@@ -222,7 +222,7 @@ function BalanceGameBody({
   onExpired: () => void;
 }) {
   const vote = useBalanceVote({ game, onVoted: onChange });
-  const openDetail = useOpenBalanceDetail();
+  const openDetail = useOpenBalanceDetail("balance_card");
   const { targetRef, passed } = useStickyReveal<HTMLDivElement>();
 
   // 바는 보일 조건이 꺼져도 바로 빼지 않고 걷히는 동안 남겨 둔다.

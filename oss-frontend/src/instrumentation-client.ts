@@ -1,0 +1,30 @@
+/**
+ * 하이드레이션 전에 한 번 도는 클라이언트 진입점(Next 16 `instrumentation-client`).
+ *
+ * 화면 기록(#576): 문서 로드 때 지금 화면을, 같은 웹뷰 안 라우터 이동(push · replace · 뒤로)마다 새 화면을 알린다.
+ * 앱 웹뷰의 기록은 WEBVIEW_READY 뒤로 미뤄졌다가 나가고(track), 언제 셀지는 앱이 정한다.
+ * 기록이 실패해도 화면은 그대로 떠야 하므로 던지지 않는다.
+ */
+import {
+  reportDocumentScreen,
+  reportRestoredPage,
+  reportScreenForUrl,
+} from "@/shared/lib/analytics/screen-view";
+
+try {
+  reportDocumentScreen();
+  // 브라우저 뒤로 가기로 bfcache에서 되살아난 문서는 이 파일이 다시 돌지 않는다 — 다시 보인 화면으로 센다.
+  window.addEventListener("pageshow", (event) => {
+    if (event.persisted) reportRestoredPage();
+  });
+} catch {
+  // 기록 실패는 무시한다.
+}
+
+export function onRouterTransitionStart(url: string): void {
+  try {
+    reportScreenForUrl(url);
+  } catch {
+    // 기록 실패는 무시한다.
+  }
+}

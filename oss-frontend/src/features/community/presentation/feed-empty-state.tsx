@@ -11,7 +11,7 @@ import { useOpenPostWrite } from "@/features/community/presentation/use-open-pos
  * 모양은 공통 EmptyState가 그린다.
  */
 export function FeedEmptyState() {
-  const openWrite = useOpenPostWrite();
+  const openWrite = useOpenPostWrite({ from: "feed_button" });
 
   return (
     // 세로 위치: 디자인 프레임(643) 기준 상단 225 → 약 35%. 가운데 정렬 대신 pt로 내려 배치.

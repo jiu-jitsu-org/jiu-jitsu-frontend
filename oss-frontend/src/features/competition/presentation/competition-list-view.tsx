@@ -67,6 +67,7 @@ import {
 import { retryAfterSessionRefresh } from "@/features/competition/presentation/retry-after-session-refresh";
 import { useCompetitionInterest } from "@/features/competition/presentation/use-competition-interest";
 import { useMyBeltRank } from "@/features/competition/presentation/use-my-belt-rank";
+import { reportScreen } from "@/shared/lib/analytics";
 import { cn } from "@/shared/lib/cn";
 import {
   CalendarIcon,
@@ -565,7 +566,7 @@ export function CompetitionListView({
   }, []);
 
   // 배너에서 누른 대회는 상세로 바로 연다(#361) — 목록 줄을 누른 것과 같다.
-  const openDetail = useOpenCompetitionDetail();
+  const openDetail = useOpenCompetitionDetail("competition_banner");
 
   const toggle = (key: "interestedOnly" | "openOnly") =>
     setFilter((current) => ({ ...current, [key]: !current[key] }));
@@ -575,6 +576,14 @@ export function CompetitionListView({
   const pressInterested = signedIn
     ? toggleInterested
     : guard(toggleInterested, "관심 대회는 OSS 앱에서 로그인 후 볼 수 있어요.");
+  // 목록 ↔ 달력은 주소가 아니라 이 화면의 보기 전환이라 화면 기록을 여기서 알린다(GA, #576).
+  // 처음 그릴 때(목록)는 문서 로드 때 알린 것과 같아 다시 세지 않는다.
+  useEffect(() => {
+    reportScreen({
+      name: mode === "calendar" ? "competition_calendar" : "competition_list",
+    });
+  }, [mode]);
+
   const toggleMode = () =>
     setMode((current) => (current === "list" ? "calendar" : "list"));
 

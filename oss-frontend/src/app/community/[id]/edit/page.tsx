@@ -12,7 +12,10 @@ import {
   withSelectedCompetition,
 } from "@/features/competition/application/get-competition-picker-options";
 import type { Competition } from "@/features/competition/domain/competition";
-import { POST_EDIT_FROM_DETAIL } from "@/features/community/presentation/post-edit-return";
+import {
+  LEGACY_POST_EDIT_FROM_DETAIL,
+  POST_EDIT_FROM_DETAIL,
+} from "@/features/community/presentation/post-edit-return";
 import { readSessionToken } from "@/shared/lib/auth";
 import { ApiErrorCode, toApiError } from "@/shared/lib/http";
 import { NativePageReady } from "@/shared/lib/native-bridge";
@@ -27,7 +30,7 @@ import { readServerNow, toKstDateKey } from "@/shared/lib/time";
  * 본인 글이 아니면(viewer.isOwner=false) 폼을 보여줄 이유가 없어 상세로 돌려보낸다 — 업스트림도
  * PUT에서 권한을 다시 검사하므로 이 분기는 UX용이다.
  *
- * `?from=detail`은 상세 ⋮에서 연 수정 — 성공 후 원래 상세로 돌아간다(#157, useOpenPostEdit).
+ * `?from=post_detail`은 상세 ⋮에서 연 수정 — 성공 후 원래 상세로 돌아간다(#157, useOpenPostEdit). 다른 from(피드 ⋮ 등)은 GA 들어온 길일 뿐 상세로 바뀐다.
  */
 export default async function CommunityPostEditPage({
   params,
@@ -114,7 +117,9 @@ export default async function CommunityPostEditPage({
         edit={{
           postId,
           initial,
-          returnToDetail: from === POST_EDIT_FROM_DETAIL,
+          returnToDetail:
+            from === POST_EDIT_FROM_DETAIL ||
+            from === LEGACY_POST_EDIT_FROM_DETAIL,
         }}
       />
       {/* 수정 화면이 그려지면 앱이 로딩 덮개를 걷는다(jiu-jitsu-ios#261). 만료 복구 중(스켈레톤)과 복구 실패 안내에는 보내지 않는다. */}
