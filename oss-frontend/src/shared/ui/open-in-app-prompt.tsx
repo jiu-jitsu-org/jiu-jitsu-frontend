@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 
+import { trackOpenAppClick } from "@/shared/lib/analytics";
 import { scheduleAppStoreFallback } from "@/shared/lib/app-link";
 import { cn } from "@/shared/lib/cn";
 import { useOpenInAppHref } from "@/shared/lib/use-open-in-app-href";
@@ -171,7 +172,9 @@ function OpenInAppDialog({
           <a
             href={openInAppHref}
             onClick={() => {
-              scheduleAppStoreFallback();
+              scheduleAppStoreFallback((result) =>
+                trackOpenAppClick("web_dialog", result),
+              );
               onClose();
             }}
             className={cn(

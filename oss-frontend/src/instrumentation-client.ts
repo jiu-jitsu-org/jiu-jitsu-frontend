@@ -10,8 +10,11 @@ import {
   reportRestoredPage,
   reportScreenForUrl,
 } from "@/shared/lib/analytics/screen-view";
+import { initWebTag } from "@/shared/lib/analytics/web-tag";
 
 try {
+  // 앱 밖 브라우저면 GA 웹 태그를 준비한다(#579). 그 전 기록은 track이 모아 둔다.
+  initWebTag();
   reportDocumentScreen();
   // 브라우저 뒤로 가기로 bfcache에서 되살아난 문서는 이 파일이 다시 돌지 않는다 — 다시 보인 화면으로 센다.
   window.addEventListener("pageshow", (event) => {

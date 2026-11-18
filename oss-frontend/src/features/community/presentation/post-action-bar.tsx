@@ -123,7 +123,7 @@ export function PostActionBar({
           icon={<ShareIcon size={16} />}
           label="공유하기"
           hideLabel
-          onClick={() => void shareCurrentPage()}
+          onClick={() => void shareCurrentPage("post")}
         />
       )}
     </div>

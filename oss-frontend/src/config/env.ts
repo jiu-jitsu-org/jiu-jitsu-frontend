@@ -109,3 +109,18 @@ function resolveCompetitionEnabled(flag: string | undefined): boolean {
 export function isDevelopmentRuntime(): boolean {
   return process.env.NODE_ENV === "development";
 }
+
+/** GA4 웹 측정 ID 형식(공개 값). */
+const GA_MEASUREMENT_ID_PATTERN = /^G-[A-Z0-9]+$/;
+
+/**
+ * 앱 밖 브라우저의 GA 웹 태그 측정 ID(#579) — 서버 전용 env `GA_MEASUREMENT_ID`.
+ *
+ * WHY 서버 env인가: 같은 빌드가 dev · 운영에 올라가 `NEXT_PUBLIC_*`(빌드 때 박힘)로는 속성을 나눌 수 없다.
+ * dev 배포는 dev 속성, 운영 배포는 운영 속성 값을 넣는다. 비어 있거나 형식이 아니면 null — 태그를 띄우지 않는다.
+ * 요청 때 읽어야 하므로 정적 페이지가 아니라 `/api/analytics/config`가 부른다.
+ */
+export function getAnalyticsMeasurementId(): string | null {
+  const value = process.env.GA_MEASUREMENT_ID?.trim();
+  return value && GA_MEASUREMENT_ID_PATTERN.test(value) ? value : null;
+}

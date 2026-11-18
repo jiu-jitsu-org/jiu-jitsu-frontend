@@ -59,7 +59,7 @@ export function CompetitionDetailHeader({
           />
         ) : null}
         <IconButton
-          onClick={() => void shareCurrentPage()}
+          onClick={() => void shareCurrentPage("competition")}
           aria-label="대회 공유하기"
         >
           {/* 24px에서 선이 2px이 되게(16 viewBox × 1.5) — 뒤로 가기·알림 종과 같은 굵기. */}

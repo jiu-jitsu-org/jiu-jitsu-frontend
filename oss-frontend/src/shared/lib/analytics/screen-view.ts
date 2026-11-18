@@ -110,7 +110,7 @@ function writeLastAnnounced(key: string): void {
 export function reportScreen(
   screen: Screen,
   from?: ScreenFrom,
-  options: { pathname?: string; documentLoad?: boolean } = {},
+  options: { pathname?: string; href?: string; documentLoad?: boolean } = {},
 ): void {
   if (typeof window === "undefined") return;
   // 경로를 넣어 같은 화면 이름의 다른 글 · 다음 밸런스 판으로 가는 이동도 센다. 쿼리만 바뀌면 같다.
@@ -132,7 +132,7 @@ export function reportScreen(
     section: screen.section,
   };
   if (detectPlatform() === "web") {
-    sendWhenSeen(params);
+    sendWhenSeen({ params, href: options.href ?? window.location.href });
     return;
   }
   // 같은 웹뷰가 같은 화면을 다시 불러왔으면 앱은 이미 이 화면을 안다.
@@ -168,6 +168,7 @@ export function reportScreenForUrl(
   }
   reportScreen(screen, fromOfUrl(parsed.searchParams) ?? nextFrom, {
     pathname: parsed.pathname,
+    href: parsed.href,
     documentLoad: options.documentLoad,
   });
 }
@@ -191,13 +192,15 @@ export function reportRestoredPage(): void {
 
 // ---- 브라우저: 1초 넘게 보여야 보낸다 ----
 
-let pendingBrowserView: ScreenViewParams | null = null;
+/** 1초를 기다리는 화면 기록과 그 화면 주소(page_location — 이동 중에 타이머가 끝나도 앞 주소가 실리지 않게). */
+type PendingBrowserView = { params: ScreenViewParams; href: string };
+let pendingBrowserView: PendingBrowserView | null = null;
 let visibleTimer: ReturnType<typeof setTimeout> | null = null;
 let visibilityListening = false;
 
 function flushPendingIfVisible(): void {
   if (pendingBrowserView && document.visibilityState === "visible") {
-    track("screen_view", pendingBrowserView);
+    sendBrowserView(pendingBrowserView);
   }
 }
 
@@ -209,11 +212,15 @@ function cancelPendingBrowserView(): void {
   }
 }
 
-function sendWhenSeen(params: ScreenViewParams): void {
+function sendBrowserView(view: PendingBrowserView): void {
+  track("screen_view", view.params, { pageLocation: view.href });
+}
+
+function sendWhenSeen(view: PendingBrowserView): void {
   // 보이는 채로 다른 화면으로 넘어갔으면 앞 화면은 본 것이다(짧은 노출 규칙은 숨김 · 보임 깜빡임을 거르는 것).
   flushPendingIfVisible();
   cancelPendingBrowserView();
-  pendingBrowserView = params;
+  pendingBrowserView = view;
   if (!visibilityListening) {
     visibilityListening = true;
     document.addEventListener("visibilitychange", onVisibilityChange);
@@ -234,8 +241,8 @@ function onVisibilityChange(): void {
   if (visibleTimer !== null) return;
   visibleTimer = setTimeout(() => {
     visibleTimer = null;
-    const params = pendingBrowserView;
+    const view = pendingBrowserView;
     pendingBrowserView = null;
-    if (params) track("screen_view", params);
+    if (view) sendBrowserView(view);
   }, BROWSER_MIN_VISIBLE_MS);
 }
