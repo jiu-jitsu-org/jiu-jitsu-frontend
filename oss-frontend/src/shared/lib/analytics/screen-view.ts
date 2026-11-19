@@ -31,7 +31,8 @@ import { track } from "./track";
  * - 앱 밖 브라우저: 웹이 정한다. 문서가 1초 넘게 이어서 보여야 보낸다(짧은 노출 무시). 숨은 채 열렸으면
  *   보일 때까지 미룬다. 뒤로 가기 · bfcache 복원은 화면 이동으로 다시 센다.
  *
- * from: 주소의 `?from=` → `setNextScreenFrom`으로 정한 값 → 직전 화면 이름.
+ * from: 주소의 `?from=` → `setNextScreenFrom`으로 정한 값 → 직전 화면 이름. 브라우저에서 뒤로 · 앞으로 가기(popstate ·
+ * bfcache 복원 · back_forward 문서)로 다시 보인 화면은 "back" — 처음 입구를 다시 쓰지 않는다.
  * 다른 화면을 열 때는 `entryPath`로 주소를 만든다 — 다른 웹뷰(앱 서브뷰)로 열리면 주소에 싣고,
  * 같은 문서(브라우저 라우터 이동)면 메모리로 넘긴다.
  */
@@ -149,7 +150,7 @@ export function reportScreen(
  */
 export function reportScreenForUrl(
   url: string,
-  options: { documentLoad?: boolean } = {},
+  options: { documentLoad?: boolean; back?: boolean } = {},
 ): void {
   if (typeof window === "undefined") return;
   let parsed: URL;
@@ -166,7 +167,12 @@ export function reportScreenForUrl(
     cancelPendingBrowserView();
     return;
   }
-  reportScreen(screen, fromOfUrl(parsed.searchParams) ?? nextFrom, {
+  // 브라우저 뒤로 가기로 다시 보인 화면은 처음 입구가 아니라 "back"이다. 앱은 다시 보임을 앱이 정한다.
+  const from =
+    options.back && detectPlatform() === "web"
+      ? "back"
+      : (fromOfUrl(parsed.searchParams) ?? nextFrom);
+  reportScreen(screen, from, {
     pathname: parsed.pathname,
     href: parsed.href,
     documentLoad: options.documentLoad,
@@ -179,15 +185,30 @@ export function reportScreenForUrl(
  */
 export function reportDocumentScreen(): void {
   if (typeof window === "undefined") return;
-  reportScreenForUrl(window.location.href, { documentLoad: true });
+  reportScreenForUrl(window.location.href, {
+    documentLoad: true,
+    back: isBackForwardNavigation(),
+  });
 }
 
-/** 브라우저 bfcache 복원(뒤로 가기)은 같은 화면이어도 다시 센다. */
+/** 뒤로 · 앞으로 가기로 문서를 새로 받았는지(bfcache에 없던 페이지). */
+function isBackForwardNavigation(): boolean {
+  try {
+    const [entry] = performance.getEntriesByType("navigation");
+    return (
+      (entry as PerformanceNavigationTiming | undefined)?.type === "back_forward"
+    );
+  } catch {
+    return false;
+  }
+}
+
+/** 브라우저 bfcache 복원(뒤로 가기)은 같은 화면이어도 다시 센다(from=back). */
 export function reportRestoredPage(): void {
   // 떠나기 전 1초를 못 채운 대기분은 버린다 — 복원된 화면을 새로 센다.
   cancelPendingBrowserView();
   current = null;
-  reportScreenForUrl(window.location.href);
+  reportScreenForUrl(window.location.href, { back: true });
 }
 
 // ---- 브라우저: 1초 넘게 보여야 보낸다 ----
