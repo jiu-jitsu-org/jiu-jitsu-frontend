@@ -24,9 +24,13 @@ try {
   // 기록 실패는 무시한다.
 }
 
-export function onRouterTransitionStart(url: string): void {
+export function onRouterTransitionStart(
+  url: string,
+  navigationType: "push" | "replace" | "traverse",
+): void {
   try {
-    reportScreenForUrl(url);
+    // traverse = 브라우저 뒤로 · 앞으로 가기(popstate) — 다시 보인 화면은 from=back.
+    reportScreenForUrl(url, { back: navigationType === "traverse" });
   } catch {
     // 기록 실패는 무시한다.
   }

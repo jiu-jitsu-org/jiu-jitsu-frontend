@@ -39,6 +39,8 @@ const ENTRY_FROMS = [
   "notification",
   "post_create",
   "balance_closed",
+  // 브라우저 뒤로 가기로 다시 보인 화면(#576 후속) — 처음 입구를 다시 쓰지 않고 입구 집계에서 뺀다.
+  "back",
 ] as const;
 
 export type ScreenFrom = ScreenName | (typeof ENTRY_FROMS)[number];
