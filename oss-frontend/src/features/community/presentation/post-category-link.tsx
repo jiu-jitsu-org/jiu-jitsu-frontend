@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 
+import { categoryParam } from "@/features/community/presentation/post-analytics";
 import { entryPath, track } from "@/shared/lib/analytics";
 import {
   isNativeBridgeAvailable,
@@ -24,7 +25,10 @@ export function PostCategoryLink({
   const router = useRouter();
 
   function open() {
-    track("category_select", { category: categoryId, from: "post_detail" });
+    track("category_select", {
+      category: categoryParam({ id: categoryId, name: categoryName }),
+      from: "post_detail",
+    });
     const path = entryPath(`/?categoryId=${categoryId}`, "post_detail");
     if (isNativeBridgeAvailable()) {
       // 동일 origin 절대경로로 전달 → 새 웹뷰가 세션 쿠키 공유.

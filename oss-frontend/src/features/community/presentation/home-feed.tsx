@@ -24,6 +24,7 @@ import { CommunityFeedList } from "@/features/community/presentation/community-f
 import { FeedEmptyState } from "@/features/community/presentation/feed-empty-state";
 import { FeedErrorState } from "@/features/community/presentation/feed-error-state";
 import { FeedCardsSkeleton } from "@/features/community/presentation/feed/feed-cards-skeleton";
+import { categoryParam } from "@/features/community/presentation/post-analytics";
 import { PostWriteFab } from "@/features/community/presentation/post-write-fab";
 import { revealInRow } from "@/features/community/presentation/reveal-in-row";
 import {
@@ -34,7 +35,7 @@ import { fetchFeedPage } from "@/features/community/presentation/use-board-feed"
 import { useOpenPostWrite } from "@/features/community/presentation/use-open-post-write";
 import { WeeklyTopic } from "@/features/community/presentation/weekly-topic";
 import { useOpenCompetitionDetail } from "@/features/competition/presentation/competition-detail-link";
-import { track } from "@/shared/lib/analytics";
+import { contentIdOf, track } from "@/shared/lib/analytics";
 import {
   InboundMessageType,
   OutboundMessageType,
@@ -135,7 +136,15 @@ export function HomeFeed({
     // 이 대회 글만 보는 중에 같은 '대회' 탭을 누르면 그대로 둔다 — 조건은 ✕로만 넓힌다.
     // 앱 칩을 빠르게 두 번 누르면 렌더 전에 둘째가 오므로, 방금 고른 값(filterRef)과 비교한다.
     if (categoryId === filterRef.current.categoryId) return;
-    track("category_select", { category: categoryId ?? "all", from: "tab" });
+    track("category_select", {
+      category:
+        categoryId === null
+          ? "all"
+          : (categoryParam(
+              categories.find((category) => category.id === categoryId),
+            ) ?? `cat_${categoryId}`),
+      from: "tab",
+    });
     select({ categoryId, competitionId: null });
   }
 
@@ -160,7 +169,7 @@ export function HomeFeed({
   useEffect(() => {
     if (!initialCompetition) return;
     track("feed_competition_filter", {
-      competition_id: initialCompetition.id,
+      competition_id: contentIdOf("competition", initialCompetition.id),
       action: "apply",
       from: new URLSearchParams(window.location.search).get("from"),
     });
@@ -250,7 +259,7 @@ export function HomeFeed({
           competition={competition}
           onClear={() => {
             track("feed_competition_filter", {
-              competition_id: competition.id,
+              competition_id: contentIdOf("competition", competition.id),
               action: "clear",
             });
             select({ categoryId: filter.categoryId, competitionId: null });
@@ -362,10 +371,12 @@ function CategoryIntro({ category }: { category: PostCategory }) {
     from: "topic_suggestion",
   });
 
+  const categoryValue = categoryParam(category);
+
   useEffect(() => {
     if (!topic) return;
-    track("banner_view", { banner: "topic", category: category.id });
-  }, [category.id, topic]);
+    track("banner_view", { banner: "topic", category: categoryValue });
+  }, [categoryValue, topic]);
 
   if (!topic) return null;
 
@@ -380,7 +391,7 @@ function CategoryIntro({ category }: { category: PostCategory }) {
             onClick={() => {
               track("banner_click", {
                 banner: "topic",
-                category: category.id,
+                category: categoryValue,
               });
               openTopicWrite();
             }}
@@ -420,7 +431,7 @@ function CompetitionFilterBar({
         size="s"
         onClick={() => {
           track("feed_competition_filter", {
-            competition_id: competition.id,
+            competition_id: contentIdOf("competition", competition.id),
             action: "open_competition",
           });
           openCompetition(competition.id);
