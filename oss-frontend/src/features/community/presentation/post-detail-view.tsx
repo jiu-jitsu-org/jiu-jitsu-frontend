@@ -82,11 +82,12 @@ export function PostDetailView({
             />
           }
         >
-          <div>
-            {/* 글 + 댓글은 첫 화면 높이(100cqh)에서 88을 뺀 만큼은 늘 차지한다 — 짧은 글이어도 첫 화면은 글·댓글이 주인공이고,
+          <>
+            {/* main 바로 아래 자식이라 100%가 보이는 높이다(셸 안 스크롤 영역).
+                글 + 댓글은 첫 화면 높이(100%)에서 88을 뺀 만큼은 늘 차지한다 — 짧은 글이어도 첫 화면은 글·댓글이 주인공이고,
                 아래 "○○의 다른 글"은 제목과 카드 윗모서리(글자 없는 16)만 화면 끝에 걸쳐 "내리면 더 있다"만 알린다.
                 88 = 띠 위 8 + 띠 4 + 구역 위 24 + 제목 24 + 카드 위 12 + 카드 윗모서리 16(안쪽 여백 18보다 작아 글자가 잘리지 않음). 긴 글이면 원래 길이 그대로. */}
-            <div className="min-h-[calc(100cqh-88px)]">
+            <div className="min-h-[calc(100%-88px)]">
               {/* 본문 영역: 헤더와 간격 24(pt-6), 좌우 여백 16(px-4), 섹션 간격 16(gap-4: 본문↔이미지 등, 작성자↔제목만 8) */}
               <article className="flex flex-col gap-4 px-4 pt-6">
                 {/* 작성자 줄↔제목은 8(gap-2) — 홈 피드 카드와 같은 간격으로 붙여 "누가 쓴 이 글"로 묶어 읽히게 한다(#299).
@@ -144,7 +145,7 @@ export function PostDetailView({
             </div>
 
             {footerSection}
-          </div>
+          </>
         </KeyboardAwareShell>
       </BeltPromptProvider>
     </CommentReplyProvider>
