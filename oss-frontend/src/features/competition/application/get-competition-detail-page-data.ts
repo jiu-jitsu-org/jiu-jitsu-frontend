@@ -26,7 +26,7 @@ import {
   type CompetitionDetailStatus,
   type CompetitionScheduleItem,
 } from "@/features/competition/domain/competition-schedule";
-import type { CompetitionStory } from "@/features/competition/domain/competition-story";
+import type { CompetitionStoryList } from "@/features/competition/domain/competition-story";
 import { readSessionToken } from "@/shared/lib/auth";
 import { ApiErrorCode, toApiError } from "@/shared/lib/http";
 
@@ -52,8 +52,8 @@ export type CompetitionDetailPageData =
       interestCount: number;
       /** 조회수 — 화면이 열린 뒤 센 값으로 바꾼다(#362). */
       viewCount: number;
-      /** 대회 이야기(#366). 읽기 실패면 null — 덩어리째 빠진다. */
-      stories: CompetitionStory[] | null;
+      /** 대회 이야기(#366 · #597). 읽기 실패면 null — 덩어리째 빠진다. */
+      stories: CompetitionStoryList | null;
       /** 결과 남기기 배너를 띄울지(#368) */
       promptResult: boolean;
       /** 관심 대회 마감 알림 설정(#376). 비로그인이거나 못 읽으면 null */
@@ -148,7 +148,7 @@ export async function getCompetitionDetailPageData({
 async function loadStories(
   competitionId: number,
   accessToken: string | null,
-): Promise<CompetitionStory[] | null> {
+): Promise<CompetitionStoryList | null> {
   try {
     return await createGetCompetitionStoriesUseCase(accessToken).execute(
       competitionId,

@@ -113,6 +113,7 @@ export function CompetitionDetailPage({
               status={status}
               currentYear={currentYear}
               viewCount={data.viewCount}
+              storyCount={data.stories?.totalCount ?? 0}
               interestInBar={interestInBar}
             />
             <CompetitionInfoSection
@@ -138,7 +139,8 @@ export function CompetitionDetailPage({
             {data.stories ? (
               <CompetitionStories
                 competitionId={competition.id}
-                stories={data.stories}
+                list={data.stories}
+                ended={status?.kind === "ended"}
               />
             ) : null}
           </div>

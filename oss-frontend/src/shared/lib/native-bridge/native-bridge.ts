@@ -9,6 +9,7 @@ import {
   type ContentCreatedPayload,
   type LoginPromptReason,
   type OpenCompetitionRecordPayload,
+  type OpenHomeFeedPayload,
   type OpenSubviewPayload,
   type OpenUserProfilePayload,
   type ShareSheetPayload,
@@ -201,7 +202,9 @@ export function notifyCompetitionAlertsEnabled(
  * 글 · 댓글을 등록했다고 알린다(#495). 앱은 이걸로 알림 권한 안내를 띄울지 정한다.
  * 등록에 성공했을 때만, 한 번 등록에 한 번 부른다. 브릿지가 없는 브라우저에서는 보내지 않는다.
  */
-export function notifyContentCreated(kind: ContentCreatedPayload["kind"]): void {
+export function notifyContentCreated(
+  kind: ContentCreatedPayload["kind"],
+): void {
   if (!isNativeBridgeAvailable()) return;
   postToNative({
     type: OutboundMessageType.CONTENT_CREATED,
@@ -225,11 +228,16 @@ export function postNativeAnalyticsEvent(
 
 /**
  * 앱 홈 탭(피드)으로 가도록 요청한다(#366). 지원하지 않는 앱이면 false — 호출부가 다른 길로 연다.
+ * payload에 대회 번호를 주면 앱이 홈 피드를 그 대회 글만으로 연다(#597 · jiu-jitsu-ios#437).
  */
-export function openNativeHomeFeed(): boolean {
+export function openNativeHomeFeed(payload?: OpenHomeFeedPayload): boolean {
   if (!supportsNativeMessage(OutboundMessageType.OPEN_HOME_FEED)) return false;
   releaseFocus();
-  postToNative({ type: OutboundMessageType.OPEN_HOME_FEED });
+  postToNative(
+    payload
+      ? { type: OutboundMessageType.OPEN_HOME_FEED, payload }
+      : { type: OutboundMessageType.OPEN_HOME_FEED },
+  );
   return true;
 }
 
