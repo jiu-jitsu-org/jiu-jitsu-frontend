@@ -15,6 +15,14 @@ import {
 } from "@/features/competition/domain/competition";
 import type { CompetitionAlertSettings } from "@/features/competition/domain/competition-alert";
 import {
+  competitionListQueryOf,
+  isCompetitionFilterEmpty,
+} from "@/features/competition/domain/competition-filter";
+import {
+  parseCompetitionListViewState,
+  type CompetitionListViewState,
+} from "@/features/competition/domain/competition-list-view-state";
+import {
   COMPETITION_REGIONS,
   type CompetitionRegion,
 } from "@/features/competition/domain/competition-region";
@@ -75,8 +83,19 @@ export type CompetitionListPageData =
        * 못 받았거나 비어 오면 17개 모두.
        */
       availableRegions: readonly CompetitionRegion[];
+      /** 주소 쿼리로 처음 그릴 필터 · 보기 · 달(#539) — 당겨서 새로고침해도 고른 값 그대로 연다. */
+      initialView: CompetitionListViewState;
+      /** initialView 필터로 받은 첫 페이지 — 필터가 없거나 못 받았으면 null(화면이 받는다). */
+      initialFiltered: CompetitionListChunk | null;
+      /** 달력으로 열 때 보던 달을 미리 받은 것 — 달력이 아니거나 못 받았으면 null(달력이 받는다). */
+      initialCalendarMonth: CompetitionListChunk | null;
     }
   | { ok: false; reason: "session-expired" | "failed" };
+
+/** Next.js searchParams 모양 */
+export type CompetitionListSearchParams = Readonly<
+  Record<string, string | string[] | undefined>
+>;
 
 /** 여러 날 대회의 첫날이 마지막 날보다 앞설 수 있는 여유 — 대회는 길어야 며칠이다. */
 const MULTI_DAY_LOOKBACK_DAYS = 7;
@@ -87,13 +106,25 @@ const MULTI_DAY_LOOKBACK_DAYS = 7;
  * 필터·다음 페이지는 화면이 Server Action(loadCompetitionListChunk)으로 이어 받는다.
  * 로그인이면 곧 마감·곧 열려요 배너(관심 + 접수 예정·접수 중·접수 마감)와 결과 남기기 카드(관심 + 종료, 며칠 전부터)를 함께 읽는다 —
  * 둘은 덧붙는 정보라 못 읽어도 목록을 막지 않는다. 지역 시트의 고를 수 있는 지역도 같이 읽고, 못 읽으면 17개 모두 연다.
+ *
+ * 주소 쿼리에 고른 필터 · 달력 보기가 있으면(#539) 그 조건의 첫 페이지와 보던 달도 함께 받아, 화면이 처음부터 그 조건으로
+ * 그린다. 이것도 못 받으면 화면이 다시 받는다. 필터 없는 첫 페이지(list)는 그대로 받는다 — 필터를 풀었을 때 · 배너 후보에 쓴다.
  */
-export async function getCompetitionListPageData(): Promise<CompetitionListPageData> {
+export async function getCompetitionListPageData(
+  searchParams: CompetitionListSearchParams = {},
+): Promise<CompetitionListPageData> {
   const accessToken = await readSessionToken();
+  const serverToday = toKstDateKey(readServerNow());
+  // 고를 수 있는 지역은 함께 받으므로 먼저 17개 기준으로 읽고, 받은 뒤 고를 수 없는 지역이 섞였으면 빼고 다시 받는다(드묾).
+  const requestedView = parseCompetitionListViewState(searchParams, {
+    signedIn: accessToken !== null,
+    availableRegions: COMPETITION_REGIONS,
+    today: serverToday,
+  });
   // 끝난 관심 대회를 받기 시작할 날 — 정확한 오늘은 응답의 today로 다시 거른다(토요일 대회는 하루 더).
   // 목록은 첫날 기준이라, 마지막 날로 거르는 여러 날 대회(backend#227)가 빠지지 않게 일주일 더 앞에서 받는다.
   const endedFrom = addDays(
-    toKstDateKey(readServerNow()),
+    serverToday,
     -(RESULT_CARD_DAYS + 2 + MULTI_DAY_LOOKBACK_DAYS),
   );
   try {
@@ -104,6 +135,8 @@ export async function getCompetitionListPageData(): Promise<CompetitionListPageD
       alertSettings,
       myBeltRank,
       availableRegions,
+      requestedFiltered,
+      requestedCalendarMonth,
     ] = await Promise.all([
       fetchPage({ size: COMPETITION_LIST_PAGE_SIZE }, accessToken),
       accessToken
@@ -132,8 +165,27 @@ export async function getCompetitionListPageData(): Promise<CompetitionListPageD
       createGetCompetitionRegionsUseCase()
         .execute()
         .catch(() => null),
+      loadInitialFiltered(requestedView),
+      loadInitialCalendarMonth(requestedView),
     ]);
     const today = page.today;
+    // 못 받았거나 빈 목록이면(모르는 값만 왔을 때 포함) 시트가 전부 막히지 않게 17개 모두 연다.
+    const regions = availableRegions?.length
+      ? availableRegions
+      : COMPETITION_REGIONS;
+    const initialView = parseCompetitionListViewState(searchParams, {
+      signedIn: accessToken !== null,
+      availableRegions: regions,
+      today,
+    });
+    const sameFilter =
+      initialView.filter.regions.length === requestedView.filter.regions.length;
+    const [initialFiltered, initialCalendarMonth] = sameFilter
+      ? [requestedFiltered, requestedCalendarMonth]
+      : await Promise.all([
+          loadInitialFiltered(initialView),
+          loadInitialCalendarMonth(initialView),
+        ]);
 
     return {
       ok: true,
@@ -152,10 +204,11 @@ export async function getCompetitionListPageData(): Promise<CompetitionListPageD
             today,
           )
         : [],
-      // 못 받았거나 빈 목록이면(모르는 값만 왔을 때 포함) 시트가 전부 막히지 않게 17개 모두 연다.
-      availableRegions: availableRegions?.length
-        ? availableRegions
-        : COMPETITION_REGIONS,
+      availableRegions: regions,
+      initialView,
+      initialFiltered,
+      // 서버의 오늘로 다시 보니 지난 달이 됐으면(자정 무렵) 달도 빠져 있다 — 받은 달을 버린다.
+      initialCalendarMonth: initialView.month ? initialCalendarMonth : null,
     };
   } catch (error) {
     // 만료 토큰이면 익명으로 내리지 않고 화면의 복구(앱 갱신 → 다시 그리기)에 맡긴다 — 글 상세와 같은 방식(#524).
@@ -203,6 +256,32 @@ export async function loadCompetitionListChunk(
     // 만료 토큰이면 화면이 앱에 갱신을 맡기고 다시 부른다 — 익명으로 받은 결과로 관심 상태를 덮지 않게(#524).
     return { ok: false, reason: isExpiredToken(error) ? "expired" : "failed" };
   }
+}
+
+/** 주소 쿼리 필터의 첫 페이지 — 화면이 칩을 눌렀을 때 받는 것과 같다. 필터가 없거나 못 받으면 null. */
+async function loadInitialFiltered(
+  view: CompetitionListViewState,
+): Promise<CompetitionListChunk | null> {
+  if (isCompetitionFilterEmpty(view.filter)) return null;
+  const result = await loadCompetitionListChunk({
+    ...competitionListQueryOf(view.filter),
+    size: COMPETITION_LIST_PAGE_SIZE,
+  });
+  return result.ok ? result.chunk : null;
+}
+
+/** 주소 쿼리의 달력 달 — 달력이 그 달로 넘겼을 때 받는 것과 같다(1일부터 한 번에). 달이 없거나 못 받으면 null. */
+async function loadInitialCalendarMonth(
+  view: CompetitionListViewState,
+): Promise<CompetitionListChunk | null> {
+  if (!view.month) return null;
+  const { year, month } = view.month;
+  const result = await loadCompetitionListChunk({
+    ...competitionListQueryOf(view.filter),
+    date: `${year}-${String(month).padStart(2, "0")}-01`,
+    size: COMPETITION_FULL_PAGE_SIZE,
+  });
+  return result.ok ? result.chunk : null;
 }
 
 /**

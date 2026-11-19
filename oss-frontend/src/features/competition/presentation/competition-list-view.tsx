@@ -33,6 +33,12 @@ import {
 } from "@/features/competition/domain/competition-filter";
 import { bannerSlotQueue } from "@/features/competition/domain/competition-banner-slot";
 import {
+  competitionListViewSearch,
+  type CompetitionListMode,
+  type CompetitionListViewState,
+  type YearMonth,
+} from "@/features/competition/domain/competition-list-view-state";
+import {
   deadlineSoonInterested,
   eventSoonInterested,
 } from "@/features/competition/domain/competition-interest-banner";
@@ -94,6 +100,9 @@ import { TAB_BAR_CLEARANCE } from "@/shared/ui/tab-bar-clearance";
  *
  * 관심은 로그인한 사용자만 갖는다. 비로그인이 누르면 다른 화면의 좋아요와 같은 로그인 안내를 띄우고
  * (외부 브라우저면 앱 안내), 필터는 켜지 않는다 — 켜 봐야 늘 빈 결과다.
+ *
+ * 고른 필터 · 목록/달력 · 달력에서 보던 달은 주소 쿼리에 담는다(#539) — 앱의 당겨서 새로고침은 지금 주소를 다시 불러오므로
+ * 서버가 같은 조건으로 처음부터 그린다. 바꿀 때마다 주소를 갈아 끼워(replace) 뒤로 가기에 필터 단계가 쌓이지 않는다.
  */
 export function CompetitionListView({
   list,
@@ -103,6 +112,9 @@ export function CompetitionListView({
   myBeltRank,
   endedInterested,
   availableRegions,
+  initialView,
+  initialFiltered,
+  initialCalendarMonth,
 }: {
   /** 필터 없이 받은 오늘 이후 대회 첫 페이지 */
   list: CompetitionListChunk;
@@ -117,15 +129,19 @@ export function CompetitionListView({
   endedInterested: ResultCardGroup[];
   /** 지역 시트에서 고를 수 있는 시·도 — 공개 대회(지난 대회 포함)가 있는 곳. 못 받았으면 17개 모두. */
   availableRegions: readonly CompetitionRegion[];
+  /** 주소 쿼리로 처음 그릴 필터 · 보기 · 달(#539). */
+  initialView: CompetitionListViewState;
+  /** initialView 필터로 서버가 받아 둔 첫 페이지 — 없으면 화면이 받는다. */
+  initialFiltered: CompetitionListChunk | null;
+  /** 달력으로 열 때 서버가 받아 둔 보던 달 — 없으면 달력이 받는다. */
+  initialCalendarMonth: CompetitionListChunk | null;
 }) {
-  const [filter, setFilter] = useState<CompetitionFilter>(
-    EMPTY_COMPETITION_FILTER,
-  );
+  const [filter, setFilter] = useState<CompetitionFilter>(initialView.filter);
   const [regionSheetOpen, setRegionSheetOpen] = useState(false);
   // 시트를 열 때마다 key를 바꿔 고르던 값을 지금 필터로 다시 시작한다.
   const [regionSheetKey, setRegionSheetKey] = useState(0);
   // 기본은 목록이다 — 대회가 거의 토·일에 몰려 달력을 먼저 펼치면 빈 칸이 대부분이다(#339).
-  const [mode, setMode] = useState<"list" | "calendar">("list");
+  const [mode, setMode] = useState<CompetitionListMode>(initialView.mode);
   // 이름 검색(#345)은 돋보기를 눌러야 열린다. 닫으면 검색어도 지운다 — 안 보이는 검색어로 걸러지지 않게.
   const [searchOpen, setSearchOpen] = useState(false);
   // 필터 줄(칩 + 열린 검색칸)과 목록 — 스크롤하며 어느 달 머리가 필터 줄 밑으로 지나갔는지 잰다.
@@ -145,15 +161,22 @@ export function CompetitionListView({
 
   // 관심 상태의 서버 값 — 첫 그림의 대회들에 이어 받은 페이지·달력 달의 대회를 더해 간다.
   const [known, setKnown] = useState(() =>
-    knownInterestOf(
-      initialCompetitions(list, interestedUpcoming, endedInterested),
-    ),
+    knownInterestOf([
+      ...initialCompetitions(list, interestedUpcoming, endedInterested),
+      ...competitionsOf(initialFiltered),
+      ...competitionsOf(initialCalendarMonth),
+    ]),
   );
   // 필터 없는 목록(첫 페이지 + 이어 받은 페이지)과 마지막으로 받은 필터 결과.
   const [base, setBase] = useState<ListState>(() =>
     toListState(EMPTY_KEY, list),
   );
-  const [filtered, setFiltered] = useState<ListState | null>(null);
+  // 주소 쿼리의 필터로 서버가 받아 둔 결과가 있으면 그것부터 — 필터 없는 목록이 먼저 보이지 않게(#539).
+  const [filtered, setFiltered] = useState<ListState | null>(() =>
+    initialFiltered
+      ? toListState(listQueryKey(initialView.filter), initialFiltered)
+      : null,
+  );
   const [interestResetKey, setInterestResetKey] = useState(list);
   const absorb = useCallback((competitions: Competition[]) => {
     if (competitions.length > 0) {
@@ -213,12 +236,42 @@ export function CompetitionListView({
     () => competitionListQueryOf(activeFilter),
     [activeFilter],
   );
-  const queryKey = isCompetitionFilterEmpty(activeFilter)
-    ? EMPTY_KEY
-    : JSON.stringify(serverQuery);
+  const queryKey = listQueryKey(activeFilter);
   // 받기 전에는 앞 결과를 그대로 둔다 — 칩을 누를 때마다 목록이 비었다 차지 않게.
   const shown = queryKey === EMPTY_KEY ? base : (filtered ?? base);
   const shownSettled = shown.key === queryKey;
+
+  // 주소 쿼리로 달력을 열었으면 보던 달로 연다(#539) — 그 조건 그대로일 때 처음 한 번만. 필터를 바꾸거나 목록으로
+  // 돌아갔다 오면 지금처럼 첫 대회 날부터 연다.
+  const [restoreMonth, setRestoreMonth] = useState(() =>
+    initialView.mode === "calendar" && initialView.month
+      ? {
+          queryKey: listQueryKey(initialView.filter),
+          month: initialView.month,
+          chunk: initialCalendarMonth,
+        }
+      : null,
+  );
+  if (restoreMonth && restoreMonth.queryKey !== queryKey) setRestoreMonth(null);
+  // 달력에서 보던 달 — 주소에 담는다. 달력이 달을 넘길 때마다 알려 준다.
+  const [calendarMonth, setCalendarMonth] = useState<YearMonth | null>(
+    initialView.month,
+  );
+  // 고른 값이 바뀌면 주소를 갈아 끼운다(replace — 뒤로 가기에 쌓이지 않게). 처음 그린 뒤에도 한 번 맞춰,
+  // 서버가 버린 값(잘못된 값 · 로그아웃의 관심)이 주소에서도 빠진다. 이름 검색어는 담지 않는다.
+  useEffect(() => {
+    const search = competitionListViewSearch({
+      filter: activeFilter,
+      mode,
+      month: mode === "calendar" ? calendarMonth : null,
+    });
+    if (search === window.location.search) return;
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}${search}${window.location.hash}`,
+    );
+  }, [activeFilter, mode, calendarMonth]);
 
   // 마지막으로 받은 필터 — 받기에 실패하면 칩을 이 값으로 되돌린다. 필터를 비우면 바로 그 값이 된다.
   const [appliedFilter, setAppliedFilter] = useState(filter);
@@ -589,8 +642,10 @@ export function CompetitionListView({
     });
   }, [mode]);
 
-  const toggleMode = () =>
+  const toggleMode = () => {
+    setRestoreMonth(null);
     setMode((current) => (current === "list" ? "calendar" : "list"));
+  };
 
   const setNameQuery = (nameQuery: string) =>
     setFilter((current) => ({ ...current, nameQuery }));
@@ -767,6 +822,9 @@ export function CompetitionListView({
                 : today
             }
             seekFirstDay={!shownSettled}
+            // 주소 쿼리로 연 달력은 보던 달부터(#539).
+            initialMonth={restoreMonth}
+            onMonthChange={setCalendarMonth}
             today={today}
             currentYear={currentYear}
             interest={interest}
@@ -841,6 +899,17 @@ type ListState = {
 
 function toListState(key: string, chunk: CompetitionListChunk): ListState {
   return { key, items: chunk.items, nextCursor: chunk.nextCursor };
+}
+
+/** 조건 이름 — 필터가 없으면 EMPTY_KEY, 있으면 서버 조회 조건 그대로. 달력이 이 조건으로 받은 달을 가른다. */
+function listQueryKey(filter: CompetitionFilter): string {
+  return isCompetitionFilterEmpty(filter)
+    ? EMPTY_KEY
+    : JSON.stringify(competitionListQueryOf(filter));
+}
+
+function competitionsOf(chunk: CompetitionListChunk | null): Competition[] {
+  return chunk ? chunk.items.map(({ competition }) => competition) : [];
 }
 
 type KnownInterest = { ids: number[]; counts: Record<number, number> };

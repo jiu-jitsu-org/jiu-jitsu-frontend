@@ -12,6 +12,10 @@ import {
   type CompetitionListQuery,
 } from "@/features/competition/domain/competition";
 import {
+  compareYearMonth,
+  type YearMonth,
+} from "@/features/competition/domain/competition-list-view-state";
+import {
   loadCompetitionListAction,
   type LoadCompetitionListResult,
 } from "@/features/competition/presentation/actions/load-competition-list-action";
@@ -28,8 +32,6 @@ import { IconButton } from "@/shared/ui/icon-button";
 import { NEUTRAL_BUTTON_PRESS } from "@/shared/ui/press-styles";
 import { TAB_BAR_CLEARANCE } from "@/shared/ui/tab-bar-clearance";
 import { lastDayOf } from "@/features/competition/domain/competition-schedule";
-
-type YearMonth = { year: number; month: number };
 
 /** 달 하나를 받은 결과 — 그 달 대회와, 그 뒤 달에도 대회가 있는지. 못 받았으면 failed. */
 type MonthData =
@@ -49,6 +51,7 @@ type MonthData =
  * 다음 달은 받은 달 뒤에 대회가 더 있을 때만 넘긴다.
  * 달 머리("2026년 11월 ⌄")를 누르면 연·월 휠 시트가 열려 멀리 있는 달로 바로 간다 — 휠이 가리키는 달의 대회 수를 미리 받아
  * 보여 주고, 아직 대회가 없는 달도 고를 수 있다(빈 달이라고 알려 준다).
+ * 보던 달은 넘길 때마다 알려 주고(onMonthChange), 화면이 주소에 담는다 — 당겨서 새로고침하면 그 달로 다시 연다(#539).
  */
 export function CompetitionCalendar({
   query,
@@ -60,6 +63,8 @@ export function CompetitionCalendar({
   interestedOnly,
   filtered,
   onLoad,
+  initialMonth = null,
+  onMonthChange,
 }: {
   /** 목록 필터를 옮긴 서버 조회 조건 */
   query: CompetitionListQuery;
@@ -80,17 +85,45 @@ export function CompetitionCalendar({
   filtered: boolean;
   /** 받은 대회를 관심 상태에 더한다. */
   onLoad: (competitions: Competition[]) => void;
+  /**
+   * 처음 열 달 — 주소 쿼리로 연 달력(#539). 주면 initialDate · seekFirstDay 대신 이 달을 열고 그 달의 첫 대회 날을 고른다.
+   * chunk는 서버가 미리 받아 둔 그 달(못 받았으면 null — 달력이 받는다).
+   */
+  initialMonth?: {
+    month: YearMonth;
+    chunk: CompetitionListChunk | null;
+  } | null;
+  /** 보던 달이 바뀌면(처음 연 달 포함) 알린다 — 화면이 주소에 담는다. */
+  onMonthChange?: (month: YearMonth) => void;
 }) {
   const firstMonth = useMemo(() => yearMonthOf(today), [today]);
 
-  const [view, setView] = useState<YearMonth>(() => yearMonthOf(initialDate));
-  const [selected, setSelected] = useState<string>(initialDate);
+  const [view, setView] = useState<YearMonth>(
+    () => initialMonth?.month ?? yearMonthOf(initialDate),
+  );
+  const [selected, setSelected] = useState<string>(() =>
+    initialMonth ? firstSelectableDay(initialMonth.month, today) : initialDate,
+  );
   const queryKey = JSON.stringify(query);
   const monthKey = `${queryKey}|${view.year}-${pad(view.month)}`;
-  const [months, setMonths] = useState<Record<string, MonthData>>({});
+  // 서버가 미리 받아 둔 달이 있으면 그 달은 받지 않고 바로 그린다.
+  const [months, setMonths] = useState<Record<string, MonthData>>(() =>
+    initialMonth?.chunk
+      ? { [monthKey]: toMonthData(initialMonth.chunk, initialMonth.month) }
+      : {},
+  );
   const monthData = months[monthKey];
   // 받았거나 받는 중인 달 — 달력과 달 고르기 시트가 같은 달을 두 번 받지 않게. 실패한 달은 빼서 다시 받을 수 있다.
-  const requestedKeys = useRef(new Set<string>());
+  const requestedKeys = useRef(
+    new Set<string>(initialMonth?.chunk ? [monthKey] : []),
+  );
+
+  // 보던 달을 알린다 — 화면이 주소에 담는다(#539).
+  useEffect(() => {
+    onMonthChange?.({ year: view.year, month: view.month });
+    // 달이 바뀔 때만 알린다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view.year, view.month]);
 
   const loadMonth = useCallback(
     (month: YearMonth) => {
@@ -161,9 +194,11 @@ export function CompetitionCalendar({
   }, [monthData, shownItemsOf]);
 
   // 넘긴 달을 받으면 그 달의 첫 대회 날을 골라 둔다(받기 전에 사용자가 다른 날을 고르면 그대로 둔다).
-  const [pendingFirstDay, setPendingFirstDay] = useState(seekFirstDay);
-  // 처음 찾는 중이면 남은 대회가 없는 달을 건너뛴다.
-  const [seeking, setSeeking] = useState(seekFirstDay);
+  const [pendingFirstDay, setPendingFirstDay] = useState(
+    seekFirstDay || initialMonth !== null,
+  );
+  // 처음 찾는 중이면 남은 대회가 없는 달을 건너뛴다. 보던 달로 열 때는 그 달에 머문다.
+  const [seeking, setSeeking] = useState(seekFirstDay && initialMonth === null);
 
   const canGoPrev = compareYearMonth(view, firstMonth) > 0;
   const canGoNext = monthData && !monthData.failed ? monthData.hasLater : false;
@@ -175,10 +210,7 @@ export function CompetitionCalendar({
   const goToMonth = (next: YearMonth) => {
     setView(next);
     // 넘긴 달의 첫 대회 날은 받은 뒤에 고른다 — 그 전에는 이번 달이면 오늘, 아니면 1일.
-    const prefix = `${next.year}-${pad(next.month)}-`;
-    setSelected(
-      compareYearMonth(next, firstMonth) === 0 ? today : `${prefix}01`,
-    );
+    setSelected(firstSelectableDay(next, today));
     setPendingFirstDay(true);
     setSeeking(false);
   };
@@ -598,8 +630,11 @@ function addMonth({ year, month }: YearMonth, delta: 1 | -1): YearMonth {
   return { year: Math.floor(index / 12), month: (index % 12) + 1 };
 }
 
-function compareYearMonth(a: YearMonth, b: YearMonth) {
-  return a.year * 12 + a.month - (b.year * 12 + b.month);
+/** 달을 연 뒤 대회를 받기 전에 골라 둘 날 — 이번 달이면 오늘, 아니면 1일. */
+function firstSelectableDay(month: YearMonth, today: string): string {
+  return compareYearMonth(month, yearMonthOf(today)) === 0
+    ? today
+    : `${month.year}-${pad(month.month)}-01`;
 }
 
 function pad(value: number) {
