@@ -14,6 +14,7 @@ import {
   type CompetitionAlertTarget,
 } from "@/features/competition/presentation/competition-alert-sheet";
 import { useCompetitionDetailInterest } from "@/features/competition/presentation/competition-detail-interest";
+import { trackContentAlertToggle } from "@/shared/lib/analytics";
 import { cn } from "@/shared/lib/cn";
 import {
   notifyCompetitionAlertsEnabled,
@@ -121,6 +122,11 @@ function CompetitionAlertButton({
         if (await alerts.setNotice(target.id, false)) {
           setNoticeOverride(false);
           setTurn((value) => value + 1);
+          trackContentAlertToggle(
+            { type: "competition", id: target.id },
+            false,
+            "alert_bell",
+          );
           toast.show("이 대회의 알림을 받지 않아요", { tone: "info" });
         }
         return;
@@ -134,10 +140,19 @@ function CompetitionAlertButton({
       interest.apply(target.id, result.interested, result.interestCount);
       setNoticeOverride(result.noticeEnabled);
       if (!alerts.enabled) {
+        // 설정이 꺼져 있어 아직 알림이 가지 않는다 — 켠 기록은 시트의 '알림 받기'가 성공할 때 남긴다(#578).
         alerts.ask(target);
         return;
       }
       setTurn((value) => value + 1);
+      // 켜진 것으로 돌아왔을 때만 센다 — 화면 종도 서버 값(noticeEnabled)을 따른다.
+      if (result.noticeEnabled) {
+        trackContentAlertToggle(
+          { type: "competition", id: target.id },
+          true,
+          "alert_bell",
+        );
+      }
       toast.show("이 대회의 알림을 받아요", { tone: "info" });
       // 시트 없이 켰으니 여기서 앱에 알린다 — 기기 알림이 꺼져 있으면 앱이 안내하고, 아직 묻지 않았으면 권한을 묻는다.
       // 대회 id는 숫자 문자열 — 이미 깔린 앱은 문자열만 받는다(messages.ts).

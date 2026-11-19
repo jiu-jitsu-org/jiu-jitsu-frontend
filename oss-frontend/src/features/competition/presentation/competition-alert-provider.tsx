@@ -33,6 +33,10 @@ import {
   DEADLINE_ALERT_PASSED_MESSAGE,
   type CompetitionAlertTarget,
 } from "@/features/competition/presentation/competition-alert-sheet";
+import {
+  trackContentAlertToggle,
+  type ContentAlertFrom,
+} from "@/shared/lib/analytics";
 import { notifyCompetitionAlertsEnabled } from "@/shared/lib/native-bridge";
 import { useToast } from "@/shared/ui";
 
@@ -95,10 +99,16 @@ export function CompetitionAlertProvider({
     open: boolean;
     /** 연 순간의 시각 — 닫히는 동안에도 줄이 바뀌지 않게 같이 둔다. */
     clock: DeadlineAlertClock;
+    /**
+     * 시트를 연 곳 — '알림 받기' 기록(GA, #578)의 from. 첫 관심 뒤(askOnFirstInterest) = interest_sheet,
+     * ask = alert_bell(지금 ask는 대회 상세 종만 부른다 — 다른 곳에서 부르면 from을 받게 바꾼다).
+     */
+    from: Extract<ContentAlertFrom, "interest_sheet" | "alert_bell">;
   }>(() => ({
     target: null,
     open: false,
     clock: deadlineAlertClockAt(serverNow),
+    from: "interest_sheet",
   }));
   const pending = useRef(new Set<number>());
   // '알림 받기'를 빠르게 두 번 눌러도 한 번만 켠다 — 시트가 내려가는 동안 버튼이 남아 있다.
@@ -144,7 +154,7 @@ export function CompetitionAlertProvider({
   const ask = useCallback(
     (target: CompetitionAlertTarget) => {
       if (!available) return;
-      setSheet({ target, open: true, clock: clockNow() });
+      setSheet({ target, open: true, clock: clockNow(), from: "alert_bell" });
     },
     [available, clockNow],
   );
@@ -161,7 +171,7 @@ export function CompetitionAlertProvider({
       }
       // 답을 기다리는 동안 다른 대회를 눌러도 다시 묻지 않게 먼저 표시한다.
       setAskedOverride(true);
-      setSheet({ target, open: true, clock });
+      setSheet({ target, open: true, clock, from: "interest_sheet" });
     },
     [asked, available, clockNow, enabled, toast],
   );
@@ -204,7 +214,7 @@ export function CompetitionAlertProvider({
   const accept = async () => {
     if (answering.current) return;
     answering.current = true;
-    const target = sheet.target;
+    const { target, from } = sheet;
     closeSheet();
     const before = enabledOverride;
     setEnabledOverride(true);
@@ -220,6 +230,11 @@ export function CompetitionAlertProvider({
       }
       if (!result.ok) throw new Error(result.reason);
       toast.show("관심 대회 마감 전날 알려 드릴게요", { tone: "success" });
+      trackContentAlertToggle(
+        { type: "competition", id: target?.id },
+        true,
+        from,
+      );
       // 켰다고 앱에 알린다 — 앱은 열린 설정 화면을 다시 읽고, 기기 알림이 꺼져 있으면 켜는 방법을 안내한다
       // (jiu-jitsu-ios#257 · #281). 묻던 대회가 없어도 보낸다.
       // 대회 id는 숫자 문자열로 보낸다 — 이미 깔린 앱은 문자열만 받는다(messages.ts).

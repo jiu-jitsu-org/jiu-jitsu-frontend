@@ -11,6 +11,7 @@ import {
   noticeBellToast,
   useShowNoticeBell,
 } from "@/features/community/presentation/notice-bell";
+import { trackContentAlertToggle } from "@/shared/lib/analytics";
 import { cn } from "@/shared/lib/cn";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { requestNativeLogin } from "@/shared/lib/native-bridge";
@@ -104,6 +105,11 @@ export function BalanceDetailAppBar({
         typeof body?.data?.enabled === "boolean" ? body.data.enabled : next;
 
       setAlarmOn(enabled);
+      trackContentAlertToggle(
+        { type: "balance_game" },
+        enabled,
+        "balance_detail",
+      );
       toast.show(noticeBellToast(enabled, false), { tone: "info" });
     } catch {
       setAlarmOn(previous);
