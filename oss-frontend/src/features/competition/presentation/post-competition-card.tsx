@@ -56,7 +56,11 @@ export function PostCompetitionCard({
     () => ({ [competition.id]: competition.interestCount }),
     [competition.interestCount, competition.id],
   );
-  const interest = useCompetitionInterest({ interestedIds, interestCounts });
+  const interest = useCompetitionInterest({
+    interestedIds,
+    interestCounts,
+    today,
+  });
   const interested = interest.isInterested(competition.id);
 
   const [year, month, day] = competition.date.split("-").map(Number);
@@ -118,7 +122,14 @@ export function PostCompetitionCard({
           competitionName={competition.name}
           interested={interested}
           count={interest.countOf(competition.id)}
-          onToggle={() => interest.toggle(competition)}
+          onToggle={() =>
+            interest.toggle(competition, {
+              from:
+                from === "post_competition_card"
+                  ? "post_competition_card"
+                  : "feed_competition_card",
+            })
+          }
         />
       )}
     </div>

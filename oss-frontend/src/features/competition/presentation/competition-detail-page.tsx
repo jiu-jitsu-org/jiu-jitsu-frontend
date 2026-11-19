@@ -89,6 +89,7 @@ export function CompetitionDetailPage({
         <SubviewScrollShell className="flex flex-col bg-surface-container *:shrink-0">
           <CompetitionDetailHeader
             alertTarget={alertable ? target : undefined}
+            status={status}
             // 관심이 없던 대회는 관심을 새로 등록하면 알림이 켜진 채로 생긴다.
             noticeEnabled={
               data.interested ? (competition.noticeEnabled ?? false) : true
@@ -135,6 +136,7 @@ export function CompetitionDetailPage({
               competitionId={competition.id}
               verifiedOn={competition.verifiedOn}
               noticeUrl={competition.noticeUrl}
+              status={status}
             />
             {data.stories ? (
               <CompetitionStories
@@ -146,6 +148,7 @@ export function CompetitionDetailPage({
           </div>
           <CompetitionEntryBar
             {...entrySource}
+            competitionId={competition.id}
             clubEntryOnly={data.clubEntryOnly}
             interestTarget={interestInBar ? target : undefined}
           />

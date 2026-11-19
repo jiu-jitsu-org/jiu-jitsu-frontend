@@ -64,6 +64,11 @@ const REGION_SLUGS: Record<CompetitionRegion, string> = {
   제주: "jeju",
 };
 
+/** 지역의 쿼리 이름(서버 지역 값 소문자) — 분석 기록(GA, #620)의 `region`도 같은 값이다. */
+export function competitionRegionSlug(region: CompetitionRegion): string {
+  return REGION_SLUGS[region];
+}
+
 const REGION_BY_SLUG = new Map(
   COMPETITION_REGIONS.map((region) => [REGION_SLUGS[region], region]),
 );

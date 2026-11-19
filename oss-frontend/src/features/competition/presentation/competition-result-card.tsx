@@ -3,6 +3,7 @@
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
 import type { Competition } from "@/features/competition/domain/competition";
 import type { ResultCardGroup } from "@/features/competition/domain/competition-result-prompt";
+import { trackBannerClick } from "@/features/competition/presentation/competition-analytics";
 import { BANNER_CLOSE_POSITION } from "@/features/competition/presentation/competition-interest-banner";
 import { useCloseResultPromptOnRecord } from "@/features/competition/presentation/use-close-result-prompt-on-record";
 import { openNativeCompetitionRecord } from "@/shared/lib/native-bridge";
@@ -48,12 +49,21 @@ export function CompetitionResultCard({
     toast.show("MY의 대회 기록에서 남길 수 있어요", { tone: "info" });
   }
 
-  const pressRecord = (competition: Competition) =>
-    guard(
+  // '남기기'를 누른 일은 로그인 안내가 떠도 남긴다(GA, #620) — 로그인 안내는 따로 기록된다.
+  const pressRecord = (competition: Competition) => {
+    const record = guard(
       () => leaveRecord(competition),
       "record",
       "대회 기록은 OSS 앱에서 로그인 후 남길 수 있어요.",
     );
+    return () => {
+      trackBannerClick(
+        { banner: "result", competitionId: competition.id },
+        "record",
+      );
+      record();
+    };
+  };
 
   return (
     <aside aria-label="대회 결과 남기기" className="relative">

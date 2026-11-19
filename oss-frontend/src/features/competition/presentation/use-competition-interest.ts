@@ -12,7 +12,24 @@ import { retryAfterSessionRefresh } from "@/features/competition/presentation/re
 import { useCompetitionAlerts } from "@/features/competition/presentation/competition-alert-provider";
 import type { CompetitionAlertTarget } from "@/features/competition/presentation/competition-alert-sheet";
 import { COMPETITION_GONE_MESSAGE } from "@/features/community/presentation/notifications/inbox-copy";
+import type { Competition } from "@/features/competition/domain/competition";
+import { detailStatusOn } from "@/features/competition/domain/competition-schedule";
+import {
+  regStatusOf,
+  trackCompetitionInterest,
+  type CompetitionInterestFrom,
+  type CompetitionRegStatus,
+} from "@/features/competition/presentation/competition-analytics";
 import { useToast } from "@/shared/ui";
+
+/**
+ * 관심 기록(GA, #620)에 싣는 자리 · 단계. 단계를 주지 않으면 대회 전체(목록 · 카드의 Competition)를 받았을 때
+ * 훅에 넘긴 오늘 기준 상세 단계로 센다. 대회 상세는 화면이 가진 단계를 넘긴다.
+ */
+export type CompetitionInterestContext = {
+  from: CompetitionInterestFrom;
+  regStatus?: CompetitionRegStatus;
+};
 
 export type CompetitionInterest = {
   /** 지금 내가 관심 등록한 대회 id (누르는 즉시 반영된 값). */
@@ -23,7 +40,10 @@ export type CompetitionInterest = {
    * 관심 등록·해제. 비로그인이면 로그인 안내(외부 브라우저면 앱 안내)만 띄운다.
    * 대회 이름·접수 일정을 함께 받는 것은 첫 등록 때 마감 알림 시트(#375)가 이 대회의 알림 날을 보여 주기 때문이다.
    */
-  toggle: (target: CompetitionAlertTarget) => void;
+  toggle: (
+    target: CompetitionAlertTarget | Competition,
+    context: CompetitionInterestContext,
+  ) => void;
   /** 관심 등록만(이미 등록돼 있으면 그대로). 시트는 띄우지 않는다 — 대회 상세의 알림 켜기(#376)가 쓴다. 성공 여부를 돌려준다. */
   register: (target: CompetitionAlertTarget) => Promise<boolean>;
   /** 다른 요청이 돌려준 관심 상태로 맞춘다 — 이 대회 알림을 켜면 관심도 함께 등록된다(#376 · #422). */
@@ -47,6 +67,7 @@ export function useCompetitionInterest({
   interestedIds,
   interestCounts,
   resetKey,
+  today,
 }: {
   interestedIds: readonly number[];
   interestCounts: Readonly<Record<number, number>>;
@@ -56,6 +77,11 @@ export function useCompetitionInterest({
    * 없으면 interestedIds·interestCounts가 바뀔 때 비운다.
    */
   resetKey?: unknown;
+  /**
+   * 한국 날짜 "YYYY-MM-DD" — 대회 전체를 받은 관심 기록의 단계(reg_status)를 셀 오늘. 없으면 단계를 싣지 않는다
+   * (시계를 여기서 읽으면 이 훅을 든 화면 전체가 분마다 다시 그려진다 — 오늘은 호출부가 넘긴다).
+   */
+  today?: string;
 }): CompetitionInterest {
   const [overrides, setOverrides] = useState<Record<number, Override>>({});
   const pending = useRef(new Set<number>());
@@ -109,9 +135,16 @@ export function useCompetitionInterest({
     return ids;
   }, [overrides, serverInterested, signedIn]);
 
-  /** 관심을 next로 바꾼다. 바뀐 결과가 서버에 남았으면 true. */
+  /**
+   * 관심을 next로 바꾼다. 바뀐 결과가 서버에 남았으면 true.
+   * analytics를 주면 서버가 받은 뒤에만 관심 기록(GA)을 남긴다 — 실패로 되돌리면 남기지 않는다.
+   */
   const run = useCallback(
-    async (id: number, next: boolean): Promise<boolean> => {
+    async (
+      id: number,
+      next: boolean,
+      analytics?: CompetitionInterestContext,
+    ): Promise<boolean> => {
       if (pending.current.has(id)) return false;
       const before: Override = {
         interested: isInterested(id),
@@ -149,6 +182,14 @@ export function useCompetitionInterest({
           ...current,
           [id]: { interested: result.interested, count: result.interestCount },
         }));
+        if (analytics) {
+          trackCompetitionInterest(
+            id,
+            result.interested,
+            analytics.from,
+            analytics.regStatus,
+          );
+        }
         return true;
       } catch {
         setOverrides((current) => ({ ...current, [id]: before }));
@@ -167,10 +208,21 @@ export function useCompetitionInterest({
   );
 
   const toggle = useCallback(
-    (target: CompetitionAlertTarget) => {
+    (
+      target: CompetitionAlertTarget | Competition,
+      context: CompetitionInterestContext,
+    ) => {
+      const regStatus =
+        context.regStatus ??
+        (today && "status" in target
+          ? regStatusOf(detailStatusOn(target, today))
+          : undefined);
       const action = async () => {
         const next = !isInterested(target.id);
-        if ((await run(target.id, next)) && next) {
+        if (
+          (await run(target.id, next, { from: context.from, regStatus })) &&
+          next
+        ) {
           alerts?.askOnFirstInterest(target);
         }
       };
@@ -182,7 +234,7 @@ export function useCompetitionInterest({
           "관심 등록은 OSS 앱에서 로그인 후 할 수 있어요.",
         )();
     },
-    [alerts, guard, isInterested, run, signedIn],
+    [alerts, guard, isInterested, run, signedIn, today],
   );
 
   const register = useCallback(

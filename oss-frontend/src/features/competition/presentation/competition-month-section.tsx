@@ -17,6 +17,7 @@ import {
   REACTION_PRESS_MOTION,
 } from "@/features/community/presentation/comment-reaction-styles";
 import { usePopOnActivate } from "@/features/community/presentation/use-pop-on-activate";
+import type { CompetitionInterestFrom } from "@/features/competition/presentation/competition-analytics";
 import type { CompetitionInterest } from "@/features/competition/presentation/use-competition-interest";
 import { cn } from "@/shared/lib/cn";
 import { HeartIcon } from "@/shared/ui/icons";
@@ -139,11 +140,17 @@ export function CompetitionRow({
   item: { competition, registration },
   currentYear,
   interest,
+  interestFrom = "competition_list",
   timeline = false,
 }: {
   item: CompetitionListItem;
   currentYear: number;
   interest?: CompetitionInterest;
+  /** 관심 기록(GA)의 자리 — 목록 · 달력 보기. */
+  interestFrom?: Extract<
+    CompetitionInterestFrom,
+    "competition_list" | "competition_calendar"
+  >;
   /** 목록 화면의 세로 타임라인 — 날짜 아래에서 다음 줄 날짜 위까지 세로 줄을 잇는다. */
   timeline?: boolean;
 }) {
@@ -199,7 +206,9 @@ export function CompetitionRow({
               competitionName={competition.name}
               interested={interested}
               count={interest.countOf(competition.id)}
-              onToggle={() => interest.toggle(competition)}
+              onToggle={() =>
+                interest.toggle(competition, { from: interestFrom })
+              }
             />
           ) : null}
         </div>

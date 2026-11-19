@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import type { CompetitionDetailStatus } from "@/features/competition/domain/competition-schedule";
 import type { CompetitionAlertTarget } from "@/features/competition/presentation/competition-alert-sheet";
+import { regStatusOf } from "@/features/competition/presentation/competition-analytics";
 import { RegistrationIcon } from "@/features/competition/presentation/competition-icons";
 import { shortDateLabel } from "@/features/competition/presentation/competition-detail-format";
 import { recordCompetitionViewAction } from "@/features/competition/presentation/actions/record-competition-view-action";
@@ -98,7 +99,11 @@ export function CompetitionDetailSummary({
           ) : null}
         </p>
         {buttonHere ? (
-          <CompetitionDetailInterestButton target={target} shape="pill" />
+          <CompetitionDetailInterestButton
+            target={target}
+            shape="pill"
+            status={status}
+          />
         ) : null}
       </div>
     </section>
@@ -113,9 +118,12 @@ export function CompetitionDetailSummary({
 export function CompetitionDetailInterestButton({
   target,
   shape,
+  status,
 }: {
   target: CompetitionAlertTarget;
   shape: "pill" | "icon";
+  /** 그 순간 상세가 보여 주는 단계 — 관심 기록(GA)의 reg_status. */
+  status: CompetitionDetailStatus | null;
 }) {
   const interest = useCompetitionDetailInterest();
   const on = interest.isInterested(target.id);
@@ -132,7 +140,12 @@ export function CompetitionDetailInterestButton({
     />
   );
   const props = {
-    onClick: () => interest.toggle(target),
+    // 관심 기록(GA, #620)의 자리 — 바의 하트는 바가 있을 때만 있고, 그때 요약 알약은 숨는다.
+    onClick: () =>
+      interest.toggle(target, {
+        from: shape === "icon" ? "competition_bar" : "competition_detail",
+        regStatus: regStatusOf(status),
+      }),
     "aria-pressed": on,
     "aria-label": `관심 등록${count > 0 ? `, 관심 ${count}명` : ""}`,
   };

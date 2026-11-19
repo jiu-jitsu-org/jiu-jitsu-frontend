@@ -31,7 +31,10 @@ import {
   isCompetitionFilterEmpty,
   type CompetitionFilter,
 } from "@/features/competition/domain/competition-filter";
-import { bannerSlotQueue } from "@/features/competition/domain/competition-banner-slot";
+import {
+  bannerSlotQueue,
+  type BannerSlotItem,
+} from "@/features/competition/domain/competition-banner-slot";
 import {
   competitionListViewSearch,
   type CompetitionListMode,
@@ -49,6 +52,12 @@ import {
   dismissBannerSlotItem,
   useBannerSlot,
 } from "@/features/competition/presentation/competition-banner-slot";
+import {
+  bannerParamsOf,
+  trackBannerClick,
+  trackCompetitionFilter,
+  trackCompetitionViewChange,
+} from "@/features/competition/presentation/competition-analytics";
 import { CompetitionCalendar } from "@/features/competition/presentation/competition-calendar";
 import {
   CompetitionTopTint,
@@ -187,6 +196,7 @@ export function CompetitionListView({
     interestedIds: known.ids,
     interestCounts: known.counts,
     resetKey: interestResetKey,
+    today,
   });
   // 서버가 다시 그리면(상세에서 돌아옴 등) 이어 받은 페이지·필터 결과는 그대로 두고 관심 값만 맞춘다 —
   // 이 화면에서 누른 결과를 먼저 접어 넣고 새 서버 값으로 덮는다. 필터를 켠 채 돌아와도 거르지 않은 목록이 깜빡이지 않는다.
@@ -573,11 +583,13 @@ export function CompetitionListView({
       !slot ||
       window.matchMedia("(prefers-reduced-motion: reduce)").matches
     ) {
+      trackBannerDismiss(item);
       dismissBannerSlotItem(item);
       return;
     }
     // 접히는 중에 ✕를 또 누르면 무시한다(움직임이 겹쳐 쌓이지 않게).
     if (closingKey === item.key) return;
+    trackBannerDismiss(item);
     setClosingKey(item.key);
     collapsingRef.current = true;
     const timing = {
@@ -626,8 +638,14 @@ export function CompetitionListView({
   // 배너에서 누른 대회는 상세로 바로 연다(#361) — 목록 줄을 누른 것과 같다.
   const openDetail = useOpenCompetitionDetail("competition_banner");
 
-  const toggle = (key: "interestedOnly" | "openOnly") =>
+  // 필터를 켜거나 끄는 순간 기록한다(GA, #620) — 받기에 실패해 칩이 되돌아가도 누른 일은 남는다.
+  const toggle = (key: "interestedOnly" | "openOnly") => {
+    trackCompetitionFilter({
+      filter: key === "openOnly" ? "open" : "interest",
+      on: !filter[key],
+    });
     setFilter((current) => ({ ...current, [key]: !current[key] }));
+  };
 
   const toggleInterested = () => toggle("interestedOnly");
   // 비로그인이 누르면 필터는 켜지 않고 로그인 안내만 — 켜 봐야 늘 빈 결과다.
@@ -648,6 +666,7 @@ export function CompetitionListView({
 
   const toggleMode = () => {
     setRestoreMonth(null);
+    trackCompetitionViewChange(mode === "list" ? "calendar" : "list", "switch");
     setMode((current) => (current === "list" ? "calendar" : "list"));
   };
 
@@ -809,6 +828,7 @@ export function CompetitionListView({
               today={today}
               onSelectCompetition={(competition) => openDetail(competition.id)}
               onClose={() => closeBanner(banner)}
+              closing={closingKey === banner.key}
             />
           </div>
         ) : null}
@@ -849,7 +869,22 @@ export function CompetitionListView({
                 : {
                     label: "필터 지우기",
                     // 검색칸이 열려 있으면 검색어도 함께 비운다 — EMPTY에 빈 검색어가 들어 있다.
-                    onClick: () => setFilter(EMPTY_COMPETITION_FILTER),
+                    // 켜져 있던 필터마다 끈 기록을 남긴다(GA, #620) — 켬만 남고 끔이 빠지지 않게.
+                    onClick: () => {
+                      if (activeFilter.regions.length > 0)
+                        trackCompetitionFilter({
+                          filter: "region",
+                          regions: [],
+                        });
+                      if (activeFilter.openOnly)
+                        trackCompetitionFilter({ filter: "open", on: false });
+                      if (activeFilter.interestedOnly)
+                        trackCompetitionFilter({
+                          filter: "interest",
+                          on: false,
+                        });
+                      setFilter(EMPTY_COMPETITION_FILTER);
+                    },
                   }
             }
             className="pt-[30vh]"
@@ -881,6 +916,7 @@ export function CompetitionListView({
         available={availableRegions}
         onDismiss={() => setRegionSheetOpen(false)}
         onApply={(regions) => {
+          trackCompetitionFilter({ filter: "region", regions });
           setFilter((current) => ({ ...current, regions }));
           setRegionSheetOpen(false);
         }}
@@ -890,6 +926,12 @@ export function CompetitionListView({
 }
 
 const FILTER_BAR_ID = "competition-filter-bar";
+
+/** 배너 ✕ 기록(GA, #620). */
+function trackBannerDismiss(item: BannerSlotItem) {
+  const params = bannerParamsOf(item);
+  if (params) trackBannerClick(params, "dismiss");
+}
 
 /** 필터 없는 목록의 이름 */
 const EMPTY_KEY = "";
