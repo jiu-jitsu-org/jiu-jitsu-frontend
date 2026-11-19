@@ -22,6 +22,11 @@ import {
 } from "@/features/community/presentation/comment-mention";
 import { useCommentReply } from "@/features/community/presentation/comment-reply-context";
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
+import {
+  contentIdOf,
+  currentScreenName,
+  track,
+} from "@/shared/lib/analytics";
 import { ApiErrorCode } from "@/shared/lib/http/api-error";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { cn } from "@/shared/lib/cn";
@@ -50,14 +55,24 @@ export const COMMENT_INPUT_ELEMENT_ID = "community-comment-input";
  * 인라인 입력창을 따로 두지 않고 이 바를 재사용한다.
  *
  * 대상은 게시글일 수도 밸런스 게임일 수도 있어 `contentId`를 받는다 — 업스트림 댓글 API가
- * 처음부터 컨텐츠 단위라 이 바가 게시글을 알 이유가 없다.
+ * 처음부터 컨텐츠 단위라 이 바가 게시글을 알 이유가 없다. 기록(GA, #619)에 실을 종류 · 내 글 여부만 따로 받는다.
  *
  * 앱 웹뷰 비로그인은 입력창을 그대로 보여주되 입력을 받지 않는다(#173) — 탭하면 로그인 알럿만 뜨고
  * 포커스·키보드·입력이 일어나지 않는다. 다 쓴 뒤 전송 시점에 막히는 것을 없애기 위함이다.
  * textarea를 readOnly로 두지 않고 버튼으로 바꾸는 이유: readOnly여도 iOS 웹뷰는 포커스를 잡아
  * 입력 보조 막대가 올라온다.
  */
-export function CommentInputBar({ contentId }: { contentId: number }) {
+export function CommentInputBar({
+  contentId,
+  contentType,
+  isOwnPost,
+}: {
+  contentId: number;
+  /** 댓글을 다는 대상의 종류 — 등록 기록(`comment_create`)의 content_type. */
+  contentType: "post" | "balance_game";
+  /** 내 글에 다는 댓글인가(밸런스 게임은 운영 글이라 false). */
+  isOwnPost: boolean;
+}) {
   const router = useRouter();
   const demo = useIsDemoMode();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -209,6 +224,15 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
         return;
       }
 
+      // 등록 성공 기록(GA, #619) — 댓글 원문은 싣지 않는다. 답글에서 `@닉네임`을 남겨 보냈으면 has_mention.
+      track("comment_create", {
+        content_type: contentType,
+        content_id: contentIdOf(contentType, contentId),
+        is_reply: parentId !== undefined,
+        is_own_post: isOwnPost,
+        has_mention: mentionCommentId !== undefined,
+        from: currentScreenName(),
+      });
       setValue("");
       setSentCount((n) => n + 1);
       // 앱이 알림 권한 안내를 띄울지 정하게 알린다(#495). 답글 · 밸런스 게임 댓글도 이 바로 등록돼 여기서 한 번만 나간다.

@@ -15,6 +15,7 @@ import {
   usePlacement,
   useSettlePosted,
 } from "@/features/community/presentation/comment-reply-context";
+import { track } from "@/shared/lib/analytics";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 
 /** 버튼 자리를 유지한 채 문구만 바꾼다 — 로딩·실패로 레이아웃이 흔들리지 않게. */
@@ -334,6 +335,28 @@ export function CommentReplies({
     });
   });
 
+  // 지금 그리는 정렬·로그인 · 세대 · 받은 페이지 수 — 더보기 응답이 목록에 붙을지 기록(GA, #619) 전에 본다.
+  // 아래 setState가 응답을 버리는 조건과 같게 맞춘다.
+  const appliedRef = useRef({
+    resetKey: current.resetKey,
+    generation: current.generation,
+    pages: current.pages.length,
+  });
+  useEffect(() => {
+    appliedRef.current = {
+      resetKey: current.resetKey,
+      generation: current.generation,
+      pages: current.pages.length,
+    };
+  });
+  // 받는 사이 이 묶음이 사라지면(정렬을 바꿔 부모 댓글이 빠짐, 상세 닫힘) 늦은 응답은 붙지 않으니 세지 않는다.
+  useEffect(
+    () => () => {
+      appliedRef.current = { ...appliedRef.current, resetKey: "" };
+    },
+    [],
+  );
+
   async function loadNextPage() {
     if (current.status === "loading") return;
 
@@ -342,6 +365,19 @@ export function CommentReplies({
     setState({ ...current, status: "loading" });
 
     const result = await fetchReplyPage(parentId, sort, page);
+    // '대댓글 더보기' 기록(GA, #619) — 서버가 함께 준 미리보기를 1로 센 순번(더보기 page는 0부터). 받기에 성공했고
+    // 받는 사이 정렬·로그인 · 서버 렌더가 바뀌지 않아 목록에 붙을 때만. 연타의 뒤 응답이 렌더 전에 와도 한 번만
+    // 세도록 붙은 것으로 먼저 적어 둔다(렌더 뒤 effect가 실제 값으로 덮는다).
+    const applied = appliedRef.current;
+    if (
+      result &&
+      applied.resetKey === resetKey &&
+      applied.generation === generation &&
+      applied.pages === page
+    ) {
+      appliedRef.current = { ...applied, pages: page + 1 };
+      track("list_load_more", { page: page + 2 });
+    }
 
     setState((prev) => {
       // 받는 사이 정렬·로그인이 바뀌었으면 버린다.

@@ -419,6 +419,7 @@ export function CommunityFeedList({
             <div className="overflow-hidden">
               <FeedCardItem
                 post={post}
+                position={index + 1}
                 hideAuthor={hideAuthor}
                 authorLink={authorLink}
                 highlightWords={highlightWords}
@@ -466,6 +467,7 @@ export function CommunityFeedList({
  */
 function FeedCardItem({
   post,
+  position,
   hideAuthor,
   authorLink,
   highlightWords,
@@ -474,6 +476,8 @@ function FeedCardItem({
   onAuthorBlocked,
 }: {
   post: PostSummary;
+  /** 목록에서 몇 번째인가(1부터) — 열람 기록(GA, #619)에 싣는다. */
+  position: number;
   hideAuthor: boolean;
   authorLink: boolean;
   highlightWords?: readonly string[];
@@ -529,8 +533,8 @@ function FeedCardItem({
           ? openAuthorProfile(post.author.userId, post.viewer.isOwner)
           : undefined
       }
-      onPress={() => openPostDetail(post.id)}
-      onPressComment={() => openPostDetail(post.id)}
+      onPress={() => openPostDetail(post.id, null, { position })}
+      onPressComment={() => openPostDetail(post.id, null, { position })}
       onToggleLike={guard(
         toggleLike,
         "like",
@@ -545,6 +549,7 @@ function FeedCardItem({
         guest ? undefined : (
           <FeedCardMenu
             postId={post.id}
+            commentCount={post.counts.comments}
             isOwner={post.viewer.isOwner}
             author={{
               userId: post.author.userId,

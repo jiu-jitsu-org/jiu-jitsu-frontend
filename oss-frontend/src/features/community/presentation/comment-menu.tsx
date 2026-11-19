@@ -8,6 +8,7 @@ import {
   COMMENT_REACTION_BUTTON,
   COMMENT_REACTION_ICON,
 } from "@/features/community/presentation/comment-reaction-styles";
+import { track } from "@/shared/lib/analytics";
 import { cn } from "@/shared/lib/cn";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import {
@@ -65,8 +66,11 @@ export function CommentMenu({
   authorId,
   isOwner,
   authorNickname,
+  isReply,
 }: {
   commentId: number;
+  /** 대댓글인가 — 삭제 · 되돌리기 기록(GA, #619)의 is_reply. */
+  isReply: boolean;
   /** 댓글 작성자 회원 id — 차단 대상. 차단은 댓글 1건이 아니라 이 회원 전체가 대상이다. */
   authorId: number;
   isOwner: boolean;
@@ -123,6 +127,7 @@ export function CommentMenu({
       return;
     }
 
+    track("comment_delete", { action: "delete", is_reply: isReply });
     toast.show("댓글을 삭제했어요", {
       tone: "success",
       action: { label: "되돌리기", onAction: () => void handleRestore() },
@@ -159,6 +164,7 @@ export function CommentMenu({
       return;
     }
 
+    track("comment_delete", { action: "undo", is_reply: isReply });
     toast.show("댓글을 복구했어요", { tone: "success" });
     // 서버 렌더 목록 재요청 — 복구된 댓글이 다시 본문으로 돌아온다.
     router.refresh();

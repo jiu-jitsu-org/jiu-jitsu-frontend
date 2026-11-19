@@ -15,6 +15,7 @@ import { useNativeDialog } from "@/features/community/presentation/use-native-di
 import { useOpenPostEdit } from "@/features/community/presentation/use-open-post-edit";
 import type { BlockTarget } from "@/features/community/presentation/use-block-member";
 import { useReportFlow } from "@/features/community/presentation/use-report-flow";
+import { contentIdOf, track } from "@/shared/lib/analytics";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { requestNativeLogin } from "@/shared/lib/native-bridge";
 import { useToast } from "@/shared/ui";
@@ -36,6 +37,7 @@ import { MoreVerticalIcon } from "@/shared/ui/icons";
  */
 export function FeedCardMenu({
   postId,
+  commentCount,
   isOwner,
   author,
   onDeleted,
@@ -43,6 +45,8 @@ export function FeedCardMenu({
   onAuthorBlocked,
 }: {
   postId: number;
+  /** 댓글 수 — 글 삭제 기록(GA, #619)의 has_comments. */
+  commentCount: number;
   isOwner: boolean;
   /** 글 작성자 — 신고 완료 토스트의 [차단] 대상(#550). id를 모르면 0이고 [차단]을 붙이지 않는다. */
   author: BlockTarget;
@@ -87,6 +91,12 @@ export function FeedCardMenu({
       return;
     }
 
+    // 지운 글은 서버에 흔적이 남지 않아 여기서 남긴다(GA, #619).
+    track("post_delete", {
+      content_id: contentIdOf("post", postId),
+      from: "feed_menu",
+      has_comments: commentCount > 0,
+    });
     toast.show("게시글을 삭제했어요", { tone: "success" });
     onDeleted();
   }

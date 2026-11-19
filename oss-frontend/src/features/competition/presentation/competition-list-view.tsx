@@ -73,7 +73,7 @@ import {
 import { retryAfterSessionRefresh } from "@/features/competition/presentation/retry-after-session-refresh";
 import { useCompetitionInterest } from "@/features/competition/presentation/use-competition-interest";
 import { useMyBeltRank } from "@/features/competition/presentation/use-my-belt-rank";
-import { reportScreen } from "@/shared/lib/analytics";
+import { reportScreen, track } from "@/shared/lib/analytics";
 import { cn } from "@/shared/lib/cn";
 import {
   CalendarIcon,
@@ -320,6 +320,7 @@ export function CompetitionListView({
     if (shown.nextCursor === failedCursor) return;
     const key = shown.key;
     const cursor = shown.nextCursor;
+    const loads = shown.loads;
     loadingMore.current = true;
     // 토큰이 만료됐으면 앱 갱신 뒤 한 번 다시 받는다 — 익명으로 받아 관심 상태를 덮지 않게(#524).
     void retryAfterSessionRefresh(() =>
@@ -336,6 +337,8 @@ export function CompetitionListView({
           setFailedCursor(cursor);
           return;
         }
+        // 이어 받기 기록(GA, #619) — 커서 방식이라 page는 이 조건으로 받은 횟수(첫 묶음 = 1).
+        track("list_load_more", { page: loads + 1 });
         absorb(result.chunk.items.map(({ competition }) => competition));
         const append = (current: ListState | null) =>
           current && current.key === key && current.nextCursor === cursor
@@ -343,6 +346,7 @@ export function CompetitionListView({
                 key,
                 items: [...current.items, ...result.chunk.items],
                 nextCursor: result.chunk.nextCursor,
+                loads: current.loads + 1,
               }
             : current;
         if (key === EMPTY_KEY) setBase((current) => append(current) ?? current);
@@ -895,10 +899,12 @@ type ListState = {
   key: string;
   items: CompetitionListItem[];
   nextCursor: string | null;
+  /** 이 조건으로 받은 묶음 수(첫 묶음 = 1) — 이어 받기 기록(GA)의 page. */
+  loads: number;
 };
 
 function toListState(key: string, chunk: CompetitionListChunk): ListState {
-  return { key, items: chunk.items, nextCursor: chunk.nextCursor };
+  return { key, items: chunk.items, nextCursor: chunk.nextCursor, loads: 1 };
 }
 
 /** 조건 이름 — 필터가 없으면 EMPTY_KEY, 있으면 서버 조회 조건 그대로. 달력이 이 조건으로 받은 달을 가른다. */

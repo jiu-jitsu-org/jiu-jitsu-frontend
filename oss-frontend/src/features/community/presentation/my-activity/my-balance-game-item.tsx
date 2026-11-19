@@ -33,7 +33,14 @@ import { PRESS_BOUNCE } from "@/shared/ui/press-styles";
  *
  * 버튼 안에 버튼을 둘 수 없어 선택지 · 댓글 · 좋아요 수는 displayOnly(span)로 그린다.
  */
-export function MyBalanceGameItem({ game }: { game: BalanceGame }) {
+export function MyBalanceGameItem({
+  game,
+  position,
+}: {
+  game: BalanceGame;
+  /** 목록에서 몇 번째인가(1부터) — 열람 기록(GA, #619)에 싣는다. */
+  position: number;
+}) {
   const openBalanceDetail = useOpenBalanceDetail();
 
   // 보는 중에 마감 시각이 지나면 그 자리에서 마감 모양(남은 시간 숨김 · 강조 해제)으로 바꾼다.
@@ -50,7 +57,7 @@ export function MyBalanceGameItem({ game }: { game: BalanceGame }) {
   return (
     <button
       type="button"
-      onClick={() => openBalanceDetail(game.contentId)}
+      onClick={() => openBalanceDetail(game.contentId, null, { position })}
       className={cn("flex w-full flex-col text-left", PRESS_BOUNCE)}
     >
       <span className="flex w-full items-center justify-between gap-2 text-label-m text-text-tertiary">

@@ -71,6 +71,7 @@ export function PostDetailView({
                   }}
                   initialNoticeEnabled={post.noticeEnabled}
                   commented={post.viewer.commented}
+                  commentCount={post.counts.comments}
                 />
               }
             />
@@ -78,7 +79,13 @@ export function PostDetailView({
           // 외부 브라우저에서는 입력 바를 감춘다(#72) — 세션이 없어 전송이 반드시 실패한다.
           footer={
             <PostDetailFooter
-              inputBar={<CommentInputBar contentId={post.id} />}
+              inputBar={
+                <CommentInputBar
+                  contentId={post.id}
+                  contentType="post"
+                  isOwnPost={post.viewer.isOwner}
+                />
+              }
             />
           }
         >

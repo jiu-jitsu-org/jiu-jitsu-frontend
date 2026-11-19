@@ -63,7 +63,13 @@ export function BalanceDetailView({
           }
           footer={
             <PostDetailFooter
-              inputBar={<CommentInputBar contentId={game.contentId} />}
+              inputBar={
+                <CommentInputBar
+                  contentId={game.contentId}
+                  contentType="balance_game"
+                  isOwnPost={false}
+                />
+              }
             />
           }
         >

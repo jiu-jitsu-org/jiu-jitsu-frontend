@@ -127,6 +127,13 @@ function InboxList({
   }
 
   function handlePress(notification: InboxNotification) {
+    // 열람 기록(GA, #619) — 누른 순간의 순번 · 안 읽음 상태. 읽음 처리보다 먼저 잡는다.
+    const detail = {
+      position:
+        notifications.findIndex((item) => item.id === notification.id) + 1,
+      noticeType: notification.type?.toLowerCase(),
+      wasUnread: !notification.isRead,
+    };
     if (!notification.isRead) void markRead(notification.id);
 
     const { target, gone } = notification;
@@ -139,10 +146,10 @@ function InboxList({
     }
     // 댓글 알림이면 그 댓글 번호를 같이 넘겨 상세가 맨 위에 먼저 보여 준다(#596).
     if (target.kind === "post") {
-      openPostDetail(target.postId, notification.commentId);
+      openPostDetail(target.postId, notification.commentId, detail);
     } else if (target.kind === "competition") {
-      openCompetitionDetail(target.competitionId);
-    } else openBalanceDetail(target.contentId, notification.commentId);
+      openCompetitionDetail(target.competitionId, detail);
+    } else openBalanceDetail(target.contentId, notification.commentId, detail);
   }
 
   return (

@@ -31,6 +31,8 @@ export type ScreenName = (typeof SCREEN_NAMES)[number];
 const ENTRY_FROMS = [
   "feed_button",
   "feed_menu",
+  // 글 상세 ⋯ 메뉴(글 삭제 기록의 from, #619).
+  "post_menu",
   "feed_competition_card",
   "post_competition_card",
   "competition_banner",
@@ -45,6 +47,8 @@ const ENTRY_FROMS = [
   "topic_suggestion",
   // 글 검색 0건의 '이 주제로 글쓰기'(#591).
   "search_empty",
+  // 글 끝 "같은 카테고리의 다른 글"(#594)에서 연 글(#619).
+  "related_posts",
   // 브라우저 뒤로 가기로 다시 보인 화면(#576 후속) — 처음 입구를 다시 쓰지 않고 입구 집계에서 뺀다.
   "back",
 ] as const;

@@ -85,11 +85,13 @@ export function CompetitionStories({
       {stories.length > 0 ? (
         <>
           <ul className="-mx-2 mt-2 flex flex-col">
-            {stories.map((story) => (
+            {stories.map((story, index) => (
               <li key={story.postId}>
                 <StoryRow
                   story={story}
-                  onPress={() => openPost(story.postId)}
+                  onPress={() =>
+                    openPost(story.postId, null, { position: index + 1 })
+                  }
                 />
               </li>
             ))}

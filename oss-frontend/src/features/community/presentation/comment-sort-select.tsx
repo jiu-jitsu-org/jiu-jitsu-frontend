@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import type { CommentSort } from "@/features/community/domain/post";
 import { FOCUSED_COMMENT_PARAM } from "@/features/community/presentation/focused-comment-param";
+import { track } from "@/shared/lib/analytics";
 import {
   MenuBox,
   MenuItem,
@@ -34,6 +35,7 @@ export function CommentSortSelect({ sort }: { sort: CommentSort }) {
   // 메뉴는 MenuBox가 미끄러져 들어간 뒤 onClose로 닫는다 — 여기서 open을 끄면 나가는 모션이 없다.
   function selectSort(next: CommentSort) {
     if (next === sort) return;
+    track("comment_sort_change", { sort: next });
 
     const params = new URLSearchParams(searchParams.toString());
     params.set("sort", next);
