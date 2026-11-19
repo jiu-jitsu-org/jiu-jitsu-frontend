@@ -16,6 +16,7 @@ export function PostDetailBody({
   categoryName,
   createdAt,
   views,
+  viewPath,
   edited,
 }: {
   title: string;
@@ -23,6 +24,8 @@ export function PostDetailBody({
   categoryName?: string;
   createdAt: string;
   views?: number;
+  /** 상세를 연 것으로 세는 BFF 경로(#523). */
+  viewPath?: string;
   edited: boolean;
 }) {
   return (
@@ -37,6 +40,7 @@ export function PostDetailBody({
         categoryName={categoryName}
         createdAt={createdAt}
         views={views}
+        viewPath={viewPath}
         edited={edited}
         className="mt-1.5"
       />

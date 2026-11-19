@@ -1,3 +1,4 @@
+import { ContentViewCount } from "@/features/community/presentation/content-view-count";
 import { formatGameDate } from "@/features/community/presentation/format-detail-date";
 
 /**
@@ -12,11 +13,14 @@ import { formatGameDate } from "@/features/community/presentation/format-detail-
  */
 export function BalanceDetailMetaRow({
   views = 0,
+  viewPath,
   gameDate,
   className,
 }: {
   /** 조회수. 0이어도 노출한다(디자인 기준). */
   views?: number;
+  /** 상세를 연 것으로 세는 BFF 경로(#523). 있으면 처음 그려질 때 한 번 세고 센 값으로 바꾼다. */
+  viewPath?: string;
   /** 게임 진행 날짜(ISO 8601 date, 시각 없음 — 예: "2026-09-10"). */
   gameDate?: string;
   className?: string;
@@ -29,7 +33,11 @@ export function BalanceDetailMetaRow({
         (className ? ` ${className}` : "")
       }
     >
-      <span>조회 {views}</span>
+      {viewPath ? (
+        <ContentViewCount viewPath={viewPath} initialViews={views} />
+      ) : (
+        <span>조회 {views}</span>
+      )}
       {/*
         날짜는 값이 있을 때만 그린다. 업스트림 배포가 앞선다는 보장이 없어, 빈 문자열이나
         "Invalid Date"를 그리는 대신 항목째 뺀다 — 게시글 메타 행이 조회수를 필드가 없을 때만

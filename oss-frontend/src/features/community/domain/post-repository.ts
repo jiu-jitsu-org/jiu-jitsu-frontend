@@ -43,6 +43,11 @@ export interface PostRepository {
   getMyPostList(query: MyPostListQuery): Promise<PostList>;
   getPostDetail(postId: number): Promise<PostDetail>;
   /**
+   * 상세를 사람이 연 것으로 센다(POST /board/{id}/views, #523) — 센 뒤 조회수.
+   * 상세 조회(getPostDetail)로는 조회수가 오르지 않는다. 작성자 본인은 첫 1회만 세므로 토큰이 있으면 붙인다.
+   */
+  recordView(postId: number): Promise<number>;
+  /**
    * 최상위 댓글 목록 한 페이지(GET /community/comments, backend#161). page는 0부터.
    * 밸런스 게임도 같은 API라 postId 자리에 contentId를 넘긴다.
    */
