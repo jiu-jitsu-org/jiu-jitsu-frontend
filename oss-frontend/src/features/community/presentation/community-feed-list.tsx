@@ -103,6 +103,7 @@ export function CommunityFeedList({
   listUrl = FEED_LIST_URL,
   hideAuthor = false,
   authorLink = true,
+  onPressCategory,
   className,
 }: {
   posts: PostSummary[];
@@ -117,6 +118,8 @@ export function CommunityFeedList({
    * 다시 쌓지 않도록 끈다.
    */
   authorLink?: boolean;
+  /** 카드의 카테고리 이름을 눌러 그 카테고리 탭으로(#590). 홈 피드만 넘긴다. */
+  onPressCategory?: (categoryId: number) => void;
   /** 목록 바깥 여백. 기본은 메인 피드 스펙(위 24 · 아래 FAB 여유 91). */
   className?: string;
 }) {
@@ -410,6 +413,11 @@ export function CommunityFeedList({
                 post={post}
                 hideAuthor={hideAuthor}
                 authorLink={authorLink}
+                onPressCategory={
+                  onPressCategory
+                    ? () => onPressCategory(post.categoryId)
+                    : undefined
+                }
                 onDeleted={() => collapseAndRemove(post.id)}
                 // 되돌리기로 복원할 수 있도록 걷어낸 위치를 함께 넘긴다.
                 onRestored={() => {
@@ -456,6 +464,7 @@ function FeedCardItem({
   post,
   hideAuthor,
   authorLink,
+  onPressCategory,
   onDeleted,
   onRestored,
   onAuthorBlocked,
@@ -463,6 +472,7 @@ function FeedCardItem({
   post: PostSummary;
   hideAuthor: boolean;
   authorLink: boolean;
+  onPressCategory?: () => void;
   onDeleted: () => void;
   onRestored: () => void;
   onAuthorBlocked: () => void;
@@ -488,6 +498,7 @@ function FeedCardItem({
       }}
       createdAt={post.createdAt}
       categoryName={post.categoryName}
+      onPressCategory={onPressCategory}
       title={post.title}
       body={post.body}
       images={post.images.map((image) => ({ url: image.imageUrl, alt: "" }))}

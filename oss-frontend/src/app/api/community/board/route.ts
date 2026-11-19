@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { withoutCompetitionWhenDisabled } from "@/features/competition/application/is-competition-enabled";
+import {
+  isCompetitionEnabled,
+  withoutCompetitionWhenDisabled,
+} from "@/features/competition/application/is-competition-enabled";
 import {
   parsePostBody,
   requireSessionOr401,
@@ -35,18 +38,33 @@ export async function GET(request: NextRequest) {
   const rawPage = Number(searchParams.get("page"));
   const rawSize = Number(searchParams.get("size"));
   const rawCategoryId = Number(searchParams.get("categoryId"));
+  const rawCompetitionId = Number(searchParams.get("competitionId"));
   const searchKeyword = searchParams.get("searchKeyword")?.trim() || undefined;
   const sort = searchParams.get("sort")?.trim() || undefined;
 
+  // categoryId · competitionId는 양의 정수일 때만 조건으로 넘긴다(없으면 전체 피드).
+  const categoryId =
+    Number.isInteger(rawCategoryId) && rawCategoryId > 0
+      ? rawCategoryId
+      : undefined;
+  // 이 대회 글만(#598, backend#269). 대회 화면이 꺼진 배포에서는 받지 않는다.
+  const competitionId =
+    isCompetitionEnabled() &&
+    Number.isInteger(rawCompetitionId) &&
+    rawCompetitionId > 0
+      ? rawCompetitionId
+      : undefined;
+
   const query: BoardListQuery = {
-    boardListType: "FEED",
+    // 카테고리 탭(#590)은 CATEGORY + categoryId, 그 밖에는 FEED.
+    boardListType:
+      searchParams.get("boardListType") === "CATEGORY" && categoryId
+        ? "CATEGORY"
+        : "FEED",
     page: Number.isInteger(rawPage) && rawPage >= 0 ? rawPage : 0,
     size: Number.isInteger(rawSize) && rawSize > 0 ? rawSize : FEED_PAGE_SIZE,
-    // categoryId는 양의 정수일 때만 필터로 넘긴다(없으면 전체 피드).
-    categoryId:
-      Number.isInteger(rawCategoryId) && rawCategoryId > 0
-        ? rawCategoryId
-        : undefined,
+    categoryId,
+    competitionId,
     searchKeyword,
     sort,
   };

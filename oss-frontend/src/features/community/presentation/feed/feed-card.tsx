@@ -82,6 +82,8 @@ export type FeedCardProps = {
   createdAt: string;
   /** 카테고리명(#177). 제목 아래 메타행에서 날짜 앞에 표시. 빈 값이면 생략. */
   categoryName?: string;
+  /** 카테고리명 탭 → 그 카테고리 목록(#590). 홈 피드만 넘긴다 — 없으면 글자만(검색 결과 · 내 활동). */
+  onPressCategory?: () => void;
   title: string;
   body: string;
   /** 0개=없음 / 1개=단일 / N개=대표 1장 + "+N" 뱃지. */
@@ -130,6 +132,7 @@ export function FeedCard({
   author,
   createdAt,
   categoryName,
+  onPressCategory,
   title,
   body,
   images,
@@ -201,6 +204,7 @@ export function FeedCard({
         title={title}
         body={body}
         categoryName={categoryName}
+        onPressCategory={onPressCategory}
         createdAt={createdAt}
         onPress={onPress}
         trailing={
@@ -399,6 +403,7 @@ export function FeedCardBody({
   title,
   body,
   categoryName,
+  onPressCategory,
   createdAt,
   onPress,
   trailing,
@@ -407,6 +412,8 @@ export function FeedCardBody({
   title: string;
   body: string;
   categoryName?: string;
+  /** 카테고리명 탭(#590). 있으면 이름이 버튼이 된다 — 카드 탭(상세)과 따로 눌린다. */
+  onPressCategory?: () => void;
   createdAt: string;
   onPress?: () => void;
   /** 제목행 우측 요소(작성자 행을 감춘 카드의 ⋮). 제목은 그 앞에서 말줄임된다. */
@@ -489,7 +496,17 @@ export function FeedCardBody({
       {/* 메타행: 카테고리·날짜. Pretendard Regular 13/18, 항목 간격 10(gap-2.5). 12는 홈 목록에서 작게 읽혀 한 칸 올렸다.
           카테고리는 한 칸 진하게(category-text), 날짜는 옅게 — "무엇"과 "언제"가 한 단어처럼 읽히지 않게. */}
       <div className="flex items-center gap-2.5 text-[13px] leading-[18px] font-normal text-feed-card-header-date-text">
-        {categoryName ? (
+        {categoryName && onPressCategory ? (
+          // 누를 자리만 위아래 · 옆으로 넓히고(음수 마진) 글자 위치 · 줄 높이는 그대로 둔다. 누르는 동안만 옅은 면.
+          <button
+            type="button"
+            onClick={onPressCategory}
+            aria-label={`${categoryName} 글 모아 보기`}
+            className="-mx-1.5 -my-1 rounded-md px-1.5 py-1 text-feed-card-header-category-text motion-safe:transition-colors motion-safe:duration-120 active:bg-surface-container-pressed"
+          >
+            {categoryName}
+          </button>
+        ) : categoryName ? (
           <span className="text-feed-card-header-category-text">
             {categoryName}
           </span>

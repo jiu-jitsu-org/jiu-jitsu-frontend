@@ -311,6 +311,7 @@ export class ExternalPostRepository implements PostRepository {
         boardListType: query.boardListType,
         categoryId: query.categoryId,
         searchKeyword: query.searchKeyword,
+        competitionId: query.competitionId,
         page: query.page,
         size: query.size,
         sort: query.sort,

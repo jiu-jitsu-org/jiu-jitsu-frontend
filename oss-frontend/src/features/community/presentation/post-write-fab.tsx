@@ -13,9 +13,18 @@ import { EditIcon } from "@/shared/ui/icons";
  * 네이티브 웹뷰에선 OPEN_SUBVIEW로 작성 화면을 풀스크린 서브뷰로 띄우고(useOpenPostWrite),
  * 웹 단독에선 라우터 이동한다. 작성 화면 닫기는 CLOSE_SUBVIEW로 pop된다.
  * 브릿지 분기를 위해 클라이언트 컴포넌트로 둔다(서버 페이지에 끼워 넣는 작은 island).
+ *
+ * 홈에서 카테고리 탭을 고른 채 누르면 그 카테고리가 골라진 글쓰기를 연다(#588 · #590).
+ * 이 대회 글만 보는 중이면(#598) '대회' + 그 대회로 연다.
  */
-export function PostWriteFab() {
-  const openWrite = useOpenPostWrite({ from: "feed_button" });
+export function PostWriteFab({
+  categoryId,
+  competitionId,
+}: { categoryId?: number; competitionId?: number } = {}) {
+  const openWrite = useOpenPostWrite({
+    from: "feed_button",
+    ...(competitionId !== undefined ? { competitionId } : { categoryId }),
+  });
   // 누를 때마다 1씩 — 연필 key로 써서 흔들림을 처음부터 다시 재생한다.
   const [taps, setTaps] = useState(0);
 
