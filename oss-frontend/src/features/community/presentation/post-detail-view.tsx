@@ -120,9 +120,9 @@ export function PostDetailView({
                 <PostTags tags={post.tags} className="mt-2" />
               </article>
 
-              {/* 액션바: 태그 아래 24(본문↔버튼 줄을 띄워 글이 숨 쉬게 — 버튼 줄↔디바이더 24와 같다), 디바이더 없음, 우측 정렬 */}
+              {/* 액션바: 태그 아래 48(글이 끝나고 반응 버튼으로 넘어가는 걸 또렷하게 — 버튼 줄↔디바이더 24의 두 배), 디바이더 없음, 우측 정렬 */}
               <PostActionBar
-                className="mt-6"
+                className="mt-12"
                 postId={post.id}
                 initialLiked={post.viewer.liked}
                 initialBookmarked={post.viewer.bookmarked}
