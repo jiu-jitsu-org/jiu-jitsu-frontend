@@ -14,16 +14,21 @@ import {
   createCreatePostUseCase,
   createGetPostListUseCase,
 } from "@/features/community/application/community-use-case-factory";
+import { normalizeSearchKeyword } from "@/features/community/domain/post-search";
 import {
   FEED_PAGE_SIZE,
   type BoardListQuery,
+  type BoardListType,
   type PostList,
 } from "@/features/community/domain/post-summary";
 import { readSessionToken } from "@/shared/lib/auth";
 import type { ApiSuccessResponse } from "@/shared/types/api";
 
 /**
- * GET /api/community/board — 메인 피드 다음 페이지 조회(무한 스크롤용).
+ * GET /api/community/board — 메인 피드 · 글 검색(#591) 다음 페이지 조회(무한 스크롤용).
+ *
+ * `boardListType=SEARCH&searchKeyword=`면 글 검색이고, 그 밖은 메인 피드(FEED)다. 검색어가 비면
+ * 업스트림을 부르지 않고 빈 페이지를 돌려준다 — 서버도 빈 페이지지만 0건 검색어 기록(#266)에 남지 않게.
  *
  * 초기 목록은 Server Component가 직접 application을 호출하지만, 이후 페이지는 클라이언트가
  * 이 BFF로 요청한다(Browser → app/api → application → infrastructure). 목록 열람은 비로그인도
@@ -39,7 +44,9 @@ export async function GET(request: NextRequest) {
   const rawSize = Number(searchParams.get("size"));
   const rawCategoryId = Number(searchParams.get("categoryId"));
   const rawCompetitionId = Number(searchParams.get("competitionId"));
-  const searchKeyword = searchParams.get("searchKeyword")?.trim() || undefined;
+  const searchKeyword =
+    normalizeSearchKeyword(searchParams.get("searchKeyword") ?? "") ||
+    undefined;
   const sort = searchParams.get("sort")?.trim() || undefined;
 
   // categoryId · competitionId는 양의 정수일 때만 조건으로 넘긴다(없으면 전체 피드).
@@ -55,12 +62,17 @@ export async function GET(request: NextRequest) {
       ? rawCompetitionId
       : undefined;
 
-  const query: BoardListQuery = {
-    // 카테고리 탭(#590)은 CATEGORY + categoryId, 그 밖에는 FEED.
-    boardListType:
-      searchParams.get("boardListType") === "CATEGORY" && categoryId
+  // 카테고리 탭(#590)은 CATEGORY + categoryId, 글 검색(#591)은 SEARCH, 그 밖에는 FEED.
+  const requestedListType = searchParams.get("boardListType");
+  const boardListType: BoardListType =
+    requestedListType === "SEARCH"
+      ? "SEARCH"
+      : requestedListType === "CATEGORY" && categoryId
         ? "CATEGORY"
-        : "FEED",
+        : "FEED";
+
+  const query: BoardListQuery = {
+    boardListType,
     page: Number.isInteger(rawPage) && rawPage >= 0 ? rawPage : 0,
     size: Number.isInteger(rawSize) && rawSize > 0 ? rawSize : FEED_PAGE_SIZE,
     categoryId,
@@ -68,6 +80,13 @@ export async function GET(request: NextRequest) {
     searchKeyword,
     sort,
   };
+
+  if (boardListType === "SEARCH" && !searchKeyword) {
+    return NextResponse.json<ApiSuccessResponse<PostList>>({
+      success: true,
+      data: emptyPostList(query),
+    });
+  }
 
   const accessToken = await readSessionToken();
 
@@ -90,6 +109,18 @@ export async function GET(request: NextRequest) {
       "게시글을 불러오지 못했습니다.",
     );
   }
+}
+
+/** 빈 검색어의 결과 — 요청한 페이지 그대로 0건 · 마지막 페이지. */
+function emptyPostList(query: BoardListQuery): PostList {
+  return {
+    items: [],
+    page: query.page,
+    size: query.size,
+    totalElements: 0,
+    totalPages: 0,
+    isLast: true,
+  };
 }
 
 /**
