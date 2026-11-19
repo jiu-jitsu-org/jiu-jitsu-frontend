@@ -36,7 +36,7 @@ export function DetailSkeleton({ variant }: { variant: "post" | "balance" }) {
         {/* 액션바: 우측 정렬 리액션 버튼 자리(높이 28) */}
         <div
           style={pulseDelay(3)}
-          className={`flex justify-end gap-2 px-4 motion-safe:animate-pulse ${variant === "post" ? "mt-6" : "mt-10"}`}
+          className={`flex justify-end gap-2 px-4 motion-safe:animate-pulse ${variant === "post" ? "mt-12" : "mt-10"}`}
         >
           <Skeleton className="h-7 w-12" />
           <Skeleton className="h-7 w-12" />
