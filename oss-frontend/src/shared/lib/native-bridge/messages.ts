@@ -119,6 +119,17 @@ export type InboundMessageType =
  * 가입까지 기록하고(jiu-jitsu-ios#426), 브라우저는 "앱에서 계속할 수 있어요" 창 기록에 쓴다.
  * 사전과 다른 값(오타)이 GA에 쌓이지 않게 닫힌 목록으로 둔다. 새 값은 사전에 먼저 더한다.
  * `my_tab`은 앱 MY 탭(네이티브) 값이라 웹에서는 쓰지 않는다.
+ *
+ * 웹은 로그인 안내를 보낼 때 늘 이 중 하나를 싣는다(#533) — `requireAuth` · `promptLogin` ·
+ * `useLoginGuard().guard(action, reason, message)` · `requestNativeLogin(reason)`에서 필수라 빠뜨리면 타입이 막는다.
+ * 앱은 이 값으로 알럿 문구를 고른다(jiu-jitsu-ios#392) — 목록에 없는 값이나 이유가 없는 옛 웹은 지금 기본 문구.
+ * 어디서 어떤 값인지:
+ * - `like` 글 · 피드 · 밸런스 · 댓글 좋아요 / `save` 저장 / `write` 글쓰기
+ * - `comment` 댓글쓰기 · 게스트 입력 바 / `reply` 답글 버튼 · 답글 등록 401
+ * - `vote` 밸런스 게임 투표 / `interest` · `interest_filter` 대회 관심 · '관심 대회만' 필터
+ * - `alert` 대회 알림 · 글 '알림 받기' 401 / `info_report` 대회 정보 제보 / `record` 내 기록에 남기기
+ * - `report` · `block` 신고 · 차단 401 / `profile` 브라우저에서 남의 작성자 누름
+ * - `session_expired` 로그인으로 알던 화면에서 세션이 끝남(삭제 · 숨기기 등 401) — 앱은 기본 문구가 맞다
  */
 export const LOGIN_PROMPT_REASONS = [
   "write",
@@ -141,7 +152,7 @@ export const LOGIN_PROMPT_REASONS = [
 
 export type LoginPromptReason = (typeof LOGIN_PROMPT_REASONS)[number];
 
-/** `AUTH_LOGIN_PROMPT` payload. 이유는 사전 코드(앱은 문구에 쓰지 않는다). */
+/** `AUTH_LOGIN_PROMPT` payload. 이유는 사전 코드 — 앱은 기록과 알럿 문구 고르기에 쓴다(jiu-jitsu-ios#392 · #426). */
 export type AuthLoginPayload = {
   reason: LoginPromptReason;
 };
