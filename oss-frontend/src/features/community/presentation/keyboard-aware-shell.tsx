@@ -44,7 +44,9 @@ export function KeyboardAwareShell({
     >
       {header ? <div className="shrink-0">{header}</div> : null}
       {/* 세로 체이닝은 연다: 맨 위에서 더 당기면 문서가 당겨져 앱의 당겨서 새로고침 띠가 보인다(#432).
-          아래 끝에서 넘친 스크롤은 앱이 문서를 0으로 묶어 되돌린다. */}
+          아래 끝에서 넘친 스크롤은 앱이 문서를 0으로 묶어 되돌린다.
+          셸 높이가 정해져 있어 main 높이도 정해진다 — 바로 아래 자식은 %로 보이는 높이를 잡을 수 있다(글 상세 첫 화면).
+          container-type은 쓰지 않는다: 안쪽 fixed(사진 뷰어·시트·확인창)가 화면 대신 main에 갇힌다. */}
       <main className="min-h-0 flex-1 overflow-y-auto overscroll-x-contain overscroll-y-auto">
         {children}
       </main>

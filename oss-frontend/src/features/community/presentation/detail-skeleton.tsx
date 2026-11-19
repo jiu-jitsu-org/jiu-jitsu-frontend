@@ -36,7 +36,7 @@ export function DetailSkeleton({ variant }: { variant: "post" | "balance" }) {
         {/* 액션바: 우측 정렬 리액션 버튼 자리(높이 28) */}
         <div
           style={pulseDelay(3)}
-          className={`flex justify-end gap-2 px-4 motion-safe:animate-pulse ${variant === "post" ? "mt-[13px]" : "mt-10"}`}
+          className={`flex justify-end gap-2 px-4 motion-safe:animate-pulse ${variant === "post" ? "mt-6" : "mt-10"}`}
         >
           <Skeleton className="h-7 w-12" />
           <Skeleton className="h-7 w-12" />
@@ -51,7 +51,7 @@ export function DetailSkeleton({ variant }: { variant: "post" | "balance" }) {
 }
 
 /**
- * 게시글: 작성자 행(띠 아바타 32) · 제목(줄 24) · 메타(줄 16, 위 6) · 본문 세 줄(줄 21, 위 12).
+ * 게시글: 작성자 행(띠 아바타 32) · 제목(줄 28, Title 3) · 메타(줄 16, 위 6) · 본문 세 줄(줄 21, 위 12).
  * 실제 상세(PostDetailView · PostAuthorRow · PostDetailBody)와 같은 줄 높이 · 간격이라 데이터가 와도 위쪽 덩어리가
  * 움직이지 않는다(#452). 글 길이 · 사진 · 태그는 미리 알 수 없어 본문 세 줄 아래부터는 맞추지 않는다.
  */
@@ -72,8 +72,8 @@ function PostBodySkeleton() {
           style={pulseDelay(1)}
           className="flex flex-col motion-safe:animate-pulse"
         >
-          <div className="flex h-6 items-center">
-            <Skeleton className="h-4 w-2/3" />
+          <div className="flex h-7 items-center">
+            <Skeleton className="h-4.5 w-2/3" />
           </div>
           <div className="mt-1.5 flex h-4 items-center">
             <Skeleton className="h-3 w-32" />
