@@ -3,9 +3,18 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import {
+  useAuth,
+  useOnLogout,
+} from "@/features/auth/presentation/auth-provider";
 import type { Comment } from "@/features/community/domain/comment";
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
 import { useRequestBeltPrompt } from "@/features/community/presentation/belt-prompt";
+import {
+  clearCommentDrafts,
+  readCommentDraft,
+  saveCommentDraft,
+} from "@/features/community/presentation/comment-draft-store";
 import {
   isMentionOnly,
   mentionCommentIdOf,
@@ -73,33 +82,65 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
   const toast = useToast();
   const requestBeltPrompt = useRequestBeltPrompt();
 
-  // 앱의 당겨서 새로고침(#432)은 페이지를 다시 불러온다. 키보드를 내린 채 당겨도 쓰던 댓글이 남게
-  // 이 웹뷰가 살아 있는 동안만(sessionStorage) 들고 있다가 되살린다. 등록하면 비워진다.
-  const draftKey = `oss:comment-draft:${contentId}`;
-  // 첫 커밋에선 되살리기(setValue)가 아직 반영되기 전이라 저장 쪽이 빈 값으로 초안을 지운다 —
-  // 저장은 첫 실행을 건너뛰고 되살린 값이 들어온 다음부터 한다.
-  const draftSaveReadyRef = useRef(false);
+  // 쓰던 댓글은 회원 · 글별로 기기에 남겨(#528), 뒤로 갔다가(스와이프 포함) 같은 글을 다시 열면 되살린다.
+  // 새 웹뷰에서 되살리면 토스트로 한 번 알린다. 앱의 당겨서 새로고침(#432)처럼 같은 웹뷰가 페이지를 다시
+  // 불러온 경우는 지금처럼 말없이 되살린다 — 이 웹뷰가 쓰던 글은 sessionStorage에도 같이 남겨 둘을 가른다.
+  // 본문만 되살린다. 답글 대상(칩)은 새로고침 때처럼 돌아오지 않는다 — `@닉네임`만 남은 글은 등록하지 않는다.
+  const { userId } = useAuth();
+  const sessionDraftKey = `oss:comment-draft:${contentId}`;
+  // 회원 · 글마다 한 번만 되살린다(개발 모드에서 effect가 두 번 돌아도 토스트는 한 번).
+  const restoredForRef = useRef<string | null>(null);
+  // 되살린 그 커밋의 저장은 건너뛴다 — 아직 되살린 값이 반영되기 전이라 빈 값으로 초안을 지운다.
+  const skipDraftSaveRef = useRef(false);
+  const lastUserIdRef = useRef<string | null>(null);
   useEffect(() => {
+    // 다른 계정으로 바뀌면 입력칸에 남은 이전 계정의 글을 비운다(로그아웃 없이 계정이 바뀐 경우, #511).
+    const switched =
+      lastUserIdRef.current !== null && lastUserIdRef.current !== userId;
+    lastUserIdRef.current = userId;
+    if (!userId) return;
+    const restoreKey = `${userId}:${contentId}`;
+    if (restoredForRef.current === restoreKey) return;
+    restoredForRef.current = restoreKey;
+    skipDraftSaveRef.current = true;
+
+    const saved = readCommentDraft(userId, contentId);
+    // 세션 판정 뒤 기기에 남긴 초안을 되살린다.
+    setValue((current) => (switched ? (saved ?? "") : current || saved || ""));
+    if (!saved) return;
+    let sameWebview = false;
     try {
-      const saved = sessionStorage.getItem(draftKey);
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- 서버 렌더와 맞춘 뒤 저장해 둔 초안을 되살린다.
-      if (saved) setValue(saved);
+      sameWebview = sessionStorage.getItem(sessionDraftKey) === saved;
     } catch {
-      // 저장소를 못 쓰는 환경이면 되살리지 않는다.
+      // 저장소를 못 쓰면 새 웹뷰로 본다.
     }
-  }, [draftKey]);
+    if (!sameWebview) toast.show("쓰던 댓글을 불러왔어요", { tone: "info" });
+  }, [contentId, sessionDraftKey, toast, userId]);
   useEffect(() => {
-    if (!draftSaveReadyRef.current) {
-      draftSaveReadyRef.current = true;
+    if (skipDraftSaveRef.current) {
+      skipDraftSaveRef.current = false;
       return;
     }
+    if (!userId) return;
+    // 등록 성공 · 입력칸을 모두 지움이면 빈 값이라 초안이 지워진다.
+    saveCommentDraft(userId, contentId, value);
     try {
-      if (value) sessionStorage.setItem(draftKey, value);
-      else sessionStorage.removeItem(draftKey);
+      if (value) sessionStorage.setItem(sessionDraftKey, value);
+      else sessionStorage.removeItem(sessionDraftKey);
     } catch {
-      // 저장소를 못 쓰는 환경이면 초안을 남기지 않는다.
+      // 저장소를 못 쓰는 환경이면 남기지 않는다.
     }
-  }, [draftKey, value]);
+  }, [contentId, sessionDraftKey, userId, value]);
+  // 로그아웃하면 이 기기의 초안을 모두 지운다 — 다음에 다른 계정이 열어도 보이지 않게.
+  useOnLogout(() => {
+    clearCommentDrafts();
+    try {
+      sessionStorage.removeItem(sessionDraftKey);
+    } catch {
+      // 저장소를 못 쓰면 지울 것도 없다.
+    }
+    setValue("");
+  });
 
   // 입력에 따라 높이 자동 확장. 최대 5줄(max-h-[125px])은 CSS가 제한하고 초과분은 스크롤.
   useEffect(() => {

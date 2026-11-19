@@ -66,6 +66,11 @@ export type RequireAuthOptions = {
 
 type AuthContextValue = {
   status: AuthStatus;
+  /**
+   * 로그인한 회원(세션 토큰의 `sub`). 비로그인 · 판정 전(loading)이면 null.
+   * 서명을 검증하지 않은 값이라 기기에 남기는 회원별 기록의 키로만 쓴다(댓글 초안 #528) — 권한 판단에 쓰지 않는다.
+   */
+  userId: string | null;
   events: BridgeEvent[];
   /**
    * 보호된 행위를 실행한다. 로그인 상태면 즉시 실행, 아니면 행위를 보관 후 로그인 유도.
@@ -126,6 +131,7 @@ async function fetchSessionState(
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>("loading");
+  const [userId, setUserId] = useState<string | null>(null);
   const [events, setEvents] = useState<BridgeEvent[]>([]);
   const [loginCount, setLoginCount] = useState(0);
   const [logoutCount, setLogoutCount] = useState(0);
@@ -167,9 +173,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const applyState = useCallback((state: SessionState | null) => {
     const next: AuthStatus = state?.authenticated ? "authenticated" : "anonymous";
     statusRef.current = next;
-    userIdRef.current = state?.authenticated ? state.userId : null;
+    const nextUserId = state?.authenticated ? state.userId : null;
+    userIdRef.current = nextUserId;
     startTransition(() => {
       setStatus(next);
+      setUserId(nextUserId);
     });
   }, []);
 
@@ -340,6 +348,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AuthContextValue>(
     () => ({
       status,
+      userId,
       events,
       requireAuth,
       promptLogin,
@@ -350,6 +359,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }),
     [
       status,
+      userId,
       events,
       requireAuth,
       promptLogin,
