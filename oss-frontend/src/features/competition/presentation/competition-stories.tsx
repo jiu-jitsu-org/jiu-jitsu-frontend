@@ -11,7 +11,7 @@ import type {
   CompetitionStoryList,
 } from "@/features/competition/domain/competition-story";
 import { DetailSection } from "@/features/competition/presentation/competition-detail-sections";
-import { entryPath, track } from "@/shared/lib/analytics";
+import { contentIdOf, entryPath, track } from "@/shared/lib/analytics";
 import { cn } from "@/shared/lib/cn";
 import {
   isNativeBridgeAvailable,
@@ -166,7 +166,7 @@ function useOpenCompetitionFeed(competitionId: number) {
   const router = useRouter();
   return (totalCount: number) => {
     track("competition_story_more", {
-      competition_id: competitionId,
+      competition_id: contentIdOf("competition", competitionId),
       story_count: totalCount,
     });
     const path = entryPath(
