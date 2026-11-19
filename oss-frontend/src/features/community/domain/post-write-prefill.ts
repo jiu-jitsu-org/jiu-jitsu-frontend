@@ -32,7 +32,7 @@ function single(raw: RawParam): string {
 
 /**
  * 주소 쿼리를 미리 채울 값으로 좁힌다. 숫자가 아니거나 없는 카테고리 · 빈 값은 버리고,
- * 제목은 입력 제한(45자)까지만 남긴다. 주제는 카테고리가 있을 때만 뜻이 있다 — 어느 카테고리의 주제인지 모르면 버린다.
+ * 제목은 입력 제한(45자)까지만 남긴다. 주제는 그 카테고리의 서버 주제와 같을 때만 남긴다.
  */
 export function parsePostWritePrefill(
   raw: { categoryId?: RawParam; title?: RawParam; topic?: RawParam },
@@ -49,9 +49,15 @@ export function parsePostWritePrefill(
     .slice(0, POST_TITLE_MAX_LENGTH)
     .trim();
   const topic = single(raw.topic).slice(0, TOPIC_MAX_LENGTH).trim();
+  // 주소는 누구나 꾸밀 수 있다 — 고른 카테고리의 서버 weeklyTopic과 정확히 같을 때만 보여 주고, 다르면 버린다.
+  // 서버 응답이 없어 기본 카테고리를 쓰면 weeklyTopic이 없으니 주제도 버린다.
+  const serverTopic =
+    categoryId !== null
+      ? categories.find((category) => category.id === categoryId)?.weeklyTopic
+      : null;
   return {
     categoryId,
     title,
-    topic: categoryId !== null && topic.length > 0 ? topic : null,
+    topic: topic.length > 0 && serverTopic === topic ? topic : null,
   };
 }
