@@ -18,9 +18,12 @@ export const SEARCH_WORD_LIMIT = 10;
 /** 이 기기에 남기는 최근 검색 수. */
 export const RECENT_SEARCH_LIMIT = 10;
 
-/** 검색어를 다듬는다 — 앞뒤 공백을 빼고 사이 공백은 하나로. 비면 "" (요청하지 않는다). */
+/** 검색어 길이 상한 — 주소가 너무 길어져 요청이 실패하지 않게 자른다. */
+export const SEARCH_KEYWORD_MAX_LENGTH = 100;
+
+/** 검색어를 다듬는다 — 앞뒤 공백을 빼고 사이 공백은 하나로, 100자까지. 비면 "" (요청하지 않는다). */
 export function normalizeSearchKeyword(raw: string): string {
-  return raw.trim().replace(/\s+/g, " ");
+  return raw.trim().replace(/\s+/g, " ").slice(0, SEARCH_KEYWORD_MAX_LENGTH).trim();
 }
 
 /** 검색어를 단어로 나눈다 — 소문자, 같은 단어는 하나로, 10개까지(서버와 같은 규칙). */
