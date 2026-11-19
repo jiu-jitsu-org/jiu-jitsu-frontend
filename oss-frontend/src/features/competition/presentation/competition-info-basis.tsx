@@ -12,7 +12,10 @@ import {
   requiresReportDetail,
 } from "@/features/competition/domain/competition-info-report";
 import { isWebUrl } from "@/features/competition/domain/competition-entry-link";
+import type { CompetitionDetailStatus } from "@/features/competition/domain/competition-schedule";
 import { reportCompetitionInfoAction } from "@/features/competition/presentation/actions/report-competition-info-action";
+import { trackCompetitionInfoReport } from "@/features/competition/presentation/competition-analytics";
+import { CompetitionExternalLink } from "@/features/competition/presentation/competition-external-link";
 import { retryAfterSessionRefresh } from "@/features/competition/presentation/retry-after-session-refresh";
 import { fullDateLabel } from "@/features/competition/presentation/competition-detail-format";
 import { useAuth } from "@/features/auth/presentation/auth-provider";
@@ -40,10 +43,13 @@ export function CompetitionInfoBasis({
   competitionId,
   verifiedOn,
   noticeUrl,
+  status,
 }: {
   competitionId: number;
   verifiedOn?: string;
   noticeUrl?: string;
+  /** 그 순간 상세가 보여 주는 단계 — 공지 링크 기록(GA)의 reg_status. */
+  status: CompetitionDetailStatus | null;
 }) {
   const { guard } = useLoginGuard();
   const { promptLogin } = useAuth();
@@ -112,6 +118,10 @@ export function CompetitionInfoBasis({
         return;
       }
       if (!result.ok) throw new Error(result.reason);
+      // 서버가 받은 뒤에만 남긴다(GA, #620). 적은 글은 싣지 않는다.
+      if (isCompetitionInfoReportReason(outcome.value)) {
+        trackCompetitionInfoReport(competitionId, outcome.value);
+      }
       toast.show("알려 주셔서 고마워요. 확인하고 고칠게요", { tone: "success" });
     } catch {
       toast.show("보내지 못했어요. 다시 눌러 주세요", { tone: "error" });
@@ -122,15 +132,16 @@ export function CompetitionInfoBasis({
 
   // 위아래 py-3은 줄 높이를 바꾸지 않고 누르는 자리만 넓힌다(글 안 링크라 버튼 모양은 두지 않는다).
   const notice = isWebUrl(noticeUrl) ? (
-    <a
+    <CompetitionExternalLink
       href={noticeUrl}
-      target="_blank"
-      rel="noopener noreferrer"
+      competitionId={competitionId}
+      linkType="notice"
+      status={status}
       className="py-3 underline decoration-text-tertiary/50 underline-offset-[3px] active:text-text-secondary"
     >
       대회 공지
       <span className="sr-only">(새 창)</span>
-    </a>
+    </CompetitionExternalLink>
   ) : (
     "대회 공지"
   );

@@ -5,6 +5,10 @@ import {
   dismissResultPrompt,
   useResultPromptDismissed,
 } from "@/features/competition/presentation/competition-result-dismissed";
+import {
+  trackBannerClick,
+  useBannerView,
+} from "@/features/competition/presentation/competition-analytics";
 import { useCloseResultPromptOnRecord } from "@/features/competition/presentation/use-close-result-prompt-on-record";
 import {
   openNativeCompetitionRecord,
@@ -40,6 +44,9 @@ export function CompetitionResultBanner({
   const { guard } = useLoginGuard();
   const toast = useToast();
   useCloseResultPromptOnRecord();
+  // 보인 뒤 600ms면 banner_view(GA, #620) — 브라우저 · 닫은 배너는 그리지 않으니 세지 않는다.
+  const analytics = { banner: "detail_result", competitionId } as const;
+  useBannerView(externalBrowser || dismissed ? null : analytics);
 
   if (externalBrowser || dismissed) return null;
 
@@ -75,18 +82,25 @@ export function CompetitionResultBanner({
           variant="filled"
           size="s"
           className="mt-2.5"
-          onClick={guard(
-            leaveRecord,
-            "record",
-            "대회 기록은 OSS 앱에서 로그인 후 남길 수 있어요.",
-          )}
+          onClick={() => {
+            // 누른 일은 로그인 안내가 떠도 남긴다 — 로그인 안내는 따로 기록된다.
+            trackBannerClick(analytics, "record");
+            guard(
+              leaveRecord,
+              "record",
+              "대회 기록은 OSS 앱에서 로그인 후 남길 수 있어요.",
+            )();
+          }}
         >
           내 기록에 남기기
         </Button>
       </div>
       <IconButton
         aria-label="결과 남기기 안내 닫기"
-        onClick={() => dismissResultPrompt([competitionId])}
+        onClick={() => {
+          trackBannerClick(analytics, "dismiss");
+          dismissResultPrompt([competitionId]);
+        }}
         className="-mt-1.5 flex-none text-icon-secondary"
       >
         <CloseIcon size={20} />

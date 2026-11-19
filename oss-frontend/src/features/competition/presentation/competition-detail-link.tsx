@@ -26,7 +26,15 @@ const OPEN_LOCK_MS = 600;
 /** 목록에서 상세를 열었는지 — 돌아왔을 때 관심 상태를 다시 읽을지 정한다. */
 const DETAIL_OPENED_KEY = "oss.competition.detail-opened";
 
+/** 이 문서에서 상세를 연 횟수 — 상세에서 돌아와 다시 보인 배너를 다시 셀지 정한다(GA, #620). */
+let detailOpenCount = 0;
+
+export function competitionDetailOpenCount(): number {
+  return detailOpenCount;
+}
+
 function markDetailOpened() {
+  detailOpenCount += 1;
   try {
     window.sessionStorage.setItem(DETAIL_OPENED_KEY, "1");
   } catch {

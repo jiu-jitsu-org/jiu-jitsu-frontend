@@ -22,6 +22,7 @@ import {
 import { retryAfterSessionRefresh } from "@/features/competition/presentation/retry-after-session-refresh";
 import { BottomSheetFrame } from "@/features/community/presentation/bottom-sheet-frame";
 import { WheelPicker } from "@/features/community/presentation/wheel-picker";
+import { trackCompetitionViewChange } from "@/features/competition/presentation/competition-analytics";
 import { CompetitionRow } from "@/features/competition/presentation/competition-month-section";
 import type { CompetitionInterest } from "@/features/competition/presentation/use-competition-interest";
 import { cn } from "@/shared/lib/cn";
@@ -249,7 +250,13 @@ export function CompetitionCalendar({
 
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  const moveMonth = (delta: 1 | -1) => goToMonth(addMonth(view, delta));
+  const moveMonth = (delta: 1 | -1) => {
+    trackCompetitionViewChange(
+      "calendar",
+      delta === 1 ? "next_month" : "prev_month",
+    );
+    goToMonth(addMonth(view, delta));
+  };
 
   const goToMonth = (next: YearMonth) => {
     setView(next);
@@ -359,6 +366,7 @@ export function CompetitionCalendar({
                 isToday={date === today}
                 selected={date === selected}
                 onSelect={() => {
+                  trackCompetitionViewChange("calendar", "pick_date");
                   setPendingFirstDay(false);
                   setSeeking(false);
                   setSelected(date);
@@ -399,6 +407,7 @@ export function CompetitionCalendar({
                 item={item}
                 currentYear={currentYear}
                 interest={interest}
+                interestFrom="competition_calendar"
               />
             ))}
           </ul>
@@ -429,7 +438,9 @@ export function CompetitionCalendar({
           onPeek={loadMonth}
           onPick={(month) => {
             setPickerOpen(false);
-            if (compareYearMonth(month, view) !== 0) goToMonth(month);
+            if (compareYearMonth(month, view) === 0) return;
+            trackCompetitionViewChange("calendar", "pick_month");
+            goToMonth(month);
           }}
         />
       </BottomSheetFrame>

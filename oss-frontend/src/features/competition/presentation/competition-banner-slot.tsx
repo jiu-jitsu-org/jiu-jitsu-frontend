@@ -16,6 +16,11 @@ import {
   isDeadlineBannerDismissed,
   subscribeDeadlineBannerDismissed,
 } from "@/features/competition/presentation/competition-interest-banner";
+import {
+  bannerParamsOf,
+  trackBannerClick,
+  useBannerView,
+} from "@/features/competition/presentation/competition-analytics";
 import { CompetitionResultCard } from "@/features/competition/presentation/competition-result-card";
 import {
   dismissResultPrompt,
@@ -24,19 +29,31 @@ import {
 } from "@/features/competition/presentation/competition-result-dismissed";
 import { isNativeBridgeAvailable } from "@/shared/lib/native-bridge";
 
-/** 배너 자리에 지금 띄운 배너 하나 — 종류에 맞는 배너를 그린다. 새 종류는 여기에 갈래를 더한다. */
+/**
+ * 배너 자리에 지금 띄운 배너 하나 — 종류에 맞는 배너를 그린다. 새 종류는 여기에 갈래를 더한다.
+ * 보인 뒤 600ms면 `banner_view`, 대회를 누르면 `banner_click` open을 남긴다(GA, #620). ✕는 접는 쪽(목록)이 남긴다.
+ */
 export function CompetitionBannerSlot({
   item,
   today,
   onSelectCompetition,
   onClose,
+  closing = false,
 }: {
   item: BannerSlotItem;
   today: string;
   /** 곧 마감·곧 열려요 배너를 누르면 그 대회 상세를 연다. */
   onSelectCompetition: (competition: Competition) => void;
   onClose: () => void;
+  /** ✕를 눌러 접히는 중 — 그 전에 600ms가 안 됐으면 본 것으로 세지 않는다. */
+  closing?: boolean;
 }) {
+  const analytics = bannerParamsOf(item);
+  useBannerView(closing ? null : analytics);
+  const select = (competition: Competition) => {
+    if (analytics) trackBannerClick(analytics, "open");
+    onSelectCompetition(competition);
+  };
   switch (item.kind) {
     case "result":
       return <CompetitionResultCard group={item.group} onClose={onClose} />;
@@ -46,7 +63,7 @@ export function CompetitionBannerSlot({
           competition={item.deadline.competition}
           date={item.deadline.deadline}
           today={today}
-          onSelect={onSelectCompetition}
+          onSelect={select}
           onClose={onClose}
         />
       );
@@ -57,7 +74,7 @@ export function CompetitionBannerSlot({
           competition={item.event.competition}
           date={item.event.eventDate}
           today={today}
-          onSelect={onSelectCompetition}
+          onSelect={select}
           onClose={onClose}
         />
       );

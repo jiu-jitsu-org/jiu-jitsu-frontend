@@ -13,6 +13,11 @@ import {
   DEADLINE_ALERT_PASSED_MESSAGE,
   type CompetitionAlertTarget,
 } from "@/features/competition/presentation/competition-alert-sheet";
+import type { CompetitionDetailStatus } from "@/features/competition/domain/competition-schedule";
+import {
+  regStatusOf,
+  trackCompetitionInterest,
+} from "@/features/competition/presentation/competition-analytics";
 import { useCompetitionDetailInterest } from "@/features/competition/presentation/competition-detail-interest";
 import { trackContentAlertToggle } from "@/shared/lib/analytics";
 import { cn } from "@/shared/lib/cn";
@@ -39,8 +44,11 @@ import {
 export function CompetitionDetailHeader({
   alertTarget,
   noticeEnabled = false,
+  status = null,
 }: {
   alertTarget?: CompetitionAlertTarget;
+  /** 그 순간 상세가 보여 주는 단계 — 종으로 관심이 함께 등록될 때 관심 기록(GA)의 reg_status. */
+  status?: CompetitionDetailStatus | null;
   /**
    * 관심 등록돼 있다면 이 대회 알림이 켜져 있는지 — 상세 응답의 noticeEnabled(#422).
    * 관심이 없던 대회는 관심을 새로 등록하면 알림이 켜진 채로 생겨 true로 넘긴다.
@@ -60,6 +68,7 @@ export function CompetitionDetailHeader({
           <CompetitionAlertButton
             target={alertTarget}
             noticeEnabled={noticeEnabled}
+            status={status}
           />
         ) : null}
         <IconButton
@@ -88,9 +97,11 @@ export function CompetitionDetailHeader({
 function CompetitionAlertButton({
   target,
   noticeEnabled,
+  status,
 }: {
   target: CompetitionAlertTarget;
   noticeEnabled: boolean;
+  status: CompetitionDetailStatus | null;
 }) {
   const { guest } = useLoginGuard();
   const interest = useCompetitionDetailInterest();
@@ -137,6 +148,15 @@ function CompetitionAlertButton({
       }
       const result = await alerts.setNotice(target.id, true);
       if (!result) return;
+      // 관심이 없던 대회는 서버가 관심도 함께 등록한다 — 그 등록을 관심 기록(GA, #620)으로 남긴다.
+      if (result.interested && !interested) {
+        trackCompetitionInterest(
+          target.id,
+          true,
+          "alert_bell",
+          regStatusOf(status),
+        );
+      }
       interest.apply(target.id, result.interested, result.interestCount);
       setNoticeOverride(result.noticeEnabled);
       if (!alerts.enabled) {

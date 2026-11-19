@@ -6,7 +6,9 @@ import {
 import type { CompetitionDetailStatus } from "@/features/competition/domain/competition-schedule";
 import type { CompetitionAlertTarget } from "@/features/competition/presentation/competition-alert-sheet";
 import { longDateLabel } from "@/features/competition/presentation/competition-detail-format";
+import type { CompetitionLinkType } from "@/features/competition/presentation/competition-analytics";
 import { CompetitionDetailInterestButton } from "@/features/competition/presentation/competition-detail-summary";
+import { CompetitionExternalLink } from "@/features/competition/presentation/competition-external-link";
 import { cn } from "@/shared/lib/cn";
 import { Button, buttonVariants } from "@/shared/ui/button";
 
@@ -18,11 +20,28 @@ const ENTRY_LINK_LABELS: Record<CompetitionEntryLinkKind, string> = {
   result: "결과 보기",
 };
 
+/** 바깥 링크 기록(GA, #620)의 link_type — 서버 링크 종류를 사전 값으로. 서버가 그리는 바도 쓰게 여기 둔다. */
+const ENTRY_LINK_TYPES: Record<CompetitionEntryLinkKind, CompetitionLinkType> =
+  {
+    register: "registration",
+    participants: "entry_list",
+    bracket: "bracket",
+    liveMat: "live_mat",
+    result: "result",
+  };
+
 /** 버튼 색 — kit Button variant 중 바에서 쓰는 셋. */
 type EntryButtonVariant = "filled" | "tint" | "neutral";
 
 type EntryButton =
-  | { key: string; url: string; label: string; variant: EntryButtonVariant }
+  | {
+      key: string;
+      url: string;
+      label: string;
+      variant: EntryButtonVariant;
+      /** 바깥 링크 기록(GA)의 link_type. */
+      linkType: CompetitionLinkType;
+    }
   /** 아직 갈 곳이 없는 단계(접수 전)를 알리는 누를 수 없는 버튼. */
   | { key: string; url?: undefined; label: string; variant: "neutral" };
 
@@ -45,6 +64,7 @@ function entryButtonsOf({
       key: link.kind,
       url: link.url,
       label: ENTRY_LINK_LABELS[link.kind],
+      linkType: ENTRY_LINK_TYPES[link.kind],
       variant:
         link.kind === "bracket"
           ? "tint"
@@ -73,6 +93,8 @@ function entryButtonsOf({
           url: noticeUrl,
           label: "대회사 사이트에서 확인하기",
           variant: "neutral",
+          // 주소는 대회 공지와 같지만 '대회사 사이트'로 보여 주는 바 버튼 — 정보 기준 줄의 '대회 공지'(notice)와 가른다.
+          linkType: "organizer_site",
         },
       ]
     : [];
@@ -118,10 +140,13 @@ export function hasEntryBar(source: EntryBarSource) {
  * 토스트는 toast-inset-bottom-bar(-note)로 바 위에 띄운다(globals.css).
  */
 export function CompetitionEntryBar({
+  competitionId,
   clubEntryOnly,
   interestTarget,
   ...source
 }: EntryBarSource & {
+  /** 바깥 링크 기록(GA, #620)의 대회. */
+  competitionId: number;
   clubEntryOnly: boolean;
   /** 관심 등록 대상 — 있으면 바 왼쪽에 하트 버튼을 둔다(끝난 대회는 없다). */
   interestTarget?: CompetitionAlertTarget;
@@ -165,6 +190,7 @@ export function CompetitionEntryBar({
           <CompetitionDetailInterestButton
             target={interestTarget}
             shape="icon"
+            status={source.status}
           />
         ) : null}
         <div className="flex min-w-0 flex-1 gap-2">
@@ -181,11 +207,12 @@ export function CompetitionEntryBar({
                 {button.label}
               </Button>
             ) : (
-              <a
+              <CompetitionExternalLink
                 key={button.key}
                 href={button.url}
-                target="_blank"
-                rel="noopener noreferrer"
+                competitionId={competitionId}
+                linkType={button.linkType}
+                status={source.status}
                 className={cn(
                   buttonVariants({
                     variant: button.variant,
@@ -199,7 +226,7 @@ export function CompetitionEntryBar({
               >
                 {button.label}
                 <span className="sr-only">(새 창)</span>
-              </a>
+              </CompetitionExternalLink>
             ),
           )}
         </div>
