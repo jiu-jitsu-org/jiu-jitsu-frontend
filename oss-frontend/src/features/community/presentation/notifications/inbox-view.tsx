@@ -20,6 +20,10 @@ import {
 } from "@/features/competition/presentation/competition-alert-provider";
 import { CompetitionAlertInboxItem } from "@/features/competition/presentation/competition-alert-inbox-item";
 import { useOpenCompetitionDetail } from "@/features/competition/presentation/competition-detail-link";
+import {
+  trackContentAlertToggle,
+  trackNotificationReadAll,
+} from "@/shared/lib/analytics";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { usePendingToast, useToast } from "@/shared/ui";
 import { useServerNow } from "@/shared/ui/server-clock";
@@ -84,6 +88,11 @@ function InboxList({
   async function muteCompetition(competitionId: number) {
     if (!alerts) return;
     if (await alerts.setNotice(competitionId, false)) {
+      trackContentAlertToggle(
+        { type: "competition", id: competitionId },
+        false,
+        "notification",
+      );
       toast.show("이 대회의 알림을 받지 않아요", { tone: "info" });
     }
   }
@@ -123,7 +132,10 @@ function InboxList({
     if (!ok) {
       setReadState(ids, false);
       toast.show("알림을 읽음 처리하지 못했어요", { tone: "error" });
+      return;
     }
+    // 저장이 실제로 나간 경우만 센다 — 안 읽은 게 없으면 버튼이 꺼져 있어 오지 않는다.
+    if (ids.size > 0) trackNotificationReadAll();
   }
 
   function handlePress(notification: InboxNotification) {

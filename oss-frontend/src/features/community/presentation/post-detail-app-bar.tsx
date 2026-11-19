@@ -3,7 +3,11 @@
 import { useState } from "react";
 
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
-import { contentIdOf, track } from "@/shared/lib/analytics";
+import {
+  contentIdOf,
+  track,
+  trackContentAlertToggle,
+} from "@/shared/lib/analytics";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { MenuBox, MenuItem } from "@/features/community/presentation/menu-box";
 import { requestNativeLogin } from "@/shared/lib/native-bridge";
@@ -148,6 +152,7 @@ export function PostDetailAppBar({
         typeof body?.data?.enabled === "boolean" ? body.data.enabled : next;
 
       setAlarmOn(enabled);
+      trackContentAlertToggle({ type: "post" }, enabled, "post_detail");
       toast.show(noticeBellToast(enabled, isOwner), { tone: "info" });
     } catch {
       setAlarmOn(previous);
