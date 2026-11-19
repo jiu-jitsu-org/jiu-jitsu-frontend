@@ -80,6 +80,23 @@ export function recentlyEndedInterested(
 }
 
 /**
+ * 이미 내 대회 기록에 남긴 대회를 묶음에서 뺀다(#545) — 남긴 대회에 결과를 또 물으면 같은 기록이 하나 더 생기기 쉽다.
+ * 다 빠진 묶음은 버린다. 기록을 못 읽었으면(null) 그대로 둔다.
+ */
+export function withoutRecorded(
+  groups: readonly ResultCardGroup[],
+  recordedIds: ReadonlySet<number> | null,
+): ResultCardGroup[] {
+  if (!recordedIds || recordedIds.size === 0) return [...groups];
+  return groups
+    .map((group) => ({
+      ...group,
+      competitions: group.competitions.filter(({ id }) => !recordedIds.has(id)),
+    }))
+    .filter((group) => group.competitions.length > 0);
+}
+
+/**
  * 오늘이 카드를 보여 주는 마지막 날 이전인지 — 마지막 날은 끝난 날 + 5일, 토요일에 끝났으면 + 6일(그 주 금요일).
  * 일요일 대회는 + 5일이 금요일이다. 달력에 없는 날짜면 false.
  */

@@ -5,6 +5,7 @@ import {
   dismissResultPrompt,
   useResultPromptDismissed,
 } from "@/features/competition/presentation/competition-result-dismissed";
+import { useCloseResultPromptOnRecord } from "@/features/competition/presentation/use-close-result-prompt-on-record";
 import {
   openNativeCompetitionRecord,
   useIsExternalBrowser,
@@ -21,6 +22,7 @@ import { CloseIcon } from "@/shared/ui/icons";
  * — 대회 탭의 결과 남기기 카드(#403)와 닫은 기록을 함께 쓴다.
  * "내 기록에 남기기"는 앱의 대회 정보 추가를 이 대회로 채워 연다(jiu-jitsu-ios#252) — 결과 입력은 앱 화면이다.
  * 그래서 앱 밖 브라우저에서는 배너를 두지 않는다(위에 '앱으로 보기' 배너가 있다).
+ * 이미 내 대회 기록에 남긴 대회면 서버가 띄우지 않고, 띄운 뒤 앱에서 기록을 남기면 바로 닫는다(#545).
  */
 export function CompetitionResultBanner({
   competitionId,
@@ -37,16 +39,20 @@ export function CompetitionResultBanner({
   const dismissed = useResultPromptDismissed(competitionId);
   const { guard } = useLoginGuard();
   const toast = useToast();
+  useCloseResultPromptOnRecord();
 
   if (externalBrowser || dismissed) return null;
 
   function leaveRecord() {
-    if (openNativeCompetitionRecord({
+    if (
+      openNativeCompetitionRecord({
         // 숫자 문자열로 보낸다 — 이미 깔린 앱은 문자열만 받는다(messages.ts).
         competitionId: String(competitionId),
         name,
         year,
-      })) return;
+      })
+    )
+      return;
     // 이 신호를 모르는 앱 — 기록하는 곳을 알려 준다.
     toast.show("MY의 대회 기록에서 남길 수 있어요", { tone: "info" });
   }

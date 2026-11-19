@@ -12,6 +12,10 @@ import {
   type CompetitionListQuery,
 } from "@/features/competition/domain/competition";
 import {
+  compareYearMonth,
+  type YearMonth,
+} from "@/features/competition/domain/competition-list-view-state";
+import {
   loadCompetitionListAction,
   type LoadCompetitionListResult,
 } from "@/features/competition/presentation/actions/load-competition-list-action";
@@ -26,13 +30,17 @@ import { EmptyState } from "@/shared/ui/empty-state";
 import { ChevronDownIcon, ChevronLeftIcon, HeartIcon } from "@/shared/ui/icons";
 import { IconButton } from "@/shared/ui/icon-button";
 import { NEUTRAL_BUTTON_PRESS } from "@/shared/ui/press-styles";
+import { TAB_BAR_CLEARANCE } from "@/shared/ui/tab-bar-clearance";
 import { lastDayOf } from "@/features/competition/domain/competition-schedule";
-
-type YearMonth = { year: number; month: number };
 
 /** 달 하나를 받은 결과 — 그 달 대회와, 그 뒤 달에도 대회가 있는지. 못 받았으면 failed. */
 type MonthData =
   | { failed: false; items: CompetitionListItem[]; hasLater: boolean }
+  | { failed: true };
+
+/** 한 달을 요청해 받은 묶음 — 그 달 1일부터 한 번에(100개). 대회가 적으면 뒤 달까지 들어 있다(#546). */
+type FetchedMonth =
+  | { failed: false; from: YearMonth; chunk: CompetitionListChunk }
   | { failed: true };
 
 /**
@@ -44,10 +52,13 @@ type MonthData =
  * 처음에는 오늘 이후 가장 가까운 대회 날을 골라 둔다 — 오늘을 고르면 평일엔 거의 늘 빈 목록부터 보인다.
  *
  * 달마다 서버에서 그 달 1일부터 받는다(#419, date=월초&size=100). 목록의 필터가 그대로 걸린다.
+ * 앞 달을 받은 묶음에 이 달이 끝까지 들어 있으면(그 뒤 대회가 있거나 더 받을 게 없음) 새로 받지 않고 그 묶음으로 그린다(#546).
+ * 받는 중에는 빈 날 문구 대신 "대회를 찾는 중…"을 보이고, 앞 달에 '뒤에 대회가 더 있음'이면 받는 중에도 다음 달로 넘긴다.
  * 지난 날은 고를 수 없어 이번 달보다 앞으로는 넘기지 않고, 지난 날의 대회도 그리지 않는다.
  * 다음 달은 받은 달 뒤에 대회가 더 있을 때만 넘긴다.
  * 달 머리("2026년 11월 ⌄")를 누르면 연·월 휠 시트가 열려 멀리 있는 달로 바로 간다 — 휠이 가리키는 달의 대회 수를 미리 받아
  * 보여 주고, 아직 대회가 없는 달도 고를 수 있다(빈 달이라고 알려 준다).
+ * 보던 달은 넘길 때마다 알려 주고(onMonthChange), 화면이 주소에 담는다 — 당겨서 새로고침하면 그 달로 다시 연다(#539).
  */
 export function CompetitionCalendar({
   query,
@@ -59,6 +70,8 @@ export function CompetitionCalendar({
   interestedOnly,
   filtered,
   onLoad,
+  initialMonth = null,
+  onMonthChange,
 }: {
   /** 목록 필터를 옮긴 서버 조회 조건 */
   query: CompetitionListQuery;
@@ -79,22 +92,84 @@ export function CompetitionCalendar({
   filtered: boolean;
   /** 받은 대회를 관심 상태에 더한다. */
   onLoad: (competitions: Competition[]) => void;
+  /**
+   * 처음 열 달 — 주소 쿼리로 연 달력(#539). 주면 initialDate · seekFirstDay 대신 이 달을 열고 그 달의 첫 대회 날을 고른다.
+   * chunk는 서버가 미리 받아 둔 그 달(못 받았으면 null — 달력이 받는다).
+   */
+  initialMonth?: {
+    month: YearMonth;
+    chunk: CompetitionListChunk | null;
+  } | null;
+  /** 보던 달이 바뀌면(처음 연 달 포함) 알린다 — 화면이 주소에 담는다. */
+  onMonthChange?: (month: YearMonth) => void;
 }) {
   const firstMonth = useMemo(() => yearMonthOf(today), [today]);
 
-  const [view, setView] = useState<YearMonth>(() => yearMonthOf(initialDate));
-  const [selected, setSelected] = useState<string>(initialDate);
+  const [view, setView] = useState<YearMonth>(
+    () => initialMonth?.month ?? yearMonthOf(initialDate),
+  );
+  const [selected, setSelected] = useState<string>(() =>
+    initialMonth ? firstSelectableDay(initialMonth.month, today) : initialDate,
+  );
   const queryKey = JSON.stringify(query);
   const monthKey = `${queryKey}|${view.year}-${pad(view.month)}`;
-  const [months, setMonths] = useState<Record<string, MonthData>>({});
-  const monthData = months[monthKey];
+  // 서버가 미리 받아 둔 달이 있으면 그 달은 받지 않고 바로 그린다.
+  const [months, setMonths] = useState<Record<string, FetchedMonth>>(() =>
+    initialMonth?.chunk
+      ? {
+          [monthKey]: {
+            failed: false,
+            from: initialMonth.month,
+            chunk: initialMonth.chunk,
+          },
+        }
+      : {},
+  );
+  /** 이 달을 그릴 결과 — 이 달을 받았으면 그것, 아니면 이 달이 끝까지 들어 있는 앞 달 묶음. 아직 모르면 undefined. */
+  const resolveMonth = useCallback(
+    (month: YearMonth): MonthData | undefined => {
+      const fetched = months[`${queryKey}|${month.year}-${pad(month.month)}`];
+      if (fetched) {
+        return fetched.failed ? fetched : toMonthData(fetched.chunk, month);
+      }
+      for (const [key, entry] of Object.entries(months)) {
+        if (
+          !entry.failed &&
+          key.startsWith(`${queryKey}|`) &&
+          coversMonth(entry, month)
+        ) {
+          return toMonthData(entry.chunk, month);
+        }
+      }
+      return undefined;
+    },
+    [months, queryKey],
+  );
+  const monthData = useMemo(() => resolveMonth(view), [resolveMonth, view]);
+  // 받기 전에 이미 받은 묶음을 본다 — 받기 함수를 새로 만들면 달 고르기 시트의 휠 기다림이 다시 시작돼 ref로 읽는다.
+  const resolveMonthRef = useRef(resolveMonth);
+  useEffect(() => {
+    resolveMonthRef.current = resolveMonth;
+  }, [resolveMonth]);
   // 받았거나 받는 중인 달 — 달력과 달 고르기 시트가 같은 달을 두 번 받지 않게. 실패한 달은 빼서 다시 받을 수 있다.
-  const requestedKeys = useRef(new Set<string>());
+  const requestedKeys = useRef(
+    new Set<string>(initialMonth?.chunk ? [monthKey] : []),
+  );
+
+  // 보던 달을 알린다 — 화면이 주소에 담는다(#539).
+  useEffect(() => {
+    onMonthChange?.({ year: view.year, month: view.month });
+    // 달이 바뀔 때만 알린다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view.year, view.month]);
 
   const loadMonth = useCallback(
     (month: YearMonth) => {
       const key = `${queryKey}|${month.year}-${pad(month.month)}`;
       if (requestedKeys.current.has(key)) return;
+      // 앞 달 묶음에 이 달이 끝까지 들어 있으면 받지 않는다(#546).
+      const known = resolveMonthRef.current(month);
+      if (known && !known.failed) return;
       requestedKeys.current.add(key);
       // 토큰이 만료됐으면 앱 갱신 뒤 한 번 다시 받는다 — 익명으로 받아 관심 상태를 덮지 않게(#524).
       void retryAfterSessionRefresh(() =>
@@ -119,7 +194,7 @@ export function CompetitionCalendar({
           // 달을 먼저 채운다 — 관심 상태에 더하다 실패해도 달력이 빈 달로 멈추지 않게.
           setMonths((current) => ({
             ...current,
-            [key]: toMonthData(result.chunk, month),
+            [key]: { failed: false, from: month, chunk: result.chunk },
           }));
           onLoad(result.chunk.items.map(({ competition }) => competition));
         });
@@ -160,12 +235,17 @@ export function CompetitionCalendar({
   }, [monthData, shownItemsOf]);
 
   // 넘긴 달을 받으면 그 달의 첫 대회 날을 골라 둔다(받기 전에 사용자가 다른 날을 고르면 그대로 둔다).
-  const [pendingFirstDay, setPendingFirstDay] = useState(seekFirstDay);
-  // 처음 찾는 중이면 남은 대회가 없는 달을 건너뛴다.
-  const [seeking, setSeeking] = useState(seekFirstDay);
+  const [pendingFirstDay, setPendingFirstDay] = useState(
+    seekFirstDay || initialMonth !== null,
+  );
+  // 처음 찾는 중이면 남은 대회가 없는 달을 건너뛴다. 보던 달로 열 때는 그 달에 머문다.
+  const [seeking, setSeeking] = useState(seekFirstDay && initialMonth === null);
 
   const canGoPrev = compareYearMonth(view, firstMonth) > 0;
-  const canGoNext = monthData && !monthData.failed ? monthData.hasLater : false;
+  // 받는 중에는 앞서 받은 가장 가까운 달이 '뒤에 대회가 더 있음'이면 넘길 수 있다 — 받기를 기다리지 않고 연달아 넘기게(#546).
+  const canGoNext = monthData
+    ? !monthData.failed && monthData.hasLater
+    : hasLaterBefore(view, firstMonth, resolveMonth);
 
   const [pickerOpen, setPickerOpen] = useState(false);
 
@@ -174,10 +254,7 @@ export function CompetitionCalendar({
   const goToMonth = (next: YearMonth) => {
     setView(next);
     // 넘긴 달의 첫 대회 날은 받은 뒤에 고른다 — 그 전에는 이번 달이면 오늘, 아니면 1일.
-    const prefix = `${next.year}-${pad(next.month)}-`;
-    setSelected(
-      compareYearMonth(next, firstMonth) === 0 ? today : `${prefix}01`,
-    );
+    setSelected(firstSelectableDay(next, today));
     setPendingFirstDay(true);
     setSeeking(false);
   };
@@ -187,13 +264,13 @@ export function CompetitionCalendar({
     const firstDay = [...byDate.keys()].sort()[0];
     if (firstDay) {
       setSelected(firstDay);
-    } else if (seeking && canGoNext) {
+    } else if (seeking && monthData.hasLater) {
       // 다음 달을 받은 뒤 다시 찾는다.
       const next = addMonth(view, 1);
       setView(next);
       setSelected(`${next.year}-${pad(next.month)}-01`);
     }
-    if (firstDay || !seeking || !canGoNext) {
+    if (firstDay || !seeking || !monthData.hasLater) {
       setPendingFirstDay(false);
       setSeeking(false);
     }
@@ -205,7 +282,8 @@ export function CompetitionCalendar({
   return (
     // relative: 위에 깔린 띠 색 그라데이션(CompetitionTopTint, absolute·z 없음)보다 위에 그린다(#466).
     // 위치 지정이 없으면 CSS 그리는 순서상 그라데이션 아래로 깔려 달력 위쪽이 덮인다 — 목록의 달 묶음과 같은 방식.
-    <div className="relative pb-6">
+    // 끝 여백은 홈 피드와 같은 탭 바 여백 — 고른 날의 마지막 대회가 앱 탭 바에 가리지 않게(#487).
+    <div className={cn("relative", TAB_BAR_CLEARANCE)}>
       <section
         aria-label="대회 달력"
         className="mx-3 mt-1 rounded-20 bg-surface-field px-2 pt-2 pb-3"
@@ -326,10 +404,10 @@ export function CompetitionCalendar({
           </ul>
         ) : (
           <p className="text-[14px] leading-[21px] text-text-secondary">
-            {emptyMessage(
-              monthData && byDate.size === 0 ? "month" : "day",
-              filtered,
-            )}
+            {/* 아직 받는 중이면 빈 날이라고 하지 않는다(#546) — 달 고르기 시트와 같은 말. */}
+            {monthData
+              ? emptyMessage(byDate.size === 0 ? "month" : "day", filtered)
+              : LOADING_MESSAGE}
           </p>
         )}
       </section>
@@ -344,15 +422,10 @@ export function CompetitionCalendar({
           firstMonth={firstMonth}
           filtered={filtered}
           countOf={(month) => {
-            const shown = shownItemsOf(
-              months[`${queryKey}|${month.year}-${pad(month.month)}`],
-            );
+            const shown = shownItemsOf(resolveMonth(month));
             return shown === null ? null : shown.length;
           }}
-          failedOf={(month) =>
-            months[`${queryKey}|${month.year}-${pad(month.month)}`]?.failed ===
-            true
-          }
+          failedOf={(month) => resolveMonth(month)?.failed === true}
           onPeek={loadMonth}
           onPick={(month) => {
             setPickerOpen(false);
@@ -363,6 +436,9 @@ export function CompetitionCalendar({
     </div>
   );
 }
+
+/** 달을 아직 받는 중일 때 문구 — 달 고르기 시트와 같은 말. */
+const LOADING_MESSAGE = "대회를 찾는 중…";
 
 /** 빈 날 문구 — 달 전체가 비었으면 달 기준으로 말한다(아직 대회가 올라오지 않은 달). */
 function emptyMessage(scope: "day" | "month", filtered: boolean) {
@@ -435,7 +511,7 @@ function MonthPickerBody({
   const status = failedOf(picked)
     ? "대회 수를 불러오지 못했어요"
     : count === null
-      ? "대회를 찾는 중…"
+      ? LOADING_MESSAGE
       : count > 0
         ? `대회 ${count}개`
         : filtered
@@ -596,8 +672,11 @@ function addMonth({ year, month }: YearMonth, delta: 1 | -1): YearMonth {
   return { year: Math.floor(index / 12), month: (index % 12) + 1 };
 }
 
-function compareYearMonth(a: YearMonth, b: YearMonth) {
-  return a.year * 12 + a.month - (b.year * 12 + b.month);
+/** 달을 연 뒤 대회를 받기 전에 골라 둘 날 — 이번 달이면 오늘, 아니면 1일. */
+function firstSelectableDay(month: YearMonth, today: string): string {
+  return compareYearMonth(month, yearMonthOf(today)) === 0
+    ? today
+    : `${month.year}-${pad(month.month)}-01`;
 }
 
 function pad(value: number) {
@@ -614,6 +693,39 @@ function dayLabel(date: string, currentYear: number) {
 }
 
 const SELECTED_DAY_HEADING_ID = "competition-calendar-selected-day";
+
+/**
+ * 앞 달부터 받은 묶음에 이 달이 끝까지 들어 있는지 — 목록은 날짜순이라 이 달보다 뒤 대회가 하나라도 있거나
+ * 더 받을 게 없으면(다음 커서 없음) 이 달 대회는 모두 들어 있다.
+ */
+function coversMonth(
+  fetched: { from: YearMonth; chunk: CompetitionListChunk },
+  month: YearMonth,
+): boolean {
+  if (compareYearMonth(month, fetched.from) < 0) return false;
+  const monthEnd = `${month.year}-${pad(month.month)}-31`;
+  return (
+    fetched.chunk.nextCursor === null ||
+    fetched.chunk.items.some(({ competition }) => competition.date > monthEnd)
+  );
+}
+
+/** 받는 중인 달에서 다음 달로 넘길 수 있는지 — 앞서 받은 가장 가까운 달이 '뒤에 대회가 더 있음'인지. */
+function hasLaterBefore(
+  view: YearMonth,
+  firstMonth: YearMonth,
+  resolveMonth: (month: YearMonth) => MonthData | undefined,
+): boolean {
+  for (
+    let month = addMonth(view, -1);
+    compareYearMonth(month, firstMonth) >= 0;
+    month = addMonth(month, -1)
+  ) {
+    const data = resolveMonth(month);
+    if (data) return !data.failed && data.hasLater;
+  }
+  return false;
+}
 
 /** 받은 목록에서 이 달 대회만, 그리고 그 뒤 달에 대회가 더 있는지. */
 function toMonthData(chunk: CompetitionListChunk, month: YearMonth): MonthData {

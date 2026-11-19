@@ -58,6 +58,9 @@ function renderBody(data: CompetitionListPageData) {
         myBeltRank={data.myBeltRank}
         endedInterested={data.endedInterested}
         availableRegions={data.availableRegions}
+        initialView={data.initialView}
+        initialFiltered={data.initialFiltered}
+        initialCalendarMonth={data.initialCalendarMonth}
       />
     </CompetitionAlertProvider>
   );

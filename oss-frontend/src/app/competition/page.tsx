@@ -5,7 +5,10 @@ import { connection } from "next/server";
 import { RefreshOnLogin } from "@/features/auth/presentation/refresh-on-login";
 import { SessionHintProvider } from "@/features/auth/presentation/session-hint";
 import { AppClientHint } from "@/shared/lib/app-client/app-client-hint";
-import { getCompetitionListPageData } from "@/features/competition/application/get-competition-list-page-data";
+import {
+  getCompetitionListPageData,
+  type CompetitionListSearchParams,
+} from "@/features/competition/application/get-competition-list-page-data";
 import { isCompetitionEnabled } from "@/features/competition/application/is-competition-enabled";
 import { CompetitionListPage } from "@/features/competition/presentation/competition-list-page";
 import { readSessionToken } from "@/shared/lib/auth";
@@ -14,13 +17,18 @@ export const metadata: Metadata = {
   title: "대회",
 };
 
-export default async function CompetitionRoutePage() {
+export default async function CompetitionRoutePage({
+  searchParams,
+}: {
+  /** 고른 필터 · 달력 보기 · 보던 달(#539) — 당겨서 새로고침해도 그대로 연다. */
+  searchParams: Promise<CompetitionListSearchParams>;
+}) {
   // 요청마다 "오늘"을 다시 정한다 — 빌드 때 그려 두면 지난 대회가 계속 남는다.
   await connection();
   if (!isCompetitionEnabled()) notFound();
 
   const signedIn = (await readSessionToken()) !== null;
-  const data = await getCompetitionListPageData();
+  const data = await getCompetitionListPageData(await searchParams);
 
   return (
     // 관심 필터가 로그인 여부로 갈린다 — 세션 판정 전에도 맞게 그리도록 힌트를 깔고,

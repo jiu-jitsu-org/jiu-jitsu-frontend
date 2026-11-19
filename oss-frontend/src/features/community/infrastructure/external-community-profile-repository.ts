@@ -33,6 +33,8 @@ type CommunityProfileDto = AuthorBeltDto & {
   gender?: string | null;
   weightKg?: number | null;
   isWeightHidden?: boolean | null;
+  /** 대회 기록 — 대회 하나 아래 부문들. 등록 대회에서 고른 기록이면 competitionId, 직접 입력이면 null. */
+  competitions?: { competitionId?: number | null }[] | null;
 };
 
 export class ExternalCommunityProfileRepository implements CommunityProfileRepository {
@@ -40,6 +42,16 @@ export class ExternalCommunityProfileRepository implements CommunityProfileRepos
 
   async getMyBelt(): Promise<Belt | null> {
     return toBelt(await this.getProfile());
+  }
+
+  async getMyRecordedCompetitionIds(): Promise<number[]> {
+    const profile = await this.getProfile();
+    const ids = new Set<number>();
+    for (const record of profile?.competitions ?? []) {
+      const id = record?.competitionId;
+      if (typeof id === "number" && Number.isInteger(id)) ids.add(id);
+    }
+    return [...ids];
   }
 
   async saveMyBelt(belt: Belt): Promise<void> {

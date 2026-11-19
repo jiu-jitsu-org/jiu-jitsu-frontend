@@ -9,12 +9,18 @@ import { useSyncExternalStore } from "react";
  * 서버는 모른다 — 서버 그림에는 안내를 넣어 두고, 닫아 둔 기기에서만 그린 뒤 걷어 낸다
  * (늦게 나타나면 아래 내용이 안내 높이만큼 밀려 내려간다).
  * 저장 이름은 #368 때 것을 그대로 써서 전에 상세에서 닫은 기록도 이어진다.
+ *
+ * 앱에서 기록을 남긴 대회(#545)도 지금 화면에서 바로 닫는다 — 이건 저장소에 남기지 않는다. 다음에 화면을 열면 서버가
+ * 내 대회 기록을 보고 거르므로, 나중에 기록을 지우면 다시 물을 수 있다.
  */
 const DISMISSED_KEY_PREFIX = "oss.competition.result-prompt.dismissed.";
 const DISMISS_EVENT = "oss:competition-result-prompt-dismissed";
 
 /** 저장소를 못 쓰는 환경(사생활 보호 모드)에서도 지금 화면에서는 닫히게 기억해 둔다. */
 const hiddenThisSession = new Set<number>();
+
+/** 이 화면을 연 뒤 앱에서 기록을 남긴 대회(#545). */
+const recordedThisSession = new Set<number>();
 
 /** 이 대회의 결과 남기기 안내를 닫았는지. 서버 그림에서는 늘 false. */
 export function useResultPromptDismissed(competitionId: number): boolean {
@@ -39,6 +45,7 @@ export function useOpenResultPromptIds(competitionIds: readonly number[]) {
 
 export function isResultPromptDismissed(competitionId: number): boolean {
   if (hiddenThisSession.has(competitionId)) return true;
+  if (recordedThisSession.has(competitionId)) return true;
   try {
     return (
       window.localStorage.getItem(DISMISSED_KEY_PREFIX + competitionId) === "1"
@@ -57,6 +64,14 @@ export function dismissResultPrompt(competitionIds: readonly number[]) {
       // 저장하지 못하면 다시 열었을 때 또 뜬다.
     }
   }
+  window.dispatchEvent(new Event(DISMISS_EVENT));
+}
+
+/** 기록을 남긴 대회의 결과 남기기 안내를 지금 화면에서 닫는다(#545) — 상세 배너 · 대회 탭 카드가 함께 닫힌다. */
+export function markResultRecorded(competitionIds: readonly number[]) {
+  const added = competitionIds.filter((id) => !recordedThisSession.has(id));
+  if (added.length === 0) return;
+  for (const competitionId of added) recordedThisSession.add(competitionId);
   window.dispatchEvent(new Event(DISMISS_EVENT));
 }
 
