@@ -5,7 +5,6 @@
  * 여러 기능(커뮤니티 · 대회 · 정책)에 걸쳐 한 표로 둔다.
  */
 
-
 /**
  * 들어온 길(`from`) 값 — 사전 "from 값" 중 웹이 싣는 것. 화면 이름도 그대로 from 값이다.
  * 사전과 다른 값(오타)이 GA에 쌓이지 않게 닫힌 목록으로 둔다. 새 입구는 사전에 먼저 더한다.
@@ -36,6 +35,8 @@ const ENTRY_FROMS = [
   "post_competition_card",
   "competition_banner",
   "competition_story",
+  // 대회 이야기 '질문하기'로 연 글쓰기(#597).
+  "competition_story_ask",
   "balance_card",
   "notification",
   "post_create",

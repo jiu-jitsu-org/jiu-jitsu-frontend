@@ -6,107 +6,177 @@ import { useEffect } from "react";
 import { clearPostCreated } from "@/features/community/presentation/dirty-posts";
 import { useOpenPostDetail } from "@/features/community/presentation/use-open-post-detail";
 import { useOpenPostWrite } from "@/features/community/presentation/use-open-post-write";
-import type { CompetitionStory } from "@/features/competition/domain/competition-story";
+import type {
+  CompetitionStory,
+  CompetitionStoryList,
+} from "@/features/competition/domain/competition-story";
 import { DetailSection } from "@/features/competition/presentation/competition-detail-sections";
-import { entryPath } from "@/shared/lib/analytics";
+import { entryPath, track } from "@/shared/lib/analytics";
 import { cn } from "@/shared/lib/cn";
 import {
   isNativeBridgeAvailable,
   openNativeHomeFeed,
   openNativeSubview,
 } from "@/shared/lib/native-bridge";
+import { Button } from "@/shared/ui/button";
 import { ChevronLeftIcon, PeopleIcon } from "@/shared/ui/icons";
 import { SURFACE_PRESS } from "@/shared/ui/press-styles";
 import { RelativeTime } from "@/shared/ui/relative-time";
 
+/** 대회 이야기 구역 id — 위 요약 줄의 '이야기 N'이 여기로 내려온다(#597). */
+const STORIES_SECTION_ID = "competition-stories";
+
 /**
- * 대회 이야기 (#366) — 커뮤니티에서 이 대회를 고른 글, 서버가 고른 최대 5개를 서버 순서대로(#421).
+ * 대회 이야기 (#366 · #597) — 커뮤니티에서 이 대회를 고른 글.
  *
- * 글을 누르면 게시글 상세가 열린다(피드 카드와 같은 길). 글이 있으면 아래 버튼은 전체 피드로 보낸다.
- * 없으면 "첫 글 남기기"가 글쓰기를 연다 — '대회' 카테고리와 이 대회가 미리 골라져 있다(#433, 피드 글쓰기와 같은 길:
- * 비로그인은 로그인 안내, 앱은 서브뷰, 웹은 이동). 글을 올리고 상세로 돌아오면 상세가 다시 읽어 새 글이 보인다.
+ * 위에서부터: 묻기(글이 있든 없든 늘) → 최신 글 최대 5개 → '커뮤니티에서 N개 모두 보기'.
+ * - 묻기: 대회 전엔 질문, 끝난 뒤엔 후기로 이끈다. 아래 줄에 글이 커뮤니티 '대회' 카테고리에 올라간다고 미리 알린다.
+ *   누르면 글쓰기가 '대회' 카테고리와 이 대회를 고른 채 열린다(#433 · #588, 피드 글쓰기와 같은 길: 비로그인은 로그인 안내,
+ *   앱은 서브뷰, 웹은 이동). 내용은 선택이라(#589) 제목만으로도 올라간다.
+ * - 글을 누르면 게시글 상세(피드 카드와 같은 길). 줄마다 닉네임 · 시간 · 댓글 수.
+ * - 모두 보기: 홈 피드 '대회' 탭을 이 대회 글만으로 연다(#598 · jiu-jitsu-ios#437).
+ * 글을 올리고 상세로 돌아오면 상세가 다시 읽어 새 글과 수가 보인다.
  */
 export function CompetitionStories({
   competitionId,
-  stories,
+  list,
+  ended,
 }: {
   competitionId: number;
-  stories: CompetitionStory[];
+  list: CompetitionStoryList;
+  /** 끝난 대회인지 — 묻기 문구를 질문 대신 후기로 바꾼다. */
+  ended: boolean;
 }) {
+  const { totalCount, stories } = list;
   const openPost = useOpenPostDetail("competition_story");
-  const openFeed = useOpenFeed();
-  const openPostWrite = useOpenPostWrite({ competitionId });
+  const openFeed = useOpenCompetitionFeed(competitionId);
+  const openPostWrite = useOpenPostWrite({
+    competitionId,
+    from: "competition_story_ask",
+  });
   const openWrite = () => {
     markWriteOpened(competitionId);
     openPostWrite();
   };
   useRefreshAfterWrite(competitionId);
-  const empty = stories.length === 0;
 
   return (
-    <DetailSection title="대회 이야기" icon={<PeopleIcon size={20} />}>
-      {empty ? (
-        <div className="py-4 text-center">
-          <p className="text-[15px] leading-[21px] font-semibold text-text-primary">
-            아직 이 대회 이야기가 없어요
+    <DetailSection
+      id={STORIES_SECTION_ID}
+      title="대회 이야기"
+      icon={<PeopleIcon size={20} />}
+      count={totalCount > 0 ? totalCount : undefined}
+      // 위 요약 줄에서 내려올 때 붙어 있는 앱바(44) 아래에 제목이 오게.
+      className="scroll-mt-[calc(var(--safe-area-top)+44px)]"
+    >
+      <div className="flex items-center gap-3 py-1">
+        <div className="min-w-0 flex-1">
+          <p className="text-[15px] leading-[21px] font-semibold break-keep text-text-primary">
+            {ended ? "대회 후기를 남겨 주세요" : "궁금한 걸 물어보세요"}
           </p>
-          <p className="mt-1 text-[13px] leading-[18px] text-text-secondary">
-            커뮤니티에서 이 대회의 첫 글을 남겨 보세요
+          <p className="mt-0.5 text-[13px] leading-[18px] break-keep text-text-secondary">
+            커뮤니티 &lsquo;대회&rsquo; 카테고리에 올라가요
           </p>
         </div>
-      ) : (
-        <ul className="-mx-2 flex flex-col">
-          {stories.map((story) => (
-            <li key={story.postId}>
-              <button
-                type="button"
-                onClick={() => openPost(story.postId)}
-                className={cn(
-                  "flex w-full flex-col rounded-10 px-2 py-2.5 text-left",
-                  SURFACE_PRESS,
-                )}
-              >
-                <span className="w-full truncate text-[15px] leading-[21px] font-semibold text-text-primary">
-                  {story.title}
-                </span>
-                <span className="mt-0.5 text-[12px] leading-[16px] text-text-tertiary tabular-nums">
-                  {story.comments > 0 ? `댓글 ${story.comments} · ` : ""}
-                  {story.likes > 0 ? `좋아요 ${story.likes} · ` : ""}
-                  <RelativeTime iso={story.createdAt} />
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-      <button
-        type="button"
-        onClick={empty ? openWrite : openFeed}
-        className={cn(
-          "-mx-2 mt-1 flex min-h-11 w-[calc(100%+16px)] items-center justify-center gap-0.5 rounded-10 text-[14px] leading-[20px] font-semibold text-text-secondary",
-          SURFACE_PRESS,
-        )}
-      >
-        {empty ? "커뮤니티에서 첫 글 남기기" : "커뮤니티에서 더 보기"}
-        <ChevronLeftIcon size={16} className="rotate-180" />
-      </button>
+        <Button variant="tint" size="s" onClick={openWrite}>
+          {ended ? "후기 쓰기" : "질문하기"}
+        </Button>
+      </div>
+      {stories.length > 0 ? (
+        <>
+          <ul className="-mx-2 mt-2 flex flex-col">
+            {stories.map((story) => (
+              <li key={story.postId}>
+                <StoryRow
+                  story={story}
+                  onPress={() => openPost(story.postId)}
+                />
+              </li>
+            ))}
+          </ul>
+          <button
+            type="button"
+            onClick={() => openFeed(totalCount)}
+            className={cn(
+              "-mx-2 mt-1 flex min-h-11 w-[calc(100%+16px)] items-center justify-center gap-0.5 rounded-10 text-[14px] leading-[20px] font-semibold text-text-secondary tabular-nums",
+              SURFACE_PRESS,
+            )}
+          >
+            커뮤니티에서 {totalCount.toLocaleString("ko-KR")}개 모두 보기
+            <ChevronLeftIcon size={16} className="rotate-180" />
+          </button>
+        </>
+      ) : null}
     </DetailSection>
   );
 }
 
+/** 글 한 줄 — 제목, 아래에 닉네임 · 시간 · 댓글 수. */
+function StoryRow({
+  story,
+  onPress,
+}: {
+  story: CompetitionStory;
+  onPress: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onPress}
+      className={cn(
+        "flex w-full flex-col rounded-10 px-2 py-2.5 text-left",
+        SURFACE_PRESS,
+      )}
+    >
+      <span className="w-full truncate text-[15px] leading-[21px] font-semibold text-text-primary">
+        {story.title}
+      </span>
+      <span className="mt-0.5 flex w-full min-w-0 text-[12px] leading-[16px] text-text-tertiary tabular-nums">
+        {story.author ? (
+          <span className="min-w-0 truncate">{story.author} ·&nbsp;</span>
+        ) : null}
+        <span className="shrink-0 whitespace-pre">
+          <RelativeTime iso={story.createdAt} />
+          {` · 댓글 ${story.comments.toLocaleString("ko-KR")}`}
+        </span>
+      </span>
+    </button>
+  );
+}
+
+/** 위 요약 줄의 '이야기 N' — 대회 이야기 구역으로 내려간다. 동작 줄이기 설정이면 바로 옮긴다. */
+export function scrollToCompetitionStories() {
+  const section = document.getElementById(STORIES_SECTION_ID);
+  if (!section) return;
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  section.scrollIntoView({
+    behavior: reduce ? "auto" : "smooth",
+    block: "start",
+  });
+}
+
 /**
- * 전체 피드로 가기. 앱은 홈 탭으로 바꿔 달라고 하고(새 앱), 그 신호를 모르는 앱은 피드를 서브뷰로 연다.
- * 웹 단독은 홈(피드)으로 이동한다.
+ * '모두 보기' — 홈 피드 '대회' 탭을 이 대회 글만으로 연다(#598). 웹은 `/?competitionId=`로 이동하고,
+ * 앱은 홈 탭으로 바꿔 달라며 대회 번호를 함께 보낸다(jiu-jitsu-ios#437 — 번호를 모르는 앱은 지금처럼 피드만).
+ * 그 신호를 모르는 더 옛 앱은 같은 주소를 서브뷰로 연다.
  */
-function useOpenFeed() {
+function useOpenCompetitionFeed(competitionId: number) {
   const router = useRouter();
-  return () => {
+  return (totalCount: number) => {
+    track("competition_story_more", {
+      competition_id: competitionId,
+      story_count: totalCount,
+    });
+    const path = entryPath(
+      `/?competitionId=${competitionId}`,
+      "competition_story",
+    );
     if (isNativeBridgeAvailable()) {
-      if (!openNativeHomeFeed())
-        openNativeSubview(`${window.location.origin}${entryPath("/")}`);
+      if (!openNativeHomeFeed({ competitionId }))
+        openNativeSubview(`${window.location.origin}${path}`);
       return;
     }
-    router.push("/");
+    router.push(path);
   };
 }
 
@@ -139,7 +209,7 @@ function takeWriteOpened(competitionId: number): boolean {
 }
 
 /**
- * 글쓰기에서 돌아오면 상세를 다시 읽는다 — 올린 글이 대회 이야기에 바로 보이게(#433).
+ * 글쓰기에서 돌아오면 상세를 다시 읽는다 — 올린 글이 대회 이야기 · 이야기 수에 바로 보이게(#433 · #597).
  * 앱은 작성 서브뷰가 닫히면 상세 웹뷰가 다시 보이며 visibilitychange가 오고, 웹은 뒤로 가기로 상세가 다시 그려질 때
  * (마운트·pageshow) 확인한다. 목록의 상세 복귀 갱신(useRefreshAfterDetail)과 같은 방식이다.
  */

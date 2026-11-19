@@ -22,18 +22,23 @@ import { WonCoinIcon } from "@/shared/ui/icons";
  * 제목 왼쪽 아이콘은 20px · 채운 모양 · 옅은 회색으로, 제목보다 눈에 덜 띄게 무엇에 관한 덩어리인지만 알린다.
  */
 export function DetailSection({
+  id,
   title,
   icon,
+  count,
   children,
   className,
 }: {
+  id?: string;
   title?: string;
   icon?: ReactNode;
+  /** 제목 옆 수(대회 이야기 수 등) — 옅은 글자로 붙인다. 없으면 두지 않는다. */
+  count?: number;
   children: ReactNode;
   className?: string;
 }) {
   return (
-    <section className={cn("px-4 pt-8", className)}>
+    <section id={id} className={cn("px-4 pt-8", className)}>
       {title ? (
         <h2 className="mb-3 flex items-center gap-1.5 px-1 text-[18px] leading-[26px] font-bold text-text-primary">
           {icon ? (
@@ -42,6 +47,11 @@ export function DetailSection({
             </span>
           ) : null}
           {title}
+          {count !== undefined ? (
+            <span className="text-text-tertiary tabular-nums">
+              {count.toLocaleString("ko-KR")}
+            </span>
+          ) : null}
         </h2>
       ) : null}
       <div className="rounded-20 bg-surface-field px-4 py-3">{children}</div>

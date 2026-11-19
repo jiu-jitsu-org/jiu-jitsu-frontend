@@ -138,7 +138,8 @@ export function CompetitionDetailPage({
             {data.stories ? (
               <CompetitionStories
                 competitionId={competition.id}
-                stories={data.stories}
+                list={data.stories}
+                ended={status?.kind === "ended"}
               />
             ) : null}
           </div>
