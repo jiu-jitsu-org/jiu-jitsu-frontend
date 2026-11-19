@@ -14,7 +14,7 @@ import {
   MenuBox,
   MenuItem,
 } from "@/features/community/presentation/menu-box";
-import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
+import { requestNativeLogin } from "@/shared/lib/native-bridge";
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
 import { useBlockMember } from "@/features/community/presentation/use-block-member";
 import { useReportFlow } from "@/features/community/presentation/use-report-flow";
@@ -117,7 +117,7 @@ export function CommentMenu({
 
     if (!response.ok) {
       if (response.status === 401) {
-        postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
+        requestNativeLogin("session_expired");
       }
       toast.show("댓글을 삭제하지 못했어요", { tone: "error" });
       return;
@@ -146,7 +146,7 @@ export function CommentMenu({
 
     if (!response.ok) {
       if (response.status === 401) {
-        postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
+        requestNativeLogin("session_expired");
         toast.show("댓글을 복구하지 못했어요", { tone: "error" });
         return;
       }

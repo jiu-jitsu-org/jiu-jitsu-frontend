@@ -180,7 +180,7 @@ export function CompetitionAlertProvider({
         }
         if (!result.ok && result.reason === "unauthenticated") {
           // 화면은 로그인으로 알았는데 서버 세션이 끝났다 — 다시 눌러도 안 되니 로그인부터 안내한다.
-          promptLogin({ reason: "대회 알림" });
+          promptLogin({ reason: "alert" });
           return null;
         }
         if (!result.ok) throw new Error(result.reason);
@@ -215,7 +215,7 @@ export function CompetitionAlertProvider({
       );
       if (!result.ok && result.reason === "unauthenticated") {
         setEnabledOverride(before);
-        promptLogin({ reason: "대회 알림" });
+        promptLogin({ reason: "alert" });
         return;
       }
       if (!result.ok) throw new Error(result.reason);

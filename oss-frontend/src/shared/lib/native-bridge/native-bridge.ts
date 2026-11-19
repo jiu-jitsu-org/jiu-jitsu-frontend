@@ -1,11 +1,13 @@
 import {
   OutboundMessageType,
   type AnalyticsEventPayload,
+  type AuthLoginPayload,
   type BridgeMessage,
   type InboundMessage,
   type CompetitionAlertsEnabledPayload,
   type CompetitionHeaderTintPayload,
   type ContentCreatedPayload,
+  type LoginPromptReason,
   type OpenCompetitionRecordPayload,
   type OpenSubviewPayload,
   type OpenUserProfilePayload,
@@ -151,6 +153,18 @@ export function openNativeSubview(url: string): void {
   postToNative({
     type: OutboundMessageType.OPEN_SUBVIEW,
     payload: { url } satisfies OpenSubviewPayload,
+  });
+}
+
+/**
+ * 네이티브 로그인 안내(알럿 → 동의하면 로그인 모달)를 띄운다. 이유는 앱의 로그인 기록(GA)에 실린다(#577).
+ * 로그인 뒤 이어 할 행위를 보관하지 않는다 — 그런 곳은 `useAuth().requireAuth`를 쓴다.
+ * 401 응답처럼 로그인으로 알던 화면에서 세션이 끝난 곳이 부른다. 브라우저에는 띄울 앱이 없다.
+ */
+export function requestNativeLogin(reason: LoginPromptReason): void {
+  postToNative({
+    type: OutboundMessageType.AUTH_LOGIN_PROMPT,
+    payload: { reason } satisfies AuthLoginPayload,
   });
 }
 

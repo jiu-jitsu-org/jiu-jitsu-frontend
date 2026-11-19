@@ -23,7 +23,9 @@ import {
   notifySessionRefreshFailed,
   postToNative,
   registerWebBridge,
+  requestNativeLogin,
   type InboundMessage,
+  type LoginPromptReason,
 } from "@/shared/lib/native-bridge";
 import type { ApiSuccessResponse } from "@/shared/types/api";
 import { useOpenInAppPrompt } from "@/shared/ui";
@@ -58,8 +60,8 @@ export type BridgeEvent = {
 };
 
 export type RequireAuthOptions = {
-  /** 로그인 유도 사유(분석/문구용). */
-  reason?: string;
+  /** 로그인 안내 이유(사전 코드, #577). 앱의 로그인 기록 · 브라우저 창 기록에 실린다. */
+  reason: LoginPromptReason;
 };
 
 type AuthContextValue = {
@@ -70,12 +72,12 @@ type AuthContextValue = {
    * 유도는 AUTH_LOGIN_PROMPT(안내 알럿 → 사용자가 동의해야 모달, 소프트 유도)다.
    * 로그인 성공 시 보관한 행위가 자동 복귀된다.
    */
-  requireAuth: (action: () => void, options?: RequireAuthOptions) => void;
+  requireAuth: (action: () => void, options: RequireAuthOptions) => void;
   /**
    * 로그인 유도만 하고 로그인 성공 후 아무것도 실행하지 않는다.
    * 좋아요·저장 API는 토글이라(있으면 삭제) 자동 실행하면 이미 눌렀던 글이 취소될 수 있다(#173).
    */
-  promptLogin: (options?: RequireAuthOptions) => void;
+  promptLogin: (options: RequireAuthOptions) => void;
   /**
    * 비로그인 → 로그인으로, 또는 다른 계정으로 바뀐 횟수(#511). 값이 바뀌면 화면이 viewer 상태를 다시 읽어야 한다(useOnLogin).
    * 같은 계정의 토큰 갱신(로그인 상태에서 재주입)이나 최초 세션 판정은 세지 않는다 — 화면이 이미 그 상태로 그려져 있다.
@@ -288,24 +290,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [applyState, logEvent]);
 
   const requestLogin = useCallback(
-    (reason?: string) => {
+    (reason: LoginPromptReason) => {
       // 외부 브라우저에는 로그인 UI를 그릴 네이티브가 없다 — 메시지를 보내봐야 아무 일도 안 생기고
       // 사용자는 "눌렀는데 반응이 없다"로 읽는다. 앱에서 로그인해 이어가라는 안내로 대체한다.
       if (!isNativeBridgeAvailable()) {
-        openInApp.prompt();
+        openInApp.prompt({ reason });
         return;
       }
 
-      const type = OutboundMessageType.AUTH_LOGIN_PROMPT;
-      const payload = reason ? { reason } : undefined;
-      logEvent("out", type, payload);
-      postToNative({ type, payload });
+      logEvent("out", OutboundMessageType.AUTH_LOGIN_PROMPT, { reason });
+      requestNativeLogin(reason);
     },
     [logEvent, openInApp],
   );
 
   const requireAuth = useCallback(
-    (action: () => void, options?: RequireAuthOptions) => {
+    (action: () => void, options: RequireAuthOptions) => {
       if (status === "authenticated") {
         action();
         return;
@@ -313,16 +313,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // 로그인 후 복귀할 행위를 보관하고 네이티브에 로그인 유도를 요청한다.
       pendingActionRef.current = action;
-      requestLogin(options?.reason);
+      requestLogin(options.reason);
     },
     [requestLogin, status],
   );
 
   const promptLogin = useCallback(
-    (options?: RequireAuthOptions) => {
+    (options: RequireAuthOptions) => {
       // 앞서 보관된 행위가 이번 로그인에 딸려 실행되지 않게 비운다.
       pendingActionRef.current = null;
-      requestLogin(options?.reason);
+      requestLogin(options.reason);
     },
     [requestLogin],
   );

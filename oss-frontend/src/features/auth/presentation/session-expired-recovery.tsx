@@ -4,9 +4,8 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
 import {
-  OutboundMessageType,
-  postToNative,
   refreshSessionViaBridge,
+  requestNativeLogin,
 } from "@/shared/lib/native-bridge";
 import { Button } from "@/shared/ui/button";
 
@@ -125,7 +124,7 @@ function SessionExpiredFallback({ onRetry }: { onRetry: () => void }) {
           variant="filled"
           size="m"
           onClick={() =>
-            postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT })
+            requestNativeLogin("session_expired")
           }
         >
           로그인

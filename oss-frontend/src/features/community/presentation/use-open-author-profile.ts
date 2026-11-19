@@ -37,7 +37,7 @@ export function useOpenAuthorProfile() {
         router.push(MY_ACTIVITY_PATH);
         return;
       }
-      prompt({ message: PROFILE_IN_APP_MESSAGE });
+      prompt({ message: PROFILE_IN_APP_MESSAGE, reason: "profile" });
     };
   };
 }

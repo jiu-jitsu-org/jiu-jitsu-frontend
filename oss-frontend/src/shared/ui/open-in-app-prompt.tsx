@@ -10,9 +10,10 @@ import {
   type ReactNode,
 } from "react";
 
-import { trackOpenAppClick } from "@/shared/lib/analytics";
+import { trackLoginPromptView, trackOpenAppClick } from "@/shared/lib/analytics";
 import { scheduleAppStoreFallback } from "@/shared/lib/app-link";
 import { cn } from "@/shared/lib/cn";
+import type { LoginPromptReason } from "@/shared/lib/native-bridge";
 import { useOpenInAppHref } from "@/shared/lib/use-open-in-app-href";
 import { Button } from "@/shared/ui/button";
 import {
@@ -37,6 +38,11 @@ import {
 type OpenInAppPromptOptions = {
   /** 무엇을 하려면 앱이 필요한지 — 완성된 문장으로 넘긴다(조사 처리를 피하기 위함). */
   message?: string;
+  /**
+   * 왜 앱이 필요한지(사전 로그인 안내 이유) — 있으면 창이 뜰 때 `login_prompt_view`로 기록한다(#577).
+   * 기능 화면은 늘 넘긴다. 디자인 시스템 예시처럼 기록하면 안 되는 곳만 뺀다.
+   */
+  reason?: LoginPromptReason;
 };
 
 type OpenInAppPromptContextValue = {
@@ -69,6 +75,7 @@ export function OpenInAppPromptProvider({ children }: { children: ReactNode }) {
   const prompt = useCallback((options?: OpenInAppPromptOptions) => {
     setMessage(options?.message ?? DEFAULT_MESSAGE);
     setOpen(true);
+    if (options?.reason) trackLoginPromptView(options.reason);
   }, []);
 
   const close = useCallback(() => setOpen(false), []);

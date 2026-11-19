@@ -6,7 +6,7 @@ import { markBlockChanged } from "@/features/community/presentation/block-change
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
 import { useNativeDialog } from "@/features/community/presentation/use-native-dialog";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
-import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
+import { requestNativeLogin } from "@/shared/lib/native-bridge";
 import { useToast } from "@/shared/ui";
 
 /** 차단할 회원 — 작성자 id와 확인창에 보일 닉네임. */
@@ -87,7 +87,7 @@ export function useBlockMember() {
 
       if (!response?.ok) {
         if (response?.status === 401) {
-          postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
+          requestNativeLogin("block");
         }
         toast.show("유저를 차단하지 못했어요", { tone: "error" });
         return false;

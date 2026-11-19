@@ -112,9 +112,36 @@ export const InboundMessageType = {
 export type InboundMessageType =
   (typeof InboundMessageType)[keyof typeof InboundMessageType];
 
-/** `AUTH_LOGIN_PROMPT` payload. 사유(분석/문구용, 선택). */
+/**
+ * 로그인 안내 이유(GA 이벤트 사전 "로그인 안내 이유", #577). 앱은 이 값으로 `login_prompt_view` · 로그인 시작 ·
+ * 가입까지 기록하고(jiu-jitsu-ios#426), 브라우저는 "앱에서 계속할 수 있어요" 창 기록에 쓴다.
+ * 사전과 다른 값(오타)이 GA에 쌓이지 않게 닫힌 목록으로 둔다. 새 값은 사전에 먼저 더한다.
+ * `my_tab`은 앱 MY 탭(네이티브) 값이라 웹에서는 쓰지 않는다.
+ */
+export const LOGIN_PROMPT_REASONS = [
+  "write",
+  "comment",
+  "reply",
+  "like",
+  "save",
+  "vote",
+  "interest",
+  "interest_filter",
+  "alert",
+  "info_report",
+  "record",
+  "report",
+  "block",
+  "my_tab",
+  "profile",
+  "session_expired",
+] as const;
+
+export type LoginPromptReason = (typeof LOGIN_PROMPT_REASONS)[number];
+
+/** `AUTH_LOGIN_PROMPT` payload. 이유는 사전 코드(앱은 문구에 쓰지 않는다). */
 export type AuthLoginPayload = {
-  reason?: string;
+  reason: LoginPromptReason;
 };
 
 /** `SET_LEAVE_GUARD` payload — 지금 화면을 스와이프 백으로 바로 닫으면 안 되는지. */

@@ -93,7 +93,7 @@ export function CompetitionInfoBasis({
         ),
       );
       if (!result.ok && result.reason === "unauthenticated") {
-        promptLogin({ reason: "대회 정보 제보" });
+        promptLogin({ reason: "info_report" });
         return;
       }
       if (!result.ok && result.reason === "limit") {
@@ -154,6 +154,7 @@ export function CompetitionInfoBasis({
           onClick={() =>
             guard(
               () => void report(),
+              "info_report",
               "정보 제보는 OSS 앱에서 로그인 후 할 수 있어요.",
             )()
           }

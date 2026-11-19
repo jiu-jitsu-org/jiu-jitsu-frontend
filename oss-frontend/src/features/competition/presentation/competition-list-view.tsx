@@ -575,7 +575,11 @@ export function CompetitionListView({
   // 비로그인이 누르면 필터는 켜지 않고 로그인 안내만 — 켜 봐야 늘 빈 결과다.
   const pressInterested = signedIn
     ? toggleInterested
-    : guard(toggleInterested, "관심 대회는 OSS 앱에서 로그인 후 볼 수 있어요.");
+    : guard(
+        toggleInterested,
+        "interest_filter",
+        "관심 대회는 OSS 앱에서 로그인 후 볼 수 있어요.",
+      );
   // 목록 ↔ 달력은 주소가 아니라 이 화면의 보기 전환이라 화면 기록을 여기서 알린다(GA, #576).
   // 처음 그릴 때(목록)는 문서 로드 때 알린 것과 같아 다시 세지 않는다.
   useEffect(() => {

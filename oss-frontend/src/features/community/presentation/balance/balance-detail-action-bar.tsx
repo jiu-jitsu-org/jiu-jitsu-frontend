@@ -74,6 +74,7 @@ export function BalanceDetailActionBar({
         activeIconColorClass="text-reaction-bar-detail-active-comment-icon"
         onClick={guard(
           focusCommentInput,
+          "comment",
           "댓글은 OSS 앱에서 로그인 후 남길 수 있어요.",
         )}
       />
@@ -87,6 +88,7 @@ export function BalanceDetailActionBar({
         activeIconColorClass="text-reaction-bar-detail-active-like-icon"
         onClick={guard(
           toggleLike,
+          "like",
           "좋아요는 OSS 앱에서 로그인 후 누를 수 있어요.",
         )}
       />

@@ -517,10 +517,12 @@ function FeedCardItem({
       onPressComment={() => openPostDetail(post.id)}
       onToggleLike={guard(
         toggleLike,
+        "like",
         "좋아요는 OSS 앱에서 로그인 후 누를 수 있어요.",
       )}
       onToggleBookmark={guard(
         toggleBookmark,
+        "save",
         "북마크는 OSS 앱에서 로그인 후 저장할 수 있어요.",
       )}
       menu={

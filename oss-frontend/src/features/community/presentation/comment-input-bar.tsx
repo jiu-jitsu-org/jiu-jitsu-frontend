@@ -20,8 +20,7 @@ import { useViewportRect } from "@/features/community/presentation/use-viewport-
 import { CloseIcon, LoadingIcon, ReplyBranchIcon, SendIcon } from "@/shared/ui/icons";
 import {
   notifyContentCreated,
-  OutboundMessageType,
-  postToNative,
+  requestNativeLogin,
 } from "@/shared/lib/native-bridge";
 import { useToast } from "@/shared/ui";
 import { IconButton } from "@/shared/ui/icon-button";
@@ -159,7 +158,7 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
 
       if (!response.ok) {
         if (response.status === 401) {
-          postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
+          requestNativeLogin(parentId ? "reply" : "comment");
         } else if (await isForbiddenWord(response)) {
           // 금칙어 거절(#504) — 쓴 글은 그대로 두고 표현을 고치게 한다.
           toast.show("사용할 수 없는 표현이 있어요", { tone: "error" });
@@ -273,7 +272,7 @@ export function CommentInputBar({ contentId }: { contentId: number }) {
           // 외부 브라우저 문구는 쓰이지 않는다(외부 브라우저는 이 바 자체가 감춰진다 — PostDetailFooter).
           <button
             type="button"
-            onClick={guard(() => {}, "")}
+            onClick={guard(() => {}, "comment", "")}
             className="flex-1 rounded-[24px] bg-comment-input-bar-bg px-4 py-[10px] text-left text-body-s text-comment-input-bar-placeholder"
           >
             로그인 후 이용해주세요.

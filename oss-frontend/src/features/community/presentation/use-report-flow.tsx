@@ -15,7 +15,7 @@ import {
 import { useNativeDialog } from "@/features/community/presentation/use-native-dialog";
 import { ApiErrorCode } from "@/shared/lib/http/api-error";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
-import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
+import { requestNativeLogin } from "@/shared/lib/native-bridge";
 import { useToast } from "@/shared/ui";
 
 /** 신고 완료 토스트의 차단 버튼 문구(#550). 상세 → 목록 토스트도 같은 문구를 쓴다. */
@@ -134,7 +134,7 @@ export function useReportFlow() {
 
       if (!response.ok) {
         if (response.status === 401) {
-          postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
+          requestNativeLogin("report");
         }
         // 동일 대상 중복 신고는 서버가 막는다(400 + U0008, BFF가 업스트림 봉투를 details로 전달).
         // 이미 신고한 상태이므로 호출부는 성공과 동일하게 후처리(목록에서 감추기)한다 — 계속 보이는
