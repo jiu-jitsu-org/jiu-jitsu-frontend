@@ -100,6 +100,7 @@ export function PostDetailView({
                   <PostDetailBody
                     title={post.title}
                     body={post.body}
+                    categoryId={post.categoryId}
                     categoryName={post.categoryName}
                     createdAt={post.createdAt}
                     views={post.views}

@@ -109,7 +109,7 @@ export function HomeFeed({
           `${window.location.pathname}${feedFilterSearch(next)}`,
         );
       }
-      // 아래로 내려 읽다 카드의 카테고리를 눌렀으면 새 목록의 맨 위(탭 줄)로 올린다.
+      // 탭 줄이 위로 조금 지나간 채 탭을 바꾸면 새 목록의 맨 위(탭 줄)로 올린다.
       const top = topRef.current?.getBoundingClientRect().top ?? 0;
       if (top < 0) window.scrollTo({ top: window.scrollY + top });
       void load(next);
@@ -117,18 +117,12 @@ export function HomeFeed({
     [load],
   );
 
-  function selectCategory(
-    categoryId: number | null,
-    from: "tab" | "post_card",
-  ) {
-    if (
-      categoryId === filter.categoryId &&
-      // 이 대회 글만 보는 중에 같은 '대회' 탭을 누르면 그대로 둔다 — 조건은 ✕로만 넓힌다.
-      (from === "tab" || filter.competitionId === null)
-    ) {
-      return;
-    }
-    track("category_select", { category: categoryId ?? "all", from });
+  // 글 카드의 카테고리 이름은 누르지 않는다 — 바로 위 탭 줄이 같은 일을 하고, 목록이 통째로 바뀌어 당황스러웠다.
+  // 카테고리 모아 보기는 글 상세의 카테고리 이름이 맡는다(PostCategoryLink).
+  function selectCategory(categoryId: number | null) {
+    // 이 대회 글만 보는 중에 같은 '대회' 탭을 누르면 그대로 둔다 — 조건은 ✕로만 넓힌다.
+    if (categoryId === filter.categoryId) return;
+    track("category_select", { category: categoryId ?? "all", from: "tab" });
     select({ categoryId, competitionId: null });
   }
 
@@ -190,7 +184,7 @@ export function HomeFeed({
         <CategoryTabs
           categories={categories}
           selectedId={filter.categoryId}
-          onSelect={(categoryId) => selectCategory(categoryId, "tab")}
+          onSelect={selectCategory}
         />
       </div>
 
@@ -220,9 +214,6 @@ export function HomeFeed({
           listUrl={listUrl}
           onRetry={() => void load(filter)}
           clientLoaded={content !== null}
-          onPressCategory={(categoryId) =>
-            selectCategory(categoryId, "post_card")
-          }
         />
       )}
 
@@ -391,7 +382,6 @@ function FeedListContent({
   listUrl,
   clientLoaded,
   onRetry,
-  onPressCategory,
 }: {
   result: BoardListPageDataResult;
   filter: FeedFilter;
@@ -399,7 +389,6 @@ function FeedListContent({
   /** 탭을 바꿔 클라이언트가 읽은 목록인지 — 실패 다시 시도를 라우트가 아니라 이 목록으로. */
   clientLoaded: boolean;
   onRetry: () => void;
-  onPressCategory: (categoryId: number) => void;
 }) {
   if (!result.ok) {
     if (result.reason === "session-expired") {
@@ -426,7 +415,6 @@ function FeedListContent({
       page={result.data.list.page}
       isLast={result.data.list.isLast}
       listUrl={listUrl}
-      onPressCategory={onPressCategory}
     />
   );
 }

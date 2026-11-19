@@ -1,4 +1,5 @@
 import { ContentViewCount } from "@/features/community/presentation/content-view-count";
+import { PostCategoryLink } from "@/features/community/presentation/post-category-link";
 import { PostDetailTime } from "@/features/community/presentation/post-detail-time";
 import { cn } from "@/shared/lib/cn";
 
@@ -13,8 +14,10 @@ import { cn } from "@/shared/lib/cn";
  * 무엇이 수정됐다는 건지 읽히지 않는다. 표시 시간 자체는 수정해도 작성 시각 그대로다(정책 4).
  * 조회수(views)는 0이어도 노출한다(디자인 기준). 필드 자체가 없을 때만 생략.
  * viewPath가 있으면 화면이 처음 그려질 때 '봤음'을 한 번 보내고 센 값으로 바꾼다(ContentViewCount, #523).
+ * categoryId가 있으면 카테고리 이름을 눌러 홈 목록을 그 카테고리 탭으로 연다(PostCategoryLink).
  */
 export function PostMetaRow({
+  categoryId,
   categoryName,
   createdAt,
   views,
@@ -22,6 +25,8 @@ export function PostMetaRow({
   edited,
   className,
 }: {
+  /** 카테고리 번호. 있으면 이름이 그 카테고리 목록으로 가는 버튼이 된다. */
+  categoryId?: number;
   /** 카테고리명(#177). 빈 값이면 생략. */
   categoryName?: string;
   createdAt: string;
@@ -40,7 +45,9 @@ export function PostMetaRow({
         className,
       )}
     >
-      {categoryName ? (
+      {categoryName && categoryId !== undefined ? (
+        <PostCategoryLink categoryId={categoryId} categoryName={categoryName} />
+      ) : categoryName ? (
         <span className="text-feed-card-header-category-text">{categoryName}</span>
       ) : null}
       <span>

@@ -14,6 +14,7 @@ import { PostMetaRow } from "@/features/community/presentation/post-meta-row";
 export function PostDetailBody({
   title,
   body,
+  categoryId,
   categoryName,
   createdAt,
   views,
@@ -22,6 +23,7 @@ export function PostDetailBody({
 }: {
   title: string;
   body: string;
+  categoryId?: number;
   categoryName?: string;
   createdAt: string;
   views?: number;
@@ -38,6 +40,7 @@ export function PostDetailBody({
       </h1>
       {/* 카테고리·날짜·조회·수정됨: 제목 바로 아래 6 */}
       <PostMetaRow
+        categoryId={categoryId}
         categoryName={categoryName}
         createdAt={createdAt}
         views={views}
