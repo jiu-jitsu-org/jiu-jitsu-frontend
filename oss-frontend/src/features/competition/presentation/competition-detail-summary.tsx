@@ -9,9 +9,11 @@ import { shortDateLabel } from "@/features/competition/presentation/competition-
 import { recordCompetitionViewAction } from "@/features/competition/presentation/actions/record-competition-view-action";
 import { callServerAction } from "@/features/competition/presentation/reload-on-stale-action";
 import { useCompetitionDetailInterest } from "@/features/competition/presentation/competition-detail-interest";
+import { scrollToCompetitionStories } from "@/features/competition/presentation/competition-stories";
 import { cn } from "@/shared/lib/cn";
-import { HeartIcon } from "@/shared/ui/icons";
+import { ChevronLeftIcon, HeartIcon } from "@/shared/ui/icons";
 import { Button } from "@/shared/ui/button";
+import { SURFACE_PRESS } from "@/shared/ui/press-styles";
 
 /**
  * 대회 상세 맨 위 (#361 · #362) — 접수 상태와 가장 가까운 마감 → 대회 이름 → 조회수 · 관심 등록.
@@ -21,18 +23,22 @@ import { Button } from "@/shared/ui/button";
  * 끝난 대회는 마감 알림을 받을 일이 없어 버튼 대신 관심 수만 글자로 남긴다.
  * 아래 상태 버튼 바가 있으면 관심 버튼은 바 왼쪽 하트로 옮겨 가고(같은 동작을 두 곳에 두지 않는다), 여기엔 관심 수만 글자로 남긴다.
  * 조회수는 화면이 열린 뒤 한 번 세고(#420) 센 값으로 바꾼다 — 서버 렌더는 로그인 뒤 다시 그리기에서도 돌아 세지 않는다.
+ * 대회 이야기가 있으면 같은 줄 끝에 '이야기 N ›' — 누르면 아래 대회 이야기로 내려간다(#597). 없으면 두지 않는다.
  */
 export function CompetitionDetailSummary({
   target,
   status,
   currentYear,
   viewCount,
+  storyCount,
   interestInBar,
 }: {
   target: CompetitionAlertTarget;
   status: CompetitionDetailStatus | null;
   currentYear: number;
   viewCount: number;
+  /** 대회 이야기 전체 수(#597) — 0이면 '이야기 N'을 두지 않는다. */
+  storyCount: number;
   /** 관심 버튼이 아래 바에 있는지 — 그러면 여기엔 관심 수만 글자로 둔다. */
   interestInBar: boolean;
 }) {
@@ -66,13 +72,30 @@ export function CompetitionDetailSummary({
         {name}
       </h1>
       <div className="mt-3 flex min-h-8 items-center gap-2">
-        <p className="flex-1 text-[13px] leading-[18px] text-text-tertiary tabular-nums">
+        <p className="flex flex-1 items-center text-[13px] leading-[18px] text-text-tertiary tabular-nums">
           {[
             `조회 ${views.toLocaleString("ko-KR")}`,
             !buttonHere && count > 0 ? `관심 ${count}` : null,
           ]
             .filter(Boolean)
             .join(" · ")}
+          {storyCount > 0 ? (
+            <>
+              <span aria-hidden>&nbsp;·&nbsp;</span>
+              {/* 글자만 한 칸 진하게 — 같은 줄의 다른 수와 달리 누르는 곳이라. 누름 칸은 위아래로 넓힌다. */}
+              <button
+                type="button"
+                onClick={scrollToCompetitionStories}
+                className={cn(
+                  "-mx-1 -my-2 inline-flex items-center rounded-10 px-1 py-2 font-semibold text-text-secondary",
+                  SURFACE_PRESS,
+                )}
+              >
+                이야기 {storyCount.toLocaleString("ko-KR")}
+                <ChevronLeftIcon size={14} className="rotate-180" />
+              </button>
+            </>
+          ) : null}
         </p>
         {buttonHere ? (
           <CompetitionDetailInterestButton target={target} shape="pill" />
