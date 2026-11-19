@@ -25,6 +25,10 @@ import { FeedErrorState } from "@/features/community/presentation/feed-error-sta
 import { FeedCardsSkeleton } from "@/features/community/presentation/feed/feed-cards-skeleton";
 import { PostWriteFab } from "@/features/community/presentation/post-write-fab";
 import { revealInRow } from "@/features/community/presentation/reveal-in-row";
+import {
+  clearRevalidated,
+  peekRevalidateTarget,
+} from "@/features/community/presentation/dirty-posts";
 import { fetchFeedPage } from "@/features/community/presentation/use-board-feed";
 import { useOpenPostWrite } from "@/features/community/presentation/use-open-post-write";
 import { WeeklyTopic } from "@/features/community/presentation/weekly-topic";
@@ -158,6 +162,26 @@ export function HomeFeed({
   const listUrl = feedListUrlOf(filter);
   const result = content?.result ?? initialResult;
   const contentKey = content?.key ?? feedFilterKey(initialFilter);
+  const showsEmpty =
+    result !== "loading" && result.ok && result.data.list.items.length === 0;
+
+  // 빈 화면에는 목록이 없어 작성 후 복귀 감지(useFeedRevalidate)가 돌지 않는다 — 첫 글을 쓰고 돌아오면 다시 읽는다.
+  useEffect(() => {
+    if (!showsEmpty) return;
+    function reloadAfterWrite() {
+      if (document.visibilityState !== "visible") return;
+      const target = peekRevalidateTarget();
+      if (target.createdPostId === null) return;
+      clearRevalidated(target);
+      void load(filter);
+    }
+    window.addEventListener("pageshow", reloadAfterWrite);
+    document.addEventListener("visibilitychange", reloadAfterWrite);
+    return () => {
+      window.removeEventListener("pageshow", reloadAfterWrite);
+      document.removeEventListener("visibilitychange", reloadAfterWrite);
+    };
+  }, [showsEmpty, filter, load]);
   const isAll = filter.categoryId === null;
 
   return (
