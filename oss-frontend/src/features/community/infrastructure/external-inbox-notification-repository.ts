@@ -35,6 +35,8 @@ type NoticeListItemDto = {
   pushType: string | null;
   actionType: string | null;
   data: string | null;
+  /** 댓글 번호(backend#271) — NEW_COMMENTS · NEW_CHILD_COMMENTS · COMMENTS_LIKE만, 그 밖엔 null. 옛 응답엔 없다. */
+  commentId?: number | null;
   isRead: boolean | null;
   createdAt: string;
   /** 대상 삭제 상태. null = 정상. 게시글이 지워지면 그 아래 댓글 · 대댓글 알림도 BOARD다. */
@@ -81,10 +83,20 @@ function toInboxNotification(dto: NoticeListItemDto): InboxNotification {
     title: dto.title ?? "",
     body: dto.body ?? "",
     target: toTarget(dto.actionType, dto.data),
+    commentId: toCommentId(dto.commentId),
     gone: toGone(dto.deletedStatus),
     isRead: dto.isRead ?? false,
     createdAt: toKstIso(dto.createdAt),
   };
+}
+
+/** 양의 정수만 댓글 번호로 받는다. 없거나 이상한 값이면 null — 상세만 연다. */
+function toCommentId(commentId: number | null | undefined): number | null {
+  return typeof commentId === "number" &&
+    Number.isInteger(commentId) &&
+    commentId > 0
+    ? commentId
+    : null;
 }
 
 function toType(pushType: string | null): InboxNotificationType | null {

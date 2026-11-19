@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 
+import { withFocusedComment } from "@/features/community/presentation/focused-comment-param";
 import { entryPath, type ScreenFrom } from "@/shared/lib/analytics";
 import {
   isNativeBridgeAvailable,
@@ -24,6 +25,7 @@ function balanceDetailPath(contentId: number): string {
  * 행위(투표 · 좋아요 · 댓글)는 상세 안에서 탭 시점에 막는다.
  *
  * from: 들어온 길(GA, #576 — `entryPath`). 주지 않으면 지금 화면 이름을 쓴다.
+ * commentId: 알림에서 연 댓글(#596) — 게시글 상세와 같이 `?commentId=`로 싣는다.
  *
  * 게시글과 다른 점: 복귀 시 갱신 표시(markPostDirty)를 남기지 않는다. 게시글 목록은 어떤 카드가 바뀌었는지
  *    알아야 해서 대상을 기록하지만, 밸런스 게임은 화면에 하나뿐이라 고를 것이 없다.
@@ -33,8 +35,11 @@ function balanceDetailPath(contentId: number): string {
 export function useOpenBalanceDetail(from?: ScreenFrom) {
   const router = useRouter();
 
-  return (contentId: number) => {
-    const path = entryPath(balanceDetailPath(contentId), from);
+  return (contentId: number, commentId?: number | null) => {
+    const path = entryPath(
+      withFocusedComment(balanceDetailPath(contentId), commentId),
+      from,
+    );
 
     if (isNativeBridgeAvailable()) {
       // 동일 origin 절대경로로 전달 → 새 웹뷰가 세션 쿠키를 공유한다.

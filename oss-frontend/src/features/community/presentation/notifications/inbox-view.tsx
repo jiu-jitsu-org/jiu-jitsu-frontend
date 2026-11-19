@@ -137,10 +137,12 @@ function InboxList({
       toast.show(inboxGoneMessage(gone), { tone: "info" });
       return;
     }
-    if (target.kind === "post") openPostDetail(target.postId);
-    else if (target.kind === "competition") {
+    // 댓글 알림이면 그 댓글 번호를 같이 넘겨 상세가 맨 위에 먼저 보여 준다(#596).
+    if (target.kind === "post") {
+      openPostDetail(target.postId, notification.commentId);
+    } else if (target.kind === "competition") {
       openCompetitionDetail(target.competitionId);
-    } else openBalanceDetail(target.contentId);
+    } else openBalanceDetail(target.contentId, notification.commentId);
   }
 
   return (

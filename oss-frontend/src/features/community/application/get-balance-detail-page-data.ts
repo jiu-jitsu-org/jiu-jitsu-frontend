@@ -5,7 +5,12 @@ import {
   createGetCommentsUseCase,
 } from "@/features/community/application/community-use-case-factory";
 import type { BalanceGame } from "@/features/community/domain/balance-game";
-import type { CommentList } from "@/features/community/domain/comment";
+import { loadFocusedComment } from "@/features/community/application/load-focused-comment";
+import {
+  focusedThreadComment,
+  type Comment,
+  type CommentList,
+} from "@/features/community/domain/comment";
 import type { CommentSort } from "@/features/community/domain/post";
 import { readSessionToken } from "@/shared/lib/auth";
 import { ApiErrorCode, toApiError } from "@/shared/lib/http";
@@ -17,6 +22,8 @@ import { ApiErrorCode, toApiError } from "@/shared/lib/http";
 export type BalanceDetailPageData = {
   game: BalanceGame;
   comments: CommentList;
+  /** 알림에서 연 댓글(#596) — 게시글 상세와 같다. 없거나 못 읽으면 null. */
+  focusedComment: Comment | null;
 };
 
 export type BalanceDetailPageDataResult =
@@ -58,23 +65,35 @@ const EMPTY_COMMENTS: CommentList = { items: [], hasNext: false };
 export async function getBalanceDetailPageData(
   contentId: number,
   sort: CommentSort,
+  focusCommentId: number | null = null,
 ): Promise<BalanceDetailPageDataResult> {
   const accessToken = await readSessionToken();
 
   try {
-    const [game, comments] = await Promise.all([
+    const [game, comments, focusedThread] = await Promise.all([
       loadBalanceGameDetail(contentId, accessToken),
       // 댓글이 실패해도 투표 영역은 보여야 한다(graceful degradation).
       createGetCommentsUseCase(accessToken)
         .execute(contentId, sort)
         .catch(() => EMPTY_COMMENTS),
+      // 알림에서 연 댓글(#596) — 못 읽으면 빠질 뿐이다.
+      loadFocusedComment(contentId, focusCommentId, sort, accessToken),
     ]);
 
     if (!game) {
       return { ok: false, reason: "not-found" };
     }
 
-    return { ok: true, data: { game, comments } };
+    return {
+      ok: true,
+      data: {
+        game,
+        comments,
+        focusedComment: focusedThread
+          ? focusedThreadComment(focusedThread)
+          : null,
+      },
+    };
   } catch (error) {
     const apiError = toApiError(error);
 

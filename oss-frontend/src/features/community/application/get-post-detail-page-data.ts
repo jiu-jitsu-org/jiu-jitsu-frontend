@@ -5,8 +5,11 @@ import {
   createGetCommentsUseCase,
   createGetPostDetailUseCase,
 } from "@/features/community/application/community-use-case-factory";
+import { loadFocusedComment } from "@/features/community/application/load-focused-comment";
 import {
+  focusedThreadComment,
   markPostAuthorComments,
+  type Comment,
   type CommentList,
 } from "@/features/community/domain/comment";
 import type { CommentSort, PostDetail } from "@/features/community/domain/post";
@@ -20,6 +23,11 @@ import type { CompetitionAlertSettings } from "@/features/competition/domain/com
 export type PostDetailPageData = {
   post: PostDetail;
   comments: CommentList;
+  /**
+   * 알림에서 연 댓글(#596) — 목록 맨 위에 먼저 보인다. 대댓글이면 원 댓글에 그 대댓글이 붙어 있다.
+   * 주소에 commentId가 없거나 못 읽으면(지워짐 · 숨김 · 다른 글의 댓글) null.
+   */
+  focusedComment: Comment | null;
   /**
    * 관심 대회 알림 설정(#375) — 글이 고른 대회 카드(post.competition, #380)의 하트로 처음 관심 등록하면 시트를 띄운다.
    * 대회 카드가 없거나 비로그인·못 읽으면 null.
@@ -57,11 +65,14 @@ const EMPTY_COMMENTS: CommentList = { items: [], hasNext: false };
  * 에러는 공통 ApiError로 정규화 → 호출부가 code로 분기(예: BOARD_NOT_FOUND → 404).
  *
  * sampleBelts는 `next dev`에서만 받아들인다 — 글·댓글 작성자에 예시 띠·그랄을 얹는다(belt-avatar-sample).
+ *
+ * focusCommentId는 알림 · 푸시로 열 때 주소에 붙어 오는 댓글 번호다(#596). 댓글 첫 페이지와 같이 받는다.
  */
 export async function getPostDetailPageData(
   postId: number,
   sort: CommentSort,
   sampleBelts = false,
+  focusCommentId: number | null = null,
 ): Promise<PostDetailPageDataResult> {
   const accessToken = await readSessionToken();
 
@@ -79,19 +90,28 @@ export async function getPostDetailPageData(
     );
     // 댓글은 첫 페이지만 받는다 — 다음 페이지는 화면이 무한 스크롤로 이어 받는다(#222).
     // 댓글 목록 조회가 실패해도 게시글 상세는 보이도록 빈 목록으로 폴백(graceful degradation).
-    const [post, comments, competitionAlertSettings] = await Promise.all([
-      postPromise,
-      createGetCommentsUseCase(accessToken)
-        .execute(postId, sort)
-        .catch(() => EMPTY_COMMENTS),
-      alertSettingsPromise,
-    ]);
+    // 알림에서 연 댓글도 같이 받는다(#596) — 덧붙는 정보라 못 읽으면 빠질 뿐이다.
+    const [post, comments, competitionAlertSettings, focusedThread] =
+      await Promise.all([
+        postPromise,
+        createGetCommentsUseCase(accessToken)
+          .execute(postId, sort)
+          .catch(() => EMPTY_COMMENTS),
+        alertSettingsPromise,
+        loadFocusedComment(postId, focusCommentId, sort, accessToken),
+      ]);
 
     // 게시글 작성자 본인이 단 댓글에 "작성자" 배지를 채운다(응답에 직접 필드가 없어 id 비교로 도출).
     const commentsWithAuthor: CommentList = {
       ...comments,
       items: markPostAuthorComments(comments.items, post.author.userId),
     };
+    const focusedComment = focusedThread
+      ? markPostAuthorComments(
+          [focusedThreadComment(focusedThread)],
+          post.author.userId,
+        )[0]
+      : null;
 
     if (sampleBelts && isDevelopmentRuntime()) {
       const sample = withSampleDetailBelts(post, commentsWithAuthor.items);
@@ -100,13 +120,19 @@ export async function getPostDetailPageData(
         data: {
           post: sample.post,
           comments: { ...commentsWithAuthor, items: sample.comments },
+          focusedComment,
           competitionAlertSettings,
         },
       };
     }
     return {
       ok: true,
-      data: { post, comments: commentsWithAuthor, competitionAlertSettings },
+      data: {
+        post,
+        comments: commentsWithAuthor,
+        focusedComment,
+        competitionAlertSettings,
+      },
     };
   } catch (error) {
     const apiError = toApiError(error);

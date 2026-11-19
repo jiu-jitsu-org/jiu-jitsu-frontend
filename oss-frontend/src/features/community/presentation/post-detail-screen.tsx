@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import { getPostDetailPageData } from "@/features/community/application/get-post-detail-page-data";
 import { SessionExpiredRecovery } from "@/features/auth/presentation/session-expired-recovery";
 import type { CommentSort } from "@/features/community/domain/post";
@@ -5,6 +7,7 @@ import { DetailErrorState } from "@/features/community/presentation/detail-error
 import { DetailSkeleton } from "@/features/community/presentation/detail-skeleton";
 import { KeepDetailOnRefreshFailure } from "@/features/community/presentation/keep-detail-on-refresh-failure";
 import { PostDetailGone } from "@/features/community/presentation/post-detail-gone";
+import { PostCategoryMore } from "@/features/community/presentation/post-category-more";
 import { PostDetailView } from "@/features/community/presentation/post-detail-view";
 import { CompetitionAlertProvider } from "@/features/competition/presentation/competition-alert-provider";
 import { PostCompetitionCard } from "@/features/competition/presentation/post-competition-card";
@@ -24,13 +27,21 @@ export async function PostDetailScreen({
   postId,
   sort,
   sampleBelts = false,
+  focusCommentId = null,
 }: {
   postId: number;
   sort: CommentSort;
   /** (dev 전용) 작성자에 예시 띠를 얹는다 — belt-avatar-sample. */
   sampleBelts?: boolean;
+  /** 알림 · 푸시로 열 때 맨 위에 먼저 보여 줄 댓글 번호(#596). */
+  focusCommentId?: number | null;
 }) {
-  const result = await getPostDetailPageData(postId, sort, sampleBelts);
+  const result = await getPostDetailPageData(
+    postId,
+    sort,
+    sampleBelts,
+    focusCommentId,
+  );
 
   if (!result.ok) {
     // 만료 토큰 → 클라이언트가 네이티브 갱신 후 이 화면을 재실행(router.refresh)해 인증 상태로 복구.
@@ -55,13 +66,15 @@ export async function PostDetailScreen({
     );
   }
 
-  const { post, comments, competitionAlertSettings } = result.data;
+  const { post, comments, focusedComment, competitionAlertSettings } =
+    result.data;
   const competition = post.competition;
   const view = (
     <>
       <PostDetailView
         post={post}
         comments={comments}
+        focusedComment={focusedComment}
         sort={sort}
         attachment={
           competition ? (
@@ -70,6 +83,16 @@ export async function PostDetailScreen({
               from="post_competition_card"
             />
           ) : undefined
+        }
+        footerSection={
+          // 같은 카테고리의 다른 글(#594) — 본문 · 댓글을 기다리게 하지 않게 따로 흘려보낸다.
+          <Suspense fallback={null}>
+            <PostCategoryMore
+              postId={post.id}
+              categoryId={post.categoryId}
+              categoryName={post.categoryName}
+            />
+          </Suspense>
         }
       />
       {/* 글이 그려지면 앱이 사진을 다 받기 전에 로딩 덮개를 걷는다(jiu-jitsu-ios#261).

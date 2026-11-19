@@ -1,5 +1,6 @@
 import type {
   CommentList,
+  CommentThread,
   ReplyPage,
 } from "@/features/community/domain/comment";
 import type {
@@ -94,6 +95,15 @@ type CommentSliceDto = {
   content?: CommentDto[] | null;
   /** 마지막 페이지 여부. 다음 페이지 존재 판정의 정본. */
   last?: boolean;
+};
+
+/** GET /community/comments/{id} 성공 응답 DTO(봉투 data 안의 형태, backend#271). */
+type CommentThreadDto = {
+  contentId: number;
+  /** 최상위 댓글 — 목록 항목과 같은 모양(대댓글 미리보기 3개 · childCount). */
+  comment: CommentDto;
+  /** 연 것이 대댓글이면 그 대댓글, 댓글이면 null. */
+  reply: CommentDto | null;
 };
 
 /** GET /board/{id} 성공 응답 DTO(봉투 data 안의 형태). */
@@ -365,6 +375,25 @@ export class ExternalPostRepository implements PostRepository {
         : content.length >= COMMENT_PAGE_SIZE;
 
     return { items: content.map(toComment), hasNext };
+  }
+
+  async getCommentThread(
+    commentId: number,
+    sort: CommentSort,
+  ): Promise<CommentThread> {
+    // GET /community/comments/{id}?sortType= → 봉투 data는 { contentId, comment, reply }.
+    // sortType은 원 댓글에 딸린 대댓글 미리보기 정렬이다 — 목록과 같게 보낸다.
+    const response = await this.httpClient.get<Envelope<CommentThreadDto>>({
+      path: `${COMMENT_ENDPOINT_PATH}/${commentId}`,
+      query: { sortType: COMMENT_SORT_TYPE[sort] },
+    });
+
+    const { contentId, comment, reply } = response.data;
+    return {
+      contentId,
+      comment: toComment(comment),
+      reply: reply ? toComment(reply) : null,
+    };
   }
 
   async getReplies(

@@ -2,6 +2,7 @@ import type { BlockedMember } from "@/features/community/domain/blocked-member";
 import type {
   Comment,
   CommentList,
+  CommentThread,
   ReplyPage,
 } from "@/features/community/domain/comment";
 import type {
@@ -56,6 +57,15 @@ export interface PostRepository {
     sort: CommentSort,
     page: number,
   ): Promise<CommentList>;
+  /**
+   * 알림에서 연 댓글 하나(GET /community/comments/{id}, backend#271). 대댓글이면 원 댓글과 함께 온다.
+   * sort는 원 댓글에 딸린 대댓글 미리보기 정렬 — 댓글 목록과 같은 값을 넘긴다.
+   * 관리자가 숨겼거나 없는 댓글은 404(C0004 COMMENT_NOT_FOUND)로 실패한다.
+   */
+  getCommentThread(
+    commentId: number,
+    sort: CommentSort,
+  ): Promise<CommentThread>;
   /**
    * 부모 댓글의 대댓글 추가 조회(GET /community/comments/{id}/replies).
    *

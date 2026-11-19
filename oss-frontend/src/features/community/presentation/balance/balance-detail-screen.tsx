@@ -20,11 +20,18 @@ import { NativePageReady } from "@/shared/lib/native-bridge";
 export async function BalanceDetailScreen({
   contentId,
   sort,
+  focusCommentId = null,
 }: {
   contentId: number;
   sort: CommentSort;
+  /** 알림 · 푸시로 열 때 맨 위에 먼저 보여 줄 댓글 번호(#596). */
+  focusCommentId?: number | null;
 }) {
-  const result = await getBalanceDetailPageData(contentId, sort);
+  const result = await getBalanceDetailPageData(
+    contentId,
+    sort,
+    focusCommentId,
+  );
 
   if (!result.ok) {
     // 만료 토큰 → 클라이언트가 네이티브 갱신 후 이 화면을 재실행(router.refresh)해 복구.
@@ -49,11 +56,16 @@ export async function BalanceDetailScreen({
     );
   }
 
-  const { game, comments } = result.data;
+  const { game, comments, focusedComment } = result.data;
 
   return (
     <KeepDetailOnRefreshFailure contentId={contentId} ok>
-      <BalanceDetailView game={game} comments={comments} sort={sort} />
+      <BalanceDetailView
+        game={game}
+        comments={comments}
+        focusedComment={focusedComment}
+        sort={sort}
+      />
       {/* 다 그려지면 앱이 그림·글꼴을 다 받기 전에 로딩 덮개를 걷는다(jiu-jitsu-ios#261).
           게시글 상세와 같이 만료 복구·오류 화면에서는 보내지 않는다 — 그때는 load 때 걷힌다. */}
       <NativePageReady />

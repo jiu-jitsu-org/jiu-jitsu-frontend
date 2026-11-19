@@ -33,7 +33,7 @@ export type InboxNotificationTarget =
  * 알림 대상 중 무엇이 삭제됐는지 — 셀을 탭했을 때 이동하지 않고 띄울 안내 문구를 고르는 기준이다.
  *
  * 게시글이 지워지면 그 아래 댓글 알림도 "post"다(열 화면 자체가 없다).
- * 댓글 · 대댓글만 지워진 경우는 서버가 알려줘야만 구분된다 — 알림 응답에는 댓글 id가 없다.
+ * 댓글 · 대댓글만 지워진 경우는 서버가 알려줘야만 구분된다(deletedStatus).
  * "competition"은 대회가 지워졌거나 미공개로 바뀐 경우다(#422).
  */
 export type InboxGoneKind = "post" | "comment" | "reply" | "competition";
@@ -54,6 +54,11 @@ export type InboxNotification = {
    */
   body: string;
   target: InboxNotificationTarget | null;
+  /**
+   * 알림의 댓글 번호(backend#271) — 내 글에 댓글(대댓글일 수도) · 내 댓글에 답글 · 댓글 좋아요만, 그 밖엔 null.
+   * 상세를 열 때 넘겨 그 댓글을 맨 위에 먼저 보여 준다(#596).
+   */
+  commentId: number | null;
   /**
    * 대상이 삭제됐으면 그 종류, 아니면 null.
    *
