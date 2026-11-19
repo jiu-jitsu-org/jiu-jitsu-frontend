@@ -35,6 +35,8 @@ export type ReportReason =
   | "ADULT"
   | "HARASSMENT"
   | "INCITEMENT"
+  | "RIGHTS_VIOLATION"
+  | "ILLEGAL_FILMING"
   | "OTHER";
 
 /** 신고 사유 선택 항목. value는 API로 보낼 코드, label은 사용자에게 보일 문구. */
@@ -56,5 +58,8 @@ export const REPORT_REASONS: ReportReasonOption[] = [
   { value: "ADULT", label: "음란 또는 부적절한 콘텐츠" },
   { value: "INCITEMENT", label: "분쟁유도" },
   { value: "HARASSMENT", label: "혐오 및 괴롭힘" },
+  // 급히 처리해야 하는 신고(불법촬영물은 알게 되면 바로 삭제 · 차단할 의무)를 '기타'와 나눠 받는다(#514)
+  { value: "RIGHTS_VIOLATION", label: "개인정보 노출 및 권리 침해" },
+  { value: "ILLEGAL_FILMING", label: "불법촬영물" },
   { value: "OTHER", label: "기타", allowsCustomText: true },
 ];
