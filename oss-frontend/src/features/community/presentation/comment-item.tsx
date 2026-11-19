@@ -7,8 +7,8 @@ import { BeltAvatar } from "@/features/community/presentation/belt-avatar";
 import { CoachBadge } from "@/features/community/presentation/coach-badge";
 import { OperatorBadge } from "@/features/community/presentation/operator-badge";
 import { CommentLikeButton } from "@/features/community/presentation/comment-like-button";
-import { splitMentions } from "@/features/community/presentation/comment-mention";
 import { CommentReplyButton } from "@/features/community/presentation/comment-reply-button";
+import { LinkedText } from "@/features/community/presentation/linked-text";
 import { CommentMenu } from "@/features/community/presentation/comment-menu";
 import { CommentPlaceholder } from "@/features/community/presentation/comment-placeholder";
 import { CommentReplies } from "@/features/community/presentation/comment-replies";
@@ -178,16 +178,9 @@ export function CommentItem({
             프로필 행이 24일 때(간격 7)처럼 닉네임과 본문이 붙어 읽힌다(#299).
             Body S(14/21), feed-card/body/body-text */}
         <p className="mt-0.5 whitespace-pre-wrap wrap-anywhere text-body-s text-feed-card-body-text">
-          {/* `@닉네임` 태그(#451)는 같은 글자 크기에 파란 글씨로만 구분한다 — 면·밑줄 없이. */}
-          {splitMentions(comment.body).map((part, index) =>
-            part.mention ? (
-              <span key={index} className="text-interactive-primary">
-                {part.text}
-              </span>
-            ) : (
-              part.text
-            ),
-          )}
+          {/* `@닉네임` 태그(#451)는 같은 글자 크기에 파란 글씨로만 구분한다 — 면·밑줄 없이.
+              속의 주소(#593)는 눌러 열 수 있게 옅은 밑줄을 긋는다. */}
+          <LinkedText text={comment.body} mentions />
         </p>
 
         {/* 본문 바로 하단 반응 행(본문과 간격 0): 답글 · 좋아요(+카운트) — 왼쪽, ⋮ — 오른쪽 끝.

@@ -1,3 +1,4 @@
+import { LinkedText } from "@/features/community/presentation/linked-text";
 import { PostMetaRow } from "@/features/community/presentation/post-meta-row";
 
 /**
@@ -5,7 +6,7 @@ import { PostMetaRow } from "@/features/community/presentation/post-meta-row";
  *
  * - 제목: Body M(Pretendard Medium 16), 멀티라인 허용(클램프/말줄임 없음 → 줄 수 무제한).
  * - 날짜: 제목 바로 아래, Label M(12). 공통 상대 시간(탭하면 정확 시각). 카테고리(앞)·수정됨·조회수도 같은 줄.
- * - 본문: 원문 줄바꿈 보존, 클램프 없음.
+ * - 본문: 원문 줄바꿈 보존, 클램프 없음. 속의 주소는 눌러 열 수 있다(#593).
  *
  * FeedCardBody(line-clamp + 더보기 클라이언트 훅)와 달리 상세는 전문을 펼쳐 보여주므로
  * 상세 전용 서버 컴포넌트로 분리한다.
@@ -47,7 +48,7 @@ export function PostDetailBody({
       {/* 본문: Body S(14/21), 메타 아래 12, 줄 수 제한 없음(클램프 없음). 내용 없는 글(#589)은 줄째 뺀다. */}
       {body.trim() ? (
         <p className="mt-3 whitespace-pre-wrap wrap-anywhere text-body-s text-feed-card-body-text">
-          {body}
+          <LinkedText text={body} />
         </p>
       ) : null}
     </div>
