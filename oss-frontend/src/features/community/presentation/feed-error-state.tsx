@@ -15,8 +15,17 @@ import { Button } from "@/shared/ui/button";
  *
  * 앱바가 있는 화면(내 커뮤니티 활동)은 뷰포트 전체 높이를 쓰면 앱바만큼 스크롤이 생겨
  * className으로 높이를 줄인다.
+ *
+ * 홈 카테고리 탭(#590)처럼 클라이언트가 BFF로 읽은 목록은 onRetry로 그 목록만 다시 읽는다.
  */
-export function FeedErrorState({ className }: { className?: string }) {
+export function FeedErrorState({
+  className,
+  onRetry,
+}: {
+  className?: string;
+  /** 다시 시도. 없으면 라우트를 다시 렌더한다(router.refresh). */
+  onRetry?: () => void;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -36,7 +45,9 @@ export function FeedErrorState({ className }: { className?: string }) {
         variant="neutral"
         size="m"
         disabled={pending}
-        onClick={() => startTransition(() => router.refresh())}
+        onClick={() =>
+          onRetry ? onRetry() : startTransition(() => router.refresh())
+        }
       >
         재시도
       </Button>

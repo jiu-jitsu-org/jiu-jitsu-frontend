@@ -267,8 +267,8 @@ export function feedPageUrl(listUrl: string, page: number): string {
   return `${listUrl}${separator}page=${page}&size=${FEED_PAGE_SIZE}`;
 }
 
-/** 한 페이지를 읽는다. 실패하면 null — 호출부가 옛 값을 유지한다. */
-async function fetchFeedPage(
+/** 한 페이지를 읽는다. 실패하면 null — 호출부가 옛 값을 유지한다. 홈 카테고리 탭(#590)이 첫 페이지를 읽을 때도 쓴다. */
+export async function fetchFeedPage(
   listUrl: string,
   page: number,
 ): Promise<PostList | null> {

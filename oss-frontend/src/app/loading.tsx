@@ -1,6 +1,8 @@
-import type { CSSProperties } from "react";
-
 import { BalanceBoardSkeleton } from "@/features/community/presentation/balance/balance-board-skeleton";
+import {
+  FeedCardsSkeleton,
+  pulseDelay,
+} from "@/features/community/presentation/feed/feed-cards-skeleton";
 import { HomeOpenInAppBanner } from "@/features/community/presentation/feed/home-open-in-app-banner";
 
 /**
@@ -20,34 +22,29 @@ export default function Loading() {
   return (
     <main className="min-h-screen bg-surface-container" aria-hidden>
       <HomeOpenInAppBanner />
+      <CategoryTabsSkeleton />
       <BalanceGameSkeleton />
-      <div className="flex flex-col gap-4 pt-6">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <div
-            key={index}
-            style={pulseDelay(index + 1)}
-            className="flex flex-col gap-3 px-4 py-4 motion-safe:animate-pulse"
-          >
-            <div className="flex items-center gap-2">
-              <div className="size-6 rounded-full bg-feed-card-header-avatar-bg" />
-              <div className="h-4 w-24 rounded bg-feed-card-header-avatar-bg" />
-            </div>
-            <div className="h-4 w-2/3 rounded bg-feed-card-header-avatar-bg" />
-            <div className="h-3 w-full rounded bg-feed-card-header-avatar-bg" />
-            <div className="h-3 w-5/6 rounded bg-feed-card-header-avatar-bg" />
-          </div>
-        ))}
-      </div>
+      <FeedCardsSkeleton firstDelay={1} />
     </main>
   );
-}
-
-/** 위에서부터 차례로 깜빡이도록 카드 순서만큼 늦춘다. */
-function pulseDelay(order: number): CSSProperties {
-  return { animationDelay: `${order * 150}ms` };
 }
 
 /** 오늘의 밸런스 게임 자리 — 홈 맨 위 스코어보드 판과 같은 먹색 뼈대(#305). */
 function BalanceGameSkeleton() {
   return <BalanceBoardSkeleton variant="hero" style={pulseDelay(0)} />;
+}
+
+/** 카테고리 탭 줄 자리(#590) — 탭 줄과 같은 높이 · 여백이라 목록이 오면 아래가 밀리지 않는다. */
+function CategoryTabsSkeleton() {
+  return (
+    <div className="flex gap-2 overflow-hidden px-4 py-3">
+      {[48, 96, 48, 88, 80].map((width, index) => (
+        <div
+          key={index}
+          style={{ width }}
+          className="h-8 shrink-0 rounded-full bg-feed-card-header-avatar-bg motion-safe:animate-pulse"
+        />
+      ))}
+    </div>
+  );
 }

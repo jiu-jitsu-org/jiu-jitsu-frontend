@@ -206,8 +206,9 @@ export function validatePostBody(fields: PostBodyFields) {
   if (!Number.isInteger(fields.categoryId) || fields.categoryId <= 0) {
     return jsonError("유효한 카테고리를 선택해 주세요.", 400);
   }
-  if (!fields.title || !fields.body) {
-    return jsonError("제목과 내용을 모두 입력해 주세요.", 400);
+  // 내용은 선택이다(#589, backend#264) — 비면 서버가 ""로 저장하고, 수정에서는 내용을 지운다.
+  if (!fields.title) {
+    return jsonError("제목을 입력해 주세요.", 400);
   }
   return null;
 }

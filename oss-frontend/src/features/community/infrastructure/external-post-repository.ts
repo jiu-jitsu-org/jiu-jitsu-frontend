@@ -102,7 +102,7 @@ type BoardDetailDto = {
   categoryId: number;
   categoryName: string;
   title: string;
-  body: string;
+  body: string | null;
   createdAt: string;
   updatedAt?: string | null;
   isUpdated: boolean;
@@ -152,7 +152,7 @@ type BoardSummaryDto = {
   categoryId: number;
   categoryName: string;
   title: string;
-  body: string;
+  body: string | null;
   createdAt: string;
   updatedAt?: string | null;
   /** 응답에서 누락되는 경우가 있어 optional — 매핑 시 false로 정규화. */
@@ -205,7 +205,8 @@ function toPostSummary(dto: BoardSummaryDto): PostSummary {
       isCoach: toIsCoach(dto.author),
     },
     title: dto.title,
-    body: dto.body,
+    // 내용 없는 글은 ""로 온다(backend#264). 옛 응답이 null을 줘도 화면이 같은 빈 값으로 다루게 맞춘다.
+    body: dto.body ?? "",
     images: dto.imageList ?? [],
     tags: dto.tags ?? [],
     counts: {
@@ -250,7 +251,8 @@ function toPostDetail(dto: BoardDetailDto): PostDetail {
       isCoach: toIsCoach(dto.author),
     },
     title: dto.title,
-    body: dto.body,
+    // 내용 없는 글은 ""로 온다(backend#264). 옛 응답이 null을 줘도 화면이 같은 빈 값으로 다루게 맞춘다.
+    body: dto.body ?? "",
     images: dto.imageList ?? [],
     tags: dto.tags ?? [],
     counts: {
@@ -278,9 +280,16 @@ export class ExternalPostRepository implements PostRepository {
   constructor(private readonly httpClient: HttpClient) {}
 
   async getCategories(): Promise<PostCategory[]> {
-    // GET /board/category — Swagger "카테고리 목록 조회(임시)". data: [{ id, categoryName }].
+    // GET /board/category — data: [{ id, categoryName, description, weeklyTopic }], 보이는 순서대로(backend#263 · #267).
     const response = await this.httpClient.get<
-      Envelope<{ id: number; categoryName: string }[]>
+      Envelope<
+        {
+          id: number;
+          categoryName: string;
+          description?: string | null;
+          weeklyTopic?: string | null;
+        }[]
+      >
     >({
       path: `${BOARD_ENDPOINT_PATH}/category`,
     });
@@ -288,6 +297,8 @@ export class ExternalPostRepository implements PostRepository {
     return (response.data ?? []).map((item) => ({
       id: item.id,
       name: item.categoryName,
+      description: item.description?.trim() ?? "",
+      weeklyTopic: item.weeklyTopic?.trim() || null,
     }));
   }
 
@@ -300,6 +311,7 @@ export class ExternalPostRepository implements PostRepository {
         boardListType: query.boardListType,
         categoryId: query.categoryId,
         searchKeyword: query.searchKeyword,
+        competitionId: query.competitionId,
         page: query.page,
         size: query.size,
         sort: query.sort,

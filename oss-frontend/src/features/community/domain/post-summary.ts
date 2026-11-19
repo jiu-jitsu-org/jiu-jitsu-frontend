@@ -54,10 +54,11 @@ export type PostList = {
 };
 
 /**
- * 목록 종류. 명세상 "FEED"만 확인됨 — 종류가 늘면 union에 추가한다.
- * (예: 인기글/공지 등)
+ * 목록 종류.
+ * - FEED: 전체 피드(대회 조건 competitionId와 함께 쓰면 그 대회 글만, backend#269)
+ * - CATEGORY: 한 카테고리 글만(categoryId 필수, 홈 카테고리 탭 #590)
  */
-export type BoardListType = "FEED";
+export type BoardListType = "FEED" | "CATEGORY";
 
 /**
  * GET /board 요청 파라미터.
@@ -70,6 +71,8 @@ export type BoardListQuery = {
   boardListType: BoardListType;
   categoryId?: number;
   searchKeyword?: string;
+  /** 이 대회를 고른 글만(backend#269). 없거나 미공개 대회면 서버가 404 — 호출부가 먼저 확인한다. */
+  competitionId?: number;
   /** 0-base 페이지 번호. */
   page: number;
   size: number;

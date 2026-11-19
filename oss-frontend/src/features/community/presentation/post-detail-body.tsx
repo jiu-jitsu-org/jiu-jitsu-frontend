@@ -44,10 +44,12 @@ export function PostDetailBody({
         edited={edited}
         className="mt-1.5"
       />
-      {/* 본문: Body S(14/21), 메타 아래 12, 줄 수 제한 없음(클램프 없음) */}
-      <p className="mt-3 whitespace-pre-wrap wrap-anywhere text-body-s text-feed-card-body-text">
-        {body}
-      </p>
+      {/* 본문: Body S(14/21), 메타 아래 12, 줄 수 제한 없음(클램프 없음). 내용 없는 글(#589)은 줄째 뺀다. */}
+      {body.trim() ? (
+        <p className="mt-3 whitespace-pre-wrap wrap-anywhere text-body-s text-feed-card-body-text">
+          {body}
+        </p>
+      ) : null}
     </div>
   );
 }

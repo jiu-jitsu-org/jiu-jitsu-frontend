@@ -3,18 +3,49 @@ import type { PostCategory } from "@/features/community/domain/post";
 import { readSessionToken } from "@/shared/lib/auth";
 
 /**
- * 카테고리 API가 실패했을 때의 폴백 — 서버 응답(2026-09-16 Swagger)과 같은 값.
+ * 카테고리 API가 실패했을 때의 폴백 — 서버 응답(backend#263, 2026-11 개편 6개)과 같은 순서 · 이름 · 설명.
  *
- * WHY 폴백이 있는가: 카테고리 조회가 잠깐 죽었다고 글쓰기 자체가 막히면 손해가 더 크다. id는 서버 고정
+ * WHY 폴백이 있는가: 카테고리 조회가 잠깐 죽었다고 글쓰기 · 홈 카테고리 탭이 막히면 손해가 더 크다. id는 서버 고정
  * 분류라 폴백으로 등록해도 POST /board가 받아들인다. 카테고리가 바뀌면 서버가 정본이고 이 목록은
- * 장애 시에만 보인다.
+ * 장애 시에만 보인다. 이번 주 써 볼 주제는 관리자가 바꾸는 값이라 폴백에 두지 않는다.
  */
 const FALLBACK_POST_CATEGORIES: PostCategory[] = [
-  { id: 1, name: "매트 위 수다" },
-  { id: 2, name: "훈련 & 기술" },
-  { id: 3, name: "도장" },
-  { id: 4, name: "장비" },
-  { id: 5, name: "대회" },
+  {
+    id: 3,
+    name: "도장 · 오픈매트",
+    description: "도장 고르기, 오픈매트, 승급 · 도장 생활",
+    weeklyTopic: null,
+  },
+  {
+    id: 5,
+    name: "대회",
+    description: "대회 준비, 대회 후기",
+    weeklyTopic: null,
+  },
+  {
+    id: 2,
+    name: "훈련 & 기술",
+    description: "기술 · 포지션, 기술 영상, 훈련 팁",
+    weeklyTopic: null,
+  },
+  {
+    id: 4,
+    name: "도복 · 장비",
+    description: "도복 사이즈, 보호대, 장비 후기",
+    weeklyTopic: null,
+  },
+  {
+    id: 6,
+    name: "몸관리 · 부상",
+    description: "부상 · 회복, 체력 · 체중 관리",
+    weeklyTopic: null,
+  },
+  {
+    id: 1,
+    name: "매트 위 수다",
+    description: "그 밖의 주짓수 이야기",
+    weeklyTopic: null,
+  },
 ];
 
 /**
@@ -59,7 +90,7 @@ function refreshCategories(
 }
 
 /**
- * 작성/수정 화면 Server Component용 카테고리 로드. 상세(get-post-detail-page-data)처럼 BFF를 거치지
+ * 작성/수정 · 홈 피드(카테고리 탭, #590) Server Component용 카테고리 로드. 상세(get-post-detail-page-data)처럼 BFF를 거치지
  * 않고 application을 직접 부른다. 비로그인도 조회 가능하지만 토큰이 있으면 그대로 붙인다.
  * 실패는 로그만 남기고 폴백 목록을 돌려준다 — 화면은 항상 칩을 그릴 수 있다.
  */

@@ -39,6 +39,8 @@ const ENTRY_FROMS = [
   "notification",
   "post_create",
   "balance_closed",
+  // 홈 카테고리 탭의 '이 주제로 쓰기'(#590) — 이번 주 써 볼 주제로 연 글쓰기.
+  "topic_suggestion",
   // 브라우저 뒤로 가기로 다시 보인 화면(#576 후속) — 처음 입구를 다시 쓰지 않고 입구 집계에서 뺀다.
   "back",
 ] as const;

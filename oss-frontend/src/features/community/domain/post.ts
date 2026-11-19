@@ -82,11 +82,33 @@ export type PostDetail = {
   competition?: Competition;
 };
 
-/** 게시글 카테고리 — GET /board/category 응답 항목(categoryId로 그대로 전송). */
+/**
+ * 게시글 카테고리 — GET /board/category 응답 항목(categoryId로 그대로 전송).
+ * 서버가 보이는 순서대로 내려준다(backend#263) — 화면은 받은 순서 그대로 그린다.
+ */
 export type PostCategory = {
   id: number;
   name: string;
+  /** 설명 한 줄(backend#263). 글쓰기에서 고른 칩 아래 · 홈 카테고리 탭 위에 보인다. 없으면 "". */
+  description: string;
+  /** 이번 주 써 볼 주제(backend#267). 관리자가 정하지 않았으면 null — 자리째 없다. */
+  weeklyTopic: string | null;
 };
+
+/** '대회' 카테고리 이름. id보다 이름으로 찾는다 — 카테고리 API가 실패한 폴백 목록에서도 같은 이름이다. */
+export const COMPETITION_CATEGORY_NAME = "대회";
+
+/** '대회' 카테고리를 찾는다. 없으면 undefined. */
+export function findCompetitionCategory(
+  categories: PostCategory[],
+): PostCategory | undefined {
+  return categories.find(
+    (category) => category.name === COMPETITION_CATEGORY_NAME,
+  );
+}
+
+/** 제목 글자 수 상한(정책 2~45). 글쓰기 입력 제한과 미리 채운 제목(#588)이 같은 값을 쓴다. */
+export const POST_TITLE_MAX_LENGTH = 45;
 
 /** 게시글 생성 요청 — POST /board body. */
 export type CreatePostInput = {

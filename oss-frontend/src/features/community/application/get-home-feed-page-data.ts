@@ -1,0 +1,97 @@
+import {
+  getBoardListPageData,
+  type BoardListPageDataResult,
+} from "@/features/community/application/get-board-list-page-data";
+import { getPostCategoriesOrFallback } from "@/features/community/application/get-post-write-page-data";
+import {
+  ALL_FEED,
+  boardListQueryOf,
+  parseFeedFilter,
+  type FeedFilter,
+} from "@/features/community/domain/feed-filter";
+import type { PostCategory } from "@/features/community/domain/post";
+import { createGetCompetitionDetailUseCase } from "@/features/competition/application/competition-use-case-factory";
+import { isCompetitionEnabled } from "@/features/competition/application/is-competition-enabled";
+import { readSessionToken } from "@/shared/lib/auth";
+
+/** 이 대회 글만 보는 중(#598)에 위에 보여 줄 대회. */
+export type FeedCompetition = { id: number; name: string };
+
+export type HomeFeedPageData = {
+  /** 카테고리 탭(서버 순서, 실패면 폴백 6개). */
+  categories: PostCategory[];
+  /** 실제로 연 목록 — 못 여는 조건(없는 카테고리 · 미공개 대회)은 전체로 바뀌어 있다. */
+  filter: FeedFilter;
+  /** filter.competitionId의 대회. 없으면 null. */
+  competition: FeedCompetition | null;
+  /** 첫 페이지. */
+  result: BoardListPageDataResult;
+};
+
+/**
+ * 홈 피드 Server Component용 페이지 쿼리(#590 · #598) — 카테고리 탭 · 고른 목록 첫 페이지 · 이 대회 이름.
+ *
+ * 세 조회를 나란히 한다(순서대로 부르면 첫 화면이 그만큼 늦다). 주소의 대회가 없거나 미공개면 서버가 목록을
+ * 404로 돌려주므로(backend#269) 대회 조회 결과로 먼저 가려 전체 피드로 다시 읽는다 — "공개 안 된 대회 번호면 일반 피드".
+ * 대회 화면이 꺼진 배포는 대회 조건을 버린다.
+ *
+ * 탭을 바꾼 뒤 목록은 클라이언트가 BFF(GET /api/community/board)로 읽는다 — 이 쿼리는 첫 화면만.
+ */
+export async function getHomeFeedPageData(
+  raw: {
+    categoryId?: string | string[];
+    competitionId?: string | string[];
+  },
+  sampleBelts = false,
+): Promise<HomeFeedPageData> {
+  const categories = await getPostCategoriesOrFallback();
+  const requested = parseFeedFilter(
+    {
+      categoryId: raw.categoryId,
+      competitionId: isCompetitionEnabled() ? raw.competitionId : undefined,
+    },
+    categories,
+  );
+
+  const [result, competition] = await Promise.all([
+    getBoardListPageData(boardListQueryOf(requested), sampleBelts),
+    requested.competitionId === null
+      ? null
+      : loadFeedCompetition(requested.competitionId),
+  ]);
+
+  if (requested.competitionId !== null && competition === null) {
+    return {
+      categories,
+      filter: ALL_FEED,
+      competition: null,
+      result: await getBoardListPageData(
+        boardListQueryOf(ALL_FEED),
+        sampleBelts,
+      ),
+    };
+  }
+
+  return { categories, filter: requested, competition, result };
+}
+
+/** 대회 이름을 읽는다. 없거나 미공개 · 조회 실패면 null — 호출부가 전체 피드로 연다. */
+async function loadFeedCompetition(
+  competitionId: number,
+): Promise<FeedCompetition | null> {
+  try {
+    const detail = await createGetCompetitionDetailUseCase(
+      await readSessionToken(),
+    ).execute(competitionId);
+    return detail
+      ? { id: detail.competition.id, name: detail.competition.name }
+      : null;
+  } catch (error) {
+    console.error(
+      "[community:home-feed] 대회 조회 실패 — 전체 피드로 연다:",
+      competitionId,
+      error,
+    );
+    return null;
+  }
+}

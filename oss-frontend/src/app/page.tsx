@@ -1,28 +1,21 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import type { ReactNode } from "react";
-
 import { readBeltAvatarSample } from "@/features/community/application/belt-avatar-sample";
 import { getBalanceGamePageData } from "@/features/community/application/get-balance-game-page-data";
-import { getBoardListPageData } from "@/features/community/application/get-board-list-page-data";
-import { SessionExpiredRecovery } from "@/features/auth/presentation/session-expired-recovery";
+import { getHomeFeedPageData } from "@/features/community/application/get-home-feed-page-data";
 import { SessionHintProvider } from "@/features/auth/presentation/session-hint";
 import { AppClientHint } from "@/shared/lib/app-client/app-client-hint";
-import type { BalanceGame } from "@/features/community/domain/balance-game";
-import { DEFAULT_BOARD_LIST_QUERY } from "@/features/community/domain/post-summary";
 import { BalanceGameSection } from "@/features/community/presentation/balance/balance-game-section";
 import {
   BALANCE_INTRO_COOKIE,
   readBalanceIntroForced,
   shouldPlayBalanceIntro,
 } from "@/features/community/presentation/balance/balance-intro";
-import { CommunityFeedList } from "@/features/community/presentation/community-feed-list";
-import { FeedEmptyState } from "@/features/community/presentation/feed-empty-state";
-import { FeedErrorState } from "@/features/community/presentation/feed-error-state";
 import { FeedScrollTopOnReload } from "@/features/community/presentation/feed/feed-scroll-top-on-reload";
 import { HomeOpenInAppBanner } from "@/features/community/presentation/feed/home-open-in-app-banner";
+import { feedFilterKey } from "@/features/community/domain/feed-filter";
+import { HomeFeed } from "@/features/community/presentation/home-feed";
 import { NativePageReady } from "@/shared/lib/native-bridge";
-import { PostWriteFab } from "@/features/community/presentation/post-write-fab";
 import { isCompetitionEnabled } from "@/features/competition/application/is-competition-enabled";
 import { loadCompetitionAlertSettings } from "@/features/competition/application/load-competition-alert-settings";
 import { CompetitionAlertProvider } from "@/features/competition/presentation/competition-alert-provider";
@@ -36,7 +29,6 @@ import {
 } from "@/shared/lib/site-metadata";
 import { readServerNow } from "@/shared/lib/time";
 import { ServerClockProvider } from "@/shared/ui/server-clock";
-import { Spinner } from "@/shared/ui/spinner";
 
 /**
  * 홈 공유 미리보기(#518) — 루트 기본값에 기본 카드 이미지를 더한다.
@@ -74,6 +66,10 @@ export async function generateMetadata(): Promise<Metadata> {
  * 로딩은 같은 라우트의 loading.tsx, 카드 상호작용은 client 컴포넌트가 담당한다.
  * 개발용 진입 허브/playground는 `src/app/_backup/`에 보관돼 있다.
  *
+ * 위 카테고리 탭(#590): `?categoryId=`면 그 카테고리 탭, `?competitionId=`면 '대회' 탭에서 그 대회 글만(#598 —
+ * 대회 이야기 '모두 보기' · 앱이 넘긴 대회 번호, jiu-jitsu-ios#437). 없거나 못 여는 값이면 전체.
+ * 탭을 바꾼 뒤 목록은 HomeFeed가 클라이언트에서 읽는다.
+ *
  * `?belt=sample`은 `next dev` 전용 띠 아바타 예시다(production에선 무시 — belt-avatar-sample).
  * `?intro=1`은 `next dev` 전용으로, 이미 본 게임이어도 밸런스 게임 인트로를 다시 돌린다(#305 — balance-intro).
  */
@@ -83,14 +79,19 @@ export default async function Home({
   searchParams: Promise<{
     belt?: string | string[];
     intro?: string | string[];
+    categoryId?: string | string[];
+    competitionId?: string | string[];
   }>;
 }) {
   const params = await searchParams;
   const beltSample = readBeltAvatarSample(params.belt);
   const balanceIntroForced = readBalanceIntroForced(params.intro);
-  const [result, balanceGame, sessionToken, cookieStore, alertSettings] =
+  const [feed, balanceGame, sessionToken, cookieStore, alertSettings] =
     await Promise.all([
-      getBoardListPageData(DEFAULT_BOARD_LIST_QUERY, beltSample),
+      getHomeFeedPageData(
+        { categoryId: params.categoryId, competitionId: params.competitionId },
+        beltSample,
+      ),
       getBalanceGamePageData(),
       readSessionToken(),
       cookies(),
@@ -123,63 +124,28 @@ export default async function Home({
               <HomeOpenInAppBanner />
               {/* 피드가 그려지면 앱이 사진을 다 받기 전에 로딩 덮개를 걷는다(jiu-jitsu-ios#261). */}
               <NativePageReady />
-              {renderFeed(result, balanceGame, balanceIntro)}
-
-              {/* 게시글 작성 진입 FAB — 네이티브면 OPEN_SUBVIEW로 풀스크린 서브뷰, 웹 단독이면 라우터 이동. */}
-              <PostWriteFab />
+              {/* 카테고리 탭 · 목록 · 작성 FAB. 주소의 탭이 바뀌어 서버가 다시 그리면 처음부터 다시 연다. */}
+              <HomeFeed
+                key={feedFilterKey(feed.filter)}
+                categories={feed.categories}
+                initialFilter={feed.filter}
+                initialCompetition={feed.competition}
+                initialResult={feed.result}
+                // 밸런스 카드는 피드가 정상일 때만 얹는다 — 에러·복구 화면 위에 얹으면 "무엇이 실패했는지"가
+                // 흐려진다. 진행 중인 판이 없거나 조회에 실패했으면(null) 아무것도 그리지 않는다.
+                balance={
+                  feed.result.ok && balanceGame ? (
+                    <BalanceGameSection
+                      initialGame={balanceGame}
+                      intro={balanceIntro}
+                    />
+                  ) : null
+                }
+              />
             </main>
           </CompetitionAlertProvider>
         </ServerClockProvider>
       </AppClientHint>
     </SessionHintProvider>
-  );
-}
-
-/**
- * 조회 결과를 화면 상태로 매핑한다.
- * - session-expired: 서버는 토큰 갱신 불가 → 클라이언트가 네이티브 갱신 후 SSR을 재실행(복구).
- *   익명으로 격하하지 않아 네이티브 로그인 세션과 어긋나지 않는다.
- * - error: 그 외 조회 실패 → 재시도 화면.
- */
-function renderFeed(
-  result: Awaited<ReturnType<typeof getBoardListPageData>>,
-  balanceGame: BalanceGame | null,
-  balanceIntro: boolean,
-): ReactNode {
-  if (!result.ok) {
-    if (result.reason === "session-expired") {
-      return <SessionExpiredRecovery loading={<FeedLoading />} />;
-    }
-    return <FeedErrorState />;
-  }
-
-  // 밸런스 카드는 피드가 정상일 때만 얹는다 — 에러·복구 화면 위에 얹으면 "무엇이 실패했는지"가
-  // 흐려진다. 진행 중인 판이 없거나 조회에 실패했으면(null) 아무것도 그리지 않는다.
-  const balance = balanceGame ? (
-    <BalanceGameSection initialGame={balanceGame} intro={balanceIntro} />
-  ) : null;
-
-  return (
-    <>
-      {balance}
-      {result.data.list.items.length === 0 ? (
-        <FeedEmptyState />
-      ) : (
-        <CommunityFeedList
-          posts={result.data.list.items}
-          page={result.data.list.page}
-          isLast={result.data.list.isLast}
-        />
-      )}
-    </>
-  );
-}
-
-/** 피드 복구(세션 갱신) 중 표시. */
-function FeedLoading() {
-  return (
-    <div className="flex min-h-[60vh] items-center justify-center">
-      <Spinner />
-    </div>
   );
 }
