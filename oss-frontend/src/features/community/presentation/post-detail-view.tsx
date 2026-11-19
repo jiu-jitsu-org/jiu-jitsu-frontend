@@ -35,6 +35,7 @@ export function PostDetailView({
   focusedComment = null,
   sort,
   attachment,
+  footerSection,
 }: {
   post: PostDetail;
   comments: CommentList;
@@ -43,6 +44,8 @@ export function PostDetailView({
   sort: CommentSort;
   /** 본문(이미지) 아래·태그 위에 붙는 카드 — 글이 고른 대회(#380). */
   attachment?: ReactNode;
+  /** 맨 끝(댓글 다음)에 붙는 구역 — 같은 카테고리의 다른 글(#594). */
+  footerSection?: ReactNode;
 }) {
   return (
     <CommentReplyProvider serverComments={comments} sort={sort}>
@@ -133,6 +136,8 @@ export function PostDetailView({
               sort={sort}
               postAuthorId={post.author.userId}
             />
+
+            {footerSection}
           </div>
         </KeyboardAwareShell>
       </BeltPromptProvider>

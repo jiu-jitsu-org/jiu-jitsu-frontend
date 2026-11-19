@@ -54,9 +54,9 @@ export type PostList = {
 };
 
 /**
- * 목록 종류.
+ * 목록 종류. 종류가 늘면 union에 추가한다(예: 인기글/공지 등).
  * - FEED: 전체 피드(대회 조건 competitionId와 함께 쓰면 그 대회 글만, backend#269)
- * - CATEGORY: 한 카테고리 글만(categoryId 필수, 홈 카테고리 탭 #590)
+ * - CATEGORY: 한 카테고리 글만(categoryId 필수) — 홈 카테고리 탭(#590) · 글 상세 맨 끝 "○○의 다른 글"(#594)
  * - SEARCH: 글 검색(#591) — searchKeyword를 띄어쓰기로 나눈 모든 단어가 제목 · 본문 · 태그 어딘가에 든 글,
  *   최신순 · 모든 카테고리. 빈 검색어는 서버가 빈 페이지를 돌려주므로 웹은 아예 요청하지 않는다(post-search).
  */
