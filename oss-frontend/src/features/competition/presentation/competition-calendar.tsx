@@ -26,6 +26,7 @@ import { EmptyState } from "@/shared/ui/empty-state";
 import { ChevronDownIcon, ChevronLeftIcon, HeartIcon } from "@/shared/ui/icons";
 import { IconButton } from "@/shared/ui/icon-button";
 import { NEUTRAL_BUTTON_PRESS } from "@/shared/ui/press-styles";
+import { TAB_BAR_CLEARANCE } from "@/shared/ui/tab-bar-clearance";
 import { lastDayOf } from "@/features/competition/domain/competition-schedule";
 
 type YearMonth = { year: number; month: number };
@@ -205,7 +206,8 @@ export function CompetitionCalendar({
   return (
     // relative: 위에 깔린 띠 색 그라데이션(CompetitionTopTint, absolute·z 없음)보다 위에 그린다(#466).
     // 위치 지정이 없으면 CSS 그리는 순서상 그라데이션 아래로 깔려 달력 위쪽이 덮인다 — 목록의 달 묶음과 같은 방식.
-    <div className="relative pb-6">
+    // 끝 여백은 홈 피드와 같은 탭 바 여백 — 고른 날의 마지막 대회가 앱 탭 바에 가리지 않게(#487).
+    <div className={cn("relative", TAB_BAR_CLEARANCE)}>
       <section
         aria-label="대회 달력"
         className="mx-3 mt-1 rounded-20 bg-surface-field px-2 pt-2 pb-3"

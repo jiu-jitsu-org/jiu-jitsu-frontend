@@ -47,6 +47,7 @@ import {
 import { cn } from "@/shared/lib/cn";
 import { IconButton } from "@/shared/ui/icon-button";
 import { RetryIcon } from "@/shared/ui/icons";
+import { TAB_BAR_CLEARANCE } from "@/shared/ui/tab-bar-clearance";
 import {
   type PendingToastAction,
   usePendingToast,
@@ -382,13 +383,13 @@ export function CommunityFeedList({
   });
 
   return (
-    // 하단 91: 우하단 플로팅 FAB(작성 버튼)이 마지막 카드 UX를 가리지 않도록 여유를 둔 스펙값.
+    // 하단 91(TAB_BAR_CLEARANCE): 앱 탭 바와 우하단 플로팅 FAB(작성 버튼)이 마지막 카드를 가리지 않도록 여유를 둔 스펙값.
     // 글 사이 40 = 카드 위아래 눌림 여백 12 + 12 + 각 카드의 mb-4(16). mb는 접힐 때 간격도 함께
     // 사라져야 해서 카드가 갖는다(컨테이너 gap은 높이가 0이 돼도 그대로 남아 빈 자리가 생긴다).
     // 위 pt-3(12)도 카드 위 여백 12와 합쳐 첫 글까지 24를 유지한다.
     <div
       ref={listRef}
-      className={cn("flex flex-col pt-3 pb-[91px]", className)}
+      className={cn("flex flex-col pt-3", TAB_BAR_CLEARANCE, className)}
     >
       {items.map((post, index) => {
         const enterIndex = enteringIds.get(post.id);

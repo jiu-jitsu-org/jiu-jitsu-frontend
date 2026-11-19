@@ -80,6 +80,7 @@ import {
 import { Chip } from "@/shared/ui/chip";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { IconButton } from "@/shared/ui/icon-button";
+import { TAB_BAR_CLEARANCE } from "@/shared/ui/tab-bar-clearance";
 
 /**
  * 대회 목록 + 위 필터 줄 (#334·#396) — 지금 달 · 지역 · 접수 중 (+ 관심 하트 · 목록/달력).
@@ -792,7 +793,8 @@ export function CompetitionListView({
             className="pt-[30vh]"
           />
         ) : (
-          <div ref={listRef} className="pb-6">
+          // 끝 여백은 홈 피드와 같은 탭 바 여백 — 앱이 탭 바 높이를 알려 주지 않는 동안에도 마지막 줄이 가리지 않게(#487).
+          <div ref={listRef} className={TAB_BAR_CLEARANCE}>
             {visibleMonths.map((month, index) => (
               <MonthSection
                 key={`${month.year}-${month.month}`}
