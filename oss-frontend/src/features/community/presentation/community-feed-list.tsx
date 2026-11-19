@@ -104,6 +104,7 @@ export function CommunityFeedList({
   hideAuthor = false,
   authorLink = true,
   onPressCategory,
+  highlightWords,
   className,
 }: {
   posts: PostSummary[];
@@ -120,6 +121,8 @@ export function CommunityFeedList({
   authorLink?: boolean;
   /** 카드의 카테고리 이름을 눌러 그 카테고리 탭으로(#590). 홈 피드만 넘긴다. */
   onPressCategory?: (categoryId: number) => void;
+  /** 검색 결과(#591) — 카드 제목 · 본문에서 이 단어가 든 자리를 표시한다. */
+  highlightWords?: readonly string[];
   /** 목록 바깥 여백. 기본은 메인 피드 스펙(위 24 · 아래 FAB 여유 91). */
   className?: string;
 }) {
@@ -418,6 +421,7 @@ export function CommunityFeedList({
                     ? () => onPressCategory(post.categoryId)
                     : undefined
                 }
+                highlightWords={highlightWords}
                 onDeleted={() => collapseAndRemove(post.id)}
                 // 되돌리기로 복원할 수 있도록 걷어낸 위치를 함께 넘긴다.
                 onRestored={() => {
@@ -465,6 +469,7 @@ function FeedCardItem({
   hideAuthor,
   authorLink,
   onPressCategory,
+  highlightWords,
   onDeleted,
   onRestored,
   onAuthorBlocked,
@@ -473,6 +478,7 @@ function FeedCardItem({
   hideAuthor: boolean;
   authorLink: boolean;
   onPressCategory?: () => void;
+  highlightWords?: readonly string[];
   onDeleted: () => void;
   onRestored: () => void;
   onAuthorBlocked: () => void;
@@ -511,6 +517,7 @@ function FeedCardItem({
       liked={liked}
       bookmarked={bookmarked}
       hideAuthor={hideAuthor}
+      highlightWords={highlightWords}
       attachment={
         post.competition ? (
           <PostCompetitionCard

@@ -32,6 +32,7 @@ import {
   REACTION_POP_MOTION,
   REACTION_PRESS_MOTION,
 } from "@/features/community/presentation/comment-reaction-styles";
+import { HighlightedText } from "@/features/community/presentation/search/highlighted-text";
 import { usePopOnActivate } from "@/features/community/presentation/use-pop-on-activate";
 import { cn } from "@/shared/lib/cn";
 import {
@@ -117,6 +118,8 @@ export type FeedCardProps = {
   onPressAuthor?: () => void;
   /** 본문·사진 아래에 붙는 카드(글이 고른 대회, #379). 카드 속 링크·버튼은 글 상세로 가지 않는다. */
   attachment?: ReactNode;
+  /** 검색 결과(#591) — 제목 · 본문에서 이 단어가 든 자리를 표시한다(HighlightedText). */
+  highlightWords?: readonly string[];
   className?: string;
 };
 
@@ -149,6 +152,7 @@ export function FeedCard({
   hideAuthor = false,
   onPressAuthor,
   attachment,
+  highlightWords,
   className,
 }: FeedCardProps) {
   const hasImages = images !== undefined && images.length > 0;
@@ -207,6 +211,7 @@ export function FeedCard({
         onPressCategory={onPressCategory}
         createdAt={createdAt}
         onPress={onPress}
+        highlightWords={highlightWords}
         trailing={
           hideAuthor ? (
             <FeedCardMoreSlot menu={menu} onPressMore={onPressMore} />
@@ -407,6 +412,7 @@ export function FeedCardBody({
   createdAt,
   onPress,
   trailing,
+  highlightWords,
   className,
 }: {
   title: string;
@@ -416,6 +422,8 @@ export function FeedCardBody({
   onPressCategory?: () => void;
   createdAt: string;
   onPress?: () => void;
+  /** 찾은 말 표시(#591). 없으면 글 그대로. */
+  highlightWords?: readonly string[];
   /** 제목행 우측 요소(작성자 행을 감춘 카드의 ⋮). 제목은 그 앞에서 말줄임된다. */
   trailing?: ReactNode;
   className?: string;
@@ -476,7 +484,7 @@ export function FeedCardBody({
             onClick={onPress}
             className="line-clamp-2 min-w-0 flex-1 text-left text-[18px] leading-6 font-bold wrap-anywhere text-feed-card-body-title-text"
           >
-            {title}
+            <HighlightedText text={title} words={highlightWords} />
           </Title>
           <div className="-my-0.5 ml-2 shrink-0">{trailing}</div>
         </div>
@@ -490,7 +498,7 @@ export function FeedCardBody({
             "line-clamp-2 pr-8 text-left text-[18px] leading-6 font-bold wrap-anywhere text-feed-card-body-title-text",
           )}
         >
-          {title}
+          <HighlightedText text={title} words={highlightWords} />
         </Title>
       )}
       {/* 메타행: 카테고리·날짜. Pretendard Regular 13/18, 항목 간격 10(gap-2.5). 12는 홈 목록에서 작게 읽혀 한 칸 올렸다.
@@ -523,7 +531,7 @@ export function FeedCardBody({
             !expanded && "line-clamp-3",
           )}
         >
-          {body}
+          <HighlightedText text={body} words={highlightWords} />
         </p>
       ) : null}
       {!expanded && overflowing ? (
