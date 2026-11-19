@@ -90,8 +90,8 @@ import {
 } from "./use-image-attachments";
 
 /**
- * 본문 최대 글자 수(카운터/입력 제한). 최소 글자 수는 두지 않는다(#246) — 질문·한 줄 후기 같은 짧은 글을
- * 막지 않기 위해서다. 빈 본문(공백만 포함)은 올리기 버튼 비활성(hasRequiredInput)이 막고, 서버도 빈 값만 거른다.
+ * 본문 최대 글자 수(카운터/입력 제한). 본문은 선택이다(#589) — 질문 하나로 끝나는 글은 제목만으로 올라간다.
+ * 비우면 서버가 ""로 저장하고, 수정에서 비우면 내용을 지운다(backend#264).
  */
 const BODY_MAX_LENGTH = 3000;
 /** 제목 글자 수 범위(2~45). */
@@ -416,11 +416,10 @@ export function PostWriteScreen({
       body.trim().length > 0 ||
       tags.length > 0 ||
       attachments.length > 0;
-  // 필수 입력(카테고리·제목·본문)이 하나라도 비어 있으면 등록/완료가 비활성처럼 보인다(정책). 한 글자라도 적히면
-  // 활성이고, 제목 최소 글자 수(2)는 비활성이 아니다 — "비어 있음"과 "짧음"을 구분하는 이유.
+  // 필수 입력(카테고리·제목)이 하나라도 비어 있으면 등록/완료가 비활성처럼 보인다(정책). 본문은 선택이다(#589).
+  // 한 글자라도 적히면 활성이고, 제목 최소 글자 수(2)는 비활성이 아니다 — "비어 있음"과 "짧음"을 구분하는 이유.
   // 비활성처럼 보여도 탭은 받아 빠진 항목을 토스트로 알린다(#303, findValidationError).
-  const hasRequiredInput =
-    categoryId !== null && title.trim().length > 0 && body.trim().length > 0;
+  const hasRequiredInput = categoryId !== null && title.trim().length > 0;
   // 그 외 잠금: 첨부 업로드 중/실패가 남아 있을 때(사진 정책 — 재시도 또는 ✕ 삭제 후 풀림)와 전송 중.
   // 수정은 변경 사항이 없어도 비활성으로 시작해 내용이 바뀌면 활성(정책).
   const isSubmitLocked = edit
@@ -849,11 +848,12 @@ export function PostWriteScreen({
   }
 
   /**
-   * 등록 탭 시 검사(정책): 화면 위에서부터 카테고리 → 제목 → 본문 → 제목 최소 글자 수 순으로, 첫 번째
-   * 미충족 항목의 안내와 그 칸(field)을 돌려준다(#303). 최대(45/3000)는 maxLength가 입력 단계에서 막으므로 보지 않는다.
+   * 등록 탭 시 검사(정책): 화면 위에서부터 카테고리 → 제목 → 제목 최소 글자 수 순으로, 첫 번째
+   * 미충족 항목의 안내와 그 칸(field)을 돌려준다(#303). 본문은 선택이라 보지 않는다(#589).
+   * 최대(45/3000)는 maxLength가 입력 단계에서 막으므로 보지 않는다.
    */
   function findValidationError(): {
-    field: "category" | "title" | "body";
+    field: "category" | "title";
     message: string;
   } | null {
     if (categoryId === null) {
@@ -861,9 +861,6 @@ export function PostWriteScreen({
     }
     if (title.trim().length === 0) {
       return { field: "title", message: "제목을 입력해주세요" };
-    if (body.trim().length === 0) {
-      return { field: "body", message: "내용을 입력해주세요" };
-    }
     }
     if (isTitleShort(title)) {
       return {
@@ -936,6 +933,7 @@ export function PostWriteScreen({
         await updatePost(edit.postId, {
           categoryId,
           title: title.trim(),
+          // 다 지웠으면 ""를 보내 내용을 지운다(#589, backend#264 — 전에는 무시됐다).
           body: body.trim(),
           imageFileIdList: existingImages.map((image) => image.id),
           tags: finalTags,
@@ -1207,8 +1205,9 @@ export function PostWriteScreen({
           }
           maxLength={BODY_MAX_LENGTH}
           rows={1}
-          placeholder="내용을 입력해주세요"
-          aria-label="내용"
+          // 내용은 선택(#589) — 비워도 올라간다는 걸 안내 문구 끝에 붙여 알린다(칸 이름이 따로 없는 화면이라).
+          placeholder="더 하고 싶은 이야기 (선택)"
+          aria-label="내용 (선택)"
           className={cn(
             "mt-6 w-full shrink-0 resize-none overflow-hidden text-title-1 outline-none",
             TEXTFIELD_TEXT_CLASS,

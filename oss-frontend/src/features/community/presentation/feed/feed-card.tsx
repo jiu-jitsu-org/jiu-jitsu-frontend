@@ -497,16 +497,18 @@ export function FeedCardBody({
         <RelativeTime iso={createdAt} />
       </div>
       {/* 본문: Regular 16/24, 메타행 아래 8. 글 읽는 커뮤니티라 SEED 글 본문(16/24)에 맞췄다. 위계는 제목의 굵기가 맡는다.
-          색은 제목 다음 칸(text-secondary-strong) */}
-      <p
-        ref={bodyRef}
-        className={cn(
-          "mt-1 whitespace-pre-wrap wrap-anywhere text-base leading-6 font-normal text-feed-card-body-text",
-          !expanded && "line-clamp-3",
-        )}
-      >
-        {body}
-      </p>
+          색은 제목 다음 칸(text-secondary-strong). 내용 없는 글(#589)은 줄째 빼 빈 자리가 남지 않게 한다. */}
+      {body.trim() ? (
+        <p
+          ref={bodyRef}
+          className={cn(
+            "mt-1 whitespace-pre-wrap wrap-anywhere text-base leading-6 font-normal text-feed-card-body-text",
+            !expanded && "line-clamp-3",
+          )}
+        >
+          {body}
+        </p>
+      ) : null}
       {!expanded && overflowing ? (
         <button
           ref={moreRef}
