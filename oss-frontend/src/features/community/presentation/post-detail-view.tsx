@@ -83,60 +83,65 @@ export function PostDetailView({
           }
         >
           <div>
-            {/* 본문 영역: 헤더와 간격 24(pt-6), 좌우 여백 16(px-4), 섹션 간격 16(gap-4: 본문↔이미지 등, 작성자↔제목만 8) */}
-            <article className="flex flex-col gap-4 px-4 pt-6">
-              {/* 작성자 줄↔제목은 8(gap-2) — 홈 피드 카드와 같은 간격으로 붙여 "누가 쓴 이 글"로 묶어 읽히게 한다(#299).
+            {/* 글 + 댓글은 첫 화면 높이(100cqh)에서 88을 뺀 만큼은 늘 차지한다 — 짧은 글이어도 첫 화면은 글·댓글이 주인공이고,
+                아래 "○○의 다른 글"은 제목과 카드 윗모서리(글자 없는 16)만 화면 끝에 걸쳐 "내리면 더 있다"만 알린다.
+                88 = 띠 위 8 + 띠 4 + 구역 위 24 + 제목 24 + 카드 위 12 + 카드 윗모서리 16(안쪽 여백 18보다 작아 글자가 잘리지 않음). 긴 글이면 원래 길이 그대로. */}
+            <div className="min-h-[calc(100cqh-88px)]">
+              {/* 본문 영역: 헤더와 간격 24(pt-6), 좌우 여백 16(px-4), 섹션 간격 16(gap-4: 본문↔이미지 등, 작성자↔제목만 8) */}
+              <article className="flex flex-col gap-4 px-4 pt-6">
+                {/* 작성자 줄↔제목은 8(gap-2) — 홈 피드 카드와 같은 간격으로 붙여 "누가 쓴 이 글"로 묶어 읽히게 한다(#299).
                   나머지 섹션 사이(본문↔이미지 등)는 article의 16 그대로. */}
-              <div className="flex flex-col gap-2">
-                <PostAuthorRow
-                  author={post.author}
-                  isOwner={post.viewer.isOwner}
-                />
-                <PostDetailBody
-                  title={post.title}
-                  body={post.body}
-                  categoryName={post.categoryName}
-                  createdAt={post.createdAt}
-                  views={post.views}
-                  // 상세가 처음 그려질 때 한 번만 센다 — 다시 그리기 · 피드 카드 갱신은 세지 않는다(#523).
-                  viewPath={`/api/community/posts/${post.id}/views`}
-                  edited={post.edited}
-                />
-              </div>
-              {post.images.length > 0 ? (
-                // 이미지 규격(#121): 허용 비율 4:5~1.91:1, 벗어나면 center crop.
-                // 1장은 폭 고정 + 높이 원본 비율, 여러 장은 높이 고정 + 폭 원본 비율.
-                // 여러 장일 때 스크롤 영역은 이 article의 px-4를 벗어나 화면 폭까지 넓어진다.
-                <PostDetailImages images={post.images} />
-              ) : null}
-              {attachment}
-              {/* 본문(또는 이미지) 아래 태그 24 = article gap-4(16) + mt-2(8) */}
-              <PostTags tags={post.tags} className="mt-2" />
-            </article>
+                <div className="flex flex-col gap-2">
+                  <PostAuthorRow
+                    author={post.author}
+                    isOwner={post.viewer.isOwner}
+                  />
+                  <PostDetailBody
+                    title={post.title}
+                    body={post.body}
+                    categoryName={post.categoryName}
+                    createdAt={post.createdAt}
+                    views={post.views}
+                    // 상세가 처음 그려질 때 한 번만 센다 — 다시 그리기 · 피드 카드 갱신은 세지 않는다(#523).
+                    viewPath={`/api/community/posts/${post.id}/views`}
+                    edited={post.edited}
+                  />
+                </div>
+                {post.images.length > 0 ? (
+                  // 이미지 규격(#121): 허용 비율 4:5~1.91:1, 벗어나면 center crop.
+                  // 1장은 폭 고정 + 높이 원본 비율, 여러 장은 높이 고정 + 폭 원본 비율.
+                  // 여러 장일 때 스크롤 영역은 이 article의 px-4를 벗어나 화면 폭까지 넓어진다.
+                  <PostDetailImages images={post.images} />
+                ) : null}
+                {attachment}
+                {/* 본문(또는 이미지) 아래 태그 24 = article gap-4(16) + mt-2(8) */}
+                <PostTags tags={post.tags} className="mt-2" />
+              </article>
 
-            {/* 액션바: 태그 아래 13, 디바이더 없음, 우측 정렬 */}
-            <PostActionBar
-              className="mt-[13px]"
-              postId={post.id}
-              initialLiked={post.viewer.liked}
-              initialBookmarked={post.viewer.bookmarked}
-              initialLikes={post.counts.likes}
-              initialSaves={post.counts.saves}
-              comments={post.counts.comments}
-              commented={post.viewer.commented}
-            />
+              {/* 액션바: 태그 아래 13, 디바이더 없음, 우측 정렬 */}
+              <PostActionBar
+                className="mt-[13px]"
+                postId={post.id}
+                initialLiked={post.viewer.liked}
+                initialBookmarked={post.viewer.bookmarked}
+                initialLikes={post.counts.likes}
+                initialSaves={post.counts.saves}
+                comments={post.counts.comments}
+                commented={post.viewer.commented}
+              />
 
-            {/* 액션바 아래 디바이더: 간격 24, 풀폭(좌우 여백 없음), 높이 4 */}
-            <Divider className="mt-6" />
+              {/* 액션바 아래 디바이더: 간격 24, 풀폭(좌우 여백 없음), 높이 4 */}
+              <Divider className="mt-6" />
 
-            {/* 댓글 섹션 */}
-            <CommentSection
-              contentId={post.id}
-              comments={comments}
-              focusedComment={focusedComment}
-              sort={sort}
-              postAuthorId={post.author.userId}
-            />
+              {/* 댓글 섹션 */}
+              <CommentSection
+                contentId={post.id}
+                comments={comments}
+                focusedComment={focusedComment}
+                sort={sort}
+                postAuthorId={post.author.userId}
+              />
+            </div>
 
             {footerSection}
           </div>

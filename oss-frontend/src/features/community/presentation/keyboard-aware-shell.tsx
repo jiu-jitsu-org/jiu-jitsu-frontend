@@ -44,8 +44,9 @@ export function KeyboardAwareShell({
     >
       {header ? <div className="shrink-0">{header}</div> : null}
       {/* 세로 체이닝은 연다: 맨 위에서 더 당기면 문서가 당겨져 앱의 당겨서 새로고침 띠가 보인다(#432).
-          아래 끝에서 넘친 스크롤은 앱이 문서를 0으로 묶어 되돌린다. */}
-      <main className="min-h-0 flex-1 overflow-y-auto overscroll-x-contain overscroll-y-auto">
+          아래 끝에서 넘친 스크롤은 앱이 문서를 0으로 묶어 되돌린다.
+          container-type:size — 안쪽이 보이는 높이(100cqh)에 맞춰 자리를 잡을 수 있게(글 상세 첫 화면). */}
+      <main className="min-h-0 flex-1 overflow-y-auto overscroll-x-contain overscroll-y-auto [container-type:size]">
         {children}
       </main>
       {footer ? <div className="shrink-0">{footer}</div> : null}

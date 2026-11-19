@@ -26,6 +26,7 @@ export async function PostCategoryMore({
       posts={posts.map((post) => ({
         id: post.id,
         title: post.title,
+        body: post.body.replace(/\s+/g, " ").trim(),
         comments: post.counts.comments,
         createdAt: post.createdAt,
       }))}
