@@ -21,7 +21,11 @@ import {
   toComment,
 } from "@/features/community/infrastructure/comment-dto";
 import { type AuthorBeltDto, toBelt } from "@/features/community/infrastructure/belt-dto";
-import { type AuthorRoleDto, toIsCoach } from "@/features/community/infrastructure/author-role-dto";
+import {
+  type AuthorRoleDto,
+  toIsCoach,
+  toIsOperator,
+} from "@/features/community/infrastructure/author-role-dto";
 import {
   toCompetition,
   type CompetitionListItemDto,
@@ -122,7 +126,10 @@ type BoardDetailDto = {
   isLiked: boolean;
   isSaved: boolean;
   imageList: { id: number; imageUrl: string }[];
-  /** 미설정이면 null로 오므로 매핑 시 false로 정규화. */
+  /**
+   * 미설정이면 null로 온다. 서버는 설정이 없는 글을 켜진 것으로 보고 알림을 보내므로(NoticeService
+   * findOrDefaultSetting · isContentNoticeEnabled 기본 ON) 매핑 시 true로 정규화한다(#527).
+   */
   noticeEnabled: boolean | null;
   author: {
     id: number;
@@ -213,6 +220,7 @@ function toPostSummary(dto: BoardSummaryDto): PostSummary {
       avatarUrl: dto.author.profileImage?.imageUrl ?? null,
       belt: toBelt(dto.author),
       isCoach: toIsCoach(dto.author),
+      isOperator: toIsOperator(dto.author),
     },
     title: dto.title,
     // 내용 없는 글은 ""로 온다(backend#264). 옛 응답이 null을 줘도 화면이 같은 빈 값으로 다루게 맞춘다.
@@ -259,6 +267,7 @@ function toPostDetail(dto: BoardDetailDto): PostDetail {
       avatarUrl: dto.author.profileImage?.imageUrl ?? null,
       belt: toBelt(dto.author),
       isCoach: toIsCoach(dto.author),
+      isOperator: toIsOperator(dto.author),
     },
     title: dto.title,
     // 내용 없는 글은 ""로 온다(backend#264). 옛 응답이 null을 줘도 화면이 같은 빈 값으로 다루게 맞춘다.
@@ -280,7 +289,7 @@ function toPostDetail(dto: BoardDetailDto): PostDetail {
     createdAt: toKstIso(dto.createdAt),
     updatedAt: dto.updatedAt ? toKstIso(dto.updatedAt) : null,
     edited: dto.isUpdated,
-    noticeEnabled: dto.noticeEnabled ?? false,
+    noticeEnabled: dto.noticeEnabled ?? true,
     competitionId: dto.competitionId ?? null,
     ...(dto.competition ? { competition: toCompetition(dto.competition) } : {}),
   };

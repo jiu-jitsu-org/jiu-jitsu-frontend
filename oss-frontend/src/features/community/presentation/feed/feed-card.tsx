@@ -13,6 +13,7 @@ import { flushSync } from "react-dom";
 import type { Belt } from "@/features/community/domain/belt";
 import { BeltAvatar } from "@/features/community/presentation/belt-avatar";
 import { CoachBadge } from "@/features/community/presentation/coach-badge";
+import { OperatorBadge } from "@/features/community/presentation/operator-badge";
 import {
   IMAGE_MAX_HEIGHT,
   IMAGE_MIN_HEIGHT,
@@ -60,6 +61,8 @@ export type FeedAuthor = {
   belt?: Belt | null;
   /** 관장·사범 인증(#272). true면 닉네임 뒤에 인증 배지를 붙인다. */
   isCoach?: boolean;
+  /** 운영자 계정(#595). true면 닉네임(관장·사범 인증이 있으면 그 뒤)에 '운영자' 배지를 붙인다. */
+  isOperator?: boolean;
 };
 
 export type FeedImage = {
@@ -336,6 +339,12 @@ export function FeedCardHeader({
       {author.isCoach ? (
         <span className="ml-0.5 flex">
           <CoachBadge />
+        </span>
+      ) : null}
+      {/* 운영자 배지(#595): 앞 글자 · 인증 배지와 6 — 댓글의 '작성자' 배지와 같은 간격. */}
+      {author.isOperator ? (
+        <span className="ml-1.5 flex">
+          <OperatorBadge />
         </span>
       ) : null}
     </>

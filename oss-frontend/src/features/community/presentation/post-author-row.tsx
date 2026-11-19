@@ -3,6 +3,7 @@ import { Avatar } from "@/features/community/presentation/avatar";
 import { AuthorProfileLink } from "@/features/community/presentation/author-profile-link";
 import { BeltAvatar } from "@/features/community/presentation/belt-avatar";
 import { CoachBadge } from "@/features/community/presentation/coach-badge";
+import { OperatorBadge } from "@/features/community/presentation/operator-badge";
 
 /**
  * 상세 화면 작성자 행 (서버 컴포넌트).
@@ -34,12 +35,17 @@ export function PostAuthorRow({
         <Avatar src={author.avatarUrl} className="size-full" iconSize={16} />
       </BeltAvatar>
       {/* 닉네임: Body S(Pretendard Medium 14) — 홈 카드와 같은 크기. 제목(16)보다 작아 "누가"가 "무엇"보다 앞서지 않는다.
-          관장·사범이면 배지를 붙여 둔다(#272, 간격 2). */}
+          관장·사범이면 배지를 붙여 둔다(#272, 간격 2). 운영자면 그 뒤에 '운영자'(#595, 간격 6 = 2 + ml-1). */}
       <span className="flex items-center gap-0.5">
         <span className="text-body-s text-text-primary">
           {author.nickname}
         </span>
         {author.isCoach ? <CoachBadge /> : null}
+        {author.isOperator ? (
+          <span className="ml-1 flex">
+            <OperatorBadge />
+          </span>
+        ) : null}
       </span>
     </AuthorProfileLink>
   );

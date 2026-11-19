@@ -1,6 +1,10 @@
 import type { Comment } from "@/features/community/domain/comment";
 import { type AuthorBeltDto, toBelt } from "@/features/community/infrastructure/belt-dto";
-import { type AuthorRoleDto, toIsCoach } from "@/features/community/infrastructure/author-role-dto";
+import {
+  type AuthorRoleDto,
+  toIsCoach,
+  toIsOperator,
+} from "@/features/community/infrastructure/author-role-dto";
 import { toKstIso } from "@/shared/lib/time";
 
 /**
@@ -98,6 +102,7 @@ export function toComment(dto: CommentDto): Comment {
       avatarUrl: dto.author?.profileImage?.imageUrl ?? null,
       belt: toBelt(dto.author),
       isCoach: toIsCoach(dto.author),
+      isOperator: toIsOperator(dto.author),
     },
     body: dto.body ?? "",
     createdAt: toKstIso(dto.createdAt),

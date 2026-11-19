@@ -70,6 +70,7 @@ export function PostDetailView({
                     nickname: post.author.nickname,
                   }}
                   initialNoticeEnabled={post.noticeEnabled}
+                  commented={post.viewer.commented}
                 />
               }
             />

@@ -3,6 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 
+import {
+  CONNECTION_LOST_MESSAGE,
+  useOnline,
+  useRetryWhenOnline,
+} from "@/features/community/presentation/connection-lost";
+
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
 
@@ -29,6 +35,13 @@ export function FeedErrorState({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  // 망이 끊겨 있으면 연결 문구로 바꾸고, 돌아오면 한 번 저절로 다시 불러온다(#543).
+  // 끊긴 채 router.refresh를 부르면 Next가 문서 이동으로 넘어가 브라우저 오프라인 화면이 뜬다 — 재시도는 연결을 기다린다.
+  const online = useOnline();
+  // 목록을 따로 읽는 화면(카테고리 탭 · 글 검색)은 onRetry로, 그 밖에는 라우트를 다시 렌더한다.
+  const retry = () =>
+    onRetry ? onRetry() : startTransition(() => router.refresh());
+  useRetryWhenOnline(retry);
 
   return (
     // 컨텐츠 묶음은 뷰포트 전체 기준 가로·세로 가운데 정렬. 빈 화면에서 툭 튀지 않게 옅게 나타난다.
@@ -39,16 +52,16 @@ export function FeedErrorState({
       )}
     >
       <p className="text-body-m text-feed-card-body-text">
-        잠시 문제가 생겼어요
+        {online ? "잠시 문제가 생겼어요" : CONNECTION_LOST_MESSAGE}
       </p>
       {/* 누르는 동안 neutral 눌림 색으로 짙어진다(빈 상태 글쓰기 버튼과 같은 규격·같은 눌림). */}
       <Button
         variant="neutral"
         size="m"
         disabled={pending}
-        onClick={() =>
-          onRetry ? onRetry() : startTransition(() => router.refresh())
-        }
+        onClick={() => {
+          if (navigator.onLine) retry();
+        }}
       >
         재시도
       </Button>

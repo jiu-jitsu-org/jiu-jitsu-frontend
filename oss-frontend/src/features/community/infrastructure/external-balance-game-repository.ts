@@ -58,7 +58,7 @@ type BalanceGameDto = {
   isLiked: boolean;
   /** 조회수. */
   viewCount?: number;
-  /** 미설정이면 null로 오므로 매핑 시 false로 정규화(게시글 상세와 같다). */
+  /** 미설정이면 null로 온다 — 서버 기본이 켜짐이라 매핑 시 true로 정규화(게시글 상세와 같다, #527). */
   noticeEnabled?: boolean | null;
   /** 게임 진행 날짜(ISO 8601 date, 시각 없음 — 예: "2026-09-10"). */
   gameDate?: string;
@@ -116,11 +116,11 @@ function toBalanceGame(dto: BalanceGameDto): BalanceGame {
     myVote: dto.myVote ?? null,
     commentCount: dto.commentCount ?? 0,
     // 좋아요·댓글여부·알림·조회수는 나중에 추가된 계약이라 방어적으로 읽는다 — 배포 순서상 아직
-    // 내려오지 않는 환경에서도 화면이 뜨는 편이 낫다(카운트 0 · 미선택 · 종 꺼짐으로 보인다).
+    // 내려오지 않는 환경에서도 화면이 뜨는 편이 낫다(카운트 0 · 미선택으로 보인다. 종은 서버 기본인 켜짐).
     commented: dto.isCommented ?? false,
     likeCount: dto.likeCount ?? 0,
     isLiked: dto.isLiked ?? false,
-    noticeEnabled: dto.noticeEnabled ?? false,
+    noticeEnabled: dto.noticeEnabled ?? true,
     // 날짜는 폴백을 만들지 않는다 — 없는 날짜를 endAt 등으로 지어내면 마감 정책이 바뀔 때
     // 하루씩 밀린 값을 조용히 그린다. 값이 없으면 메타 행이 날짜 항목째 뺀다.
     gameDate: dto.gameDate,
