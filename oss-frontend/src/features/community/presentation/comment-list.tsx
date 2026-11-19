@@ -99,6 +99,9 @@ async function fetchCommentPage(
  * 작성된 순에서 아직 안 받은 페이지가 있으면 끼울 자리가 없어 넣지 않는다(입력 바가 토스트로 알린다).
  * 대댓글 더보기와 같은 판단으로, 그 한 경우를 위해 끝까지 받아 오지 않는다 — 끝까지 내리면 나타난다.
  *
+ * 알림에서 연 댓글(#596)은 목록 맨 위에 옅은 면으로 따로 먼저 보여 준다. 첫 페이지 · 더보기에 같은 댓글이
+ * 오면 목록에서는 빼 한 번만 보인다. 대댓글이면 원 댓글 묶음에 그 대댓글이 붙어 온다(focusedThreadComment).
+ *
  * 댓글이 하나도 없으면 빈 상태(empty)를 그린다 — 첫 댓글도 바로 목록으로 바뀌게 여기서 고른다.
  *
  * sort·postAuthorId는 대댓글 더보기(CommentReplies)까지 내려보내는 값이기도 하다. 추가로 불러온
@@ -108,6 +111,7 @@ export function CommentList({
   contentId,
   comments,
   hasNext,
+  focusedComment = null,
   sort,
   postAuthorId,
   empty,
@@ -118,6 +122,8 @@ export function CommentList({
   comments: Comment[];
   /** 첫 페이지 다음이 있는지. */
   hasNext: boolean;
+  /** 알림에서 연 댓글(#596) — 맨 위에 먼저, 목록에서는 뺀다. */
+  focusedComment?: Comment | null;
   sort: CommentSort;
   postAuthorId?: number | null;
   /** 댓글이 하나도 없을 때 그릴 빈 상태. */
@@ -148,8 +154,12 @@ export function CommentList({
     postedNotIn(posted, undefined, loaded),
     postAuthorId,
   );
+  // 알림에서 연 댓글은 맨 위에 따로 그리므로 목록에서는 뺀다. 자리 판정(아래)은 서버가 준 개수 그대로 센다.
+  const listed = focusedComment
+    ? loaded.filter((comment) => comment.id !== focusedComment.id)
+    : loaded;
   const items =
-    sort === "latest" ? [...fresh.reverse(), ...loaded] : [...loaded, ...fresh];
+    sort === "latest" ? [...fresh.reverse(), ...listed] : [...listed, ...fresh];
   // 최신순은 늘 맨 위(서버 첫 페이지 맨 앞)라 서버 렌더가 바로 서버 것을 가져온다.
   // 작성된 순은 끝까지 받았고, 아직 서버에 안 든 사본까지 세어 새 댓글이 지금 받은 페이지 안에 들어갈 때만
   // 끼운다 — 꽉 찼으면 다음 페이지로 밀려 서버 것이 오지 않는다. 이어 받은 페이지가 있으면 맨 아래는
@@ -246,12 +256,28 @@ export function CommentList({
     resetKey: items.length,
   });
 
-  if (items.length === 0 && !hasMore) return empty;
+  if (items.length === 0 && !hasMore && !focusedComment) return empty;
 
   return (
     // 최신순 버튼 바텀↔첫 댓글 24 = 정렬 row pb-3(12) + 여기 pt-3(12). 하단 여유 pb-4.
-    <div className="px-4 pb-4 pt-3">
-      <ul className="flex flex-col gap-6">
+    // 묶음 사이 24(gap-6) — 알림 댓글 면 · 목록 · 「댓글 더보기」 사이도 같은 간격이다.
+    <div className="flex flex-col gap-6 px-4 pb-4 pt-3">
+      {focusedComment ? (
+        // 알림에서 연 댓글(#596): 선 없이 옅은 파란 면으로 묶어 "알림으로 온 그 댓글"임을 알린다.
+        // 면 안쪽 여백(px-2)만큼 바깥으로 당겨(-mx-2) 댓글 글자 줄이 아래 목록과 같은 세로선에 선다.
+        <ul
+          aria-label="알림에서 연 댓글"
+          className="-mx-2 rounded-10 bg-surface-primary-subtle px-2 py-3"
+        >
+          <CommentItem
+            comment={focusedComment}
+            sort={sort}
+            postAuthorId={postAuthorId}
+          />
+        </ul>
+      ) : null}
+
+      <ul className="flex flex-col gap-6 empty:hidden">
         {items.map((comment) => (
           <CommentItem
             key={comment.id}

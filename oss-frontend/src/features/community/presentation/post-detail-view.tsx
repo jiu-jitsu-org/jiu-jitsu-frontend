@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import { RefreshOnLogin } from "@/features/auth/presentation/refresh-on-login";
-import type { CommentList } from "@/features/community/domain/comment";
+import type { Comment, CommentList } from "@/features/community/domain/comment";
 import type { CommentSort, PostDetail } from "@/features/community/domain/post";
 import { BeltPromptProvider } from "@/features/community/presentation/belt-prompt";
 import { CommentInputBar } from "@/features/community/presentation/comment-input-bar";
@@ -32,11 +32,14 @@ import { Divider } from "@/shared/ui/divider";
 export function PostDetailView({
   post,
   comments,
+  focusedComment = null,
   sort,
   attachment,
 }: {
   post: PostDetail;
   comments: CommentList;
+  /** 알림에서 연 댓글(#596) — 댓글 목록 맨 위에 먼저 보인다. */
+  focusedComment?: Comment | null;
   sort: CommentSort;
   /** 본문(이미지) 아래·태그 위에 붙는 카드 — 글이 고른 대회(#380). */
   attachment?: ReactNode;
@@ -126,6 +129,7 @@ export function PostDetailView({
             <CommentSection
               contentId={post.id}
               comments={comments}
+              focusedComment={focusedComment}
               sort={sort}
               postAuthorId={post.author.userId}
             />

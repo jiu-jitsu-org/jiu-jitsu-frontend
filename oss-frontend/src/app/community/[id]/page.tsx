@@ -6,6 +6,7 @@ import { AppClientHint } from "@/shared/lib/app-client/app-client-hint";
 import { readBeltAvatarSample } from "@/features/community/application/belt-avatar-sample";
 import { getPostShareMetadata } from "@/features/community/application/get-post-share-metadata";
 import { normalizeCommentSort } from "@/features/community/domain/post";
+import { parseFocusedCommentId } from "@/features/community/presentation/focused-comment-param";
 import { PostDetailScreen } from "@/features/community/presentation/post-detail-screen";
 import { readSessionToken } from "@/shared/lib/auth";
 import { readServerNow } from "@/shared/lib/time";
@@ -60,16 +61,21 @@ export async function generateMetadata({
  * 라우팅·파라미터 추출만 담당하고 데이터 조회/렌더는 PostDetailScreen(feature)에 위임한다.
  *
  * `?belt=sample`은 `next dev` 전용 띠 아바타 예시다(production에선 무시 — belt-avatar-sample).
+ * `?commentId=`는 알림 · 푸시로 열 때 그 댓글을 맨 위에 먼저 보여 준다(#596).
  */
 export default async function CommunityPostPage({
   params,
   searchParams,
 }: {
   params: PostPageParams;
-  searchParams: Promise<{ sort?: string; belt?: string | string[] }>;
+  searchParams: Promise<{
+    sort?: string;
+    belt?: string | string[];
+    commentId?: string | string[];
+  }>;
 }) {
   const { id } = await params;
-  const { sort, belt } = await searchParams;
+  const { sort, belt, commentId } = await searchParams;
 
   const postId = parsePostId(id);
   if (postId === null) {
@@ -88,6 +94,7 @@ export default async function CommunityPostPage({
             postId={postId}
             sort={normalizeCommentSort(sort)}
             sampleBelts={readBeltAvatarSample(belt)}
+            focusCommentId={parseFocusedCommentId(commentId)}
           />
         </ServerClockProvider>
       </AppClientHint>

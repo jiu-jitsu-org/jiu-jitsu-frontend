@@ -1,6 +1,9 @@
 import { Suspense } from "react";
 
-import type { CommentList as CommentListData } from "@/features/community/domain/comment";
+import type {
+  Comment,
+  CommentList as CommentListData,
+} from "@/features/community/domain/comment";
 import type { CommentSort } from "@/features/community/domain/post";
 import { CommentEmpty } from "@/features/community/presentation/comment-empty";
 import { CommentList } from "@/features/community/presentation/comment-list";
@@ -14,13 +17,16 @@ import { CommentSortSelect } from "@/features/community/presentation/comment-sor
 export function CommentSection({
   contentId,
   comments,
+  focusedComment = null,
   sort,
   postAuthorId,
 }: {
   /** 댓글이 달린 컨텐츠(게시글·밸런스 게임) id — 다음 페이지 조회에 쓴다. */
   contentId: number;
-  /** 서버 렌더 첫 페이지 — 나머지는 CommentList가 무한 스크롤로 이어 받는다(#222). */
+  /** 서버 렌더 첫 페이지 — 나머지는 CommentList가 「댓글 더보기」로 이어 받는다(#592). */
   comments: CommentListData;
+  /** 알림에서 연 댓글(#596) — 목록 맨 위에 먼저 보인다. 정렬을 바꾸면 주소에서 빠져 사라진다. */
+  focusedComment?: Comment | null;
   sort: CommentSort;
   /** 게시글 작성자 id — 대댓글 더보기로 불러온 줄의 "작성자" 배지 판정에 쓴다.
       밸런스 게임은 작성자가 없는 컨텐츠라 넘기지 않는다. */
@@ -42,6 +48,7 @@ export function CommentSection({
         contentId={contentId}
         comments={comments.items}
         hasNext={comments.hasNext}
+        focusedComment={focusedComment}
         sort={sort}
         postAuthorId={postAuthorId}
         empty={<CommentEmpty />}

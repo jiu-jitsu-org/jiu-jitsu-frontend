@@ -71,6 +71,22 @@ export type CommentList = {
 };
 
 /**
+ * 알림에서 연 댓글 묶음(GET /community/comments/{id}, backend#271).
+ *
+ * 알림 · 푸시의 commentId로 그 댓글을 목록 맨 위에 먼저 보여 준다(#596) — 댓글이 20개씩 더보기라
+ * 21번째 이후 댓글은 목록만으로는 바로 안 보인다.
+ * - 댓글이면 comment = 그 댓글, reply = null
+ * - 대댓글이면 comment = 원 댓글, reply = 그 대댓글(미리보기 3개 밖이어도 온다)
+ * comment는 목록 항목과 같은 모양이라 대댓글 미리보기 3개 · 대댓글 수가 딸려 온다.
+ */
+export type CommentThread = {
+  /** 댓글이 달린 컨텐츠(게시글 · 밸런스 게임) id — 주소의 글과 다르면 쓰지 않는다. */
+  contentId: number;
+  comment: Comment;
+  reply: Comment | null;
+};
+
+/**
  * 게시글 작성자가 쓴 댓글에 isPostAuthor=true를 채운다("작성자" 배지).
  *
  * 응답에 "댓글 작성자 == 게시글 작성자" 필드가 없어, 게시글 author id와 댓글 author id를
@@ -88,4 +104,19 @@ export function markPostAuthorComments(
     isPostAuthor: comment.author.userId === postAuthorId,
     replies: markPostAuthorComments(comment.replies, postAuthorId),
   }));
+}
+
+/**
+ * 알림에서 연 묶음을 목록 한 줄로 — 대댓글이면 원 댓글의 대댓글에 그 대댓글을 더한다(#596).
+ *
+ * 미리보기 3개 밖의 대댓글도 원 댓글 아래에서 보여야 해 미리보기 뒤에 붙인다. 미리보기 안에 이미 있으면
+ * 한 번만 둔다. 대댓글 묶음은 늘 단 순서로 줄 세우고(CommentReplies) 「대댓글 더보기」로 받은 같은 id도
+ * 한 번만 그리므로 붙인 자리는 상관없다.
+ */
+export function focusedThreadComment(thread: CommentThread): Comment {
+  const { comment, reply } = thread;
+  if (!reply || comment.replies.some((item) => item.id === reply.id)) {
+    return comment;
+  }
+  return { ...comment, replies: [...comment.replies, reply] };
 }

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 
 import { entryPath, type ScreenFrom } from "@/shared/lib/analytics";
 import { markPostDirty } from "@/features/community/presentation/dirty-posts";
+import { withFocusedComment } from "@/features/community/presentation/focused-comment-param";
 import { isNativeBridgeAvailable, openNativeSubview } from "@/shared/lib/native-bridge";
 
 /** 게시글 상세 웹 경로. */
@@ -20,6 +21,7 @@ function postDetailPath(postId: number): string {
  * - 웹 단독: 같은 웹뷰 내 라우터 이동.
  *
  * from: 들어온 길(GA, #576 — `entryPath`). 주지 않으면 지금 화면 이름(홈 피드 · 내 활동 · 대회 상세 등)을 쓴다.
+ * commentId: 알림에서 연 댓글(#596) — 주소에 `?commentId=`로 실어 상세가 그 댓글을 맨 위에 먼저 보여 준다.
  *
  * 여는 시점에 이 글을 갱신 대상으로 기록한다 — 상세에서 좋아요·저장·댓글·수정·삭제 중 무엇이
  * 일어날지 모르므로, 목록은 "값이 바뀌었을 수 있다"만 알고 복귀 시 서버 최신값을 다시 읽는다(#73).
@@ -27,8 +29,11 @@ function postDetailPath(postId: number): string {
 export function useOpenPostDetail(from?: ScreenFrom) {
   const router = useRouter();
 
-  return (postId: number) => {
-    const path = entryPath(postDetailPath(postId), from);
+  return (postId: number, commentId?: number | null) => {
+    const path = entryPath(
+      withFocusedComment(postDetailPath(postId), commentId),
+      from,
+    );
     markPostDirty(postId);
 
     if (isNativeBridgeAvailable()) {

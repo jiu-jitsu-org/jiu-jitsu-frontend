@@ -5,6 +5,7 @@ import { CreateReportUseCase } from "@/features/community/application/create-rep
 import { DeleteCommentUseCase } from "@/features/community/application/delete-comment";
 import { RestoreCommentUseCase } from "@/features/community/application/restore-comment";
 import { DeletePostUseCase } from "@/features/community/application/delete-post";
+import { GetCommentThreadUseCase } from "@/features/community/application/get-comment-thread";
 import { GetCommentsUseCase } from "@/features/community/application/get-comments";
 import { GetMyBeltUseCase } from "@/features/community/application/get-my-belt";
 import { GetImageUploadAuthUseCase } from "@/features/community/application/get-image-upload-auth";
@@ -103,6 +104,13 @@ export function createGetCommentsUseCase(
   accessToken: string | null,
 ): GetCommentsUseCase {
   return new GetCommentsUseCase(createReadRepository(accessToken));
+}
+
+/** 알림에서 연 댓글 하나(#596). 비로그인도 조회한다 — 토큰이 있으면 viewer 상태까지 채운다. */
+export function createGetCommentThreadUseCase(
+  accessToken: string | null,
+): GetCommentThreadUseCase {
+  return new GetCommentThreadUseCase(createReadRepository(accessToken));
 }
 
 export function createGetRepliesUseCase(

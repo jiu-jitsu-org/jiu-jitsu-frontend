@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 import type { CommentSort } from "@/features/community/domain/post";
+import { FOCUSED_COMMENT_PARAM } from "@/features/community/presentation/focused-comment-param";
 import {
   MenuBox,
   MenuItem,
@@ -36,6 +37,8 @@ export function CommentSortSelect({ sort }: { sort: CommentSort }) {
 
     const params = new URLSearchParams(searchParams.toString());
     params.set("sort", next);
+    // 알림에서 연 댓글(#596)은 맨 위 묶음을 없앤다 — 정렬을 바꾸면 목록을 처음부터 새로 본다.
+    params.delete(FOCUSED_COMMENT_PARAM);
     // scroll 위치 유지 — 댓글 섹션 정렬만 바뀐다.
     router.replace(`?${params.toString()}`, { scroll: false });
   }

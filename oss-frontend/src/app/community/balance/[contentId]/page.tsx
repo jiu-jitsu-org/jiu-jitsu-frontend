@@ -6,6 +6,7 @@ import { AppClientHint } from "@/shared/lib/app-client/app-client-hint";
 import { getBalanceShareMetadata } from "@/features/community/application/get-balance-share-metadata";
 import { normalizeCommentSort } from "@/features/community/domain/post";
 import { BalanceDetailScreen } from "@/features/community/presentation/balance/balance-detail-screen";
+import { parseFocusedCommentId } from "@/features/community/presentation/focused-comment-param";
 import { readSessionToken } from "@/shared/lib/auth";
 import { readServerNow } from "@/shared/lib/time";
 import { ServerClockProvider } from "@/shared/ui/server-clock";
@@ -61,10 +62,10 @@ export default async function BalanceGameDetailPage({
   searchParams,
 }: {
   params: BalancePageParams;
-  searchParams: Promise<{ sort?: string }>;
+  searchParams: Promise<{ sort?: string; commentId?: string | string[] }>;
 }) {
   const { contentId } = await params;
-  const { sort } = await searchParams;
+  const { sort, commentId } = await searchParams;
 
   const parsed = parseContentId(contentId);
   if (parsed === null) {
@@ -82,6 +83,7 @@ export default async function BalanceGameDetailPage({
           <BalanceDetailScreen
             contentId={parsed}
             sort={normalizeCommentSort(sort)}
+            focusCommentId={parseFocusedCommentId(commentId)}
           />
         </ServerClockProvider>
       </AppClientHint>

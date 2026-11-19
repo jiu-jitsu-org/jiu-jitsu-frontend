@@ -1,6 +1,6 @@
 import { RefreshOnLogin } from "@/features/auth/presentation/refresh-on-login";
 import type { BalanceGame } from "@/features/community/domain/balance-game";
-import type { CommentList } from "@/features/community/domain/comment";
+import type { Comment, CommentList } from "@/features/community/domain/comment";
 import type { CommentSort } from "@/features/community/domain/post";
 import { BalanceDetailActionBar } from "@/features/community/presentation/balance/balance-detail-action-bar";
 import { BalanceDetailAppBar } from "@/features/community/presentation/balance/balance-detail-app-bar";
@@ -34,10 +34,13 @@ import { Divider } from "@/shared/ui/divider";
 export function BalanceDetailView({
   game,
   comments,
+  focusedComment = null,
   sort,
 }: {
   game: BalanceGame;
   comments: CommentList;
+  /** 알림에서 연 댓글(#596) — 댓글 목록 맨 위에 먼저 보인다. */
+  focusedComment?: Comment | null;
   sort: CommentSort;
 }) {
   return (
@@ -99,6 +102,7 @@ export function BalanceDetailView({
             <CommentSection
               contentId={game.contentId}
               comments={comments}
+              focusedComment={focusedComment}
               sort={sort}
             />
           </div>

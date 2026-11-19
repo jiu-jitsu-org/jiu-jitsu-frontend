@@ -24,13 +24,21 @@ export async function PostDetailScreen({
   postId,
   sort,
   sampleBelts = false,
+  focusCommentId = null,
 }: {
   postId: number;
   sort: CommentSort;
   /** (dev 전용) 작성자에 예시 띠를 얹는다 — belt-avatar-sample. */
   sampleBelts?: boolean;
+  /** 알림 · 푸시로 열 때 맨 위에 먼저 보여 줄 댓글 번호(#596). */
+  focusCommentId?: number | null;
 }) {
-  const result = await getPostDetailPageData(postId, sort, sampleBelts);
+  const result = await getPostDetailPageData(
+    postId,
+    sort,
+    sampleBelts,
+    focusCommentId,
+  );
 
   if (!result.ok) {
     // 만료 토큰 → 클라이언트가 네이티브 갱신 후 이 화면을 재실행(router.refresh)해 인증 상태로 복구.
@@ -55,13 +63,15 @@ export async function PostDetailScreen({
     );
   }
 
-  const { post, comments, competitionAlertSettings } = result.data;
+  const { post, comments, focusedComment, competitionAlertSettings } =
+    result.data;
   const competition = post.competition;
   const view = (
     <>
       <PostDetailView
         post={post}
         comments={comments}
+        focusedComment={focusedComment}
         sort={sort}
         attachment={
           competition ? (
