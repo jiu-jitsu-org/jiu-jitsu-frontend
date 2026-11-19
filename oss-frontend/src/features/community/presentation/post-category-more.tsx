@@ -26,7 +26,8 @@ export async function PostCategoryMore({
       posts={posts.map((post) => ({
         id: post.id,
         title: post.title,
-        body: post.body.replace(/\s+/g, " ").trim(),
+        // 카드엔 두 줄만 보이니 앞 120자만 넘긴다(웹뷰 무게 — 글 본문 전체를 실어 보내지 않게).
+        body: post.body.replace(/\s+/g, " ").trim().slice(0, 120),
         comments: post.counts.comments,
         createdAt: post.createdAt,
       }))}
