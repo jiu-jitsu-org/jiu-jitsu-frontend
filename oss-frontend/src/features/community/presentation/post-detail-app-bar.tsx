@@ -19,6 +19,10 @@ import { POST_EDIT_FROM_DETAIL } from "@/features/community/presentation/post-ed
 import { useOpenPostEdit } from "@/features/community/presentation/use-open-post-edit";
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
 import {
+  noticeBellToast,
+  useShowNoticeBell,
+} from "@/features/community/presentation/notice-bell";
+import {
   type BlockTarget,
   MEMBER_BLOCK_ACTION,
 } from "@/features/community/presentation/use-block-member";
@@ -62,9 +66,12 @@ export function PostDetailAppBar({
   isOwner,
   author,
   initialNoticeEnabled,
+  commented,
 }: {
   postId: number;
   isOwner: boolean;
+  /** 이 글에 내가 댓글을 단 적이 있는지(viewer.commented) — 남의 글은 이때만 종을 보인다(#527). */
+  commented: boolean;
   /** 글 작성자 — 신고 뒤 목록 토스트의 [차단] 대상(#550). id를 모르면 0이고 [차단]을 붙이지 않는다. */
   author: BlockTarget;
   initialNoticeEnabled: boolean;
@@ -90,6 +97,8 @@ export function PostDetailAppBar({
     setAlarmOn(initialNoticeEnabled);
   }
   const { guest } = useLoginGuard();
+  // 남의 글에서 댓글을 단 적이 없으면 받을 알림이 없어 종을 감춘다(#527).
+  const showBell = useShowNoticeBell({ isOwner, commented });
 
   /**
    * 알림 받기 토글 → 서버 저장(POST /api/community/notice-setting/{contentId}).
@@ -108,7 +117,7 @@ export function PostDetailAppBar({
 
     // 예시(데모)에선 네트워크 없이 토스트만(저장·롤백 없음).
     if (demo) {
-      toast.show(alarmToast(next), { tone: "info" });
+      toast.show(noticeBellToast(next, isOwner), { tone: "info" });
       return;
     }
 
@@ -135,7 +144,7 @@ export function PostDetailAppBar({
         typeof body?.data?.enabled === "boolean" ? body.data.enabled : next;
 
       setAlarmOn(enabled);
-      toast.show(alarmToast(enabled), { tone: "info" });
+      toast.show(noticeBellToast(enabled, isOwner), { tone: "info" });
     } catch {
       setAlarmOn(previous);
       toast.show("알림을 설정하지 못했어요", { tone: "error" });
@@ -266,33 +275,36 @@ export function PostDetailAppBar({
       {/* 우측 그룹: 알림종 + ⋮ 를 간격 0으로 붙여 우측 정렬. 비로그인은 통째로 없다. */}
       {guest ? null : (
         <div className="ml-auto flex items-center">
-          <button
-            type="button"
-            onClick={() => void toggleAlarm()}
-            aria-label={alarmOn ? "알림 끄기" : "알림 켜기"}
-            aria-pressed={alarmOn}
-            disabled={alarmPending}
-            // 눌림 면은 색 전환 없이 바로 깔린다 — 전환 속성은 이미 눌림 축소(scale)가 쓰고 있어
-            // transition-colors를 더하면 둘 중 하나가 덮인다.
-            className={cn(
-              "inline-flex size-10 items-center justify-center rounded-full text-icon-primary active:bg-surface-container-pressed",
-              REACTION_PRESS_MOTION,
-            )}
-          >
-            {/* 켜면 꼭대기를 축으로 땡그랑 흔들리고, 끄면 움츠렸다 돌아온다. */}
-            <span
-              key={alarmTurn}
+          {/* 알림종: 남의 글에서 댓글을 단 적이 없으면 없다(#527) — ⋮만 남아 같은 자리(우측 끝)에 선다. */}
+          {showBell ? (
+            <button
+              type="button"
+              onClick={() => void toggleAlarm()}
+              aria-label={alarmOn ? "알림 끄기" : "알림 켜기"}
+              aria-pressed={alarmOn}
+              disabled={alarmPending}
+              // 눌림 면은 색 전환 없이 바로 깔린다 — 전환 속성은 이미 눌림 축소(scale)가 쓰고 있어
+              // transition-colors를 더하면 둘 중 하나가 덮인다.
               className={cn(
-                "inline-flex",
-                alarmTurn > 0 &&
-                  (alarmOn
-                    ? "origin-top motion-safe:animate-bell-ring"
-                    : "motion-safe:animate-bell-mute"),
+                "inline-flex size-10 items-center justify-center rounded-full text-icon-primary active:bg-surface-container-pressed",
+                REACTION_PRESS_MOTION,
               )}
             >
-              {alarmOn ? <BellIcon size={24} /> : <BellOffIcon size={24} />}
-            </span>
-          </button>
+              {/* 켜면 꼭대기를 축으로 땡그랑 흔들리고, 끄면 움츠렸다 돌아온다. */}
+              <span
+                key={alarmTurn}
+                className={cn(
+                  "inline-flex",
+                  alarmTurn > 0 &&
+                    (alarmOn
+                      ? "origin-top motion-safe:animate-bell-ring"
+                      : "motion-safe:animate-bell-mute"),
+                )}
+              >
+                {alarmOn ? <BellIcon size={24} /> : <BellOffIcon size={24} />}
+              </span>
+            </button>
+          ) : null}
 
           <div className="relative">
             <IconButton
@@ -342,9 +354,4 @@ export function PostDetailAppBar({
       {reportDialog}
     </AppBarShell>
   );
-}
-
-/** 알림 on/off 안내 문구 — 확정된 상태 기준으로만 만든다. */
-function alarmToast(enabled: boolean): string {
-  return enabled ? "이 글의 알림을 받아요" : "이 글의 알림을 받지 않아요";
 }

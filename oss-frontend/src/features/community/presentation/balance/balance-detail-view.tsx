@@ -56,6 +56,7 @@ export function BalanceDetailView({
                 <BalanceDetailAppBar
                   contentId={game.contentId}
                   initialNoticeEnabled={game.noticeEnabled}
+                  commented={game.commented}
                 />
               }
             />

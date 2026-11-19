@@ -126,7 +126,10 @@ type BoardDetailDto = {
   isLiked: boolean;
   isSaved: boolean;
   imageList: { id: number; imageUrl: string }[];
-  /** 미설정이면 null로 오므로 매핑 시 false로 정규화. */
+  /**
+   * 미설정이면 null로 온다. 서버는 설정이 없는 글을 켜진 것으로 보고 알림을 보내므로(NoticeService
+   * findOrDefaultSetting · isContentNoticeEnabled 기본 ON) 매핑 시 true로 정규화한다(#527).
+   */
   noticeEnabled: boolean | null;
   author: {
     id: number;
@@ -286,7 +289,7 @@ function toPostDetail(dto: BoardDetailDto): PostDetail {
     createdAt: toKstIso(dto.createdAt),
     updatedAt: dto.updatedAt ? toKstIso(dto.updatedAt) : null,
     edited: dto.isUpdated,
-    noticeEnabled: dto.noticeEnabled ?? false,
+    noticeEnabled: dto.noticeEnabled ?? true,
     competitionId: dto.competitionId ?? null,
     ...(dto.competition ? { competition: toCompetition(dto.competition) } : {}),
   };

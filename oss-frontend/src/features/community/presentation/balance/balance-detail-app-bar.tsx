@@ -7,6 +7,10 @@ import { closeDetail } from "@/features/community/presentation/close-detail";
 import { REACTION_PRESS_MOTION } from "@/features/community/presentation/comment-reaction-styles";
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
+import {
+  noticeBellToast,
+  useShowNoticeBell,
+} from "@/features/community/presentation/notice-bell";
 import { cn } from "@/shared/lib/cn";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { requestNativeLogin } from "@/shared/lib/native-bridge";
@@ -25,17 +29,19 @@ import { BackArrowIcon, BellIcon, BellOffIcon } from "@/shared/ui/icons";
  * 웹 단독은 브라우저 히스토리. 웹이 그리는 이유는 PostDetailAppBar 참고(#144).
  *
  * 앱 웹뷰 비로그인은 종도 감춰 뒤로가기만 남는다 — 게시글 상세와 같은 정책(#173).
+ * 글쓴이 알림이 없는 운영 콘텐츠라 종이 바꾸는 것은 내 댓글의 답글 · 좋아요 알림뿐이다 — 남의 글과 같이
+ * 댓글을 단 적이 없으면 종을 감추고, 문구도 남의 글 문구를 쓴다(#527).
  */
-function alarmToast(enabled: boolean): string {
-  return enabled ? "이 글의 알림을 받아요" : "이 글의 알림을 받지 않아요";
-}
 
 export function BalanceDetailAppBar({
   contentId,
   initialNoticeEnabled,
+  commented,
 }: {
   contentId: number;
   initialNoticeEnabled: boolean;
+  /** 이 밸런스 게임에 내가 댓글을 단 적이 있는지 — 이때만 종을 보인다(#527). */
+  commented: boolean;
 }) {
   const toast = useToast();
   const demo = useIsDemoMode();
@@ -52,6 +58,7 @@ export function BalanceDetailAppBar({
     setAlarmOn(initialNoticeEnabled);
   }
   const { guest } = useLoginGuard();
+  const showBell = useShowNoticeBell({ isOwner: false, commented });
 
   /**
    * 알림 받기 토글 → 서버 저장(POST /api/community/notice-setting/{contentId}).
@@ -70,7 +77,7 @@ export function BalanceDetailAppBar({
 
     // 예시(데모)에선 네트워크 없이 토스트만(저장·롤백 없음).
     if (demo) {
-      toast.show(alarmToast(next), { tone: "info" });
+      toast.show(noticeBellToast(next, false), { tone: "info" });
       return;
     }
 
@@ -97,7 +104,7 @@ export function BalanceDetailAppBar({
         typeof body?.data?.enabled === "boolean" ? body.data.enabled : next;
 
       setAlarmOn(enabled);
-      toast.show(alarmToast(enabled), { tone: "info" });
+      toast.show(noticeBellToast(enabled, false), { tone: "info" });
     } catch {
       setAlarmOn(previous);
       toast.show("알림을 설정하지 못했어요", { tone: "error" });
@@ -115,7 +122,7 @@ export function BalanceDetailAppBar({
       </IconButton>
 
       {/* 우측 정렬 — 게시글 상세 앱바와 같은 규격(40x40, 아이콘 24). ⋮가 없어 종 하나만 놓인다. */}
-      {guest ? null : (
+      {guest || !showBell ? null : (
         <div className="ml-auto flex items-center">
           <button
             type="button"
