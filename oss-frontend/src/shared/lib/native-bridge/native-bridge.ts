@@ -7,6 +7,7 @@ import {
   type CompetitionAlertsEnabledPayload,
   type CompetitionHeaderTintPayload,
   type ContentCreatedPayload,
+  type HomeCategoryTabsPayload,
   type LoginPromptReason,
   type OpenCompetitionRecordPayload,
   type OpenHomeFeedPayload,
@@ -269,6 +270,19 @@ export function setNativeCompetitionHeaderTint(
     type: OutboundMessageType.COMPETITION_HEADER_TINT,
     payload: { color },
   });
+}
+
+/**
+ * 앱 머리줄에 홈 카테고리 칩을 그리도록 칩 목록과 고른 칩을 알린다(HOME_CATEGORY_TABS).
+ * 지원하지 않는 앱·브라우저에서는 보내지 않는다(웹이 칩 줄을 그대로 그린다).
+ */
+export function setNativeHomeCategoryTabs(
+  payload: HomeCategoryTabsPayload,
+): void {
+  if (!supportsNativeMessage(OutboundMessageType.HOME_CATEGORY_TABS)) {
+    return;
+  }
+  postToNative({ type: OutboundMessageType.HOME_CATEGORY_TABS, payload });
 }
 
 /**
