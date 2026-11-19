@@ -36,7 +36,11 @@ export function CompetitionPicker({
 }: {
   options: CompetitionPickerOption[];
   value: number | null;
-  onChange: (competitionId: number | null) => void;
+  /** pickedBy: 펼친 목록에서 골랐나, 이름을 쳐서 찾아 골랐나 — 글 등록 기록(GA, #619)의 competition_pick. */
+  onChange: (
+    competitionId: number | null,
+    pickedBy?: "list" | "search",
+  ) => void;
   currentYear: number;
 }) {
   const [open, setOpen] = useState(false);
@@ -156,7 +160,7 @@ export function CompetitionPicker({
                     aria-pressed={on}
                     onClick={() => {
                       setPicked(option);
-                      onChange(option.id);
+                      onChange(option.id, searching ? "search" : "list");
                       close();
                     }}
                     className={cn(

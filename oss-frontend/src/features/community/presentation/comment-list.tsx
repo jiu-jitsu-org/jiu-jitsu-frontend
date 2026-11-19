@@ -18,6 +18,7 @@ import {
   usePlacement,
   useSettlePosted,
 } from "@/features/community/presentation/comment-reply-context";
+import { track } from "@/shared/lib/analytics";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 
 /** 버튼 자리를 유지한 채 문구만 바꾼다 — 대댓글 더보기(CommentReplies)와 같은 문구 · 같은 동작. */
@@ -184,6 +185,19 @@ export function CommentList({
 
   // 연달아 눌러도 한 번만 나가게 막는다(state는 다음 렌더에야 반영된다).
   const loadingRef = useRef(false);
+  // 지금 그리는 글·정렬 — 더보기 응답이 왔을 때 아직 같은 목록인지 본다(GA 기록, #619). 아래 latestRef는
+  // 이 useCallback보다 뒤에 선언돼 여기서 잡으면 react-hooks/immutability에 걸려 따로 둔다.
+  const signatureRef = useRef(current.signature);
+  useEffect(() => {
+    signatureRef.current = current.signature;
+  });
+  // 받는 사이 목록이 사라지면(상세 닫힘) 늦은 응답은 붙지 않으니 세지 않는다.
+  useEffect(
+    () => () => {
+      signatureRef.current = "";
+    },
+    [],
+  );
 
   const loadMore = useCallback(async () => {
     if (loadingRef.current || !hasMore) return;
@@ -195,6 +209,11 @@ export function CommentList({
 
     const result = await fetchCommentPage(contentId, sort, page);
     loadingRef.current = false;
+    // '댓글 더보기' 기록(GA, #619) — 서버 렌더 첫 페이지(page 0)를 1로 센 순번. 받기에 성공했고, 받는 사이
+    // 글·정렬이 바뀌지 않아 목록에 붙을 때만.
+    if (result && signatureRef.current === requestSignature) {
+      track("list_load_more", { page: page + 1 });
+    }
 
     setState((prev) => {
       // 받는 사이 글·정렬이 바뀌었으면 버린다.

@@ -3,7 +3,12 @@
 import { useRouter } from "next/navigation";
 
 import { withFocusedComment } from "@/features/community/presentation/focused-comment-param";
-import { entryPath, type ScreenFrom } from "@/shared/lib/analytics";
+import {
+  entryPath,
+  trackSelectContent,
+  type ScreenFrom,
+  type SelectContentDetail,
+} from "@/shared/lib/analytics";
 import {
   isNativeBridgeAvailable,
   openNativeSubview,
@@ -26,6 +31,7 @@ function balanceDetailPath(contentId: number): string {
  *
  * from: 들어온 길(GA, #576 — `entryPath`). 주지 않으면 지금 화면 이름을 쓴다.
  * commentId: 알림에서 연 댓글(#596) — 게시글 상세와 같이 `?commentId=`로 싣는다.
+ * detail: 열람 기록(`select_content`, #619)에 더할 목록 순번 · 알림 정보.
  *
  * 게시글과 다른 점: 복귀 시 갱신 표시(markPostDirty)를 남기지 않는다. 게시글 목록은 어떤 카드가 바뀌었는지
  *    알아야 해서 대상을 기록하지만, 밸런스 게임은 화면에 하나뿐이라 고를 것이 없다.
@@ -35,7 +41,12 @@ function balanceDetailPath(contentId: number): string {
 export function useOpenBalanceDetail(from?: ScreenFrom) {
   const router = useRouter();
 
-  return (contentId: number, commentId?: number | null) => {
+  return (
+    contentId: number,
+    commentId?: number | null,
+    detail?: SelectContentDetail,
+  ) => {
+    trackSelectContent("balance_game", contentId, from, detail);
     const path = entryPath(
       withFocusedComment(balanceDetailPath(contentId), commentId),
       from,

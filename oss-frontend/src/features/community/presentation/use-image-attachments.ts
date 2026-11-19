@@ -7,6 +7,7 @@ import {
   deleteUploadedImage,
   uploadImageAndRegister,
 } from "@/features/community/presentation/community-write-client";
+import { track } from "@/shared/lib/analytics";
 import {
   OutboundMessageType,
   requestNativePhotos,
@@ -80,6 +81,41 @@ export function isAttachmentOutOfAspect(item: Attachment): boolean {
 }
 
 /**
+ * 한 번 고른 사진 묶음(`photo_attach`, #619). 그 장들이 모두 끝나면(올라감 · 실패) 한 번 남긴다 — 묶음이 끝나기 전에
+ * 편집(크롭) · ↻ 다시 올리기로 다시 올리는 장은 그 결과를, 백그라운드 복귀로 실패가 된 장은 실패를 센다.
+ * 도중에 ✕로 지운 장은 뺀다. 묶음의 장이 모두 빠졌으면(✕ · 작성 취소) 앱 사진 선택에서 못 받은 장까지 함께
+ * 버린다 — 사용자가 그 묶음을 버린 것으로 본다.
+ * seen: 첨부 목록에 들어간 것을 본 적이 있는지 — 묶음을 넣은 직후 앞 렌더의 effect가 늦게 돌면 아직 목록에
+ * 없는데, 그때 지운 것으로 보지 않게 한다.
+ */
+type PhotoBatch = {
+  method: PhotoSource;
+  ids: string[];
+  notLoaded: number;
+  seen: boolean;
+};
+
+/**
+ * 묶음 결과 기록. photo_count = 남은 장 + 받지 못한 장(앱 사진 선택), result는 같은 장들 기준으로
+ * 전부 올라감 ok · 일부 partial · 하나도 못 올림 fail. 셀 장이 없으면 남기지 않는다.
+ * 업로드 · 받기 실패 안내 자체는 `error_shown`(#583) 몫.
+ */
+function trackPhotoAttach(
+  method: PhotoSource,
+  statuses: AttachmentStatus[],
+  notLoaded: number,
+): void {
+  const total = statuses.length + notLoaded;
+  if (total === 0) return;
+  const done = statuses.filter((status) => status === "done").length;
+  track("photo_attach", {
+    method,
+    photo_count: total,
+    result: done === total ? "ok" : done === 0 ? "fail" : "partial",
+  });
+}
+
+/**
  * 게시글 작성 이미지 첨부 훅 (선택 즉시 개별 업로드 / 웹 단독).
  *
  * 책임:
@@ -103,6 +139,8 @@ export function isAttachmentOutOfAspect(item: Attachment): boolean {
  * 작성을 취소하면(`abandonAll`) 그 imageId를 서버에서 바로 지운다(best-effort, 실패는 서버 배치가 수거).
  * 편집 · 삭제 · 백그라운드 복귀로 세대가 바뀐 뒤 늦게 도착한 업로드 결과도 받는 즉시 지운다.
  * 등록 · 수정에 성공한 뒤 화면을 비우는 `discardAll`은 지우지 않는다 — 그 이미지는 이미 글에 붙어 있다.
+ *
+ * 기록(GA, #619): 한 번 고른 묶음의 장이 모두 끝나면 `photo_attach`를 한 번 남긴다(PhotoBatch).
  */
 export function useImageAttachments() {
   const toast = useToast();
@@ -124,6 +162,27 @@ export function useImageAttachments() {
       );
     };
   }, []);
+
+  // 사진 묶음 기록(GA, #619) — 묶음의 장이 모두 끝나는 렌더에서 남긴다.
+  const photoBatchesRef = useRef<PhotoBatch[]>([]);
+  useEffect(() => {
+    if (photoBatchesRef.current.length === 0) return;
+    photoBatchesRef.current = photoBatchesRef.current.filter((batch) => {
+      const items = attachments.filter((item) =>
+        batch.ids.includes(item.localId),
+      );
+      if (items.length > 0) batch.seen = true;
+      if (!batch.seen) return true;
+      if (items.some((item) => item.status === "uploading")) return true;
+      if (items.length === 0) return false;
+      trackPhotoAttach(
+        batch.method,
+        items.map((item) => item.status),
+        batch.notLoaded,
+      );
+      return false;
+    });
+  }, [attachments]);
 
   const remaining = MAX_IMAGES - attachments.length;
   const canAddMore = remaining > 0;
@@ -216,11 +275,21 @@ export function useImageAttachments() {
   /**
    * 고른 파일들을 한도 내에서 첨부에 추가하고 즉시 장별 업로드를 시작한다.
    * 남은 자리는 최신 목록(attachmentsRef)으로 센다 — 네이티브 선택 결과는 피커를 연 시점보다 늦게 도착한다.
+   * method · notLoadedCount(앱 사진 선택에서 받지 못한 장)는 사진 묶음 기록(GA, #619)에 쓴다. 한 장도 못 받았으면
+   * 바로 fail로 남기고, 자리가 없어 하나도 담지 않았으면(한도 토스트) 받아 올린 것이 아니라 남기지 않는다.
    */
   const addFiles = useCallback(
-    (fileList: FileList | File[] | null) => {
+    (
+      fileList: FileList | File[] | null,
+      method: PhotoSource,
+      notLoadedCount = 0,
+    ) => {
       const files = Array.from(fileList ?? []);
-      if (files.length === 0) return;
+      if (files.length === 0) {
+        // 앱 사진 선택에서 고른 사진을 하나도 못 받았으면 실패로 남긴다(취소는 0장 · 0실패라 남기지 않음).
+        trackPhotoAttach(method, [], notLoadedCount);
+        return;
+      }
 
       const room = MAX_IMAGES - attachmentsRef.current.length;
       if (room <= 0) {
@@ -243,6 +312,12 @@ export function useImageAttachments() {
         uploadSeq: 0,
       }));
       setAttachments((prev) => [...prev, ...next]);
+      photoBatchesRef.current.push({
+        method,
+        ids: next.map((item) => item.localId),
+        notLoaded: notLoadedCount,
+        seen: false,
+      });
       // 장별로 독립 실행 — 한 장 실패가 다른 장을 막지 않는다. 크기 읽기는 업로드와 병행.
       next.forEach((item) => {
         void measureSource(item.localId, item.source);
@@ -255,7 +330,10 @@ export function useImageAttachments() {
   /** 숨겨진 file input의 onChange. 같은 파일 재선택도 발화되도록 value를 비운다. */
   const onFileChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
-      addFiles(event.target.files);
+      addFiles(
+        event.target.files,
+        event.target === cameraInputRef.current ? "camera" : "album",
+      );
       event.target.value = "";
     },
     [addFiles],
@@ -292,7 +370,7 @@ export function useImageAttachments() {
         nativePickingRef.current = true;
         requestNativePhotos(limit)
           .then(({ files, failedCount }) => {
-            addFiles(files);
+            addFiles(files, "album", failedCount);
             if (failedCount > 0)
               toast.show(photosNotLoadedMessage(failedCount), { tone: "error" });
           })

@@ -11,7 +11,13 @@ import {
 } from "react";
 import { flushSync } from "react-dom";
 
-import { setNextScreenFrom } from "@/shared/lib/analytics";
+import {
+  contentIdOf,
+  currentScreenFrom,
+  setNextScreenFrom,
+  track,
+  type ScreenFrom,
+} from "@/shared/lib/analytics";
 import { cn } from "@/shared/lib/cn";
 import { ApiErrorCode } from "@/shared/lib/http/api-error";
 import { useViewportRect } from "@/features/community/presentation/use-viewport-rect";
@@ -52,6 +58,10 @@ import {
 import type { PostWritePrefill } from "@/features/community/domain/post-write-prefill";
 import { WeeklyTopic } from "@/features/community/presentation/weekly-topic";
 import { revealInRow } from "@/features/community/presentation/reveal-in-row";
+import {
+  bodyLengthBucket,
+  categoryParam,
+} from "@/features/community/presentation/post-analytics";
 import {
   markPostCreated,
   markPostDirty,
@@ -296,6 +306,17 @@ export function PostWriteScreen({
   const [competitionId, setCompetitionId] = useState<number | null>(
     initialCompetitionId,
   );
+  // 대회를 어떻게 골랐나 — 글 등록 기록(GA, #619)의 competition_pick. 미리 고른 대회로 열렸으면 prefilled.
+  const competitionPickRef = useRef<"prefilled" | "list" | "search" | null>(
+    initialCompetitionId !== null && !edit ? "prefilled" : null,
+  );
+  function changeCompetition(
+    next: number | null,
+    pickedBy?: "list" | "search",
+  ) {
+    setCompetitionId(next);
+    competitionPickRef.current = next === null ? null : (pickedBy ?? "list");
+  }
   const selectedCategory = categories.find(
     (category) => category.id === categoryId,
   );
@@ -435,6 +456,27 @@ export function PostWriteScreen({
   const submittingRef = useRef(false);
   // 등록을 끝내지 못하고 화면을 떠나면 시간 기록을 버린다(#486) — 다음 글이 옛 시작 시각으로 재지 않게.
   useEffect(() => abandonWriteTiming, []);
+  // 이 화면에 들어온 길(GA, #619) — 화면 기록(screen_view)이 정한 from. 글쓰기 · 수정 기록이 함께 싣는다.
+  const entryFromRef = useRef<ScreenFrom | undefined>(undefined);
+  const writeStartTrackedRef = useRef(false);
+  useEffect(() => {
+    entryFromRef.current = currentScreenFrom();
+    // 새 글만 — 수정 화면은 post_write_start가 아니다. 개발 모드의 effect 두 번 실행에도 한 번만.
+    if (edit || writeStartTrackedRef.current) return;
+    writeStartTrackedRef.current = true;
+    track("post_write_start", {
+      from: entryFromRef.current,
+      category: categoryParam(
+        categories.find((category) => category.id === initialCategoryId),
+      ),
+      competition_id:
+        initialCompetitionId === null
+          ? undefined
+          : contentIdOf("competition", initialCompetitionId),
+    });
+    // 열릴 때 한 번 — 처음 값만 본다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const attachmentKey = attachments.map((item) => item.localId).join(",");
   const hasUploadingImage = attachments.some((item) => item.status === "uploading");
   useEffect(() => {
@@ -736,6 +778,13 @@ export function PostWriteScreen({
       // 취소("계속 작성")면 화면을 유지한다 — CLOSE_SUBVIEW를 보내지 않는다.
       if (!confirmed) return;
     }
+    // 등록하지 않고 나감(GA, #619) — 새 글만. 입력이 있었으면 이탈 확인의 "나가기"를 거친 것이다.
+    if (!edit) {
+      track("post_write_cancel", {
+        from: entryFromRef.current,
+        has_input: isDirty,
+      });
+    }
     // 작성 취소 — 올려 두고 글에 붙이지 않은 이미지를 서버에서 지운다(#146). 등록 · 수정 성공은 closeScreen만 거친다.
     abandonAll();
     closeScreen();
@@ -940,6 +989,12 @@ export function PostWriteScreen({
           // 서버는 보낸 값으로 바꾸고 생략·null이면 연결을 푼다 — 늘 다시 보낸다(#417).
           competitionId: submittedCompetitionId,
         });
+        // 수정 성공 기록(GA, #619) — 화면을 떠나기 전에.
+        track("post_edit", {
+          content_id: contentIdOf("post", edit.postId),
+          category: categoryParam(selectedCategory),
+          from: entryFromRef.current,
+        });
         // 목록/상세가 복귀 시 이 글을 다시 읽게 표시한다(제목·이미지가 바뀌었을 수 있음).
         markPostDirty(edit.postId);
         // 성공 경로는 잠금을 풀지 않는다 — 이동이 끝나기 전 연타로 중복 전송되는 것을 막는다(#157).
@@ -973,6 +1028,24 @@ export function PostWriteScreen({
       // 앱이 알림 권한 안내를 띄울지 정하게 알린다(#495). 생성 성공에서만 — 수정 · 실패는 보내지 않고,
       // 이어 열리는 상세는 보내지 않으므로 한 번 등록에 한 번이다.
       notifyContentCreated("POST");
+      // 등록 성공 기록(GA, #619) — 상세로 바뀌기 전에. 제목 · 본문 · 태그 원문은 싣지 않고 개수 · 길이 구간만.
+      track("post_create", {
+        from: entryFromRef.current,
+        category: categoryParam(selectedCategory),
+        has_photo: imageFileIdList.length > 0,
+        photo_count: imageFileIdList.length,
+        tag_count: finalTags.length,
+        has_competition: linkedCompetitionId !== null,
+        competition_id:
+          linkedCompetitionId === null
+            ? undefined
+            : contentIdOf("competition", linkedCompetitionId),
+        competition_pick:
+          linkedCompetitionId === null
+            ? "none"
+            : (competitionPickRef.current ?? "list"),
+        body_len: bodyLengthBucket(body),
+      });
       // 성공일 때만 떠난다(goToDetail이 로컬 미리보기까지 정리). 잠금은 유지 — 위 수정 성공과 같은 이유.
       // 이어 바뀌는 상세의 화면 기록에 "글 등록 직후"로 들어왔다고 남긴다(GA, #576).
       setNextScreenFrom("post_create");
@@ -1142,7 +1215,7 @@ export function PostWriteScreen({
           <CompetitionPicker
             options={competitionPicker.options}
             value={competitionId}
-            onChange={setCompetitionId}
+            onChange={changeCompetition}
             currentYear={competitionPicker.currentYear}
           />
         </div>

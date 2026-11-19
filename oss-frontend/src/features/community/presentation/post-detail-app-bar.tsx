@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
+import { contentIdOf, track } from "@/shared/lib/analytics";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { MenuBox, MenuItem } from "@/features/community/presentation/menu-box";
 import { requestNativeLogin } from "@/shared/lib/native-bridge";
@@ -67,9 +68,12 @@ export function PostDetailAppBar({
   author,
   initialNoticeEnabled,
   commented,
+  commentCount,
 }: {
   postId: number;
   isOwner: boolean;
+  /** 댓글 수 — 글 삭제 기록(GA, #619)의 has_comments. */
+  commentCount: number;
   /** 이 글에 내가 댓글을 단 적이 있는지(viewer.commented) — 남의 글은 이때만 종을 보인다(#527). */
   commented: boolean;
   /** 글 작성자 — 신고 뒤 목록 토스트의 [차단] 대상(#550). id를 모르면 0이고 [차단]을 붙이지 않는다. */
@@ -181,6 +185,12 @@ export function PostDetailAppBar({
       return;
     }
 
+    // 지운 글은 서버에 흔적이 남지 않아 여기서 남긴다(GA, #619). 화면을 닫기 전에.
+    track("post_delete", {
+      content_id: contentIdOf("post", postId),
+      from: "post_menu",
+      has_comments: commentCount > 0,
+    });
     // 닫히는 화면에 띄우면 토스트도 웹뷰와 함께 사라진다 → 문구만 넘기고 목록이 띄운다.
     enqueuePendingToast("게시글을 삭제했어요", { tone: "success" });
     // 카드 제거는 복귀 시 단건 재조회(404)가 처리한다(#73).

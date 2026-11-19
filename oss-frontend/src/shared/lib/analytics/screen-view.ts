@@ -47,12 +47,21 @@ type ScreenViewParams = {
   section?: string;
 };
 
-let current: { key: string; name: ScreenName } | null = null;
+let current: { key: string; name: ScreenName; from?: ScreenFrom } | null =
+  null;
 let nextFrom: ScreenFrom | undefined;
 
 /** 이 문서의 지금 화면 이름. 다음 화면을 열 때 `from` 기본값으로 쓴다. 아직 모르면 undefined. */
 export function currentScreenName(): ScreenName | undefined {
   return current?.name;
+}
+
+/**
+ * 이 문서의 지금 화면에 들어온 길(그 화면 `screen_view`의 from). 글쓰기 · 수정 화면의 기록이 입구를 싣는다(#619).
+ * 아직 모르면 undefined.
+ */
+export function currentScreenFrom(): ScreenFrom | undefined {
+  return current?.from;
 }
 
 /** 바로 다음 같은 문서 안 이동의 `from`을 정한다(예: 글 등록 뒤 상세 = "post_create"). 한 번 쓰고 지운다. */
@@ -122,8 +131,8 @@ export function reportScreen(
     return;
   }
   const previous = current?.name;
-  current = { key, name: screen.name };
   const resolvedFrom = from ?? nextFrom ?? previous;
+  current = { key, name: screen.name, from: resolvedFrom };
   nextFrom = undefined;
 
   const params: ScreenViewParams = {

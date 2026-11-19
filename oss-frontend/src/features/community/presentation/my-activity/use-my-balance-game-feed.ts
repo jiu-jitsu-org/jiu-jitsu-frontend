@@ -8,6 +8,7 @@ import type {
 } from "@/features/community/domain/balance-game";
 import { MY_BALANCE_GAME_LIST_URL } from "@/features/community/presentation/my-activity/my-activity-tab";
 import { feedPageUrl } from "@/features/community/presentation/use-board-feed";
+import { track } from "@/shared/lib/analytics";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 
 type FeedStatus = "idle" | "loading" | "error";
@@ -56,6 +57,8 @@ export function useMyBalanceGameFeed(initial: {
       setPage(list.page);
       setIsLast(list.isLast);
       setStatus("idle");
+      // 이어 받기 기록(GA, #619) — page는 첫 묶음을 1로 센 순번(서버 page는 0부터).
+      track("list_load_more", { page: list.page + 1 });
     } catch {
       setStatus("error");
     } finally {

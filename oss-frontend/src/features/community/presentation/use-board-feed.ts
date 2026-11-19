@@ -7,6 +7,7 @@ import {
   type PostList,
   type PostSummary,
 } from "@/features/community/domain/post-summary";
+import { track } from "@/shared/lib/analytics";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 
 /**
@@ -100,6 +101,8 @@ export function useBoardFeed(
       setPage(list.page);
       setIsLast(list.isLast);
       setStatus("idle");
+      // 이어 받기 기록(GA, #619) — page는 첫 묶음을 1로 센 순번(서버 page는 0부터).
+      track("list_load_more", { page: list.page + 1 });
     } catch {
       setStatus("error");
     } finally {

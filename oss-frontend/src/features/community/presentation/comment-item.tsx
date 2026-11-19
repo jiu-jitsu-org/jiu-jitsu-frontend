@@ -231,6 +231,7 @@ export function CommentItem({
             authorId={comment.author.userId}
             isOwner={comment.isOwner}
             authorNickname={comment.author.nickname}
+            isReply={isReply}
           />
         </div>
 

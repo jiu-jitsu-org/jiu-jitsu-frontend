@@ -32,7 +32,8 @@ export function PostCategoryMoreList({
   title: string;
   posts: CategoryMorePost[];
 }) {
-  const openPost = useOpenPostDetail();
+  // 열람 기록(GA)의 입구는 '같은 카테고리의 다른 글'(#619) — 주지 않으면 지금 화면(post_detail)으로 남는다.
+  const openPost = useOpenPostDetail("related_posts");
 
   return (
     <>
@@ -44,11 +45,13 @@ export function PostCategoryMoreList({
         </h2>
         {/* 가로 줄은 화면 끝까지 — 첫 카드만 제목과 같은 세로선(16)에 서고, 밀면 카드가 화면 끝에서 잘린다. */}
         <ul className="mt-3 flex snap-x snap-mandatory scroll-px-4 gap-2 overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {posts.map((post) => (
+          {posts.map((post, index) => (
             <li key={post.id} className="w-[280px] shrink-0 snap-start">
               <button
                 type="button"
-                onClick={() => openPost(post.id)}
+                onClick={() =>
+                  openPost(post.id, null, { position: index + 1 })
+                }
                 className={cn(
                   "flex w-full flex-col rounded-20 bg-surface-field-subtle px-5 py-[18px] text-left",
                   SURFACE_PRESS,
