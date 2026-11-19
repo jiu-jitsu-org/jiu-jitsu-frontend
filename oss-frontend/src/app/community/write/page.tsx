@@ -1,4 +1,5 @@
 import { getPostCategoriesOrFallback } from "@/features/community/application/get-post-write-page-data";
+import { parsePostWritePrefill } from "@/features/community/domain/post-write-prefill";
 import { PostWriteScreen } from "@/features/community/presentation/post-write-screen";
 import { getCompetitionPickerForWrite } from "@/features/competition/application/get-competition-picker-options";
 import { parseCompetitionId } from "@/features/competition/domain/competition";
@@ -12,14 +13,21 @@ import { readServerNow, toKstDateKey } from "@/shared/lib/time";
  * 클라이언트 화면(PostWriteScreen)에 위임한다.
  * `?competitionId=<숫자>`로 들어오면(대회 이야기의 "첫 글 남기기", #433) '대회' 카테고리와 그 대회를 미리 골라 둔다.
  * 숫자가 아니거나 고를 수 없는 대회면 무시하고 빈 글쓰기로 연다.
+ * `?categoryId=` · `?topic=` · `?title=`(#588)는 카테고리 · 써 볼 주제 · 제목을 미리 채운다(parsePostWritePrefill).
  */
 export default async function CommunityWritePage({
   searchParams,
 }: {
-  searchParams: Promise<{ competitionId?: string | string[] }>;
+  searchParams: Promise<{
+    competitionId?: string | string[];
+    categoryId?: string | string[];
+    title?: string | string[];
+    topic?: string | string[];
+  }>;
 }) {
   const now = readServerNow();
-  const { competitionId: rawCompetitionId } = await searchParams;
+  const params = await searchParams;
+  const rawCompetitionId = params.competitionId;
   const preselectId =
     typeof rawCompetitionId === "string"
       ? parseCompetitionId(rawCompetitionId)
@@ -33,6 +41,7 @@ export default async function CommunityWritePage({
     <>
       <PostWriteScreen
         categories={categories}
+        prefill={parsePostWritePrefill(params, categories)}
         competitionPicker={
           competition.options.length > 0
             ? {

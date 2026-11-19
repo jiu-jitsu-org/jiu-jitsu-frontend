@@ -41,11 +41,17 @@ import {
   RetryIcon,
 } from "@/shared/ui/icons";
 
-import type {
-  PostCategory,
-  PostEditInitial,
-  PostImage,
+import {
+  COMPETITION_CATEGORY_NAME,
+  POST_TITLE_MAX_LENGTH,
+  findCompetitionCategory,
+  type PostCategory,
+  type PostEditInitial,
+  type PostImage,
 } from "@/features/community/domain/post";
+import type { PostWritePrefill } from "@/features/community/domain/post-write-prefill";
+import { WeeklyTopic } from "@/features/community/presentation/weekly-topic";
+import { revealInRow } from "@/features/community/presentation/reveal-in-row";
 import {
   markPostCreated,
   markPostDirty,
@@ -88,11 +94,9 @@ import {
  * 막지 않기 위해서다. 빈 본문(공백만 포함)은 올리기 버튼 비활성(hasRequiredInput)이 막고, 서버도 빈 값만 거른다.
  */
 const BODY_MAX_LENGTH = 3000;
-/** 대회 고르기 칸을 여는 카테고리(#367). id보다 이름으로 본다 — 카테고리 API가 실패한 폴백 목록에서도 같은 이름이다. */
-const COMPETITION_CATEGORY_NAME = "대회";
 /** 제목 글자 수 범위(2~45). */
 const TITLE_MIN_LENGTH = 2;
-const TITLE_MAX_LENGTH = 45;
+const TITLE_MAX_LENGTH = POST_TITLE_MAX_LENGTH;
 /** 태그 최대 개수(정책). */
 const MAX_TAGS = 3;
 /** 태그 1개 최대 글자 수(정책). */
@@ -214,10 +218,16 @@ const TAG_INPUT_TEXT_CLASS = "text-text-primary";
 export function PostWriteScreen({
   categories,
   edit,
+  prefill,
   competitionPicker,
 }: {
   /** 카테고리 칩 목록(GET /board/category) — 라우트(Server Component)가 읽어 넘긴다. */
   categories: PostCategory[];
+  /**
+   * 새 글을 미리 채워 열기(#588) — 카테고리 · 써 볼 주제 · 제목. 수정 모드는 무시한다.
+   * 대회 미리 고르기(competitionPicker.initialId)가 있으면 카테고리는 '대회'가 이긴다.
+   */
+  prefill?: PostWritePrefill;
   /**
    * 있으면 수정 모드 — 이 글의 기존 값으로 폼을 채운다.
    * returnToDetail: 상세 ⋮에서 연 수정 — 성공 시 새 상세를 쌓지 않고 원래 상세로 돌아간다(#157).
@@ -237,7 +247,10 @@ export function PostWriteScreen({
   const router = useRouter();
   const toast = useToast();
   const isEdit = edit !== undefined;
-  const [title, setTitle] = useState(edit?.initial.title ?? "");
+  const newPrefill = edit ? undefined : prefill;
+  // 미리 채운 제목(#588 — 검색 0건의 '이 주제로 글쓰기'). 손대지 않은 채 닫으면 쓰던 글로 보지 않는다.
+  const initialTitle = edit?.initial.title ?? newPrefill?.title ?? "";
+  const [title, setTitle] = useState(initialTitle);
   const [body, setBody] = useState(edit?.initial.body ?? "");
   const [submitting, setSubmitting] = useState(false);
   // 올리기를 눌렀는데 제목이 최소 글자 수 미달로 막혔는지(#251). 제목 카운터를 오류 색으로 바꿔 문제인 칸을
@@ -253,14 +266,24 @@ export function PostWriteScreen({
   // 새 글에 미리 고른 대회가 있으면(대회 이야기의 "첫 글 남기기", #433) '대회' 카테고리로 시작한다 — 사용자는 바꿀 수 있다.
   const prefillCategoryId =
     !edit && competitionPicker?.initialId != null
-      ? (categories.find(
-          (category) => category.name === COMPETITION_CATEGORY_NAME,
-        )?.id ?? null)
+      ? (findCompetitionCategory(categories)?.id ?? null)
       : null;
-  const initialCategoryId = edit?.initial.categoryId ?? prefillCategoryId;
+  // 그 밖에는 넘겨받은 카테고리로(#588 — 홈 카테고리 탭의 쓰기 버튼 · '이 주제로 쓰기').
+  const initialCategoryId =
+    edit?.initial.categoryId ??
+    prefillCategoryId ??
+    newPrefill?.categoryId ??
+    null;
   const [categoryId, setCategoryId] = useState<number | null>(
     initialCategoryId,
   );
+  // 미리 고른 카테고리(#588 · #433)가 줄 뒤쪽이면 가로로 밀려 안 보인다 — 처음 그릴 때 보이게 줄을 민다.
+  const categoryRowRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const row = categoryRowRef.current;
+    const chip = row?.querySelector<HTMLElement>("[data-selected]");
+    if (row && chip) revealInRow(row, chip, "auto");
+  }, []);
   // 고른 대회(#367). '대회' 카테고리일 때만 뜻이 있다 — 다른 카테고리로 바꾸면 보내지 않는다(고른 값은 남겨 둬
   // 다시 '대회'로 돌아오면 그대로 보인다).
   // 수정은 글 상세 응답의 competitionId로 시작한다(#417) — 고르기 칸이 없거나 대회를 건드리지 않았으면 그 값을 그대로 다시 보낸다.
@@ -273,9 +296,16 @@ export function PostWriteScreen({
   const [competitionId, setCompetitionId] = useState<number | null>(
     initialCompetitionId,
   );
+  const selectedCategory = categories.find(
+    (category) => category.id === categoryId,
+  );
   const competitionCategorySelected =
-    categories.find((category) => category.id === categoryId)?.name ===
-    COMPETITION_CATEGORY_NAME;
+    selectedCategory?.name === COMPETITION_CATEGORY_NAME;
+  // 써 볼 주제는 넘겨받은 그 카테고리를 고르고 있을 때만 보인다(#588).
+  const topic =
+    newPrefill?.topic && categoryId === newPrefill.categoryId
+      ? newPrefill.topic
+      : null;
   const linkedCompetitionId =
     competitionPicker && competitionCategorySelected ? competitionId : null;
   // 서버에 보낼 대회 — '대회'면 고른 값, 다른 카테고리로 바꿨을 때만 null(연결 풀기), 그 밖에는 처음 값 그대로.
@@ -382,7 +412,7 @@ export function PostWriteScreen({
       linkedCompetitionId !== initialLinkedCompetitionId
     : categoryId !== initialCategoryId ||
       competitionId !== initialCompetitionId ||
-      title.trim().length > 0 ||
+      (title.trim().length > 0 && title !== initialTitle) ||
       body.trim().length > 0 ||
       tags.length > 0 ||
       attachments.length > 0;
@@ -831,9 +861,9 @@ export function PostWriteScreen({
     }
     if (title.trim().length === 0) {
       return { field: "title", message: "제목을 입력해주세요" };
-    }
     if (body.trim().length === 0) {
       return { field: "body", message: "내용을 입력해주세요" };
+    }
     }
     if (isTitleShort(title)) {
       return {
@@ -1061,7 +1091,10 @@ export function PostWriteScreen({
           chip/default/text. 좌우 16(px-4)·좌우 패딩 12(px-3)·칩 간격 8(gap-2), 넘치면 가로 스크롤(스크롤바
           숨김). 스크롤 영역 밖(shrink-0)에 둬 본문을 아래로 길게 내려도 항상 헤더 아래 고정. */}
       {/* 빠진 채로 등록을 누르면 비선택 칩 테두리가 오류 색으로 바뀌고(#303) 칩 줄이 옆으로 살짝 한 번 흔들린다(#397). */}
-      <div className="shrink-0 overflow-x-auto px-4 pt-5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div
+        ref={categoryRowRef}
+        className="shrink-0 overflow-x-auto px-4 pt-5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
         <div
           role="group"
           aria-label="카테고리 (필수)"
@@ -1079,6 +1112,7 @@ export function PostWriteScreen({
               <Chip
                 key={category.id}
                 selected={selected}
+                data-selected={selected || undefined}
                 // 고른 칩은 파란 선·글자로 켜진다(#397 — 고른 게 한눈에 보이게, 대회 필터 칩과 같은 켜짐).
                 tone="primary"
                 // 미선택으로 등록이 막혔으면(#303) 비선택 칩 테두리를 오류 색으로 — 고르는 순간 풀린다.
@@ -1095,6 +1129,14 @@ export function PostWriteScreen({
           })}
         </div>
       </div>
+
+      {/* 넘겨받은 이번 주 써 볼 주제(#588 — 홈의 '이 주제로 쓰기'). 제목에 넣지 않고 위에 보여 주기만 한다.
+          그 주제의 카테고리를 고르고 있을 때만 — 다른 카테고리로 바꾸면 맞지 않는 주제가 남지 않게 숨는다. */}
+      {topic ? (
+        <div className="shrink-0 px-4 pt-3">
+          <WeeklyTopic topic={topic} />
+        </div>
+      ) : null}
 
       {/* '대회' 카테고리면 어떤 대회 이야기인지 고르는 칸(#367). 칩 줄과 같은 좌우 16, 칩 아래 12. */}
       {competitionPicker && competitionCategorySelected ? (

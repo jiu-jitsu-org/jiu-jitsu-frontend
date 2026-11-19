@@ -278,9 +278,16 @@ export class ExternalPostRepository implements PostRepository {
   constructor(private readonly httpClient: HttpClient) {}
 
   async getCategories(): Promise<PostCategory[]> {
-    // GET /board/category — Swagger "카테고리 목록 조회(임시)". data: [{ id, categoryName }].
+    // GET /board/category — data: [{ id, categoryName, description, weeklyTopic }], 보이는 순서대로(backend#263 · #267).
     const response = await this.httpClient.get<
-      Envelope<{ id: number; categoryName: string }[]>
+      Envelope<
+        {
+          id: number;
+          categoryName: string;
+          description?: string | null;
+          weeklyTopic?: string | null;
+        }[]
+      >
     >({
       path: `${BOARD_ENDPOINT_PATH}/category`,
     });
@@ -288,6 +295,8 @@ export class ExternalPostRepository implements PostRepository {
     return (response.data ?? []).map((item) => ({
       id: item.id,
       name: item.categoryName,
+      description: item.description?.trim() ?? "",
+      weeklyTopic: item.weeklyTopic?.trim() || null,
     }));
   }
 

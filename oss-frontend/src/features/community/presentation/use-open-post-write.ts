@@ -27,6 +27,8 @@ const POST_WRITE_PATH = "/community/write";
  * 닫기(등록/취소)는 작성 화면의 closeScreen이 CLOSE_SUBVIEW로 pop해 짝을 맞춘다.
  *
  * competitionId를 넘기면 '대회' 카테고리와 그 대회를 미리 골라 연다(`?competitionId=`, 대회 이야기의 "첫 글 남기기", #433).
+ * categoryId · topic · title은 카테고리 · 써 볼 주제 · 제목을 미리 채운다(`?categoryId=&topic=&title=`, #588 —
+ * 홈 카테고리 탭의 쓰기 버튼 · '이 주제로 쓰기' · 검색 0건의 '이 주제로 글쓰기'). 글쓰기 라우트가 parsePostWritePrefill로 좁힌다.
  *
  * from: 들어온 길(GA, #576 — `entryPath`). 주지 않으면 지금 화면 이름을 쓴다.
  *
@@ -35,14 +37,20 @@ const POST_WRITE_PATH = "/community/write";
  */
 export function useOpenPostWrite({
   competitionId,
+  categoryId,
+  topic,
+  title,
   from,
-}: { competitionId?: number; from?: ScreenFrom } = {}) {
+}: {
+  competitionId?: number;
+  categoryId?: number;
+  topic?: string;
+  title?: string;
+  from?: ScreenFrom;
+} = {}) {
   const router = useRouter();
   const { requireAuth } = useAuth();
-  const basePath =
-    competitionId === undefined
-      ? POST_WRITE_PATH
-      : `${POST_WRITE_PATH}?competitionId=${competitionId}`;
+  const basePath = postWritePath({ competitionId, categoryId, topic, title });
 
   return () => {
     requireAuth(
@@ -58,4 +66,24 @@ export function useOpenPostWrite({
       { reason: "write" },
     );
   };
+}
+
+/** 미리 채울 값을 붙인 글쓰기 경로. 빈 값은 싣지 않는다 — 아무것도 없으면 지금처럼 `/community/write`. */
+function postWritePath(prefill: {
+  competitionId?: number;
+  categoryId?: number;
+  topic?: string;
+  title?: string;
+}): string {
+  const query = new URLSearchParams();
+  if (prefill.competitionId !== undefined) {
+    query.set("competitionId", String(prefill.competitionId));
+  }
+  if (prefill.categoryId !== undefined) {
+    query.set("categoryId", String(prefill.categoryId));
+  }
+  if (prefill.topic?.trim()) query.set("topic", prefill.topic.trim());
+  if (prefill.title?.trim()) query.set("title", prefill.title.trim());
+  const search = query.toString();
+  return search ? `${POST_WRITE_PATH}?${search}` : POST_WRITE_PATH;
 }
