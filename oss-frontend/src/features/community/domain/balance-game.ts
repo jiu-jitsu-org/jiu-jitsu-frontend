@@ -103,7 +103,7 @@ export type BalanceGame = {
    * 알림 수신 여부 — 상세 앱바 종의 초기 상태.
    *
    * 상세 응답에 함께 오므로 진입할 때 `GET /notice/setting/board/{contentId}`를 따로 부르지
-   * 않는다(게시글 상세가 noticeEnabled를 상세 응답으로 받는 것과 같다). 미설정·비로그인은 false.
+   * 않는다(게시글 상세가 noticeEnabled를 상세 응답으로 받는 것과 같다). 미설정(null)은 서버 기본이 켜짐이라 true(#527).
    */
   noticeEnabled: boolean;
   /**
