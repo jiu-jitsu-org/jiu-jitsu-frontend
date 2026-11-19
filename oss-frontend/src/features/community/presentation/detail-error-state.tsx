@@ -3,6 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 
+import {
+  CONNECTION_LOST_MESSAGE,
+  useOnline,
+  useRetryWhenOnline,
+} from "@/features/community/presentation/connection-lost";
+
 import { Button } from "@/shared/ui/button";
 
 /**
@@ -18,17 +24,26 @@ import { Button } from "@/shared/ui/button";
 export function DetailErrorState({ title }: { title: string }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  // 망이 끊겨 있으면 연결 문구로 바꾸고, 돌아오면 한 번 저절로 다시 불러온다(#543).
+  // 끊긴 채 router.refresh를 부르면 Next가 문서 이동으로 넘어가 브라우저 오프라인 화면이 뜬다 — 재시도는 연결을 기다린다.
+  const online = useOnline();
+  const retry = () => startTransition(() => router.refresh());
+  useRetryWhenOnline(retry);
 
   return (
     // 뷰포트 전체 기준 가운데 정렬. 빈 화면에서 툭 튀지 않게 옅게 나타난다(피드 실패와 같은 fade-in).
     <div className="flex min-h-dvh flex-col items-center justify-center gap-[13px] px-4 text-center motion-safe:animate-fade-in">
-      <p className="text-body-m text-feed-card-body-text">{title}</p>
+      <p className="text-body-m text-feed-card-body-text">
+        {online ? title : CONNECTION_LOST_MESSAGE}
+      </p>
       {/* 피드 재시도 버튼과 같은 규격 · 같은 눌림(neutral 눌림 색). */}
       <Button
         variant="neutral"
         size="m"
         disabled={pending}
-        onClick={() => startTransition(() => router.refresh())}
+        onClick={() => {
+          if (navigator.onLine) retry();
+        }}
       >
         재시도
       </Button>

@@ -20,6 +20,11 @@ import {
   useBoardFeed,
 } from "@/features/community/presentation/use-board-feed";
 import { useInfiniteScroll } from "@/features/community/presentation/use-infinite-scroll";
+import {
+  CONNECTION_LOST_MESSAGE,
+  useOnline,
+  useRetryWhenOnline,
+} from "@/features/community/presentation/connection-lost";
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
 import { useOnBlockChange } from "@/features/community/presentation/block-change-watcher";
 import { useOnMyBeltChange } from "@/features/community/presentation/my-belt-watcher";
@@ -40,6 +45,8 @@ import {
   toggleHidePost,
 } from "@/features/community/presentation/hide-post";
 import { cn } from "@/shared/lib/cn";
+import { IconButton } from "@/shared/ui/icon-button";
+import { RetryIcon } from "@/shared/ui/icons";
 import {
   type PendingToastAction,
   usePendingToast,
@@ -583,7 +590,10 @@ export function FeedLoadingMore({
   );
 }
 
-/** 다음 페이지 로드 실패 — 안내 + 재시도. 로딩 표시와 같이 옅게 나타난다. */
+/**
+ * 다음 페이지 로드 실패 — 안내 + 재시도. 로딩 표시와 같이 옅게 나타난다.
+ * 망이 끊겨 있으면 연결 문구로 바꾸고, 연결이 돌아오면 한 번 저절로 다시 불러온다(#543).
+ */
 export function FeedLoadMoreError({
   onRetry,
   message = "게시글을 더 불러오지 못했어요",
@@ -591,18 +601,23 @@ export function FeedLoadMoreError({
   onRetry: () => void;
   message?: string;
 }) {
+  const online = useOnline();
+  useRetryWhenOnline(onRetry);
+
   return (
-    <div className="flex h-[69px] flex-col items-center justify-center gap-1 px-4 motion-safe:animate-fade-in">
-      <p className="text-body-s text-feed-card-body-text">{message}</p>
-      <button
-        type="button"
+    // 높이 69 = 문구 줄(21) + 아이콘 버튼(40). 아이콘(24)이 버튼 안에서 위로 8 비어 문구와 눈으로는 8 떨어진다.
+    <div className="flex h-[69px] flex-col items-center justify-center px-4 motion-safe:animate-fade-in">
+      <p className="text-body-s text-feed-card-body-text">
+        {online ? message : CONNECTION_LOST_MESSAGE}
+      </p>
+      {/* 다시 시도: kit 아이콘 버튼(ghost — 평소 면 없음, 누르는 동안 둥근 옅은 면) + 글쓰기 사진 업로드 실패와 같은 재시도 아이콘. */}
+      <IconButton
         onClick={onRetry}
-        // 글자 버튼이라 평소엔 면이 없고, 누르는 동안만 앱바 아이콘과 같은 옅은 면이 깔린다.
-        // 면 여백(px-2·py-0.5)은 음수 마진으로 상쇄해 줄 높이·문구 위치를 그대로 둔다.
-        className="-mx-2 -my-0.5 rounded-md px-2 py-0.5 text-sm font-semibold text-feed-card-body-text underline motion-safe:transition-colors motion-safe:duration-120 active:bg-surface-container-pressed"
+        aria-label="다시 시도"
+        className="text-feed-card-body-text"
       >
-        다시 시도
-      </button>
+        <RetryIcon size={24} />
+      </IconButton>
     </div>
   );
 }
