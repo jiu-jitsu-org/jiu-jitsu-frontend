@@ -17,6 +17,7 @@ import { Button } from "@/shared/ui/button";
  * className으로 높이를 줄인다.
  *
  * 홈 카테고리 탭(#590)처럼 클라이언트가 BFF로 읽은 목록은 onRetry로 그 목록만 다시 읽는다.
+ * 브라우저에서 직접 읽은 목록(글 검색, #591)은 router.refresh로 다시 읽히지 않아 onRetry로 재시도를 넘긴다.
  */
 export function FeedErrorState({
   className,

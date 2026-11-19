@@ -23,6 +23,7 @@ const SCREEN_NAMES = [
   "competition_list",
   "competition_calendar",
   "competition_detail",
+  "community_search",
   "policy",
 ] as const;
 
@@ -41,6 +42,8 @@ const ENTRY_FROMS = [
   "balance_closed",
   // 홈 카테고리 탭의 '이 주제로 쓰기'(#590) — 이번 주 써 볼 주제로 연 글쓰기.
   "topic_suggestion",
+  // 글 검색 0건의 '이 주제로 글쓰기'(#591).
+  "search_empty",
   // 브라우저 뒤로 가기로 다시 보인 화면(#576 후속) — 처음 입구를 다시 쓰지 않고 입구 집계에서 뺀다.
   "back",
 ] as const;
@@ -92,6 +95,7 @@ export function screenOf(
   if (path === "/community/notifications")
     return { name: "notification_inbox" };
   if (path === "/community/blocked-users") return { name: "blocked_users" };
+  if (path === "/community/search") return { name: "community_search" };
   if (path === "/community/me") {
     const tab = searchParams?.get("tab");
     return {
