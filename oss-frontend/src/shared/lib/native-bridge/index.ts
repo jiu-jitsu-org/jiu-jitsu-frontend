@@ -16,6 +16,7 @@ export type {
   LeaveGuardPayload,
   LoginPromptReason,
   OpenCompetitionRecordPayload,
+  OpenHomeFeedPayload,
   OpenSubviewPayload,
   OpenUserProfilePayload,
   PhotosPickedPayload,

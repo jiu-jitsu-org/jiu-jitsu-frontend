@@ -60,6 +60,8 @@ export const OutboundMessageType = {
   // 홈 피드로 가기(jiu-jitsu-frontend#366 · jiu-jitsu-ios#250). 대회 상세의 "커뮤니티에서 더 보기"가 보낸다.
   // 피드는 앱 홈 탭이 띄우는 화면이라 웹이 서브뷰로 열면 탭 바·헤더 없는 피드가 쌓인다 — 앱이 열린 서브뷰를 닫고
   // 홈 탭으로 바꾼다. 구버전 앱은 모르므로 지원 목록에 있을 때만 보내고, 없으면 피드를 서브뷰로 연다.
+  // 대회 이야기 '모두 보기'는 대회 번호를 함께 보낸다(#597 · #598 · jiu-jitsu-ios#437) — 앱이 홈을 `/?competitionId=`로 연다.
+  // 번호를 모르는 앱은 payload를 읽지 않고 지금처럼 피드만 연다.
   OPEN_HOME_FEED: "OPEN_HOME_FEED",
   // 대회 기록 남기기(jiu-jitsu-frontend#368 · jiu-jitsu-ios#252). 끝난 대회 상세의 "내 기록에 남기기"가 보낸다.
   // 앱의 대회 정보 추가 흐름을 대회 이름·연도를 채운 채로 연다. 지원 목록에 있을 때만 보낸다.
@@ -292,6 +294,14 @@ export type AnalyticsEventPayload = {
 /** `COMPETITION_HEADER_TINT` payload — 앱 머리를 칠할 색. "#RRGGBB" 이거나 null(앱 기본 머리색으로). */
 export type CompetitionHeaderTintPayload = {
   color: string | null;
+};
+
+/**
+ * `OPEN_HOME_FEED` payload(선택, #597 · jiu-jitsu-ios#437) — 홈 피드를 이 대회 글만으로 열 대회 번호(서버 대회 id, 숫자).
+ * 없으면 홈 피드를 그대로 연다.
+ */
+export type OpenHomeFeedPayload = {
+  competitionId: number;
 };
 
 /**
