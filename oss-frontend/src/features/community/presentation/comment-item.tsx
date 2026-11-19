@@ -5,6 +5,7 @@ import type { CommentSort } from "@/features/community/domain/post";
 import { Avatar } from "@/features/community/presentation/avatar";
 import { BeltAvatar } from "@/features/community/presentation/belt-avatar";
 import { CoachBadge } from "@/features/community/presentation/coach-badge";
+import { OperatorBadge } from "@/features/community/presentation/operator-badge";
 import { CommentLikeButton } from "@/features/community/presentation/comment-like-button";
 import { splitMentions } from "@/features/community/presentation/comment-mention";
 import { CommentReplyButton } from "@/features/community/presentation/comment-reply-button";
@@ -153,6 +154,12 @@ export function CommentItem({
               {comment.author.nickname}
             </span>
             {comment.author.isCoach ? <CoachBadge /> : null}
+            {/* 운영자(#595): 닉네임 묶음 뒤 6(2 + ml-1) — 뒤따르는 '작성자' 배지와 같은 간격. */}
+            {comment.author.isOperator ? (
+              <span className="ml-1 flex">
+                <OperatorBadge />
+              </span>
+            ) : null}
           </AuthorProfileLink>
           {comment.isPostAuthor ? (
             // 작성자 배지: comment-author-badge 토큰, radius 4, 패딩 좌우4·상하2, Label M

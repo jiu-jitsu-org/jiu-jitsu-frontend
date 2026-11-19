@@ -10,6 +10,7 @@ import { isDevelopmentRuntime } from "@/config/env";
  *
  * 서버가 글 작성자(author)에 띠·그랄을 아직 주지 않아 화면을 눈으로 확인할 방법이 없어 둔다.
  * 관장·사범 배지(#272)도 같은 이유로 여기서 함께 붙인다 — 검은띠 예시에만 붙인다.
+ * 운영자 배지(#595)는 dev에 운영자 계정이 생기기 전까지 띠 없는 회원 · 검은띠(관장·사범과 겹침) 예시에 붙인다.
  * production 빌드에선 readBeltAvatarSample이 늘 false라 쓰이지 않는다.
  * 서버가 값을 주기 시작하면 이 파일과 belt 분기를 지운다.
  */
@@ -39,19 +40,29 @@ function isSampleCoach(belt: Belt | null): boolean {
   return belt?.rank === "black";
 }
 
+/** 띠 없는 회원 · 검은띠 예시를 운영자로 둔다(#595) — 검은띠는 관장·사범 배지와 겹친 모습. */
+function isSampleOperator(belt: Belt | null): boolean {
+  return belt === null || belt.rank === "black";
+}
+
 export function withSampleBelts(items: PostSummary[]): PostSummary[] {
   return items.map((post, index) => {
     const belt = sampleBeltAt(index);
     return {
       ...post,
-      author: { ...post.author, belt, isCoach: isSampleCoach(belt) },
+      author: {
+        ...post.author,
+        belt,
+        isCoach: isSampleCoach(belt),
+        isOperator: isSampleOperator(belt),
+      },
     };
   });
 }
 
 /**
  * 상세: 글 작성자는 첫 띠, 댓글·대댓글은 그려지는 순서대로 다음 띠부터 돌려 쓴다.
- * 글 작성자는 배지 모습을 바로 보도록 관장·사범으로 둔다(#272).
+ * 글 작성자는 배지 모습을 바로 보도록 관장·사범 · 운영자로 둔다(#272 · #595).
  */
 export function withSampleDetailBelts(
   post: PostDetail,
@@ -64,7 +75,12 @@ export function withSampleDetailBelts(
       const belt = sampleBeltAt(order);
       return {
         ...comment,
-        author: { ...comment.author, belt, isCoach: isSampleCoach(belt) },
+        author: {
+          ...comment.author,
+          belt,
+          isCoach: isSampleCoach(belt),
+          isOperator: isSampleOperator(belt),
+        },
         replies: mark(comment.replies),
       };
     });
@@ -72,7 +88,12 @@ export function withSampleDetailBelts(
   return {
     post: {
       ...post,
-      author: { ...post.author, belt: sampleBeltAt(0), isCoach: true },
+      author: {
+        ...post.author,
+        belt: sampleBeltAt(0),
+        isCoach: true,
+        isOperator: true,
+      },
     },
     comments: mark(comments),
   };

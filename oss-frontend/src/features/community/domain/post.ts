@@ -17,6 +17,8 @@ export type PostAuthor = {
   belt?: Belt | null;
   /** 관장·사범 인증 회원인지(#272). 서버가 아직 주지 않는다 — 없으면 배지를 그리지 않는다. */
   isCoach?: boolean;
+  /** 운영자 계정인지(#595). 닉네임 옆에 '운영자' 배지를 붙인다. 없으면 false로 본다. */
+  isOperator?: boolean;
 };
 
 export type PostImage = {

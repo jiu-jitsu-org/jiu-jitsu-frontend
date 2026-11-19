@@ -21,7 +21,11 @@ import {
   toComment,
 } from "@/features/community/infrastructure/comment-dto";
 import { type AuthorBeltDto, toBelt } from "@/features/community/infrastructure/belt-dto";
-import { type AuthorRoleDto, toIsCoach } from "@/features/community/infrastructure/author-role-dto";
+import {
+  type AuthorRoleDto,
+  toIsCoach,
+  toIsOperator,
+} from "@/features/community/infrastructure/author-role-dto";
 import {
   toCompetition,
   type CompetitionListItemDto,
@@ -213,6 +217,7 @@ function toPostSummary(dto: BoardSummaryDto): PostSummary {
       avatarUrl: dto.author.profileImage?.imageUrl ?? null,
       belt: toBelt(dto.author),
       isCoach: toIsCoach(dto.author),
+      isOperator: toIsOperator(dto.author),
     },
     title: dto.title,
     // 내용 없는 글은 ""로 온다(backend#264). 옛 응답이 null을 줘도 화면이 같은 빈 값으로 다루게 맞춘다.
@@ -259,6 +264,7 @@ function toPostDetail(dto: BoardDetailDto): PostDetail {
       avatarUrl: dto.author.profileImage?.imageUrl ?? null,
       belt: toBelt(dto.author),
       isCoach: toIsCoach(dto.author),
+      isOperator: toIsOperator(dto.author),
     },
     title: dto.title,
     // 내용 없는 글은 ""로 온다(backend#264). 옛 응답이 null을 줘도 화면이 같은 빈 값으로 다루게 맞춘다.
