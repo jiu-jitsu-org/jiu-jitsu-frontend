@@ -256,9 +256,10 @@ export type ShareSheetPayload = {
 };
 
 /**
- * `COMPETITION_ALERTS_ENABLED` payload — 관심 대회 알림을 켰다(PUT /notice/setting/competition 성공).
+ * `COMPETITION_ALERTS_ENABLED` payload — 관심 대회 알림을 켰다(첫 관심 시트의 '알림 받기' — PUT /notice/setting/competition 성공,
+ * 또는 설정이 켜진 채 대회 상세 종으로 이 대회 알림을 켬 — PUT /competitions/{id}/notice 성공, #541).
  * 앱은 이 신호로 열린 설정 화면을 다시 읽고, 기기 알림이 꺼져 있으면 켜는 방법을 안내한다.
- * competitionId는 시트가 묻던 대회의 서버 id를 숫자 문자열로 보낸다(예 "32"). 이미 깔린 앱은 문자열만 받고,
+ * competitionId는 시트가 묻던(또는 종을 켠) 대회의 서버 id를 숫자 문자열로 보낸다(예 "32"). 이미 깔린 앱은 문자열만 받고,
  * 새 앱(jiu-jitsu-ios#281)은 숫자·숫자 문자열 둘 다 받는다 — 구버전 호환을 위해 문자열이다. 대회 없이 켰으면 빠진다.
  */
 export type CompetitionAlertsEnabledPayload = {
