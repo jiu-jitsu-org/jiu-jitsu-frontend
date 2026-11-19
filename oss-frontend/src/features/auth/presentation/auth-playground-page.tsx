@@ -86,7 +86,7 @@ export function AuthPlaygroundPage() {
         // 로그인 상태에서 즉시, 비로그인이면 로그인 성공 후 이 콜백이 실행된다.
         setLastActionAt(new Date().toLocaleTimeString());
       },
-      { reason: "harness-demo" },
+      { reason: "write" },
     );
   };
 

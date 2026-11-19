@@ -19,8 +19,7 @@ import {
   closeNativeSubview,
   isNativeBridgeAvailable,
   notifyContentCreated,
-  OutboundMessageType,
-  postToNative,
+  requestNativeLogin,
   useNativeLeaveGuard,
 } from "@/shared/lib/native-bridge";
 import { enqueuePendingToast, useToast } from "@/shared/ui";
@@ -958,7 +957,7 @@ export function PostWriteScreen({
       console.error("[post-write] 게시글 저장 실패:", error);
       // 인증 만료(401)면 네이티브 로그인 유도, 그 외(생성/수정 실패)는 재시도 안내.
       if (error instanceof WriteRequestError && error.status === 401) {
-        postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
+        requestNativeLogin("write");
         return;
       }
       // 작성 화면을 서버 TEMP 정리 주기보다 오래 켜 둬 첨부 id가 지워졌으면(C0000) 썸네일을 ↻로 되돌려

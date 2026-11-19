@@ -179,7 +179,7 @@ export function useBalanceVote({
 
       if (!signedIn) {
         // 유도만 한다 — 정책은 "로그인 후 다시 눌러야 함"이라 투표를 자동 복귀시키지 않는다.
-        promptLogin({ reason: "밸런스 게임 투표" });
+        promptLogin({ reason: "vote" });
         return;
       }
 

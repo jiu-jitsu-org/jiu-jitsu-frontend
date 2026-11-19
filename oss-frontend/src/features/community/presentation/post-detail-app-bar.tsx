@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { MenuBox, MenuItem } from "@/features/community/presentation/menu-box";
-import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
+import { requestNativeLogin } from "@/shared/lib/native-bridge";
 import { enqueuePendingToast, useToast } from "@/shared/ui";
 import { AppBarShell } from "@/features/community/presentation/app-bar-shell";
 import { closeDetail } from "@/features/community/presentation/close-detail";
@@ -121,7 +121,7 @@ export function PostDetailAppBar({
 
       if (!response.ok) {
         if (response.status === 401) {
-          postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
+          requestNativeLogin("alert");
         }
         throw new Error(`notice request failed: ${response.status}`);
       }
@@ -166,7 +166,7 @@ export function PostDetailAppBar({
 
     if (!response.ok) {
       if (response.status === 401) {
-        postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
+        requestNativeLogin("session_expired");
       }
       toast.show("게시글을 삭제하지 못했어요", { tone: "error" });
       return;

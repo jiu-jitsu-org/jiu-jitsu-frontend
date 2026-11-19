@@ -15,7 +15,7 @@ import {
 import { usePopOnActivate } from "@/features/community/presentation/use-pop-on-activate";
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
 import { cn } from "@/shared/lib/cn";
-import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
+import { requestNativeLogin } from "@/shared/lib/native-bridge";
 import { HeartIcon } from "@/shared/ui/icons";
 
 /**
@@ -79,7 +79,7 @@ export function CommentLikeButton({
 
       if (!response.ok) {
         if (response.status === 401) {
-          postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
+          requestNativeLogin("like");
         }
         // 롤백
         setLiked(prevLiked);
@@ -117,6 +117,7 @@ export function CommentLikeButton({
       aria-pressed={liked}
       onClick={guard(
         () => void toggle(),
+        "like",
         "좋아요는 OSS 앱에서 로그인 후 누를 수 있어요.",
       )}
       // 내가 누른 상태: 채워진 하트 + active 색 / 아니면: 빈 하트 + default 색.

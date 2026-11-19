@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
-import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
+import { requestNativeLogin } from "@/shared/lib/native-bridge";
 
 /**
  * 게시글 좋아요/북마크 낙관적(optimistic) 토글 훅.
@@ -101,7 +101,7 @@ export function usePostActions(postId: number, initial: PostActionsSeed) {
         if (!response.ok) {
           if (response.status === 401) {
             // 비로그인 → 네이티브 로그인 유도(소프트)
-            postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
+            requestNativeLogin(kind === "like" ? "like" : "save");
           }
           throw new Error(`${kind} request failed: ${response.status}`);
         }

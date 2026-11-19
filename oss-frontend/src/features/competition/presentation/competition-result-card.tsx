@@ -48,6 +48,7 @@ export function CompetitionResultCard({
   const pressRecord = (competition: Competition) =>
     guard(
       () => leaveRecord(competition),
+      "record",
       "대회 기록은 OSS 앱에서 로그인 후 남길 수 있어요.",
     );
 

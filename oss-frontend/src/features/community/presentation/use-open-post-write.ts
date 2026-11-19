@@ -55,7 +55,7 @@ export function useOpenPostWrite({
 
         router.push(path);
       },
-      { reason: "게시글 작성" },
+      { reason: "write" },
     );
   };
 }

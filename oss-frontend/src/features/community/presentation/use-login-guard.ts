@@ -7,7 +7,10 @@ import {
   useIsSignedIn,
 } from "@/features/auth/presentation/auth-provider";
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
-import { useIsExternalBrowser } from "@/shared/lib/native-bridge";
+import {
+  useIsExternalBrowser,
+  type LoginPromptReason,
+} from "@/shared/lib/native-bridge";
 import { useOpenInAppPrompt } from "@/shared/ui";
 
 /**
@@ -28,13 +31,18 @@ import { useOpenInAppPrompt } from "@/shared/ui";
  * 비로그인으로 보면 로그인 사용자에게 알럿이 뜬다.
  * 예시(데모)는 네트워크 없이 UX만 보여주는 화면이라 가로채지 않는다.
  *
+ * `reason`은 로그인 안내 이유(사전 코드, #577) — 앱 로그인 안내와 브라우저 창 기록(`login_prompt_view`)에 실린다.
  * `message`는 외부 브라우저 안내 문구다. 완성된 문장으로 넘긴다(조사 처리를 피하기 위함).
  * `guest`는 앱 웹뷰 비로그인 여부 — 신고·알림처럼 진입점 자체를 감추는 곳이 쓴다.
  */
 export function useLoginGuard(): {
   externalBrowser: boolean;
   guest: boolean;
-  guard: (action: () => void, message: string) => () => void;
+  guard: (
+    action: () => void,
+    reason: LoginPromptReason,
+    message: string,
+  ) => () => void;
 } {
   const externalBrowser = useIsExternalBrowser();
   const openInApp = useOpenInAppPrompt();
@@ -43,9 +51,9 @@ export function useLoginGuard(): {
   const signedIn = useIsSignedIn();
 
   const guard = useCallback(
-    (action: () => void, message: string) => () => {
+    (action: () => void, reason: LoginPromptReason, message: string) => () => {
       if (externalBrowser) {
-        openInApp.prompt({ message });
+        openInApp.prompt({ message, reason });
         return;
       }
       if (demo) {
@@ -57,7 +65,7 @@ export function useLoginGuard(): {
         return;
       }
       if (status === "anonymous") {
-        promptLogin();
+        promptLogin({ reason });
         return;
       }
       action();

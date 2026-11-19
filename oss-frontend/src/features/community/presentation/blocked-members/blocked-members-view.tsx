@@ -13,7 +13,7 @@ import { BlockedMembersAppBar } from "@/features/community/presentation/blocked-
 import { BlockedMembersEmptyState } from "@/features/community/presentation/blocked-members/blocked-members-empty-state";
 import { useNativeDialog } from "@/features/community/presentation/use-native-dialog";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
-import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
+import { requestNativeLogin } from "@/shared/lib/native-bridge";
 import { useToast } from "@/shared/ui";
 
 /**
@@ -96,7 +96,7 @@ export function BlockedMembersView({
       if (!response?.ok) {
         setRemoved(userId, null);
         if (response?.status === 401) {
-          postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
+          requestNativeLogin("block");
         }
         toast.show("차단을 해제하지 못했어요", { tone: "error" });
         return;

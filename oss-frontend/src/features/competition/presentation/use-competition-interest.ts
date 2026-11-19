@@ -136,7 +136,7 @@ export function useCompetitionInterest({
         if (!result.ok && result.reason === "unauthenticated") {
           // 화면은 로그인으로 알았는데 서버 세션이 끝났다 — 다시 눌러도 안 되니 로그인부터 안내한다.
           setOverrides((current) => ({ ...current, [id]: before }));
-          promptLogin({ reason: "대회 관심 등록" });
+          promptLogin({ reason: "interest" });
           return false;
         }
         if (!result.ok && result.reason === "not-found") {
@@ -178,6 +178,7 @@ export function useCompetitionInterest({
       else
         guard(
           () => void action(),
+          "interest",
           "관심 등록은 OSS 앱에서 로그인 후 할 수 있어요.",
         )();
     },

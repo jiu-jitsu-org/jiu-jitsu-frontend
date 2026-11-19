@@ -1,7 +1,7 @@
 "use client";
 
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
-import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
+import { requestNativeLogin } from "@/shared/lib/native-bridge";
 
 /**
  * 게시글 숨김 토글.
@@ -24,7 +24,7 @@ export async function toggleHidePost(postId: number): Promise<boolean | null> {
 
   if (!response?.ok) {
     if (response?.status === 401) {
-      postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
+      requestNativeLogin("session_expired");
     }
     return null;
   }

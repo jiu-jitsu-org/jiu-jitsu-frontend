@@ -9,7 +9,7 @@ import { useIsDemoMode } from "@/features/community/presentation/community-demo-
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
 import { cn } from "@/shared/lib/cn";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
-import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
+import { requestNativeLogin } from "@/shared/lib/native-bridge";
 import { useToast } from "@/shared/ui";
 import { IconButton } from "@/shared/ui/icon-button";
 import { BackArrowIcon, BellIcon, BellOffIcon } from "@/shared/ui/icons";
@@ -83,7 +83,7 @@ export function BalanceDetailAppBar({
 
       if (!response.ok) {
         if (response.status === 401) {
-          postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
+          requestNativeLogin("alert");
         }
         throw new Error(`notice request failed: ${response.status}`);
       }

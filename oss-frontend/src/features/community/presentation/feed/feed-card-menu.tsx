@@ -16,7 +16,7 @@ import { useOpenPostEdit } from "@/features/community/presentation/use-open-post
 import type { BlockTarget } from "@/features/community/presentation/use-block-member";
 import { useReportFlow } from "@/features/community/presentation/use-report-flow";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
-import { OutboundMessageType, postToNative } from "@/shared/lib/native-bridge";
+import { requestNativeLogin } from "@/shared/lib/native-bridge";
 import { useToast } from "@/shared/ui";
 import { MoreVerticalIcon } from "@/shared/ui/icons";
 
@@ -81,7 +81,7 @@ export function FeedCardMenu({
 
     if (!response.ok) {
       if (response.status === 401) {
-        postToNative({ type: OutboundMessageType.AUTH_LOGIN_PROMPT });
+        requestNativeLogin("session_expired");
       }
       toast.show("게시글을 삭제하지 못했어요", { tone: "error" });
       return;
