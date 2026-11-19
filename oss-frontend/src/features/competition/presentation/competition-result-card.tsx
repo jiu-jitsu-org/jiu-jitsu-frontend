@@ -4,6 +4,7 @@ import { useLoginGuard } from "@/features/community/presentation/use-login-guard
 import type { Competition } from "@/features/competition/domain/competition";
 import type { ResultCardGroup } from "@/features/competition/domain/competition-result-prompt";
 import { BANNER_CLOSE_POSITION } from "@/features/competition/presentation/competition-interest-banner";
+import { useCloseResultPromptOnRecord } from "@/features/competition/presentation/use-close-result-prompt-on-record";
 import { openNativeCompetitionRecord } from "@/shared/lib/native-bridge";
 import { useToast } from "@/shared/ui";
 import { Button } from "@/shared/ui/button";
@@ -18,6 +19,7 @@ import { CloseIcon, EditIcon } from "@/shared/ui/icons";
  * 한 장에 대회 하나만 — 끝난 관심 대회가 여럿이면 배너 자리가 대회마다 한 장씩 따로 띄운다.
  * ✕는 그 대회를 닫는다(호출부가 한다) — 상세 배너(#368)와 닫은 기록을 함께 써서 두 곳 모두 다시 뜨지 않는다.
  * 앱 밖 브라우저에서는 띄우지 않는다 — '내 기록에 남기기'가 앱 화면을 여는 일이라서다(배너 자리가 거른다).
+ * 이미 내 대회 기록에 남긴 대회는 서버가 빼고, 띄운 뒤 앱에서 기록을 남기면 바로 닫는다(#545).
  */
 export function CompetitionResultCard({
   group,
@@ -28,6 +30,7 @@ export function CompetitionResultCard({
 }) {
   const { guard } = useLoginGuard();
   const toast = useToast();
+  useCloseResultPromptOnRecord();
   const [only] = group.competitions;
 
   function leaveRecord({ id, name, date }: Competition) {

@@ -8,6 +8,7 @@ import { DeletePostUseCase } from "@/features/community/application/delete-post"
 import { GetCommentThreadUseCase } from "@/features/community/application/get-comment-thread";
 import { GetCommentsUseCase } from "@/features/community/application/get-comments";
 import { GetMyBeltUseCase } from "@/features/community/application/get-my-belt";
+import { GetMyRecordedCompetitionIdsUseCase } from "@/features/community/application/get-my-recorded-competition-ids";
 import { GetImageUploadAuthUseCase } from "@/features/community/application/get-image-upload-auth";
 import { GetRepliesUseCase } from "@/features/community/application/get-replies";
 import { SaveMyBeltUseCase } from "@/features/community/application/save-my-belt";
@@ -344,6 +345,14 @@ function createCommunityProfileRepository(
 
 export function createGetMyBeltUseCase(accessToken: string): GetMyBeltUseCase {
   return new GetMyBeltUseCase(createCommunityProfileRepository(accessToken));
+}
+
+export function createGetMyRecordedCompetitionIdsUseCase(
+  accessToken: string,
+): GetMyRecordedCompetitionIdsUseCase {
+  return new GetMyRecordedCompetitionIdsUseCase(
+    createCommunityProfileRepository(accessToken),
+  );
 }
 
 export function createSaveMyBeltUseCase(

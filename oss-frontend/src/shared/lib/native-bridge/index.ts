@@ -8,6 +8,7 @@ export type {
   BridgeMessage,
   CompetitionAlertsEnabledPayload,
   CompetitionHeaderTintPayload,
+  CompetitionRecordSavedPayload,
   ConfirmDialogPayload,
   ContentCreatedPayload,
   ConfirmDialogResult,

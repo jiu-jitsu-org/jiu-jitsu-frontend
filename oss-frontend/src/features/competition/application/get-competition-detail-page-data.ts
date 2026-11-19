@@ -6,6 +6,7 @@ import {
   createRecordCompetitionViewUseCase,
 } from "@/features/competition/application/competition-use-case-factory";
 import { loadCompetitionAlertSettings } from "@/features/competition/application/load-competition-alert-settings";
+import { loadMyRecordedCompetitionIds } from "@/features/competition/application/load-my-recorded-competitions";
 import type { Competition } from "@/features/competition/domain/competition";
 import type { CompetitionAlertSettings } from "@/features/competition/domain/competition-alert";
 import {
@@ -54,7 +55,7 @@ export type CompetitionDetailPageData =
       viewCount: number;
       /** 대회 이야기(#366 · #597). 읽기 실패면 null — 덩어리째 빠진다. */
       stories: CompetitionStoryList | null;
-      /** 결과 남기기 배너를 띄울지(#368) */
+      /** 결과 남기기 배너를 띄울지(#368) — 이미 내 대회 기록에 남긴 대회면 띄우지 않는다(#545). */
       promptResult: boolean;
       /** 관심 대회 마감 알림 설정(#376). 비로그인이거나 못 읽으면 null */
       alertSettings: CompetitionAlertSettings | null;
@@ -117,10 +118,16 @@ export async function getCompetitionDetailPageData({
   }
   if (!detail) return { ok: false, reason: "not-found" };
 
-  const [stories, alertSettings] = await extrasPromise;
-
   const { competition, today } = detail;
   const status = detailStatusOn(competition, today);
+  // 결과를 물을 때만(끝난 지 며칠 안 된 대회) 내 기록을 본다 — 다른 대회 상세는 기다리지 않게. 못 읽으면 지금처럼 묻는다.
+  // 이야기 · 알림 설정을 기다리는 동안 같이 읽는다.
+  const [[stories, alertSettings], recordedIds] = await Promise.all([
+    extrasPromise,
+    !forPreview && accessToken && shouldPromptResult(status)
+      ? loadMyRecordedCompetitionIds()
+      : null,
+  ]);
   const entryLinks = entryLinksOn(competition, today);
   return {
     ok: true,
@@ -137,7 +144,8 @@ export async function getCompetitionDetailPageData({
     interestCount: competition.interestCount,
     viewCount: competition.viewCount,
     stories,
-    promptResult: shouldPromptResult(status),
+    promptResult:
+      shouldPromptResult(status) && !recordedIds?.has(competition.id),
     alertSettings,
   };
 }

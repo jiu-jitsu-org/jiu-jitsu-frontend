@@ -110,6 +110,10 @@ export const InboundMessageType = {
   // 웹은 떠 있는 화면(피드 · 상세 · 댓글)을 다시 불러와 그 회원의 글 · 댓글을 가리거나 다시 보여 준다(BlockChangeWatcher).
   // 이 메시지를 모르는 구버전 앱은 보내지 않을 뿐이라 지금 동작 그대로다.
   USER_BLOCK_CHANGED: "USER_BLOCK_CHANGED",
+  // 대회 상세 · 대회 탭 결과 카드에서 연 대회 기록 추가(OPEN_COMPETITION_RECORD)를 앱이 저장했음(jiu-jitsu-frontend#545 ·
+  // jiu-jitsu-ios#397). 저장에 성공했을 때만 떠 있는 모든 웹뷰에 보낸다. 웹은 그 대회의 결과 남기기 배너 · 카드를 바로 닫고
+  // 내 기록을 다시 읽어 다른 대회도 맞춘다. 이 메시지를 모르는 구버전 앱에서는 다음에 화면을 열 때 서버가 거른다.
+  COMPETITION_RECORD_SAVED: "COMPETITION_RECORD_SAVED",
 } as const;
 export type InboundMessageType =
   (typeof InboundMessageType)[keyof typeof InboundMessageType];
@@ -369,6 +373,14 @@ export type UserBlockChangedPayload = {
   blocked: boolean;
 };
 
+/**
+ * `COMPETITION_RECORD_SAVED` payload. competitionId는 기록에 건 서버 대회 id — OPEN_COMPETITION_RECORD로 보낸 값 그대로
+ * 숫자 문자열(예 "32")로 받는다(숫자로 와도 읽는다). 빠져 있으면 웹은 내 기록을 다시 읽기만 한다.
+ */
+export type CompetitionRecordSavedPayload = {
+  competitionId?: string | number;
+};
+
 /** `AUTH_LOGIN_SUCCESS` payload. refreshToken은 네이티브가 보관하고 웹엔 accessToken만 전달. */
 export type AuthLoginSuccessPayload = {
   accessToken: string;
@@ -417,4 +429,8 @@ export type InboundMessage =
   | {
       type: typeof InboundMessageType.USER_BLOCK_CHANGED;
       payload: UserBlockChangedPayload;
+    }
+  | {
+      type: typeof InboundMessageType.COMPETITION_RECORD_SAVED;
+      payload?: CompetitionRecordSavedPayload;
     };

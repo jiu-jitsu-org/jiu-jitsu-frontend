@@ -5,6 +5,7 @@ import {
 } from "@/features/competition/application/competition-use-case-factory";
 import { loadCompetitionAlertSettings } from "@/features/competition/application/load-competition-alert-settings";
 import { loadMyBeltRank } from "@/features/competition/application/load-my-belt-rank";
+import { loadMyRecordedCompetitionIds } from "@/features/competition/application/load-my-recorded-competitions";
 import {
   COMPETITION_FULL_PAGE_SIZE,
   COMPETITION_LIST_PAGE_SIZE,
@@ -34,6 +35,7 @@ import {
 import {
   RESULT_CARD_DAYS,
   recentlyEndedInterested,
+  withoutRecorded,
   type ResultCardGroup,
 } from "@/features/competition/domain/competition-result-prompt";
 import { readSessionToken } from "@/shared/lib/auth";
@@ -75,7 +77,7 @@ export type CompetitionListPageData =
       myBeltRank: BeltRank | null;
       /**
        * 끝난 지 며칠 안 된 내 관심 대회 묶음(#403) — 대회 탭 맨 위 결과 남기기 카드. 최근 순.
-       * 끝난 대회는 목록에 없어 따로 싣는다. 비로그인이면 빈 배열.
+       * 끝난 대회는 목록에 없어 따로 싣는다. 비로그인이면 빈 배열. 이미 내 대회 기록에 남긴 대회는 뺀다(#545).
        */
       endedInterested: ResultCardGroup[];
       /**
@@ -135,6 +137,7 @@ export async function getCompetitionListPageData(
       alertSettings,
       myBeltRank,
       availableRegions,
+      recordedIds,
       requestedFiltered,
       requestedCalendarMonth,
     ] = await Promise.all([
@@ -165,6 +168,7 @@ export async function getCompetitionListPageData(
       createGetCompetitionRegionsUseCase()
         .execute()
         .catch(() => null),
+      accessToken ? loadMyRecordedCompetitionIds() : null,
       loadInitialFiltered(requestedView),
       loadInitialCalendarMonth(requestedView),
     ]);
@@ -198,10 +202,13 @@ export async function getCompetitionListPageData(
       alertSettings,
       myBeltRank,
       endedInterested: interestedEnded
-        ? recentlyEndedInterested(
-            interestedEnded.competitions,
-            new Set(interestedEnded.competitions.map(({ id }) => id)),
-            today,
+        ? withoutRecorded(
+            recentlyEndedInterested(
+              interestedEnded.competitions,
+              new Set(interestedEnded.competitions.map(({ id }) => id)),
+              today,
+            ),
+            recordedIds,
           )
         : [],
       availableRegions: regions,
