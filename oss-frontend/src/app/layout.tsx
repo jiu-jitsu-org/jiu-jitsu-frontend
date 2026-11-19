@@ -58,6 +58,16 @@ export default function RootLayout({
     // 앱(iOS)이 문서 시작 때 <html> 인라인 스타일에 안전 영역 변수(--app-safe-area-inset-*)를 넣는다(globals.css).
     // 서버 HTML엔 없는 속성이라 하이드레이션 경고가 나므로 이 요소의 속성 비교만 끈다(자식에는 영향 없음).
     <html lang="ko" className="h-full antialiased" suppressHydrationWarning>
+      <head>
+        {/* 앱 머리줄이 홈 카테고리 칩을 그리면(HOME_CATEGORY_TABS 지원) 그리기 전에 표시를 달아 웹 칩 줄을 숨긴다
+            (globals.css) — 하이드레이션 뒤에 숨기면 칩 줄이 한 번 보였다 사라지며 피드가 56px 튄다.
+            앱은 이 스크립트보다 먼저 지원 목록(window.AppBridgeCapabilities)을 넣는다. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var c=window.AppBridgeCapabilities;if(Array.isArray(c)&&c.indexOf("HOME_CATEGORY_TABS")>-1)document.documentElement.setAttribute("data-native-home-tabs","")}catch(e){}`,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col">
         {/* "앱에서 계속하기" 안내가 AuthProvider 바깥에 있는 이유: 네이티브가 없을 때(외부 브라우저)
             requireAuth의 로그인 유도가 이 안내로 떨어져야 하므로 AuthProvider가 이를 소비한다. */}
