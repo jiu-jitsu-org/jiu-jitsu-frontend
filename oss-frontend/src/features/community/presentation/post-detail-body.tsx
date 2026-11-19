@@ -32,8 +32,8 @@ export function PostDetailBody({
   return (
     // 시각 보정: 위 동그란 띠 아바타보다 글줄이 왼쪽으로 튀어 보이지 않게 2 들인다(피드 카드와 같다).
     <div className="flex flex-col pl-0.5">
-      {/* 제목: Body M, 멀티라인 허용 */}
-      <h1 className="text-body-m wrap-anywhere text-feed-card-body-title-text">
+      {/* 제목: Title 3(18/600), 멀티라인 허용 — 아래 댓글 안내·"다른 글" 제목(Body M)보다 한 단계 위 */}
+      <h1 className="text-title-3 wrap-anywhere text-feed-card-body-title-text">
         {title}
       </h1>
       {/* 카테고리·날짜·조회·수정됨: 제목 바로 아래 6 */}
