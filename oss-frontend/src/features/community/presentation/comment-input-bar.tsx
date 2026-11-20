@@ -310,6 +310,7 @@ export function CommentInputBar({
               {/* 버튼 영역 40x40(size-10) = 아이콘 24 + 사방 여백 8. 우측 16은 이 버튼 바깥 기준.
                   누르는 동안 아이콘 뒤에 둥근 옅은 면이 깔린다(앱바 아이콘 버튼과 같은 눌림). */}
               <IconButton
+                data-ga="reply_cancel"
                 onClick={cancelReply}
                 aria-label="답장 취소"
                 className="text-comment-input-bar-reply-ref-close-icon"

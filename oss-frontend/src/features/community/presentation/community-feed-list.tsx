@@ -619,6 +619,7 @@ export function FeedLoadMoreError({
       </p>
       {/* 다시 시도: kit 아이콘 버튼(ghost — 평소 면 없음, 누르는 동안 둥근 옅은 면) + 글쓰기 사진 업로드 실패와 같은 재시도 아이콘. */}
       <IconButton
+        data-ga="retry"
         onClick={onRetry}
         aria-label="다시 시도"
         className="text-feed-card-body-text"

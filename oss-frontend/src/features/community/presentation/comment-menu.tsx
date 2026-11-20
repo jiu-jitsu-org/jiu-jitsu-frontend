@@ -205,10 +205,10 @@ export function CommentMenu({
   }
 
   const items = isOwner
-    ? [{ label: "삭제", onSelect: () => void handleDelete() }]
+    ? [{ label: "삭제", ga: "menu_delete", onSelect: () => void handleDelete() }]
     : [
-        { label: "차단", onSelect: () => void handleBlock() },
-        { label: "신고", onSelect: () => void handleReport() },
+        { label: "차단", ga: "menu_block", onSelect: () => void handleBlock() },
+        { label: "신고", ga: "menu_report", onSelect: () => void handleReport() },
       ];
 
   if (externalBrowser || guest) {
@@ -221,6 +221,7 @@ export function CommentMenu({
           Active 상태 없음 — Default/Pressed만 (comment-reaction-styles). */}
       <button
         type="button"
+        data-ga="comment_menu"
         onClick={() => setOpen((value) => !value)}
         aria-haspopup="menu"
         aria-expanded={open}
@@ -233,7 +234,7 @@ export function CommentMenu({
       {open ? (
         <MenuBox placement="top-right" onClose={() => setOpen(false)}>
           {items.map((item) => (
-            <MenuItem key={item.label} onClick={item.onSelect}>
+            <MenuItem key={item.label} ga={item.ga} onClick={item.onSelect}>
               {item.label}
             </MenuItem>
           ))}

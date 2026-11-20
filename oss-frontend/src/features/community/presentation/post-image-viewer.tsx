@@ -192,6 +192,7 @@ export function PostImageViewer({
         <IconButton
           variant="tint"
           size="l"
+          data-ga="photo_viewer_close"
           onClick={requestClose}
           aria-label="닫기"
           className="pointer-events-auto"

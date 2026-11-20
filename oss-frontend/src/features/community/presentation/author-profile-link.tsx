@@ -37,6 +37,7 @@ export function AuthorProfileLink({
       type="button"
       tabIndex={decorative ? -1 : undefined}
       aria-hidden={decorative || undefined}
+      data-ga="author"
       onClick={(event) => {
         // 카드 · 행 전체 탭이 함께 반응하지 않게 끊는다.
         event.stopPropagation();

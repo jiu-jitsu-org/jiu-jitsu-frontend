@@ -101,13 +101,14 @@ export function FallbackScreen({
             size="m"
             disabled={retrying}
             // 탭 첫 화면에 onRetry가 없으면(없는 주소 등) 문서를 다시 받는다.
+            data-ga="retry"
             onClick={onRetry ?? (() => window.location.reload())}
           >
             다시 시도
           </Button>
         ) : null}
         {place === "subview" ? (
-          <Button variant="neutral" size="m" onClick={closeNativeSubview}>
+          <Button data-ga="close" variant="neutral" size="m" onClick={closeNativeSubview}>
             닫기
           </Button>
         ) : null}

@@ -127,6 +127,7 @@ export function ImageLoadError({
         <Button
           variant="neutral"
           size="s"
+          data-ga="image_retry"
           onClick={onRetry}
           className="mt-2 min-w-16 px-2 text-body-s"
         >

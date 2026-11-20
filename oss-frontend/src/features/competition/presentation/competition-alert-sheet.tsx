@@ -95,6 +95,7 @@ export function CompetitionAlertSheet({
       <Button
         variant="cta-ghost"
         size="l"
+        data-ga="alert_later"
         onClick={onLater}
         className="mt-2 w-full"
       >

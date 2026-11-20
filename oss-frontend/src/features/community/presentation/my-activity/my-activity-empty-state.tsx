@@ -35,7 +35,11 @@ export function MyActivityEmptyState({ tab }: { tab: MyActivityTab }) {
       <EmptyState
         title="아직 참여한 밸런스 게임이 없어요"
         description="투표한 게임은 끝난 뒤에도 여기서 결과를 볼 수 있어요."
-        action={{ label: "오늘의 게임 하러 가기", onClick: openCommunityHome }}
+        action={{
+          label: "오늘의 게임 하러 가기",
+          ga: "empty_balance",
+          onClick: openCommunityHome,
+        }}
         className="pt-24"
       />
     );

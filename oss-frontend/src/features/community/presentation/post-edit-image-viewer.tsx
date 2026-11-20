@@ -47,6 +47,7 @@ export function PostEditImageViewer({
         <IconButton
           variant="tint"
           size="l"
+          data-ga="photo_viewer_close"
           onClick={onClose}
           aria-label="이미지 상세 닫기"
         >

@@ -15,7 +15,7 @@ export function BlockedMembersAppBar() {
   return (
     // 배경은 화면 바탕(--bw-white)에 맞춘다 — 셸 기본(true white)이면 앱바 아래로 옅은 띠가 생긴다.
     <AppBarShell className="bg-surface-container">
-      <IconButton onClick={closeDetail} aria-label="뒤로 가기">
+      <IconButton data-ga="back" onClick={closeDetail} aria-label="뒤로 가기">
         <BackArrowIcon size={24} />
       </IconButton>
 

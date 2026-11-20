@@ -83,6 +83,7 @@ export function PostActionBar({
         count={comments}
         active={commented}
         activeIconColorClass="text-reaction-bar-detail-active-comment-icon"
+        ga="comment"
         onClick={guard(
           focusCommentInput,
           "comment",

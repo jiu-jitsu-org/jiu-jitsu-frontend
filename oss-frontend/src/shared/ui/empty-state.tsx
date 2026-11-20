@@ -18,7 +18,8 @@ export function EmptyState({
 }: {
   title: string;
   description?: string;
-  action?: { label: string; onClick: () => void };
+  /** ga: 이름 없는 누름 기록의 요소 이름(`data-ga`, #584). 글쓰기처럼 이름 붙은 기록이 나는 버튼엔 주지 않는다. */
+  action?: { label: string; onClick: () => void; ga?: string };
   className?: string;
 }) {
   return (
@@ -43,6 +44,7 @@ export function EmptyState({
         <Button
           variant="neutral"
           size="m"
+          data-ga={action.ga}
           onClick={action.onClick}
           className="mt-[13px]"
         >

@@ -54,6 +54,7 @@ export function BalanceCollapsedBar({
     >
       <button
         type="button"
+        data-ga="balance_bar"
         onClick={onPress}
         className={cn(
           "relative isolate flex h-12 w-full cursor-pointer items-center gap-2.5 overflow-hidden px-4 text-left",

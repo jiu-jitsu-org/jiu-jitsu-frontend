@@ -30,6 +30,7 @@ export function ReactionBarButton({
   pressable = false,
   activeIconColorClass,
   onClick,
+  ga,
 }: {
   icon: ReactNode;
   label: string;
@@ -43,6 +44,8 @@ export function ReactionBarButton({
   pressable?: boolean;
   activeIconColorClass?: string;
   onClick?: () => void;
+  /** 이름 없는 누름 기록의 요소 이름(`data-ga`, #584). 좋아요 · 저장 · 공유처럼 이름 붙은 기록이 나는 버튼엔 주지 않는다. */
+  ga?: string;
 }) {
   const showCount = typeof count === "number" && count > 0;
   const text = showCount ? String(count) : hideLabel ? null : label;
@@ -51,6 +54,7 @@ export function ReactionBarButton({
   return (
     <button
       type="button"
+      data-ga={ga}
       onClick={onClick}
       aria-label={a11yLabel ?? label}
       aria-pressed={pressable ? active : undefined}

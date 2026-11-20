@@ -38,6 +38,7 @@ export function InboxAppBar({
         <IconButton
           variant="tint"
           size="s"
+          data-ga="back"
           onClick={closeDetail}
           aria-label="뒤로 가기"
         >

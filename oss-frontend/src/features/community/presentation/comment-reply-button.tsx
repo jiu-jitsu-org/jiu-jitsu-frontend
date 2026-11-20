@@ -56,6 +56,7 @@ export function CommentReplyButton({
   return (
     <button
       type="button"
+      data-ga="comment_reply"
       onClick={guard(start, "reply", "답글은 OSS 앱에서 로그인 후 남길 수 있어요.")}
       aria-label={replyCount > 0 ? `답글 ${replyCount}개` : "답글 쓰기"}
       className={cn(

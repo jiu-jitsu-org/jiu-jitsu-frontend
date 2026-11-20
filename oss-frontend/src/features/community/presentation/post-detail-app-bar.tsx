@@ -290,7 +290,7 @@ export function PostDetailAppBar({
     <AppBarShell>
       {/* 좌측 뒤로가기 — 우측 종·⋮와 같은 규격(40x40, 아이콘 24, 평소 배경 없음). 좌 8·세로 중앙은 셸이 담당.
           누르는 동안만 아이콘 뒤에 둥근 옅은 면이 깔려 눌렸다는 걸 알린다 — 앱바 아이콘 버튼 공통. */}
-      <IconButton onClick={closeDetail} aria-label="뒤로 가기">
+      <IconButton data-ga="back" onClick={closeDetail} aria-label="뒤로 가기">
         <BackArrowIcon size={24} />
       </IconButton>
 
@@ -330,6 +330,7 @@ export function PostDetailAppBar({
 
           <div className="relative">
             <IconButton
+              data-ga="post_menu"
               onClick={() => setMenuOpen((value) => !value)}
               aria-haspopup="menu"
               aria-expanded={menuOpen}
@@ -346,16 +347,16 @@ export function PostDetailAppBar({
                 {/* 자신 게시글: 삭제/수정 · 타인 게시글: 신고/숨기기 */}
                 {isOwner ? (
                   <>
-                    <MenuItem onClick={() => void handleDelete()}>
+                    <MenuItem ga="menu_delete" onClick={() => void handleDelete()}>
                       삭제하기
                     </MenuItem>
-                    <MenuItem onClick={() => openPostEdit(postId)}>
+                    <MenuItem ga="menu_edit" onClick={() => openPostEdit(postId)}>
                       수정하기
                     </MenuItem>
                   </>
                 ) : (
                   <>
-                    <MenuItem onClick={() => void handleReport()}>
+                    <MenuItem ga="menu_report" onClick={() => void handleReport()}>
                       신고하기
                     </MenuItem>
                     <MenuItem onClick={() => void handleHide()}>

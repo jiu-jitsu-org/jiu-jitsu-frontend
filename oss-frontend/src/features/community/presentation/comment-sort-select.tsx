@@ -52,6 +52,7 @@ export function CommentSortSelect({ sort }: { sort: CommentSort }) {
           누르는 동안 comment-sort-select/pressed 면·글자색 — radius 10은 옆 반응 버튼(comment-reaction-styles)과 맞춘다. */}
       <button
         type="button"
+        data-ga="comment_sort"
         onClick={() => setOpen((value) => !value)}
         aria-haspopup="listbox"
         aria-expanded={open}
