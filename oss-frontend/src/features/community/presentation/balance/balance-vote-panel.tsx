@@ -40,7 +40,11 @@ export function BalanceVotePanel({
     setGame(initialGame);
   }
 
-  const vote = useBalanceVote({ game, onVoted: setGame });
+  const vote = useBalanceVote({
+    game,
+    onVoted: setGame,
+    from: "balance_detail",
+  });
 
   /**
    * 마감 전환 — 최종 집계로 갈아끼운다.

@@ -221,7 +221,11 @@ function BalanceGameBody({
   onChange: (next: BalanceGame) => void;
   onExpired: () => void;
 }) {
-  const vote = useBalanceVote({ game, onVoted: onChange });
+  const vote = useBalanceVote({
+    game,
+    onVoted: onChange,
+    from: "balance_card",
+  });
   const openDetail = useOpenBalanceDetail("balance_card");
   const { targetRef, passed } = useStickyReveal<HTMLDivElement>();
 
