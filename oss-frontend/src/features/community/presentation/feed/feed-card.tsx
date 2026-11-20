@@ -357,6 +357,7 @@ export function FeedCardHeader({
       {onPressAuthor ? (
         <button
           type="button"
+          data-ga="author"
           onClick={(event) => {
             event.stopPropagation();
             onPressAuthor();
@@ -397,6 +398,7 @@ function FeedCardMoreSlot({
   return (
     <button
       type="button"
+      data-ga="feed_menu"
       onClick={onPressMore}
       aria-label="게시물 메뉴 열기"
       className={cn(
@@ -530,6 +532,7 @@ export function FeedCardBody({
         <button
           ref={moreRef}
           type="button"
+          data-ga="body_more"
           onClick={handleExpand}
           className="self-start text-base leading-6 font-normal text-feed-card-body-more-text"
         >

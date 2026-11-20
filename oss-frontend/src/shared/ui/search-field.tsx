@@ -67,6 +67,7 @@ export function SearchField({
         <button
           type="button"
           aria-label="검색어 지우기"
+          data-ga="search_clear"
           onClick={() => {
             onValueChange("");
             inputRef.current?.focus();

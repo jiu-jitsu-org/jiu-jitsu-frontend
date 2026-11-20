@@ -4,6 +4,7 @@
 // - 화면 기록: 문서 로드 · 라우터 이동은 instrumentation-client가 screen-view.ts에서 직접 가져와 알린다.
 //   화면 기록을 위해 화면 코드는 여는 주소 entryPath, 같은 문서 이동의 입구 setNextScreenFrom, 주소 없는 보기 전환
 //   reportScreen만 쓴다.
+// - 이름 없는 누름: 요소에 data-ga="요소"만 단다 — instrumentation-client가 ui-click.ts로 위임을 설치한다(#584).
 export {
   isValidAnalyticsName,
   sanitizeAnalyticsParams,

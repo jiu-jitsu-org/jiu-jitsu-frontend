@@ -59,6 +59,7 @@ export function DetailErrorState({
         variant="neutral"
         size="m"
         disabled={pending}
+        data-ga="retry"
         onClick={() => {
           if (navigator.onLine) retry();
         }}

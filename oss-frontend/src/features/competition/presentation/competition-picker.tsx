@@ -94,6 +94,7 @@ export function CompetitionPicker({
       <div className="flex h-11 items-center rounded-10 border border-chip-default-border bg-tag-chip-default-bg">
         <button
           type="button"
+          data-ga="competition_picker"
           onClick={() => setOpen(true)}
           aria-haspopup="dialog"
           className={cn(
@@ -122,6 +123,7 @@ export function CompetitionPicker({
         {selected ? (
           <button
             type="button"
+            data-ga="competition_clear"
             onClick={() => onChange(null)}
             aria-label={`${selected.name} 고른 것 지우기`}
             className={cn(

@@ -123,7 +123,7 @@ export function BalanceDetailAppBar({
     <AppBarShell>
       {/* 좌측 뒤로가기 — 게시글 상세 앱바와 같은 규격(40x40, 아이콘 24, 평소 배경 없음).
           누르는 동안만 둥근 옅은 면이 깔린다 — 게시글 상세 앱바와 같은 눌림. */}
-      <IconButton onClick={closeDetail} aria-label="뒤로 가기">
+      <IconButton data-ga="back" onClick={closeDetail} aria-label="뒤로 가기">
         <BackArrowIcon size={24} />
       </IconButton>
 

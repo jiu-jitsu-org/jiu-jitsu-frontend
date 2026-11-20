@@ -117,7 +117,7 @@ function SessionExpiredFallback({ onRetry }: { onRetry: () => void }) {
 
       <div className="mt-1 flex items-center gap-2">
         {/* 누르는 동안 각자 눌림 색으로 짙어진다(피드 재시도 버튼과 같은 눌림). */}
-        <Button variant="neutral" size="m" onClick={onRetry}>
+        <Button data-ga="retry" variant="neutral" size="m" onClick={onRetry}>
           재시도
         </Button>
         <Button

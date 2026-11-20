@@ -1214,6 +1214,7 @@ export function PostWriteScreen({
                 tone="primary"
                 // 미선택으로 등록이 막혔으면(#303) 비선택 칩 테두리를 오류 색으로 — 고르는 순간 풀린다.
                 invalid={categoryMissing}
+                data-ga="category_chip"
                 onClick={() => {
                   setCategoryId(category.id);
                   setCategoryMissing(false);
@@ -1329,6 +1330,7 @@ export function PostWriteScreen({
             <button
               key={tag}
               type="button"
+              data-ga="tag_edit"
               onClick={() => editTag(tag)}
               onAnimationEnd={() => tagPop.onPopEnd(tag)}
               aria-label={`태그 ${tag} 수정`}
@@ -1362,6 +1364,7 @@ export function PostWriteScreen({
                 // 닫힌 상태의 진입점. 입력칸의 "#"과 같은 자리·색이라 열고 닫을 때 줄이 흔들리지 않는다.
                 <button
                   type="button"
+                  data-ga="tag_add"
                   onClick={focusTagInput}
                   aria-label="태그 추가"
                   className={cn("text-body-s", TAG_HASH_IDLE_CLASS)}
@@ -1430,6 +1433,7 @@ export function PostWriteScreen({
                     <li key={image.id} {...thumbnailMotion(String(image.id))}>
                       <button
                         type="button"
+                        data-ga="photo_open"
                         onClick={() => setViewerImageId(image.id)}
                         aria-label="이미지 상세 보기"
                         style={{
@@ -1458,6 +1462,7 @@ export function PostWriteScreen({
                       <li key={image.localId} {...thumbnailMotion(image.localId)}>
                         <button
                           type="button"
+                          data-ga="photo_thumbnail"
                           onClick={() => handleThumbnailTap(image.localId)}
                           aria-label={
                             isFailed
@@ -1548,6 +1553,7 @@ export function PostWriteScreen({
               onClick 자체가 안 불려 안내를 못 띄우므로 aria-disabled로 상태만 전달한다. */}
           <button
             type="button"
+            data-ga="photo_add"
             onClick={
               isEdit
                 ? () => toast.show(EDIT_PHOTO_UNAVAILABLE_MESSAGE, { tone: "warning" })
@@ -1580,6 +1586,7 @@ export function PostWriteScreen({
           {/* 탭하면 본문 아래 "# 태그" 입력칸으로 포커스(필요하면 그 줄이 보이게 스크롤). 3개면 토스트만(#162). */}
           <button
             type="button"
+            data-ga="tag_add"
             onClick={focusTagInput}
             className={cn(TOOLBAR_PILL_CLASS, TOOLBAR_TEXT_CLASS, SURFACE_PRESS)}
           >
@@ -1662,6 +1669,7 @@ function ThumbnailRemoveButton({
   return (
     <button
       type="button"
+      data-ga="photo_remove"
       onClick={onClick}
       aria-label={label}
       style={{

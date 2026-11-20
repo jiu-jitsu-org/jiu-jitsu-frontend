@@ -40,6 +40,7 @@ export function PostSearchRecent({
         <Button
           variant="text"
           size="s"
+          data-ga="recent_clear"
           onClick={onClear}
           className="-mr-3 text-body-s text-text-secondary"
         >
@@ -60,6 +61,7 @@ export function PostSearchRecent({
             {/* ×: 보이는 아이콘 16, 누를 자리 36. 오른쪽 끝을 '전체 지우기' 글자 끝과 맞춘다. */}
             <IconButton
               size="s"
+              data-ga="recent_remove"
               onClick={() => onRemove(keyword)}
               aria-label={`'${keyword}' 최근 검색에서 지우기`}
               className="-mr-2.5 text-icon-tertiary"

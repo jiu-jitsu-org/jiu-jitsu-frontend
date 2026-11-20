@@ -404,6 +404,7 @@ export function PostImageCropEditor({
             <button
               key={item.id}
               type="button"
+              data-ga="crop_ratio"
               onClick={() => setPreset(item.id)}
               aria-pressed={selected}
               aria-label={`비율 ${item.label}`}
@@ -444,6 +445,7 @@ export function PostImageCropEditor({
       >
         <button
           type="button"
+          data-ga="crop_cancel"
           onClick={onCancel}
           disabled={saving}
           aria-label="편집 취소"
@@ -455,6 +457,7 @@ export function PostImageCropEditor({
         <Button
           variant="filled"
           size="m"
+          data-ga="crop_done"
           onClick={() => void finish()}
           disabled={saving}
           className="px-5"

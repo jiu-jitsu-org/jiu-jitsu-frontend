@@ -324,6 +324,7 @@ export function CompetitionCalendar({
               type="button"
               aria-haspopup="dialog"
               aria-label={`${view.year}년 ${view.month}월, 다른 달 고르기`}
+              data-ga="month_picker"
               onClick={() => setPickerOpen(true)}
               className={cn(
                 "flex h-10 items-center gap-1 rounded-10 px-2 text-[17px] leading-[24px] font-bold text-text-primary tabular-nums",
@@ -401,6 +402,7 @@ export function CompetitionCalendar({
             title="대회를 불러오지 못했어요"
             action={{
               label: "다시 시도",
+              ga: "retry",
               onClick: () =>
                 setMonths((current) => {
                   const next = { ...current };

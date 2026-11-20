@@ -146,6 +146,7 @@ function OpenInAppDialog({
       <button
         type="button"
         aria-label="닫기"
+        data-ga="open_app_x"
         onClick={onClose}
         className="absolute inset-0 bg-dialog-dim-bg"
       />
@@ -168,6 +169,7 @@ function OpenInAppDialog({
           <Button
             variant="neutral"
             size="l"
+            data-ga="open_app_close"
             onClick={onClose}
             className="flex-1"
           >

@@ -122,7 +122,7 @@ export function DetailSkeletonAppBar() {
   if (externalBrowser) return <OpenInAppBanner />;
   return (
     <AppBarShell>
-      <IconButton onClick={closeDetail} aria-label="뒤로 가기">
+      <IconButton data-ga="back" onClick={closeDetail} aria-label="뒤로 가기">
         <BackArrowIcon size={24} />
       </IconButton>
     </AppBarShell>

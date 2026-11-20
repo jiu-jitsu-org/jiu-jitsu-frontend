@@ -86,6 +86,7 @@ export function CompetitionDetailSummary({
               {/* 글자만 한 칸 진하게 — 같은 줄의 다른 수와 달리 누르는 곳이라. 누름 칸은 위아래로 넓힌다. */}
               <button
                 type="button"
+                data-ga="story_count"
                 onClick={scrollToCompetitionStories}
                 className={cn(
                   "-mx-1 -my-2 inline-flex items-center rounded-10 px-1 py-2 font-semibold text-text-secondary",

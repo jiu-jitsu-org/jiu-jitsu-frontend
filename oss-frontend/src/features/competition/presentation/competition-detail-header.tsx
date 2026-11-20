@@ -60,7 +60,7 @@ export function CompetitionDetailHeader({
 
   return (
     <AppBarShell>
-      <IconButton onClick={closeDetail} aria-label="뒤로 가기">
+      <IconButton data-ga="back" onClick={closeDetail} aria-label="뒤로 가기">
         <BackArrowIcon size={24} />
       </IconButton>
       <div className="ml-auto flex items-center">

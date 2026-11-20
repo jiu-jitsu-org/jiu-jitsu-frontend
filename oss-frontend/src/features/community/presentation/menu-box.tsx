@@ -121,11 +121,14 @@ export function MenuItem({
   onClick,
   role = "menuitem",
   selected,
+  ga,
 }: {
   children: ReactNode;
   onClick: () => void;
   role?: "menuitem" | "option";
   selected?: boolean;
+  /** 이름 없는 누름 기록의 요소 이름(`data-ga`, #584). 누르면 이름 붙은 기록이 바로 나는 항목엔 주지 않는다. */
+  ga?: string;
 }) {
   // MenuBox 밖에서 쓰이면(컨텍스트 없음) 그대로 바로 부른다.
   const select = use(MenuSelectContext);
@@ -134,6 +137,7 @@ export function MenuItem({
     <li role={role} aria-selected={role === "option" ? selected : undefined}>
       <button
         type="button"
+        data-ga={ga}
         onClick={() => (select ? select(onClick) : onClick())}
         className={cn(
           "flex h-[41px] w-full items-center px-4 text-body-s text-list-setting-text",

@@ -20,6 +20,7 @@ export function PostDetailTime({ createdAt }: { createdAt: string }) {
   return (
     <button
       type="button"
+      data-ga="post_time"
       onClick={() => setExact((value) => !value)}
       aria-pressed={exact}
       className="-my-1 py-1"

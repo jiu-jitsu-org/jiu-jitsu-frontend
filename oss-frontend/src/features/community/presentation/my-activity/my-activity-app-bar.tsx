@@ -17,7 +17,7 @@ export function MyActivityAppBar() {
     // 배경은 화면 바탕(--bw-white, 피드와 같은 색)에 맞춘다 — 셸 기본(true white)이면 앱바 아래로 옅은 띠가 생긴다.
     <AppBarShell className="bg-surface-container">
       {/* 좌측 뒤로가기 — 40x40, 아이콘 24, 배경 없음(누르는 동안만 둥근 옅은 면). 좌 8·세로 중앙은 셸이 담당. */}
-      <IconButton onClick={closeDetail} aria-label="뒤로 가기">
+      <IconButton data-ga="back" onClick={closeDetail} aria-label="뒤로 가기">
         <BackArrowIcon size={24} />
       </IconButton>
 

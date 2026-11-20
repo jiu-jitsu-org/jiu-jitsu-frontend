@@ -176,6 +176,7 @@ export function FeedCardMenu({
           눌림은 댓글 ⋮(CommentMenu)와 같다 — radius 10 면 + reaction-bar 눌림 색. */}
       <button
         type="button"
+        data-ga="feed_menu"
         onClick={() => setOpen((value) => !value)}
         aria-haspopup="menu"
         aria-expanded={open}
@@ -190,16 +191,16 @@ export function FeedCardMenu({
           {/* 자신 게시글: 삭제/수정 · 타인 게시글: 신고/숨기기 */}
           {isOwner ? (
             <>
-              <MenuItem onClick={() => void handleDelete()}>
+              <MenuItem ga="menu_delete" onClick={() => void handleDelete()}>
                 삭제하기
               </MenuItem>
-              <MenuItem onClick={() => openPostEdit(postId)}>
+              <MenuItem ga="menu_edit" onClick={() => openPostEdit(postId)}>
                 수정하기
               </MenuItem>
             </>
           ) : (
             <>
-              <MenuItem onClick={() => void handleReport()}>
+              <MenuItem ga="menu_report" onClick={() => void handleReport()}>
                 신고하기
               </MenuItem>
               {/* 숨기기는 확인 알럿 없이 바로 처리 — 되돌리기 토스트가 취소 수단이다. */}

@@ -199,6 +199,7 @@ function SingleImage({
     // 이미지 전체가 뷰어 진입 버튼이다(#94) — 실패 폴백은 열 것이 없어 버튼이 아니다.
     <button
       type="button"
+      data-ga="photo_open"
       onClick={onOpen}
       aria-label="이미지 크게 보기"
       // 로드 전 자리 색(surface/secondary)은 버튼이 깐다 — 사진은 다 불러온 뒤 옅게 나타난다.
@@ -387,6 +388,7 @@ function CarouselSlide({
     // 장 전체가 뷰어 진입 버튼이다(#94). 스크롤 중 손을 떼는 것과 탭은 브라우저가 구분한다(click 미발화).
     <button
       type="button"
+      data-ga="photo_open"
       onClick={onOpen}
       aria-label={label}
       // 로드 전 자리 색(surface/secondary)은 버튼이 깐다 — 사진은 다 불러온 뒤 옅게 나타난다.

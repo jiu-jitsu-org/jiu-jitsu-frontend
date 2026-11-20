@@ -112,6 +112,7 @@ export function MyActivityTabs({
                 id={tabId(item.value)}
                 type="button"
                 role="tab"
+                data-ga={`tab_${item.value}`}
                 aria-selected={selected}
                 aria-controls={PANEL_ID}
                 tabIndex={selected ? 0 : -1}

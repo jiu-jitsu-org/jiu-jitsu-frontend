@@ -736,6 +736,7 @@ export function CompetitionListView({
                     ? `지역: ${filter.regions.join(", ")}`
                     : "지역: 전체"
                 }
+                data-ga="region_filter"
                 onClick={() => {
                   setRegionSheetKey((key) => key + 1);
                   setRegionSheetOpen(true);
@@ -768,6 +769,7 @@ export function CompetitionListView({
                 aria-label="대회 이름 검색"
                 aria-expanded={searchOpen}
                 aria-controls={searchOpen ? SEARCH_INPUT_ID : undefined}
+                data-ga="name_search"
                 onClick={() =>
                   searchOpen ? closeSearch() : setSearchOpen(true)
                 }

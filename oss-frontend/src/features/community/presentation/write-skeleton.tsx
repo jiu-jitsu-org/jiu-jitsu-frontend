@@ -51,6 +51,7 @@ export function WriteSkeleton({
           <IconButton
             variant="tint"
             size="s"
+            data-ga="back"
             onClick={closeDetail}
             aria-label="뒤로 가기"
             style={{ marginTop: APP_BAR_BUTTON_TOP }}
