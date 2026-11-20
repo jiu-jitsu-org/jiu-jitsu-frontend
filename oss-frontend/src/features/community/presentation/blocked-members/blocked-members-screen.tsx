@@ -73,7 +73,10 @@ function renderContent(result: BlockedMembersPageDataResult): ReactNode {
     <>
       <BlockedMembersAppBar />
       {/* 앱바가 있어 뷰포트 전체 높이를 쓰면 그만큼 스크롤이 생긴다 → 60vh로 줄인다. */}
-      <FeedErrorState className="min-h-[60vh]" />
+      <FeedErrorState
+        className="min-h-[60vh]"
+        error={{ status: result.status, code: result.code }}
+      />
     </>
   );
 }

@@ -98,7 +98,10 @@ export function useBlockMember() {
         if (response?.status === 401) {
           requestNativeLogin("block");
         }
-        toast.show("유저를 차단하지 못했어요", { tone: "error" });
+        toast.show("유저를 차단하지 못했어요", {
+          tone: "error",
+          error: { status: response?.status },
+        });
         return false;
       }
 

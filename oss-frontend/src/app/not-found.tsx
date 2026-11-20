@@ -6,5 +6,10 @@ import { FallbackScreen } from "@/shared/ui/fallback-screen";
  * 그래서 화면 안에 나갈 버튼이 있어야 한다.
  */
 export default function NotFound() {
-  return <FallbackScreen title="페이지를 찾을 수 없어요" />;
+  return (
+    <FallbackScreen
+      title="페이지를 찾을 수 없어요"
+      errorShown={{ type: "not_found" }}
+    />
+  );
 }

@@ -16,6 +16,7 @@ export function CompetitionDetailGone() {
       title="찾을 수 없는 대회예요"
       description="내려갔거나 주소가 잘못된 대회예요."
       browserLink={{ href: "/competition", label: "대회 목록 보기" }}
+      errorShown={{ type: "not_found", contentType: "competition" }}
     />
   );
 }

@@ -2,9 +2,11 @@
 
 import { useEffect } from "react";
 
+import { trackErrorShown } from "@/shared/lib/analytics/error-shown";
 import {
   closeNativeSubview,
   isNativeBridgeAvailable,
+  whenWebViewReady,
 } from "@/shared/lib/native-bridge";
 import { enqueuePendingToast } from "@/shared/ui";
 
@@ -26,13 +28,16 @@ const GONE_MESSAGE = "종료된 밸런스 게임이에요";
  * 사라진다. 문구만 남기고 돌아간 화면이 대신 띄운다(shared/ui/pending-toast).
  *
  * 웹 단독 진입은 닫을 곳이 없어 아래 안내 화면이 그대로 남는다(현재 앱 전용 서비스라 허용).
+ *
+ * 오류 기록 · 닫는 순서는 PostDetailGone과 같다(#583) — 기록이 앱에 넘어간 뒤에 닫는다.
  */
 export function BalanceDetailGone() {
   useEffect(() => {
+    trackErrorShown({ type: "not_found", contentType: "balance_game" });
     if (!isNativeBridgeAvailable()) return;
 
     enqueuePendingToast(GONE_MESSAGE, { tone: "info" });
-    closeNativeSubview();
+    whenWebViewReady(closeNativeSubview);
   }, []);
 
   return (

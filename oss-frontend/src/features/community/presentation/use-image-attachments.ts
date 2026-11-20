@@ -227,7 +227,13 @@ export function useImageAttachments() {
         console.error("[post-write] 이미지 업로드 실패:", file.name, error);
         if (!isCurrent()) return;
         patch(localId, { status: "failed", imageId: undefined });
-        if (isRetry) toast.show(RETRY_FAILED_MESSAGE, { tone: "error" });
+        // 오류 기록(#583)은 문구가 보일 때만 — 첫 실패는 썸네일 ↻뿐이라 세지 않고, 등록 때 "올리지 못한 사진" 안내가 센다.
+        if (isRetry) {
+          toast.show(RETRY_FAILED_MESSAGE, {
+            tone: "error",
+            error: { type: "upload", field: "photo" },
+          });
+        }
       }
     },
     [patch, toast],
@@ -372,7 +378,10 @@ export function useImageAttachments() {
           .then(({ files, failedCount }) => {
             addFiles(files, "album", failedCount);
             if (failedCount > 0)
-              toast.show(photosNotLoadedMessage(failedCount), { tone: "error" });
+              toast.show(photosNotLoadedMessage(failedCount), {
+                tone: "error",
+                error: { type: "upload", field: "photo" },
+              });
           })
           .catch((error) => {
             console.error("[post-write] 네이티브 사진 선택 실패:", error);

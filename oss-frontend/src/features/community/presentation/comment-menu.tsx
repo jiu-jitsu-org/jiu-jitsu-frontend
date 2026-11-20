@@ -123,7 +123,10 @@ export function CommentMenu({
       if (response.status === 401) {
         requestNativeLogin("session_expired");
       }
-      toast.show("댓글을 삭제하지 못했어요", { tone: "error" });
+      toast.show("댓글을 삭제하지 못했어요", {
+        tone: "error",
+        error: { status: response.status },
+      });
       return;
     }
 
@@ -152,14 +155,17 @@ export function CommentMenu({
     if (!response.ok) {
       if (response.status === 401) {
         requestNativeLogin("session_expired");
-        toast.show("댓글을 복구하지 못했어요", { tone: "error" });
+        toast.show("댓글을 복구하지 못했어요", {
+          tone: "error",
+          error: { status: response.status },
+        });
         return;
       }
 
       const expired = await isRestoreExpired(response);
       toast.show(
         expired ? "복구할 수 있는 시간이 지났어요" : "댓글을 복구하지 못했어요",
-        { tone: "error" },
+        { tone: "error", error: { status: response.status } },
       );
       return;
     }

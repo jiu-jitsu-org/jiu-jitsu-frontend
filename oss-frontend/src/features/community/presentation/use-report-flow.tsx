@@ -150,7 +150,10 @@ export function useReportFlow() {
           notifyReported(`이미 신고한 ${noun}이에요`, target.from, options);
           return true;
         }
-        toast.show(`${noun}을 신고하지 못했어요`, { tone: "error" });
+        toast.show(`${noun}을 신고하지 못했어요`, {
+          tone: "error",
+          error: { status: response.status },
+        });
         return false;
       }
 

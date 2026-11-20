@@ -22,6 +22,8 @@ export default function ErrorPage({
       title="잠시 문제가 생겼어요"
       onRetry={() => startTransition(() => unstable_retry())}
       retrying={retrying}
+      // 종류는 알 수 없다 — 끊긴 망이면 network, 아니면 unknown(#583).
+      errorShown={{}}
     />
   );
 }

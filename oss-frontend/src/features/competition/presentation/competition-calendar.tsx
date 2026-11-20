@@ -25,6 +25,7 @@ import { WheelPicker } from "@/features/community/presentation/wheel-picker";
 import { trackCompetitionViewChange } from "@/features/competition/presentation/competition-analytics";
 import { CompetitionRow } from "@/features/competition/presentation/competition-month-section";
 import type { CompetitionInterest } from "@/features/competition/presentation/use-competition-interest";
+import { trackErrorShown } from "@/shared/lib/analytics";
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
 import { EmptyState } from "@/shared/ui/empty-state";
@@ -147,6 +148,15 @@ export function CompetitionCalendar({
     [months, queryKey],
   );
   const monthData = useMemo(() => resolveMonth(view), [resolveMonth, view]);
+  // 달 받기 실패 안내가 보일 때 오류 기록(#583) — 같은 달 · 같은 조건에서 다시 시도가 또 실패해도 한 번만
+  // (다시 시도는 받은 묶음을 지워 실패 표시가 잠깐 사라진다). 다른 달로 갔다가 다시 실패하면 다시 센다.
+  const monthFailed = monthData?.failed === true;
+  const trackedFailureKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!monthFailed || trackedFailureKeyRef.current === monthKey) return;
+    trackedFailureKeyRef.current = monthKey;
+    trackErrorShown({ contentType: "competition" });
+  }, [monthFailed, monthKey]);
   // 받기 전에 이미 받은 묶음을 본다 — 받기 함수를 새로 만들면 달 고르기 시트의 휠 기다림이 다시 시작돼 ref로 읽는다.
   const resolveMonthRef = useRef(resolveMonth);
   useEffect(() => {

@@ -480,7 +480,12 @@ function FeedListContent({
         />
       );
     }
-    return <FeedErrorState onRetry={clientLoaded ? onRetry : undefined} />;
+    return (
+      <FeedErrorState
+        onRetry={clientLoaded ? onRetry : undefined}
+        error={{ status: result.status, code: result.code }}
+      />
+    );
   }
 
   if (result.data.list.items.length === 0) {

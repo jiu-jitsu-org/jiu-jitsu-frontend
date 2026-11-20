@@ -187,7 +187,10 @@ export function PostDetailAppBar({
       if (response.status === 401) {
         requestNativeLogin("session_expired");
       }
-      toast.show("게시글을 삭제하지 못했어요", { tone: "error" });
+      toast.show("게시글을 삭제하지 못했어요", {
+        tone: "error",
+        error: { status: response.status },
+      });
       return;
     }
 

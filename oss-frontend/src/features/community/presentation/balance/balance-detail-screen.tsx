@@ -51,7 +51,21 @@ export async function BalanceDetailScreen({
       <KeepDetailOnRefreshFailure
         contentId={contentId}
         ok={false}
-        fallback={<DetailErrorState title="밸런스 게임을 불러오지 못했습니다." />}
+        error={{
+          status: result.status,
+          code: result.code,
+          contentType: "balance_game",
+        }}
+        fallback={
+          <DetailErrorState
+            title="밸런스 게임을 불러오지 못했습니다."
+            error={{
+              status: result.status,
+              code: result.code,
+              contentType: "balance_game",
+            }}
+          />
+        }
       />
     );
   }

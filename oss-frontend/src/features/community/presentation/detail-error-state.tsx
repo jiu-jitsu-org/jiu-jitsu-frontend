@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useEffect, useTransition } from "react";
 
 import {
   CONNECTION_LOST_MESSAGE,
@@ -9,6 +9,10 @@ import {
   useRetryWhenOnline,
 } from "@/features/community/presentation/connection-lost";
 
+import {
+  trackErrorShown,
+  type ErrorShownDetail,
+} from "@/shared/lib/analytics/error-shown";
 import { Button } from "@/shared/ui/button";
 
 /**
@@ -20,8 +24,16 @@ import { Button } from "@/shared/ui/button";
  * 상세 조회도 Server Component가 하므로 재시도는 router.refresh()로 라우트를 다시 렌더시킨다.
  * 조회가 세션 쿠키에 의존해 동적이라 refresh가 실제 재요청으로 이어진다. 재요청 동안은 연타를 막는다.
  * 서버가 준 오류 원문은 보여주지 않는다 — 사용자가 할 수 있는 일은 재시도뿐이라 읽을 이유가 없다.
+ *
+ * 붙을 때 오류 기록(`error_shown`, #583)을 한 번 남긴다(실패 상태 · 코드 · 대상 종류는 `error`로).
  */
-export function DetailErrorState({ title }: { title: string }) {
+export function DetailErrorState({
+  title,
+  error,
+}: {
+  title: string;
+  error?: ErrorShownDetail;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   // 망이 끊겨 있으면 연결 문구로 바꾸고, 돌아오면 한 번 저절로 다시 불러온다(#543).
@@ -29,6 +41,12 @@ export function DetailErrorState({ title }: { title: string }) {
   const online = useOnline();
   const retry = () => startTransition(() => router.refresh());
   useRetryWhenOnline(retry);
+
+  // 붙을 때 한 번 — 다시 시도가 또 실패해 이 화면이 남아 있으면 다시 세지 않는다.
+  useEffect(() => {
+    trackErrorShown(error);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     // 뷰포트 전체 기준 가운데 정렬. 빈 화면에서 툭 튀지 않게 옅게 나타난다(피드 실패와 같은 fade-in).

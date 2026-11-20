@@ -97,7 +97,10 @@ export function BeltPromptProvider({
       });
       if (!response.ok) {
         // 시트는 열어 둔다 — 고른 띠를 그대로 두고 다시 누를 수 있게.
-        toast.show("띠를 저장하지 못했어요", { tone: "error" });
+        toast.show("띠를 저장하지 못했어요", {
+          tone: "error",
+          error: { status: response.status },
+        });
         return;
       }
       setOpen(false);

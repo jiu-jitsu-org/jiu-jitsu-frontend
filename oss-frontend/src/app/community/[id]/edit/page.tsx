@@ -88,7 +88,7 @@ export default async function CommunityPostEditPage({
       notFound();
     }
     // 시간 초과 · 5xx 등은 없는 글이 아니다 — 다시 시도할 수 있게 한다(#503).
-    return <PostEditLoadFailed />;
+    return <PostEditLoadFailed status={apiError.status} code={apiError.code} />;
   }
 
   const now = readServerNow();
