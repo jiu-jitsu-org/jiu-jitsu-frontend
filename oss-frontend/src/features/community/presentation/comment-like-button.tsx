@@ -13,7 +13,9 @@ import {
   REACTION_PRESS_MOTION,
 } from "@/features/community/presentation/comment-reaction-styles";
 import { usePopOnActivate } from "@/features/community/presentation/use-pop-on-activate";
+import { trackContentLike } from "@/features/community/presentation/reaction-analytics";
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
+import { currentScreenName } from "@/shared/lib/analytics";
 import { cn } from "@/shared/lib/cn";
 import { requestNativeLogin } from "@/shared/lib/native-bridge";
 import { HeartIcon } from "@/shared/ui/icons";
@@ -63,6 +65,8 @@ export function CommentLikeButton({
     const prevLiked = liked;
     const prevCount = count;
     const next = !prevLiked;
+    // 기록(GA, #580)의 from은 누른 순간의 화면.
+    const from = currentScreenName();
 
     // 낙관적 반영
     setLiked(next);
@@ -97,6 +101,8 @@ export function CommentLikeButton({
       if (typeof authoritative !== "boolean") return;
 
       setLiked(authoritative);
+      // 성공한 토글마다 남긴다(GA, #580) — 화면이 낡아 결과가 누르기 전과 같아도 서버에선 바뀌었다.
+      trackContentLike("comment", commentId, authoritative, from);
       // 카운트는 서버가 토글 직후 값을 내려주므로 그대로 확정한다 — 낙관값과 결과가 같아도
       // 마찬가지다. 로컬 ±1은 요청 사이에 끼어든 다른 사용자의 좋아요를 놓쳐 실제 값과 어긋난다.
       // 응답에 카운트가 없는 구버전 폴백만 토글 전 기준점에서 재계산한다.

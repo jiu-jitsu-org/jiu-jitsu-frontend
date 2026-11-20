@@ -44,6 +44,7 @@ import {
   POST_HIDDEN_ACTION,
   toggleHidePost,
 } from "@/features/community/presentation/hide-post";
+import { trackContentHide } from "@/features/community/presentation/reaction-analytics";
 import { cn } from "@/shared/lib/cn";
 import { IconButton } from "@/shared/ui/icon-button";
 import { RetryIcon } from "@/shared/ui/icons";
@@ -244,7 +245,11 @@ export function CommunityFeedList({
       if (action.type === MEMBER_BLOCK_ACTION) {
         if (!action.userId) return;
         const userId = action.userId;
-        void blockMember({ userId, nickname: action.name ?? "" }).then(
+        // 상세 ⋮ 신고 뒤 목록 토스트의 [차단] — 기록의 from은 신고한 메뉴(GA, #580).
+        void blockMember(
+          { userId, nickname: action.name ?? "" },
+          "post_menu",
+        ).then(
           (blocked) => {
             if (blocked) removeAuthorPosts(userId);
           },
@@ -264,6 +269,8 @@ export function CommunityFeedList({
           return;
         }
 
+        // 상세 ⋮에서 숨긴 글의 되돌리기(GA, #580).
+        trackContentHide(postId, "undo", "post_menu");
         if (restoreRemoved(postId)) expandAfterInsert(postId);
       })();
     },

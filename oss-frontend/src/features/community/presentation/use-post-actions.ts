@@ -3,6 +3,11 @@
 import { useRef, useState } from "react";
 
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
+import {
+  trackContentLike,
+  trackContentSave,
+} from "@/features/community/presentation/reaction-analytics";
+import { currentScreenName, type ScreenName } from "@/shared/lib/analytics";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { requestNativeLogin } from "@/shared/lib/native-bridge";
 
@@ -41,7 +46,14 @@ const ENDPOINT: Record<ToggleKind, (postId: number) => string> = {
   bookmark: (postId) => `/api/community/posts/${postId}/bookmarks`,
 };
 
-export function usePostActions(postId: number, initial: PostActionsSeed) {
+/**
+ * contentType: 좋아요 기록(GA, #580)의 대상 — 밸런스 상세는 같은 엔드포인트라 이 훅을 쓰지만 대상은 balance_game이다.
+ */
+export function usePostActions(
+  postId: number,
+  initial: PostActionsSeed,
+  contentType: "post" | "balance_game" = "post",
+) {
   const demo = useIsDemoMode();
   const [state, setState] = useState<PostActionsState>(() => toState(initial));
   // 종류별 서버 동기화 진행 중 플래그 — 진행 중엔 시드로 상태를 되돌리지 않는다.
@@ -64,6 +76,8 @@ export function usePostActions(postId: number, initial: PostActionsSeed) {
   // desiredRef: 사용자가 마지막으로 원한 상태. inFlightRef: 종류별 동기화 루프가 도는 중인지.
   const desiredRef = useRef<Record<ToggleKind, boolean>>({ like: false, bookmark: false });
   const inFlightRef = useRef<Record<ToggleKind, boolean>>({ like: false, bookmark: false });
+  // 기록(GA, #580)의 from — 마지막으로 누른 순간의 화면. 응답 뒤에 읽으면 그사이 옮겨 간 화면이 실린다.
+  const fromRef = useRef<ScreenName | undefined>(undefined);
 
   function toggle(kind: ToggleKind) {
     const wasActive = kind === "like" ? state.liked : state.bookmarked;
@@ -71,6 +85,7 @@ export function usePostActions(postId: number, initial: PostActionsSeed) {
 
     // 1) 낙관적 반영 — 진행 중인 요청이 있어도 탭은 버리지 않는다.
     desiredRef.current[kind] = nextActive;
+    fromRef.current = currentScreenName();
     setState((prev) => applyToggle(prev, kind, nextActive));
 
     // 예시(데모)에선 네트워크 없이 낙관적 UI만 유지(롤백 없음).
@@ -120,6 +135,14 @@ export function usePostActions(postId: number, initial: PostActionsSeed) {
         const authoritative = kind === "like" ? data?.liked : data?.saved;
         const before = serverActive;
         serverActive = typeof authoritative === "boolean" ? authoritative : !serverActive;
+
+        // 성공한 요청마다 한 번 남긴다(GA, #580) — 엔드포인트가 토글이라 성공은 곧 서버에서 바뀐 것이고, 취소는 서버에 흔적이
+        // 없다. 화면이 서버보다 낡아 결과가 화면과 같아도(다른 기기에서 누름) 서버에선 바뀌었으므로 남긴다.
+        if (kind === "like") {
+          trackContentLike(contentType, postId, serverActive, fromRef.current);
+        } else {
+          trackContentSave(postId, serverActive, fromRef.current);
+        }
 
         // 토글했는데 서버 상태가 그대로면 더 보내도 수렴하지 않는다 — 서버 값을 정답으로 삼고 멈춘다.
         if (serverActive === before) desiredRef.current[kind] = serverActive;

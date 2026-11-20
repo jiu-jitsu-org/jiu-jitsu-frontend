@@ -13,6 +13,10 @@ import {
   useBlockMember,
 } from "@/features/community/presentation/use-block-member";
 import { useNativeDialog } from "@/features/community/presentation/use-native-dialog";
+import {
+  trackReportSubmit,
+  type ContentMenuFrom,
+} from "@/features/community/presentation/reaction-analytics";
 import { ApiErrorCode } from "@/shared/lib/http/api-error";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { requestNativeLogin } from "@/shared/lib/native-bridge";
@@ -64,7 +68,7 @@ export function useReportFlow() {
    * 다음 화면 토스트에 붙인다(onReported의 둘째 인자).
    */
   const notifyReported = useCallback(
-    (message: string, options?: ReportOptions) => {
+    (message: string, from: ContentMenuFrom, options?: ReportOptions) => {
       const target =
         options?.blockTarget && options.blockTarget.userId > 0
           ? options.blockTarget
@@ -82,7 +86,7 @@ export function useReportFlow() {
         action: {
           label: BLOCK_ACTION_LABEL,
           onAction: () => {
-            void block(target).then((blocked) => {
+            void block(target, from).then((blocked) => {
               if (blocked) options?.onBlocked?.();
             });
           },
@@ -97,6 +101,8 @@ export function useReportFlow() {
       target: {
         reportType: ReportTargetType;
         targetId: number;
+        /** 신고를 누른 메뉴(GA `report_submit`, #580). 완료 토스트 [차단]의 from도 같다. */
+        from: ContentMenuFrom;
       },
       options?: ReportOptions,
     ): Promise<boolean> => {
@@ -115,7 +121,7 @@ export function useReportFlow() {
 
       // 예시(데모)에선 네트워크 없이 안내만(실제 신고 없음).
       if (demo) {
-        notifyReported(`${noun}을 신고했어요`, options);
+        notifyReported(`${noun}을 신고했어요`, target.from, options);
         return true;
       }
 
@@ -140,14 +146,16 @@ export function useReportFlow() {
         // 이미 신고한 상태이므로 호출부는 성공과 동일하게 후처리(목록에서 감추기)한다 — 계속 보이는
         // 편이 더 어색하다.
         if (await isAlreadyReported(response)) {
-          notifyReported(`이미 신고한 ${noun}이에요`, options);
+          trackReportSubmit(target.reportType, outcome.value, target.from);
+          notifyReported(`이미 신고한 ${noun}이에요`, target.from, options);
           return true;
         }
         toast.show(`${noun}을 신고하지 못했어요`, { tone: "error" });
         return false;
       }
 
-      notifyReported(`${noun}을 신고했어요`, options);
+      trackReportSubmit(target.reportType, outcome.value, target.from);
+      notifyReported(`${noun}을 신고했어요`, target.from, options);
       return true;
     },
     [demo, notifyReported, selectSheet, toast],

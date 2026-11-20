@@ -11,6 +11,7 @@ import {
 import { BlockedMemberItem } from "@/features/community/presentation/blocked-members/blocked-member-item";
 import { BlockedMembersAppBar } from "@/features/community/presentation/blocked-members/blocked-members-app-bar";
 import { BlockedMembersEmptyState } from "@/features/community/presentation/blocked-members/blocked-members-empty-state";
+import { trackUserBlock } from "@/features/community/presentation/reaction-analytics";
 import { useNativeDialog } from "@/features/community/presentation/use-native-dialog";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { requestNativeLogin } from "@/shared/lib/native-bridge";
@@ -103,6 +104,7 @@ export function BlockedMembersView({
       }
 
       setRemoved(userId, "done");
+      trackUserBlock(false, "blocked_list");
       // 뒤에 떠 있는 홈 피드 등이 다시 보일 때 그 회원 글을 다시 넣게 알린다(#531).
       markBlockChanged();
       toast.show("차단을 해제했어요", { tone: "success" });

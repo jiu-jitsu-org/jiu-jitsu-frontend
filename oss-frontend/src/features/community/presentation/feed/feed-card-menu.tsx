@@ -7,6 +7,7 @@ import {
   HIDE_TOAST,
   toggleHidePost,
 } from "@/features/community/presentation/hide-post";
+import { trackContentHide } from "@/features/community/presentation/reaction-analytics";
 import {
   MenuBox,
   MenuItem,
@@ -104,7 +105,7 @@ export function FeedCardMenu({
   /** 신고: 사유 시트 → POST(useReportFlow) → 성공 시 목록에서 제거(숨김). 완료 토스트에 [차단](#550). */
   async function handleReport() {
     const reported = await report(
-      { reportType: "BOARD", targetId: postId },
+      { reportType: "BOARD", targetId: postId, from: "feed_menu" },
       { blockTarget: author, onBlocked: onAuthorBlocked },
     );
     if (reported) onDeleted();
@@ -137,10 +138,12 @@ export function FeedCardMenu({
     }
     // 이미 숨긴 글(저장 목록 등)이라 풀렸다 — 카드는 그대로 두고 결과만 알린다(#530).
     if (!hidden) {
+      trackContentHide(postId, "undo", "feed_menu");
       toast.show(HIDE_TOAST.unhidden, { tone: "info" });
       return;
     }
 
+    trackContentHide(postId, "hide", "feed_menu");
     onDeleted();
     toast.show(HIDE_TOAST.done, {
       tone: "success",
@@ -160,6 +163,7 @@ export function FeedCardMenu({
       return;
     }
 
+    trackContentHide(postId, "undo", "feed_menu");
     onRestored();
   }
 

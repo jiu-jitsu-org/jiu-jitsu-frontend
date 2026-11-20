@@ -49,11 +49,15 @@ export function BalanceDetailActionBar({
   className?: string;
 }) {
   // 저장은 쓰지 않지만 훅이 한 벌로 관리한다 — 시드만 꺼 두고 토글은 호출하지 않는다.
-  const { liked, likes, toggleLike } = usePostActions(contentId, {
-    liked: initialLiked,
-    bookmarked: false,
-    likes: initialLikes,
-  });
+  const { liked, likes, toggleLike } = usePostActions(
+    contentId,
+    {
+      liked: initialLiked,
+      bookmarked: false,
+      likes: initialLikes,
+    },
+    "balance_game",
+  );
 
   // 로그인 기반 액션은 탭 시점에 가로챈다(PostActionBar와 같은 이유).
   const { externalBrowser, guard } = useLoginGuard();
