@@ -33,4 +33,4 @@ export {
   trackSelectContent,
   type SelectContentDetail,
 } from "./select-content";
-export type { ScreenFrom } from "./screens";
+export type { ScreenFrom, ScreenName } from "./screens";

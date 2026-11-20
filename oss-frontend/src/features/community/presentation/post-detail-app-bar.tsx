@@ -19,6 +19,7 @@ import {
   POST_HIDDEN_ACTION,
   toggleHidePost,
 } from "@/features/community/presentation/hide-post";
+import { trackContentHide } from "@/features/community/presentation/reaction-analytics";
 import { useNativeDialog } from "@/features/community/presentation/use-native-dialog";
 import { POST_EDIT_FROM_DETAIL } from "@/features/community/presentation/post-edit-return";
 import { useOpenPostEdit } from "@/features/community/presentation/use-open-post-edit";
@@ -233,10 +234,13 @@ export function PostDetailAppBar({
     }
     // 이미 숨긴 글(저장 목록 · 링크로 연 경우)이라 풀렸다 — 화면은 그대로 두고 결과만 알린다(#530).
     if (!hidden) {
+      trackContentHide(postId, "undo", "post_menu");
       toast.show(HIDE_TOAST.unhidden, { tone: "info" });
       return;
     }
 
+    trackContentHide(postId, "hide", "post_menu");
+    // 이 [되돌리기]와 아래 신고 뒤 [차단]은 목록(community-feed-list)이 from=post_menu로 기록한다(GA, #580).
     enqueuePendingToast(HIDE_TOAST.done, {
       tone: "success",
       action: {
@@ -250,7 +254,7 @@ export function PostDetailAppBar({
 
   async function handleReport() {
     await report(
-      { reportType: "BOARD", targetId: postId },
+      { reportType: "BOARD", targetId: postId, from: "post_menu" },
       {
         blockTarget: author,
         onReported: (message, blockTarget) => {

@@ -5,6 +5,10 @@ import { useCallback } from "react";
 import { markBlockChanged } from "@/features/community/presentation/block-change-watcher";
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
 import { useNativeDialog } from "@/features/community/presentation/use-native-dialog";
+import {
+  trackUserBlock,
+  type ContentMenuFrom,
+} from "@/features/community/presentation/reaction-analytics";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { requestNativeLogin } from "@/shared/lib/native-bridge";
 import { useToast } from "@/shared/ui";
@@ -48,6 +52,8 @@ async function isUnblockedResult(response: Response): Promise<boolean> {
  * 차단되면 다른 웹뷰(홈 피드 등)가 다시 보일 때 반영하도록 알리고(markBlockChanged, #531), 이 화면의 다시 읽기는
  * 호출부가 한다(댓글은 router.refresh, 피드는 불러온 페이지 다시 읽기).
  *
+ * from: 차단을 누른 메뉴(GA `user_block`, #580). 신고 뒤 [차단]은 신고한 메뉴다.
+ *
  * @returns block(차단 완료 여부를 돌려준다) + 웹 폴백 확인창(`dialog`, 트리에 렌더 필요)
  */
 export function useBlockMember() {
@@ -56,7 +62,10 @@ export function useBlockMember() {
   const { confirm, dialog } = useNativeDialog();
 
   const block = useCallback(
-    async ({ userId, nickname }: BlockTarget): Promise<boolean> => {
+    async (
+      { userId, nickname }: BlockTarget,
+      from: ContentMenuFrom,
+    ): Promise<boolean> => {
       const confirmed = await confirm({
         // title은 titleParts를 모르는 구버전 앱용 완성 문자열 — 둘의 내용이 어긋나면 안 된다.
         title: `${nickname}님 차단`,
@@ -99,6 +108,7 @@ export function useBlockMember() {
         return false;
       }
 
+      trackUserBlock(true, from);
       toast.show("유저를 차단했어요", { tone: "success" });
       // 뒤에 떠 있는 홈 피드 등이 다시 보일 때 그 회원 글을 빼게 알린다(#531).
       markBlockChanged();

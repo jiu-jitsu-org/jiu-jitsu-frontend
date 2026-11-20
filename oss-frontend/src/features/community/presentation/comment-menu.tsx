@@ -172,10 +172,10 @@ export function CommentMenu({
 
   /** 차단: 확인 알럿 → POST → 성공 시 목록 갱신(useBlockMember). */
   async function handleBlock() {
-    const blocked = await blockMember({
-      userId: authorId,
-      nickname: authorNickname,
-    });
+    const blocked = await blockMember(
+      { userId: authorId, nickname: authorNickname },
+      "comment_menu",
+    );
     // 서버 렌더 목록 재요청 — 차단된 회원의 댓글은 placeholder로, 게시글은 목록에서 빠진다.
     if (blocked) router.refresh();
   }
@@ -187,7 +187,7 @@ export function CommentMenu({
    */
   async function handleReport() {
     const reported = await report(
-      { reportType: "COMMENT", targetId: commentId },
+      { reportType: "COMMENT", targetId: commentId, from: "comment_menu" },
       {
         // 완료 토스트의 [차단](#550) — 차단되면 목록을 다시 읽어 그 회원 댓글을 자리 표시로 바꾼다.
         blockTarget: { userId: authorId, nickname: authorNickname },
