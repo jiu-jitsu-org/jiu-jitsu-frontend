@@ -12,6 +12,11 @@ import {
 } from "react";
 
 import type { Belt } from "@/features/community/domain/belt";
+import {
+  trackBeltPrompt,
+  trackBeltUpdate,
+  type BeltPromptTrigger,
+} from "@/features/community/presentation/belt-analytics";
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
 import {
   canCheckBeltPrompt,
@@ -26,10 +31,12 @@ import { useToast } from "@/shared/ui";
 
 const BELT_PATH = "/api/community/profile/belt";
 
-/** 계기가 생긴 화면이 부른다. Provider 밖(띠를 묻지 않는 화면)에서는 아무것도 하지 않는다. */
-const BeltPromptContext = createContext<() => void>(() => {});
+/** 계기가 생긴 화면이 계기를 넘겨 부른다. Provider 밖(띠를 묻지 않는 화면)에서는 아무것도 하지 않는다. */
+const BeltPromptContext = createContext<(trigger: BeltPromptTrigger) => void>(
+  () => {},
+);
 
-export function useRequestBeltPrompt(): () => void {
+export function useRequestBeltPrompt(): (trigger: BeltPromptTrigger) => void {
   return useContext(BeltPromptContext);
 }
 
@@ -57,8 +64,10 @@ export function BeltPromptProvider({
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const checkingRef = useRef(false);
+  // 지금 열린 시트의 계기 — 답(save · later) 기록의 from.
+  const triggerRef = useRef<BeltPromptTrigger>("post_create");
 
-  const requestPrompt = useCallback(() => {
+  const requestPrompt = useCallback((trigger: BeltPromptTrigger) => {
     if (demo || checkingRef.current) return;
     checkingRef.current = true;
     void needsBeltPrompt()
@@ -68,7 +77,9 @@ export function BeltPromptProvider({
         if (document.activeElement instanceof HTMLElement) {
           document.activeElement.blur();
         }
+        triggerRef.current = trigger;
         setOpen(true);
+        trackBeltPrompt("view", trigger);
       })
       .finally(() => {
         checkingRef.current = false;
@@ -77,7 +88,7 @@ export function BeltPromptProvider({
 
   useEffect(() => {
     if (postId !== undefined && consumeBeltPromptAfterPost(postId)) {
-      requestPrompt();
+      requestPrompt("post_create");
     }
   }, [postId, requestPrompt]);
 
@@ -85,6 +96,7 @@ export function BeltPromptProvider({
     if (saving) return;
     snoozeBeltPrompt();
     setOpen(false);
+    trackBeltPrompt("later", triggerRef.current);
   }
 
   async function save(belt: Belt) {
@@ -104,6 +116,8 @@ export function BeltPromptProvider({
         return;
       }
       setOpen(false);
+      trackBeltPrompt("save", triggerRef.current);
+      trackBeltUpdate(belt);
       toast.show("내 띠를 저장했어요", { tone: "success" });
       // 다른 웹뷰(홈 피드 · 대회 탭)가 다시 보일 때 내 띠를 다시 읽게 남긴다(#542).
       markMyBeltChanged(belt);

@@ -262,7 +262,7 @@ export function CommentInputBar({
       // 서버 렌더 목록 재요청 — 뒤에서 돌아 댓글 수·정렬을 맞추고, 같은 id는 서버 것으로 바뀐다.
       router.refresh();
       // 띠가 없는 회원이면 띠를 묻는다(#275). 노출 규칙은 Provider가 본다.
-      requestBeltPrompt();
+      requestBeltPrompt("comment_create");
     } finally {
       // 등록 중 readOnly로 바뀌는 순간 iOS 웹뷰는 키보드를 내리고 커서만 남긴다(#484). 끝나면 성공이든
       // 실패든 포커스까지 풀어 커서만 깜빡이는 상태를 없앤다 — 실패면 쓴 글은 남아 다시 탭해 이어 쓴다.
