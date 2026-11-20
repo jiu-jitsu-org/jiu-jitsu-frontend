@@ -7,6 +7,10 @@ import {
   useAuth,
   useIsSignedIn,
 } from "@/features/auth/presentation/auth-provider";
+import {
+  trackBalanceVote,
+  type BalanceVoteFrom,
+} from "@/features/community/presentation/balance/balance-analytics";
 import { markBalanceVoted } from "@/features/community/presentation/balance/balance-voted-at";
 import type {
   BalanceGame,
@@ -117,10 +121,13 @@ type VoteSync = {
 export function useBalanceVote({
   game,
   onVoted,
+  from,
 }: {
   game: BalanceGame;
   /** 낙관적 반영과 서버 확정값 반영에 모두 쓰인다. */
   onVoted: (next: BalanceGame) => void;
+  /** 투표 기록(#581)의 from — 누른 곳. */
+  from: BalanceVoteFrom;
 }): (option: BalanceOptionKey) => void {
   const { status, promptLogin } = useAuth();
   const signedIn = useIsSignedIn();
@@ -235,13 +242,20 @@ export function useBalanceVote({
               | { data?: BalanceGame }
               | null;
 
+            const before = sync.confirmed.myVote;
             // 본문을 못 읽어도 투표 자체는 성공했으므로 규약대로 바뀐 것으로 본다.
             sync.confirmed =
               body?.data ??
-              applyVote(
-                sync.confirmed,
-                nextVoteOf(sync.confirmed.myVote, voteOption),
-              );
+              applyVote(sync.confirmed, nextVoteOf(before, voteOption));
+
+            // 연타를 모아 보내므로 탭이 아니라 서버에 남은 요청마다 기록한다(#581).
+            trackBalanceVote(
+              sync.confirmed.contentId,
+              before,
+              sync.confirmed.myVote,
+              voteOption,
+              from,
+            );
 
             // 응답을 기다리는 사이 또 눌렸으면 그 상태로 다시 보낸다. 안 눌렸으면 서버 응답을 그대로 믿고 끝낸다
             // (다시 보내면 응답이 뜻밖일 때 끝없이 반복한다).
@@ -261,6 +275,6 @@ export function useBalanceVote({
       })();
     },
     // 이유를 모르는 실패는 문구가 정해지지 않았다 → 롤백만 한다(정책: 동작 안 함). 마감·시작 전만 알린다.
-    [applySettled, game, onVoted, promptLogin, signedIn, status, toast],
+    [applySettled, from, game, onVoted, promptLogin, signedIn, status, toast],
   );
 }
