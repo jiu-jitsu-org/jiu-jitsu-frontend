@@ -99,7 +99,10 @@ export function BlockedMembersView({
         if (response?.status === 401) {
           requestNativeLogin("block");
         }
-        toast.show("차단을 해제하지 못했어요", { tone: "error" });
+        toast.show("차단을 해제하지 못했어요", {
+          tone: "error",
+          error: { status: response?.status },
+        });
         return;
       }
 

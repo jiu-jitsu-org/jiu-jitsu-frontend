@@ -5,6 +5,7 @@ import { AuthProvider } from "@/features/auth/presentation/auth-provider";
 import { BlockChangeWatcher } from "@/features/community/presentation/block-change-watcher";
 import { MyBeltWatcher } from "@/features/community/presentation/my-belt-watcher";
 import { OpenInAppPromptProvider, ToastProvider } from "@/shared/ui";
+import { WebVitalsReporter } from "@/shared/lib/analytics/web-vitals";
 import { IMAGEKIT_ORIGIN } from "@/shared/lib/image-resize";
 import {
   SITE_DESCRIPTION,
@@ -69,6 +70,8 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col">
+        {/* 웹 화면 성능 지표(web_vital, #583) — 클라이언트 경계를 이 부품으로 한정한다. */}
+        <WebVitalsReporter />
         {/* "앱에서 계속하기" 안내가 AuthProvider 바깥에 있는 이유: 네이티브가 없을 때(외부 브라우저)
             requireAuth의 로그인 유도가 이 안내로 떨어져야 하므로 AuthProvider가 이를 소비한다. */}
         <OpenInAppPromptProvider>

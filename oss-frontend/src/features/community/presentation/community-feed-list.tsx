@@ -45,6 +45,7 @@ import {
   toggleHidePost,
 } from "@/features/community/presentation/hide-post";
 import { trackContentHide } from "@/features/community/presentation/reaction-analytics";
+import { trackErrorShown } from "@/shared/lib/analytics";
 import { cn } from "@/shared/lib/cn";
 import { IconButton } from "@/shared/ui/icon-button";
 import { RetryIcon } from "@/shared/ui/icons";
@@ -595,6 +596,7 @@ export function FeedLoadingMore({
 /**
  * 다음 페이지 로드 실패 — 안내 + 재시도. 로딩 표시와 같이 옅게 나타난다.
  * 망이 끊겨 있으면 연결 문구로 바꾸고, 연결이 돌아오면 한 번 저절로 다시 불러온다(#543).
+ * 붙을 때 오류 기록(`error_shown`, #583)을 한 번 남긴다.
  */
 export function FeedLoadMoreError({
   onRetry,
@@ -605,6 +607,9 @@ export function FeedLoadMoreError({
 }) {
   const online = useOnline();
   useRetryWhenOnline(onRetry);
+  useEffect(() => {
+    trackErrorShown();
+  }, []);
 
   return (
     // 높이 69 = 문구 줄(21) + 아이콘 버튼(40). 아이콘(24)이 버튼 안에서 위로 8 비어 문구와 눈으로는 8 떨어진다.

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useEffect, useTransition } from "react";
 
 import {
   CONNECTION_LOST_MESSAGE,
@@ -9,6 +9,10 @@ import {
   useRetryWhenOnline,
 } from "@/features/community/presentation/connection-lost";
 
+import {
+  trackErrorShown,
+  type ErrorShownDetail,
+} from "@/shared/lib/analytics/error-shown";
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
 
@@ -24,14 +28,19 @@ import { Button } from "@/shared/ui/button";
  *
  * 홈 카테고리 탭(#590)처럼 클라이언트가 BFF로 읽은 목록은 onRetry로 그 목록만 다시 읽는다.
  * 브라우저에서 직접 읽은 목록(글 검색, #591)은 router.refresh로 다시 읽히지 않아 onRetry로 재시도를 넘긴다.
+ *
+ * 붙을 때 오류 기록(`error_shown`, #583)을 한 번 남긴다 — 실패의 상태 · 코드를 아는 화면은 `error`로 넘긴다.
  */
 export function FeedErrorState({
   className,
   onRetry,
+  error,
 }: {
   className?: string;
   /** 다시 시도. 없으면 라우트를 다시 렌더한다(router.refresh). */
   onRetry?: () => void;
+  /** 오류 기록에 실을 실패 상태 · 코드. 모르면 비운다. */
+  error?: ErrorShownDetail;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -42,6 +51,12 @@ export function FeedErrorState({
   const retry = () =>
     onRetry ? onRetry() : startTransition(() => router.refresh());
   useRetryWhenOnline(retry);
+
+  // 붙을 때 한 번 — 다시 시도가 또 실패해 이 화면이 남아 있으면 다시 세지 않는다.
+  useEffect(() => {
+    trackErrorShown(error);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     // 컨텐츠 묶음은 뷰포트 전체 기준 가로·세로 가운데 정렬. 빈 화면에서 툭 튀지 않게 옅게 나타난다.

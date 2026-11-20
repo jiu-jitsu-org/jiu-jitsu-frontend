@@ -217,9 +217,15 @@ export function CommentInputBar({
           requestNativeLogin(parentId ? "reply" : "comment");
         } else if (await isForbiddenWord(response)) {
           // 금칙어 거절(#504) — 쓴 글은 그대로 두고 표현을 고치게 한다.
-          toast.show("사용할 수 없는 표현이 있어요", { tone: "error" });
+          toast.show("사용할 수 없는 표현이 있어요", {
+            tone: "error",
+            error: { code: ApiErrorCode.FORBIDDEN_WORD, field: "body" },
+          });
         } else {
-          toast.show("댓글을 등록하지 못했어요", { tone: "error" });
+          toast.show("댓글을 등록하지 못했어요", {
+            tone: "error",
+            error: { status: response.status },
+          });
         }
         return;
       }

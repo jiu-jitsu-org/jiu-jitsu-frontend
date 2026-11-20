@@ -11,6 +11,10 @@ import {
   type ReactNode,
 } from "react";
 
+import {
+  trackErrorShown,
+  type ErrorShownDetail,
+} from "@/shared/lib/analytics/error-shown";
 import { cn } from "@/shared/lib/cn";
 
 /**
@@ -26,6 +30,9 @@ import { cn } from "@/shared/lib/cn";
  * - error   실패    요청이 실패했을 때 ("게시글을 삭제하지 못했어요")
  *
  * 되돌릴 수 있는 동작(숨기기 등)은 action을 넘겨 오른쪽 글자 버튼을 함께 띄운다.
+ *
+ * 오류 기록(`error_shown`, #583): error 토스트는 띄울 때마다 남긴다. 부르는 쪽은 아는 만큼(서버 코드 · 칸)
+ * `error`로 싣는다. 오류가 아닌 모양(입력 검사 안내 등)이라도 `error`를 넘기면 남긴다.
  */
 
 export type ToastTone = "success" | "info" | "warning" | "error";
@@ -40,6 +47,8 @@ export type ToastOptions = {
   /** 왼쪽 아이콘. 기본은 info. */
   tone?: ToastTone;
   action?: ToastAction;
+  /** 오류 기록에 실을 것. tone이 error가 아니어도 넘기면 오류로 센다. */
+  error?: ErrorShownDetail;
 };
 
 type ToastContextValue = {
@@ -127,6 +136,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       const tone = options?.tone ?? "info";
       const action = options?.action ?? null;
       hasActionRef.current = action !== null;
+      if (tone === "error" || options?.error) trackErrorShown(options?.error);
 
       if (openRef.current) {
         // 떠 있는 토스트가 다시 불리면 상자는 그대로 두고 글자(아이콘 포함)만 새로 올라온다 —

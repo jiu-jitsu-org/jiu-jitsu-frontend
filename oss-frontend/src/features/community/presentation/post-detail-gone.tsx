@@ -5,10 +5,12 @@ import { useEffect } from "react";
 
 import { OpenInAppBanner } from "@/features/community/presentation/open-in-app-banner";
 import { cn } from "@/shared/lib/cn";
+import { trackErrorShown } from "@/shared/lib/analytics/error-shown";
 import {
   closeNativeSubview,
   isNativeBridgeAvailable,
   useIsExternalBrowser,
+  whenWebViewReady,
 } from "@/shared/lib/native-bridge";
 import { enqueuePendingToast } from "@/shared/ui";
 import { buttonVariants } from "@/shared/ui/button";
@@ -30,15 +32,19 @@ const GONE_MESSAGE = "삭제된 게시글이에요";
  *
  * 브라우저(공유 링크로 연 지워진 글)는 닫을 곳이 없어 이 화면이 남는다 — 앱 배너와 홈으로 가는 길을
  * 붙여 막다른 화면이 되지 않게 한다(#518). 글자 · 버튼은 없음 화면(FallbackScreen)과 같은 모양이다.
+ *
+ * 오류 기록(`error_shown` not_found, #583)은 앱 · 브라우저 모두 남긴다. 앱에서는 닫기를 WEBVIEW_READY 뒤로 미룬다 —
+ * 기록은 WEBVIEW_READY 뒤에 앱으로 넘어가므로(track), 먼저 닫기를 보내면 웹뷰가 기록보다 먼저 사라질 수 있다.
  */
 export function PostDetailGone() {
   const externalBrowser = useIsExternalBrowser();
 
   useEffect(() => {
+    trackErrorShown({ type: "not_found", contentType: "post" });
     if (!isNativeBridgeAvailable()) return;
 
     enqueuePendingToast(GONE_MESSAGE, { tone: "info" });
-    closeNativeSubview();
+    whenWebViewReady(closeNativeSubview);
   }, []);
 
   if (externalBrowser) {

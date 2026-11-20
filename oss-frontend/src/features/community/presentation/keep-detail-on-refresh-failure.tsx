@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 
+import type { ErrorShownDetail } from "@/shared/lib/analytics";
 import { useToast } from "@/shared/ui";
 
 type Props = {
@@ -9,7 +10,13 @@ type Props = {
   contentId: number;
 } & (
   | { ok: true; children: ReactNode; fallback?: never }
-  | { ok: false; fallback: ReactNode; children?: never }
+  | {
+      ok: false;
+      fallback: ReactNode;
+      children?: never;
+      /** 실패 토스트의 오류 기록(#583)에 실을 상태 · 코드 · 대상 종류. */
+      error?: ErrorShownDetail;
+    }
 );
 
 /**
@@ -41,11 +48,13 @@ export function KeepDetailOnRefreshFailure(props: Props) {
 
   // 서버가 실패를 새로 보낼 때마다(fallback 요소가 새로 옴) 한 번 알린다. 다른 이유로 다시 그려질 때는 그대로다.
   const failure = props.ok ? null : props.fallback;
+  const failureError = props.ok ? undefined : props.error;
   const keeping = kept !== null;
   useEffect(() => {
     if (failure === null || !keeping) return;
     toast.show("새로 불러오지 못했어요. 잠시 후 다시 시도해 주세요", {
       tone: "error",
+      error: failureError,
     });
     // toast는 Provider가 주는 값이라 다시 알릴 이유가 아니다.
     // eslint-disable-next-line react-hooks/exhaustive-deps

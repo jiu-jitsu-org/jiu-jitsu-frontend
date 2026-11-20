@@ -1,7 +1,11 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 
+import {
+  trackErrorShown,
+  type ErrorShownDetail,
+} from "@/shared/lib/analytics/error-shown";
 import { cn } from "@/shared/lib/cn";
 import {
   closeNativeSubview,
@@ -47,6 +51,9 @@ function readPlace(): FallbackPlace {
  *
  * 자리는 브릿지 · 주소로 정하므로 서버에서는 알 수 없다 — 서버는 브라우저 모양으로 그리고 하이드레이션 뒤
  * 바뀐다. 버튼 줄 높이를 고정해 바뀌어도 문구가 움직이지 않게 한다.
+ *
+ * `errorShown`을 넘기면 화면이 붙을 때 오류 기록(`error_shown`, #583)을 한 번 남긴다. 다시 시도해도 이 화면이
+ * 남아 있으면 다시 세지 않는다. 디자인 시스템 문서의 견본은 넘기지 않아 남기지 않는다.
  * 브라우저 링크는 `<a>`다 — 루트 레이아웃이 깨진 global-error에서도 문서를 새로 받아 확실히 벗어나게.
  */
 export function FallbackScreen({
@@ -55,6 +62,7 @@ export function FallbackScreen({
   onRetry,
   retrying = false,
   browserLink = { href: "/", label: "홈으로" },
+  errorShown,
 }: {
   title: string;
   description?: string;
@@ -63,10 +71,19 @@ export function FallbackScreen({
   /** 다시 시도 요청 중 — 연타를 막는다. */
   retrying?: boolean;
   browserLink?: { href: string; label: string };
+  /** 오류 기록에 실을 것. 없으면 남기지 않는다. */
+  errorShown?: ErrorShownDetail;
 }) {
   const place = useSyncExternalStore(subscribeNoop, readPlace, () => "browser" as const);
   useNativeLeaveGuard(false, closeNativeSubview);
   const showRetry = onRetry !== undefined || place === "tab";
+  const recordError = errorShown !== undefined;
+
+  // 붙을 때 한 번 — 부르는 쪽이 매 렌더 새 객체를 넘겨도 다시 세지 않는다.
+  useEffect(() => {
+    if (recordError) trackErrorShown(errorShown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     // 상세 조회 실패(DetailErrorState)와 같은 자리 · 같은 fade-in.

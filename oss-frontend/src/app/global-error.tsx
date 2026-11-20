@@ -28,6 +28,7 @@ export default function GlobalError({
           title="잠시 문제가 생겼어요"
           onRetry={() => startTransition(() => unstable_retry())}
           retrying={retrying}
+          errorShown={{}}
         />
       </body>
     </html>

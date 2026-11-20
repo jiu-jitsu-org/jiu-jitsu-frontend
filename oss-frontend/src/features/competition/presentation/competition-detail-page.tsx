@@ -47,7 +47,10 @@ export function CompetitionDetailPage({
     return (
       <SubviewScrollShell className="bg-surface-container">
         <CompetitionDetailHeader />
-        <DetailErrorState title="대회 정보를 불러오지 못했어요" />
+        <DetailErrorState
+          title="대회 정보를 불러오지 못했어요"
+          error={{ contentType: "competition" }}
+        />
       </SubviewScrollShell>
     );
   }

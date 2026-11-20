@@ -490,7 +490,10 @@ export function PostWriteScreen({
       void submit();
       return;
     } else {
-      toast.show(SUBMIT_TOAST.uploadFailed, { tone: "warning" });
+      toast.show(SUBMIT_TOAST.uploadFailed, {
+        tone: "warning",
+        error: { type: "upload", field: "photo" },
+      });
     }
     resetWriteTiming();
     // submit·toast는 넣지 않는다 — 업로드가 끝난 그 렌더의 최신 입력으로 한 번만 보낸다.
@@ -901,8 +904,9 @@ export function PostWriteScreen({
    * 미충족 항목의 안내와 그 칸(field)을 돌려준다(#303). 본문은 선택이라 보지 않는다(#589).
    * 최대(45/3000)는 maxLength가 입력 단계에서 막으므로 보지 않는다.
    */
+  /** field는 오류 기록(#583)의 사전 값 — 제목이 비었음(title)과 짧음(title_short)을 나눈다. */
   function findValidationError(): {
-    field: "category" | "title";
+    field: "category" | "title" | "title_short";
     message: string;
   } | null {
     if (categoryId === null) {
@@ -913,7 +917,7 @@ export function PostWriteScreen({
     }
     if (isTitleShort(title)) {
       return {
-        field: "title",
+        field: "title_short",
         message: `제목을 ${TITLE_MIN_LENGTH}자 이상 입력해주세요`,
       };
     }
@@ -944,13 +948,20 @@ export function PostWriteScreen({
     if (validationError !== null) {
       // 토스트는 나중 것이 이전 것을 덮는다(ToastProvider.show) — 연타해도 마지막 안내만 보인다.
       // 빠진 칸 안내는 노란 경고가 아니라 일반 안내(#397) — 쓰는 중인 사람에게 "틀렸다"가 아니라 "이것도 필요해요".
-      toast.show(validationError.message, { tone: "info" });
+      // 안내 모양은 info지만 입력 검사에 걸린 것이라 오류 기록(#583)으로 센다.
+      toast.show(validationError.message, {
+        tone: "info",
+        error: { type: "validation", field: validationError.field },
+      });
       // 표시는 토스트가 말하는 칸에만 — 카테고리 안내인데 제목 카운터까지 빨개지면 어디를 고칠지 흐려진다.
       setCategoryMissing(validationError.field === "category");
       if (validationError.field === "category") {
         setCategoryNudge((turn) => turn + 1);
       }
-      setTitleShort(validationError.field === "title");
+      setTitleShort(
+        validationError.field === "title" ||
+          validationError.field === "title_short",
+      );
       return;
     }
     // 단계별 시간 로그(#486) — 새 글만 잰다. 사진을 기다렸다 이어서 등록하면 첫 탭부터 이어 잰다.
@@ -962,7 +973,10 @@ export function PostWriteScreen({
         toast.show(SUBMIT_TOAST.waitingUpload, { tone: "info" });
       } else {
         resetWriteTiming();
-        toast.show(SUBMIT_TOAST.uploadFailed, { tone: "warning" });
+        toast.show(SUBMIT_TOAST.uploadFailed, {
+          tone: "warning",
+          error: { type: "upload", field: "photo" },
+        });
       }
       return;
     }
@@ -1069,7 +1083,10 @@ export function PostWriteScreen({
         error.code === ApiErrorCode.IMAGE_FILE_NOT_FOUND
       ) {
         expireUploaded();
-        toast.show(SUBMIT_TOAST.createImageExpired, { tone: "error" });
+        toast.show(SUBMIT_TOAST.createImageExpired, {
+          tone: "error",
+          error: { type: "upload", code: error.code, field: "photo" },
+        });
         return;
       }
       // 금칙어 거절(#504)은 다시 시도해도 같으니 재시도 안내 대신 표현을 고치라고 알린다. 수정도 같은 코드가 오면 같다.
@@ -1077,10 +1094,19 @@ export function PostWriteScreen({
         error instanceof WriteRequestError &&
         error.code === ApiErrorCode.FORBIDDEN_WORD
       ) {
-        toast.show(SUBMIT_TOAST.forbiddenWord, { tone: "error" });
+        toast.show(SUBMIT_TOAST.forbiddenWord, {
+          tone: "error",
+          error: { code: error.code },
+        });
         return;
       }
-      toast.show(isEdit ? SUBMIT_TOAST.editFailed : SUBMIT_TOAST.createFailed, { tone: "error" });
+      toast.show(isEdit ? SUBMIT_TOAST.editFailed : SUBMIT_TOAST.createFailed, {
+        tone: "error",
+        error:
+          error instanceof WriteRequestError
+            ? { status: error.status, code: error.code }
+            : undefined,
+      });
     }
   }
 

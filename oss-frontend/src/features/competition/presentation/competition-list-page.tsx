@@ -4,6 +4,7 @@ import { FeedErrorState } from "@/features/community/presentation/feed-error-sta
 import { CompetitionAlertProvider } from "@/features/competition/presentation/competition-alert-provider";
 import { CompetitionListSkeleton } from "@/features/competition/presentation/competition-list-skeleton";
 import { CompetitionListView } from "@/features/competition/presentation/competition-list-view";
+import { NativePageReady } from "@/shared/lib/native-bridge";
 import { readServerNow } from "@/shared/lib/time";
 import { EmptyState } from "@/shared/ui/empty-state";
 
@@ -27,6 +28,10 @@ export function CompetitionListPage({
   return (
     // 홈 피드처럼 맨 위에서 당기면 앱의 당겨서 새로고침이 걸리게 바운스를 연다(feed-bounce-scroll, globals.css).
     <main className="feed-bounce-scroll relative min-h-screen bg-surface-container">
+      {/* 목록이 그려지면 앱이 글꼴 · 그림을 다 받기 전에 로딩 덮개를 걷는다(jiu-jitsu-ios#261) — 홈 피드와 같이
+          실패 · 빈 목록에서도 보낸다. 탭 첫 화면이라 웹 뒤로가기 · 이탈 가드가 없어 오류 화면에 보내도 막히지 않는다.
+          앱은 이 신호까지를 화면이 뜬 시간으로 잰다(jiu-jitsu-ios#431, #583). */}
+      <NativePageReady />
       {renderBody(data)}
     </main>
   );

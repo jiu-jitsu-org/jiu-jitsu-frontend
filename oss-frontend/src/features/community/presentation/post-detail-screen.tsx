@@ -61,7 +61,13 @@ export async function PostDetailScreen({
       <KeepDetailOnRefreshFailure
         contentId={postId}
         ok={false}
-        fallback={<DetailErrorState title="게시글을 불러오지 못했습니다." />}
+        error={{ status: result.status, code: result.code, contentType: "post" }}
+        fallback={
+          <DetailErrorState
+            title="게시글을 불러오지 못했습니다."
+            error={{ status: result.status, code: result.code, contentType: "post" }}
+          />
+        }
       />
     );
   }
