@@ -29,8 +29,8 @@ const STORIES_SECTION_ID = "competition-stories";
 /**
  * 대회 이야기 (#366 · #597) — 커뮤니티에서 이 대회를 고른 글.
  *
- * 위에서부터: 묻기(글이 있든 없든 늘) → 최신 글 최대 5개 → '커뮤니티에서 N개 모두 보기'.
- * - 묻기: 대회 전엔 질문, 끝난 뒤엔 후기로 이끈다. 아래 줄에 글이 커뮤니티 '대회' 카테고리에 올라간다고 미리 알린다.
+ * 위에서부터: 쓰기(글이 있든 없든 늘) → 최신 글 최대 5개 → '커뮤니티에서 N개 모두 보기'.
+ * - 쓰기: 대회 전엔 이야기(질문만이 아니라 준비 · 동행 · 체급 이야기 등), 끝난 뒤엔 후기로 이끈다. 아래 줄에 글이 커뮤니티 '대회' 카테고리에 올라간다고 미리 알린다.
  *   누르면 글쓰기가 '대회' 카테고리와 이 대회를 고른 채 열린다(#433 · #588, 피드 글쓰기와 같은 길: 비로그인은 로그인 안내,
  *   앱은 서브뷰, 웹은 이동). 내용은 선택이라(#589) 제목만으로도 올라간다.
  * - 글을 누르면 게시글 상세(피드 카드와 같은 길). 줄마다 닉네임 · 시간 · 댓글 수.
@@ -44,7 +44,7 @@ export function CompetitionStories({
 }: {
   competitionId: number;
   list: CompetitionStoryList;
-  /** 끝난 대회인지 — 묻기 문구를 질문 대신 후기로 바꾼다. */
+  /** 끝난 대회인지 — 쓰기 문구를 이야기 대신 후기로 바꾼다. */
   ended: boolean;
 }) {
   const { totalCount, stories } = list;
@@ -72,14 +72,15 @@ export function CompetitionStories({
       <div className="flex items-center gap-3 py-1">
         <div className="min-w-0 flex-1">
           <p className="text-[15px] leading-[21px] font-semibold break-keep text-text-primary">
-            {ended ? "대회 후기를 남겨 주세요" : "궁금한 걸 물어보세요"}
+            {ended ? "대회 후기를 남겨 주세요" : "이 대회 이야기를 나눠 보세요"}
           </p>
           <p className="mt-0.5 text-[13px] leading-[18px] break-keep text-text-secondary">
             커뮤니티 &lsquo;대회&rsquo; 카테고리에 올라가요
           </p>
         </div>
-        <Button variant="tint" size="s" onClick={openWrite}>
-          {ended ? "후기 쓰기" : "질문하기"}
+        {/* 회색 구역 바탕 위라 옅은 파랑(tint)은 묻혀서, 꽉 찬 파랑으로 둔다. */}
+        <Button variant="filled" size="s" onClick={openWrite}>
+          {ended ? "후기 쓰기" : "글쓰기"}
         </Button>
       </div>
       {stories.length > 0 ? (
