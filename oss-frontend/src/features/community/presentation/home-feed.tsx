@@ -82,6 +82,7 @@ export function HomeFeed({
   competitionOptions,
   currentYear,
   balance,
+  subview = false,
 }: {
   categories: PostCategory[];
   initialFilter: FeedFilter;
@@ -92,6 +93,8 @@ export function HomeFeed({
   currentYear: number;
   /** 오늘의 밸런스 게임(서버가 그린 판). 어느 탭에서나 맨 위에 보인다. */
   balance: ReactNode;
+  /** 앱 서브뷰로 열렸나(`?view=subview`) — 탭 줄이 뒤로가기 앱바 밑에 붙고, 스크롤은 셸이 맡는다. */
+  subview?: boolean;
 }) {
   const [filter, setFilter] = useState(initialFilter);
   const [competition, setCompetition] = useState(initialCompetition);
@@ -138,13 +141,18 @@ export function HomeFeed({
         );
       }
       // 목록을 내린 채(흰 판이 위로 지나감) 탭을 바꾸면 새 목록의 맨 위(탭 줄이 막 붙은 자리)로 올린다.
-      const stuckAt = readTopGlassOffset();
-      const top = sheetRef.current?.getBoundingClientRect().top ?? stuckAt;
-      if (top < stuckAt)
-        window.scrollTo({ top: window.scrollY + top - stuckAt });
+      // 서브뷰는 밸런스 띠 없이 흰 판이 셸 맨 위에서 시작하니 셸을 맨 위로 올리면 된다.
+      if (subview) {
+        sheetRef.current?.closest("main")?.scrollTo({ top: 0 });
+      } else {
+        const stuckAt = readTopGlassOffset();
+        const top = sheetRef.current?.getBoundingClientRect().top ?? stuckAt;
+        if (top < stuckAt)
+          window.scrollTo({ top: window.scrollY + top - stuckAt });
+      }
       void load(next);
     },
-    [load],
+    [load, subview],
   );
 
   // 글 카드의 카테고리 이름은 누르지 않는다 — 바로 위 탭 줄이 같은 일을 하고, 목록이 통째로 바뀌어 당황스러웠다.
@@ -229,8 +237,10 @@ export function HomeFeed({
           categories={categories}
           selectedId={filter.categoryId}
           onSelect={selectCategory}
-          rounded={!sheetReachedTop}
-          glass={topGlass && sheetReachedTop}
+          rounded={!subview && !sheetReachedTop}
+          // 서브뷰 뒤엔 앱 머리줄이 없어 유리 면으로 이을 게 없다.
+          glass={!subview && topGlass && sheetReachedTop}
+          stickyUnderAppBar={subview}
         />
         {onCompetitionTab ? (
           // 목록이 오기 전에는 칸을 비워 둔다 — 대개 서버가 기억해 둔 목록이라 바로 온다.
@@ -365,10 +375,13 @@ function CategoryTabs({
   onSelect,
   rounded,
   glass,
+  stickyUnderAppBar,
 }: {
   categories: PostCategory[];
   selectedId: number | null;
   onSelect: (categoryId: number | null) => void;
+  /** 서브뷰 앱바(상태바 자리 + 44) 바로 밑에 붙는다. 아니면 화면 맨 위. */
+  stickyUnderAppBar: boolean;
   /** 흰 판 맨 위에 있을 때 위 모서리를 둥글게. 화면 위에 붙으면 편다 — 밑으로 지나가는 글이 모서리로 비치지 않게. */
   rounded: boolean;
   /** 화면 위에 붙어 앱 머리줄과 한 장의 유리 면으로 이어지는지(useNativeTopGlass). 띠가 보이는 동안은 앱 머리가 띠 색이라 끈다. */
@@ -404,7 +417,14 @@ function CategoryTabs({
 
   // 유리 면은 줄 위(앱 머리줄 뒤)와 아래로 넘쳐 그려지므로, 가로로 밀리는(넘침을 자르는) 칩 줄 바깥 상자에 둔다.
   return (
-    <div className="sticky top-[var(--top-glass-offset)] z-10">
+    <div
+      className={cn(
+        "sticky z-10",
+        stickyUnderAppBar
+          ? "top-[calc(var(--safe-area-top)+2.75rem)]"
+          : "top-[var(--top-glass-offset)]",
+      )}
+    >
       {glass ? <TopGlass ref={glassRef} /> : null}
       <div
         ref={rowRef}
