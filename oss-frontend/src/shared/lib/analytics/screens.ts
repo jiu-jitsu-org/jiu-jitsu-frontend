@@ -37,7 +37,7 @@ const ENTRY_FROMS = [
   "post_competition_card",
   "competition_banner",
   "competition_story",
-  // 대회 이야기 '질문하기'로 연 글쓰기(#597).
+  // 대회 이야기 '글쓰기' · '후기 쓰기'로 연 글쓰기(#597).
   "competition_story_ask",
   "balance_card",
   "notification",

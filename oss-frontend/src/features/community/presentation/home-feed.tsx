@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  Suspense,
+  use,
   useCallback,
   useEffect,
   useRef,
@@ -19,7 +21,10 @@ import {
   parseFeedFilter,
   type FeedFilter,
 } from "@/features/community/domain/feed-filter";
-import type { PostCategory } from "@/features/community/domain/post";
+import {
+  findCompetitionCategory,
+  type PostCategory,
+} from "@/features/community/domain/post";
 import { CommunityFeedList } from "@/features/community/presentation/community-feed-list";
 import { FeedEmptyState } from "@/features/community/presentation/feed-empty-state";
 import { FeedErrorState } from "@/features/community/presentation/feed-error-state";
@@ -34,15 +39,14 @@ import {
 import { fetchFeedPage } from "@/features/community/presentation/use-board-feed";
 import { useOpenPostWrite } from "@/features/community/presentation/use-open-post-write";
 import { WeeklyTopic } from "@/features/community/presentation/weekly-topic";
-import { useOpenCompetitionDetail } from "@/features/competition/presentation/competition-detail-link";
+import type { CompetitionPickerOption } from "@/features/competition/application/get-competition-picker-options";
+import { CompetitionPicker } from "@/features/competition/presentation/competition-picker";
 import { contentIdOf, track } from "@/shared/lib/analytics";
 import { cn } from "@/shared/lib/cn";
 import { setNativeHomeHeaderTint } from "@/shared/lib/native-bridge";
 import { Button } from "@/shared/ui/button";
 import { Chip } from "@/shared/ui/chip";
 import { EmptyState } from "@/shared/ui/empty-state";
-import { IconButton } from "@/shared/ui/icon-button";
-import { ChevronLeftIcon, CloseIcon } from "@/shared/ui/icons";
 import { Spinner } from "@/shared/ui/spinner";
 
 /** 목록 영역 — 서버가 그린 첫 목록(null)이거나, 탭을 바꿔 클라이언트가 읽은 목록. */
@@ -53,9 +57,10 @@ type FeedContent = {
 } | null;
 
 /**
- * 홈 피드 — 맨 위 오늘의 밸런스 게임 띠 + 그 위를 덮고 올라오는 흰 판(카테고리 탭 + 카테고리 설명 · 이번 주 써 볼
- * 주제 + 목록)(#590 · #598). 밸런스 게임은 어느 탭을 골라도 그대로 둔다 — 탭과 상관없는 바탕 층이라, 탭을 바꿔도
- * 탭 줄이 제자리에 있다.
+ * 홈 피드 — 맨 위 오늘의 밸런스 게임 띠 + 그 위를 덮고 올라오는 흰 판(카테고리 탭 + '대회' 탭의 대회 고르기 ·
+ * 이번 주 써 볼 주제 + 목록)(#590 · #598). 밸런스 게임은 어느 탭을 골라도 그대로 둔다 — 탭과 상관없는 바탕 층이라,
+ * 탭을 바꿔도 탭 줄이 제자리에 있다. 다만 대회 상세 '모두 보기'처럼 한 대회 글만 보러 들어온 화면에는 띠를 두지
+ * 않는다(page가 balance를 넘기지 않는다).
  *
  * 첫 화면은 서버가 주소(`/?categoryId=` · `/?competitionId=`)대로 그려 넘기고, 탭을 바꾸면 여기서 첫 페이지를
  * BFF로 읽어 목록만 갈아 끼운다 — 라우트를 다시 렌더하면 탭 줄까지 로딩 화면으로 덮여 깜빡인다.
@@ -70,12 +75,17 @@ export function HomeFeed({
   initialFilter,
   initialCompetition,
   initialResult,
+  competitionOptions,
+  currentYear,
   balance,
 }: {
   categories: PostCategory[];
   initialFilter: FeedFilter;
   initialCompetition: FeedCompetition | null;
   initialResult: BoardListPageDataResult;
+  /** '대회' 탭에서 대회별로 골라 볼 목록(글쓰기 대회 고르기와 같은 목록). 서버가 기다리지 않고 넘긴다. */
+  competitionOptions: Promise<CompetitionPickerOption[]>;
+  currentYear: number;
   /** 오늘의 밸런스 게임(서버가 그린 판). 어느 탭에서나 맨 위에 보인다. */
   balance: ReactNode;
 }) {
@@ -89,6 +99,9 @@ export function HomeFeed({
     filter.categoryId === null
       ? undefined
       : categories.find((category) => category.id === filter.categoryId);
+  const onCompetitionTab =
+    selectedCategory !== undefined &&
+    selectedCategory.id === findCompetitionCategory(categories)?.id;
 
   /** 첫 페이지를 읽어 목록을 갈아 끼운다. 늦게 온 옛 응답은 버린다. */
   const load = useCallback(async (next: FeedFilter) => {
@@ -209,19 +222,44 @@ export function HomeFeed({
           onSelect={selectCategory}
           rounded={!sheetReachedTop}
         />
-        {competition ? (
-          <CompetitionFilterBar
-            competition={competition}
-            onClear={() => {
-              track("feed_competition_filter", {
-                competition_id: contentIdOf("competition", competition.id),
-                action: "clear",
-              });
-              select({ categoryId: filter.categoryId, competitionId: null });
-            }}
+        {onCompetitionTab ? (
+          // 목록이 오기 전에는 칸을 비워 둔다 — 대개 서버가 기억해 둔 목록이라 바로 온다.
+          <Suspense fallback={null}>
+            <CompetitionFeedPicker
+              optionsPromise={competitionOptions}
+              competition={competition}
+              currentYear={currentYear}
+              onPick={(picked) => {
+                // 이미 보고 있는 대회면 그대로 — 시트가 닫히는 사이 연달아 눌러도 렌더를 기다리지 않는 최신값과 비교한다.
+                if (picked.id === filterRef.current.competitionId) return;
+                track("feed_competition_filter", {
+                  competition_id: contentIdOf("competition", picked.id),
+                  action: "apply",
+                  from: "picker",
+                });
+                select({
+                  categoryId: filter.categoryId,
+                  competitionId: picked.id,
+                });
+                setCompetition(picked);
+              }}
+              onClear={() => {
+                if (!competition) return;
+                track("feed_competition_filter", {
+                  competition_id: contentIdOf("competition", competition.id),
+                  action: "clear",
+                });
+                select({ categoryId: filter.categoryId, competitionId: null });
+              }}
+            />
+          </Suspense>
+        ) : null}
+        {/* 한 대회 글만 보는 중에는 '대회' 탭 전체에 건 써 볼 주제를 두지 않는다. */}
+        {selectedCategory && !competition ? (
+          <CategoryIntro
+            category={selectedCategory}
+            className={onCompetitionTab ? "pt-2" : undefined}
           />
-        ) : selectedCategory ? (
-          <CategoryIntro category={selectedCategory} />
         ) : null}
 
         {result === "loading" ? (
@@ -367,7 +405,13 @@ function CategoryTabs({
  * 카테고리 탭 아래 — 이번 주 써 볼 주제와 '이 주제로 쓰기'. 주제가 없으면 자리도 없다.
  * 카테고리 설명 한 줄은 두지 않는다 — 탭 이름('도장 · 오픈매트' 등)이 이미 무엇을 쓰는 곳인지 말해 준다.
  */
-function CategoryIntro({ category }: { category: PostCategory }) {
+function CategoryIntro({
+  category,
+  className,
+}: {
+  category: PostCategory;
+  className?: string;
+}) {
   const topic = category.weeklyTopic;
   const openTopicWrite = useOpenPostWrite({
     categoryId: category.id,
@@ -385,7 +429,7 @@ function CategoryIntro({ category }: { category: PostCategory }) {
   if (!topic) return null;
 
   return (
-    <div className="px-4">
+    <div className={cn("px-4", className)}>
       <WeeklyTopic
         topic={topic}
         action={
@@ -409,50 +453,45 @@ function CategoryIntro({ category }: { category: PostCategory }) {
 }
 
 /**
- * 이 대회 글만 보는 중(#598) — '대회' 탭 아래 옅은 파란 줄. '대회 보기'는 그 대회 상세, ✕는 '대회' 탭 전체 글로 넓힌다.
+ * '대회' 탭의 대회 고르기(#598) — 글쓰기 대회 고르기와 같은 칸 · 같은 시트. 고르면 그 대회 글만, ✕면 '대회' 탭 전체.
+ * 대회 상세 '모두 보기'로 들어왔으면 그 대회가 골라진 채 열린다. 고른 뒤에는 칸에 대회 이름만 보인다 — 긴 이름이
+ * 잘리지 않게 "글만 보는 중" · "대회 보기"를 같은 줄에 두지 않는다. 대회 상세는 글마다 붙은 대회 카드로 간다.
  */
-function CompetitionFilterBar({
+function CompetitionFeedPicker({
+  optionsPromise,
   competition,
+  currentYear,
+  onPick,
   onClear,
 }: {
-  competition: FeedCompetition;
+  optionsPromise: Promise<CompetitionPickerOption[]>;
+  competition: FeedCompetition | null;
+  currentYear: number;
+  onPick: (competition: CompetitionPickerOption) => void;
   onClear: () => void;
 }) {
-  const openCompetition = useOpenCompetitionDetail("home_feed");
+  const options = use(optionsPromise);
+  // 고를 대회가 하나도 없으면(대회 화면이 꺼진 배포 · 목록 읽기 실패) 칸을 두지 않는다.
+  if (!competition && options.length === 0) return null;
+  // 고른 대회가 목록 밖(오래 지난 대회 · 검색으로 찾은 대회)이어도 칸에 이름이 보이게 맨 위에 둔다.
+  const shown =
+    competition && !options.some((option) => option.id === competition.id)
+      ? [competition, ...options]
+      : options;
 
   return (
-    <section
-      aria-label="이 대회 글만 보는 중"
-      className="mx-4 flex items-center gap-1 rounded-20 bg-surface-primary-subtle py-1 pr-1 pl-4"
-    >
-      {/* 긴 대회 이름만 말줄임 — "글만 보는 중"은 늘 보이게 따로 둔다. */}
-      <p className="flex min-w-0 flex-1 text-body-s text-text-primary">
-        <span className="truncate font-semibold">{competition.name}</span>
-        <span className="shrink-0 whitespace-pre"> 글만 보는 중</span>
-      </p>
-      <Button
-        variant="text"
-        size="s"
-        onClick={() => {
-          track("feed_competition_filter", {
-            competition_id: contentIdOf("competition", competition.id),
-            action: "open_competition",
-          });
-          openCompetition(competition.id);
+    <section aria-label="대회별로 보기" className="px-4">
+      <CompetitionPicker
+        options={shown}
+        value={competition?.id ?? null}
+        currentYear={currentYear}
+        placeholder="대회별로 모아 보기"
+        trackClicks={false}
+        onChange={(_id, _pickedBy, option) => {
+          if (option) onPick(option);
+          else onClear();
         }}
-        className="gap-0.5 px-2"
-      >
-        대회 보기
-        <ChevronLeftIcon size={16} className="rotate-180" />
-      </Button>
-      <IconButton
-        size="s"
-        aria-label="이 대회 글만 보기 해제"
-        onClick={onClear}
-        className="text-icon-secondary"
-      >
-        <CloseIcon size={18} />
-      </IconButton>
+      />
     </section>
   );
 }
