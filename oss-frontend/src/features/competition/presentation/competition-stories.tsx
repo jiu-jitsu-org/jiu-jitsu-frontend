@@ -170,16 +170,20 @@ function useOpenCompetitionFeed(competitionId: number) {
       competition_id: contentIdOf("competition", competitionId),
       story_count: totalCount,
     });
-    const path = entryPath(
-      `/?competitionId=${competitionId}`,
-      "competition_story",
-    );
     if (isNativeBridgeAvailable()) {
+      // 구버전 앱(홈 피드 열기 미지원)은 서브뷰로 쌓는다 — view=subview로 홈이 서브뷰 앱바를 그린다.
       if (!openNativeHomeFeed({ competitionId }))
-        openNativeSubview(`${window.location.origin}${path}`);
+        openNativeSubview(
+          `${window.location.origin}${entryPath(
+            `/?competitionId=${competitionId}&view=subview`,
+            "competition_story",
+          )}`,
+        );
       return;
     }
-    router.push(path);
+    router.push(
+      entryPath(`/?competitionId=${competitionId}`, "competition_story"),
+    );
   };
 }
 

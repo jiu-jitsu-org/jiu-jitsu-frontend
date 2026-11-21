@@ -47,7 +47,8 @@ export function InboxAppBar({
       {/* 좌측 뒤로가기 — 터치 영역 = 둥근 사각(36). */}
       {showBack && hydrated ? (
         <IconButton
-          variant="tint"
+          // 뒤로 가기는 회색 — 옆 파란 '모두 읽음'보다 눈에 덜 띄게(글쓰기 앱바와 같은 규칙).
+          variant="neutral"
           size="s"
           data-ga="back"
           onClick={closeDetail}

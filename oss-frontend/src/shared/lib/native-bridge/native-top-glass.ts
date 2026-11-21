@@ -21,12 +21,14 @@ function send(active: boolean): void {
  * 모르는 앱 · 브라우저에서는 false.
  * 서버 그림과 첫 그림은 false다(앱 여부는 브라우저에서만 안다).
  */
-export function useNativeTopGlass(): boolean {
-  const active = useSyncExternalStore(
+export function useNativeTopGlass(enabled = true): boolean {
+  const supported = useSyncExternalStore(
     subscribeNothing,
     supportsTopGlass,
     () => false,
   );
+  // 앱 머리줄 위에 깔리지 않는 화면(서브뷰)은 끈다.
+  const active = enabled && supported;
   useEffect(() => {
     if (!active) return;
     send(true);

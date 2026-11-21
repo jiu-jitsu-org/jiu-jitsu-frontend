@@ -82,6 +82,7 @@ export function HomeFeed({
   competitionOptions,
   currentYear,
   balance,
+  subview = false,
 }: {
   categories: PostCategory[];
   initialFilter: FeedFilter;
@@ -92,6 +93,8 @@ export function HomeFeed({
   currentYear: number;
   /** 오늘의 밸런스 게임(서버가 그린 판). 어느 탭에서나 맨 위에 보인다. */
   balance: ReactNode;
+  /** 앱 서브뷰로 열렸나(`?view=subview`) — 탭 줄이 뒤로가기 앱바 밑에 붙고, 스크롤은 셸이 맡는다. */
+  subview?: boolean;
 }) {
   const [filter, setFilter] = useState(initialFilter);
   const [competition, setCompetition] = useState(initialCompetition);
@@ -131,20 +134,30 @@ export function HomeFeed({
       setFilter(next);
       if (next.competitionId === null) setCompetition(null);
       if (options.syncUrl !== false) {
+        // 서브뷰 표시(view=subview)는 남긴다 — 빠지면 웹뷰가 다시 읽힐 때 셸 · 뒤로가기 없이 상태바 밑으로 잘린다.
+        const search = feedFilterSearch(next);
+        const kept = subview
+          ? `${search ? `${search}&` : "?"}view=subview`
+          : search;
         window.history.replaceState(
           null,
           "",
-          `${window.location.pathname}${feedFilterSearch(next)}`,
+          `${window.location.pathname}${kept}`,
         );
       }
       // 목록을 내린 채(흰 판이 위로 지나감) 탭을 바꾸면 새 목록의 맨 위(탭 줄이 막 붙은 자리)로 올린다.
-      const stuckAt = readTopGlassOffset();
-      const top = sheetRef.current?.getBoundingClientRect().top ?? stuckAt;
-      if (top < stuckAt)
-        window.scrollTo({ top: window.scrollY + top - stuckAt });
+      // 서브뷰는 밸런스 띠 없이 흰 판이 셸 맨 위에서 시작하니 셸을 맨 위로 올리면 된다.
+      if (subview) {
+        sheetRef.current?.closest("main")?.scrollTo({ top: 0 });
+      } else {
+        const stuckAt = readTopGlassOffset();
+        const top = sheetRef.current?.getBoundingClientRect().top ?? stuckAt;
+        if (top < stuckAt)
+          window.scrollTo({ top: window.scrollY + top - stuckAt });
+      }
       void load(next);
     },
-    [load],
+    [load, subview],
   );
 
   // 글 카드의 카테고리 이름은 누르지 않는다 — 바로 위 탭 줄이 같은 일을 하고, 목록이 통째로 바뀌어 당황스러웠다.
@@ -215,13 +228,14 @@ export function HomeFeed({
       document.removeEventListener("visibilitychange", reloadAfterWrite);
     };
   }, [showsEmpty, filter, load]);
-  const sheetReachedTop = useSheetReachedTop(sheetRef);
-  const topGlass = useNativeTopGlass();
+  // 서브뷰는 앱 홈 머리줄 위가 아닌 따로 쌓인 웹뷰라 머리 색 · 유리 면을 앱에 알리지 않는다(밑의 홈 머리를 건드리지 않게).
+  const sheetReachedTop = useSheetReachedTop(sheetRef, !subview);
+  const topGlass = useNativeTopGlass(!subview);
 
   return (
     <>
       {/* 앱 머리줄 뒤까지 깔린 웹이면 맨 위를 머리줄 높이만큼 비운다(밸런스 띠가 보이는 동안 앱 머리는 띠 색). */}
-      <div aria-hidden className="top-glass-spacer" />
+      {subview ? null : <div aria-hidden className="top-glass-spacer" />}
       {balance}
       {/* 흰 판 — 밸런스 띠(home-band) 바로 뒤면 둥근 위 모서리로 띠 아래쪽을 덮고 올라온다(globals.css). */}
       <div ref={sheetRef} className="home-sheet relative bg-surface-container">
@@ -229,8 +243,10 @@ export function HomeFeed({
           categories={categories}
           selectedId={filter.categoryId}
           onSelect={selectCategory}
-          rounded={!sheetReachedTop}
-          glass={topGlass && sheetReachedTop}
+          rounded={!subview && !sheetReachedTop}
+          // 서브뷰 뒤엔 앱 머리줄이 없어 유리 면으로 이을 게 없다.
+          glass={!subview && topGlass && sheetReachedTop}
+          stickyUnderAppBar={subview}
         />
         {onCompetitionTab ? (
           // 목록이 오기 전에는 칸을 비워 둔다 — 대개 서버가 기억해 둔 목록이라 바로 온다.
@@ -303,11 +319,14 @@ const BALANCE_BAND_HEX = "#292A2E";
  * 바탕으로 읽히게 하고, 닿으면 앱 기본 흰 머리로 돌린다(HOME_HEADER_TINT). 띠가 없으면(게임이 없거나 못 읽음)
  * 칠하지 않는다. 화면을 떠나면 기본색으로 돌린다.
  */
-function useSheetReachedTop(sheetRef: RefObject<HTMLDivElement | null>) {
+function useSheetReachedTop(
+  sheetRef: RefObject<HTMLDivElement | null>,
+  enabled: boolean,
+) {
   const [reached, setReached] = useState(false);
   useEffect(() => {
     const sheet = sheetRef.current;
-    if (!sheet) return;
+    if (!sheet || !enabled) return;
     let sent: string | null | undefined;
     let frame = 0;
     const update = () => {
@@ -338,7 +357,7 @@ function useSheetReachedTop(sheetRef: RefObject<HTMLDivElement | null>) {
       cancelAnimationFrame(frame);
       setNativeHomeHeaderTint(null);
     };
-  }, [sheetRef]);
+  }, [sheetRef, enabled]);
   return reached;
 }
 
@@ -365,10 +384,13 @@ function CategoryTabs({
   onSelect,
   rounded,
   glass,
+  stickyUnderAppBar,
 }: {
   categories: PostCategory[];
   selectedId: number | null;
   onSelect: (categoryId: number | null) => void;
+  /** 서브뷰 앱바(상태바 자리 + 44) 바로 밑에 붙는다. 아니면 화면 맨 위. */
+  stickyUnderAppBar: boolean;
   /** 흰 판 맨 위에 있을 때 위 모서리를 둥글게. 화면 위에 붙으면 편다 — 밑으로 지나가는 글이 모서리로 비치지 않게. */
   rounded: boolean;
   /** 화면 위에 붙어 앱 머리줄과 한 장의 유리 면으로 이어지는지(useNativeTopGlass). 띠가 보이는 동안은 앱 머리가 띠 색이라 끈다. */
@@ -404,7 +426,14 @@ function CategoryTabs({
 
   // 유리 면은 줄 위(앱 머리줄 뒤)와 아래로 넘쳐 그려지므로, 가로로 밀리는(넘침을 자르는) 칩 줄 바깥 상자에 둔다.
   return (
-    <div className="sticky top-[var(--top-glass-offset)] z-10">
+    <div
+      className={cn(
+        "sticky z-10",
+        stickyUnderAppBar
+          ? "top-[calc(var(--safe-area-top)+2.75rem)]"
+          : "top-[var(--top-glass-offset)]",
+      )}
+    >
       {glass ? <TopGlass ref={glassRef} /> : null}
       <div
         ref={rowRef}
@@ -423,7 +452,8 @@ function CategoryTabs({
                 role="tab"
                 aria-selected={selected}
                 selected={selected}
-                tone="primary"
+                // 하나만 고르는 탭 줄 — 글쓰기 카테고리 칩과 같은 면 칩(테두리 칩은 여러 개 켜는 필터용).
+                tone="tint"
                 onClick={() => onSelect(tab.id)}
                 className="h-auto min-h-8 py-1 whitespace-nowrap"
               >

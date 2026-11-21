@@ -31,14 +31,19 @@ export function PostCategoryLink({
       category: categoryParam({ id: categoryId, name: categoryName }),
       from: "post_detail",
     });
-    const path = entryPath(`/?categoryId=${categoryId}`, "post_detail");
     if (isNativeBridgeAvailable()) {
-      // 동일 origin 절대경로로 전달 → 새 웹뷰가 세션 쿠키 공유.
-      if (!openNativeHomeFeed({ categoryId }))
-        openNativeSubview(`${window.location.origin}${path}`);
+      // 동일 origin 절대경로로 전달 → 새 웹뷰가 세션 쿠키 공유. 홈 탭 열기를 모르는 앱만 서브뷰로 쌓는다 —
+      // view=subview면 홈이 앱 머리 없는 서브뷰에 맞춰 상태바 자리를 비우고 뒤로가기를 그린다(없으면 맨 위가 상태바 밑으로 잘린다).
+      if (!openNativeHomeFeed({ categoryId })) {
+        const subviewPath = entryPath(
+          `/?categoryId=${categoryId}&view=subview`,
+          "post_detail",
+        );
+        openNativeSubview(`${window.location.origin}${subviewPath}`);
+      }
       return;
     }
-    router.push(path);
+    router.push(entryPath(`/?categoryId=${categoryId}`, "post_detail"));
   }
 
   return (

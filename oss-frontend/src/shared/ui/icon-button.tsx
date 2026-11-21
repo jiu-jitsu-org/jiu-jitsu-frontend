@@ -7,7 +7,8 @@ import { cn } from "@/shared/lib/cn";
  * 아이콘 버튼 — 아이콘 하나만 든 버튼. 이름(aria-label)은 꼭 넘긴다.
  *
  * - ghost  평소엔 바탕 없음, 누르는 동안 둥근 옅은 면(앱바 뒤로·⋮·알림, 댓글 입력 바)
- * - tint   옅은 파란 네모 바탕, 모서리 10(글쓰기·사진 편집 앱바, 사진 보기 닫기)
+ * - tint   옅은 파란 네모 바탕, 모서리 10(사진 편집 앱바, 사진 보기 닫기)
+ * - neutral 옅은 회색 네모 바탕, 모서리 10(글쓰기·알림함 앱바 뒤로 — 옆 파란 버튼보다 눈에 덜 띄게)
  *
  * 크기: s 36 · m 40 · l 44. 아이콘은 24가 기본이고, 호출부가 children으로 넣는다.
  * 아이콘 색은 currentColor라 버튼의 글자색(variant)이 그대로 칠해진다.
@@ -19,6 +20,8 @@ export const iconButtonVariants = cva(
       variant: {
         ghost:
           "rounded-full text-icon-primary active:bg-surface-container-pressed",
+        neutral:
+          "rounded-10 bg-button-neutral-default-bg text-button-neutral-default-text active:bg-button-neutral-pressed-bg disabled:bg-button-neutral-disabled-bg disabled:text-button-neutral-disabled-text",
         tint: "rounded-10 bg-button-tint-default-bg text-button-tint-default-text active:bg-button-tint-pressed-bg disabled:bg-button-tint-disabled-bg disabled:text-button-tint-disabled-text",
       },
       size: {

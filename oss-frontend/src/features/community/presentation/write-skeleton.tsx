@@ -49,7 +49,7 @@ export function WriteSkeleton({
       >
         {showBack ? (
           <IconButton
-            variant="tint"
+            variant="neutral"
             size="s"
             data-ga="back"
             onClick={closeDetail}
