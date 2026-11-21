@@ -12,6 +12,9 @@ import { cn } from "@/shared/lib/cn";
  * `tone="primary"`는 켜짐을 파랑(옅은 파랑 면 + 파랑 테두리·글자)으로 세게 보여 준다. 대회 필터처럼 여러 개를
  * 겹쳐 켜고 한눈에 무엇이 켜졌는지 봐야 하는 곳에 쓴다 — 기본(검정 테두리 + 옅은 회색)은 켜짐이 약하게 읽힌다.
  *
+ * `tone="tint"`는 하나만 고르는 줄(글쓰기 카테고리)용이다 — 테두리 없이 안 고른 칩은 옅은 회색 면, 고른 칩은 옅은 파랑 면 +
+ * 파랑 글자(blue-75 — 한 단계 옅은 blue-50은 흰 바탕에서 켜짐이 약했다). 테두리 칩은 여러 개를 겹쳐 켜는 옵션처럼 읽혀서, 하나를 고르는 줄은 면으로 켜짐을 보인다.
+ *
  * `invalid`는 필수 선택을 비워 둔 채 제출했을 때 비선택 칩 테두리를 오류 색으로 바꾼다.
  * 켜짐 상태를 화면 읽기 도구에 알리는 aria-pressed는 호출부가 붙인다 — 시트를 여는 칩은 토글이 아니다.
  */
@@ -24,7 +27,7 @@ export function Chip({
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
   selected: boolean;
-  tone?: "neutral" | "primary";
+  tone?: "neutral" | "primary" | "tint";
   invalid?: boolean;
 }) {
   return (
@@ -32,18 +35,25 @@ export function Chip({
       type={type}
       className={cn(
         "inline-flex h-8 shrink-0 items-center rounded-full border px-3 text-button-s text-tag-chip-default-text transition-colors",
-        selected
-          ? tone === "primary"
-            ? // chip 토큰에 파랑 켜짐이 없어 semantic(primary)을 쓴다 — 접수 중 상태 칩과 같은 파랑.
-              "border-primary bg-surface-primary-subtle text-primary not-disabled:active:bg-surface-primary-subtle-pressed"
-            : "border-chip-selected-border bg-tag-chip-selected-bg"
-          : cn(
-              "bg-tag-chip-default-bg",
-              // chip 전용 오류 토큰이 없어 semantic(border/error)을 쓴다.
-              invalid ? "border-border-error" : "border-chip-default-border",
-              // 눌림 면은 비선택 칩에만 — 선택 칩은 제 바탕(chip/selected)을 그대로 지킨다.
-              "not-disabled:active:bg-surface-container-pressed",
-            ),
+        tone === "tint"
+          ? selected
+            ? "border-transparent bg-surface-primary-subtle-strong text-primary not-disabled:active:bg-surface-primary-subtle-strong-pressed"
+            : cn(
+                "bg-surface-field not-disabled:active:bg-surface-secondary",
+                invalid ? "border-border-error" : "border-transparent",
+              )
+          : selected
+            ? tone === "primary"
+              ? // chip 토큰에 파랑 켜짐이 없어 semantic(primary)을 쓴다 — 접수 중 상태 칩과 같은 파랑.
+                "border-primary bg-surface-primary-subtle text-primary not-disabled:active:bg-surface-primary-subtle-pressed"
+              : "border-chip-selected-border bg-tag-chip-selected-bg"
+            : cn(
+                "bg-tag-chip-default-bg",
+                // chip 전용 오류 토큰이 없어 semantic(border/error)을 쓴다.
+                invalid ? "border-border-error" : "border-chip-default-border",
+                // 눌림 면은 비선택 칩에만 — 선택 칩은 제 바탕(chip/selected)을 그대로 지킨다.
+                "not-disabled:active:bg-surface-container-pressed",
+              ),
         "disabled:text-tag-chip-disabled-text",
         // transition 속성 하나에 색·크기를 함께 적는다 — 따로 걸면 transition-property가 서로 덮어쓴다.
         "motion-safe:[transition:scale_500ms_var(--ease-spring-wobbly),background-color_120ms_ease-out,border-color_120ms_ease-out]",
