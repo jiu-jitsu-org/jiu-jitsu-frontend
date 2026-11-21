@@ -304,6 +304,9 @@ function useSheetReachedTop(sheetRef: RefObject<HTMLDivElement | null>) {
   return reached;
 }
 
+/** 칩 줄 유리 면이 줄 밖으로 내려와 지우는 길이(px) — 스크롤해 글이 줄 밑을 지날 때만 내려온다. */
+const GLASS_FADE_OUTSIDE = 8;
+
 /** 칩 목록 — 맨 앞 '전체'(id null) + 서버 순서 카테고리. */
 function categoryTabsOf(
   categories: PostCategory[],
@@ -334,7 +337,21 @@ function CategoryTabs({
   glass: boolean;
 }) {
   const rowRef = useRef<HTMLDivElement>(null);
+  const glassRef = useRef<HTMLDivElement>(null);
   const revealed = useRef(false);
+
+  // 유리 면은 줄 아래로 8px 더 내려와 지나가는 글을 옅게 지운다. 맨 위에 서 있을 때는 그 8px이 바로 아래 첫 글을 덮어
+  // 막이 비치므로, 스크롤한 만큼만(최대 8px) 내려오게 한다(대회 필터 줄과 같음).
+  useEffect(() => {
+    if (!glass) return;
+    const update = () => {
+      const reach = Math.min(Math.max(window.scrollY, 0), GLASS_FADE_OUTSIDE);
+      if (glassRef.current) glassRef.current.style.bottom = `${-reach}px`;
+    };
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    return () => window.removeEventListener("scroll", update);
+  }, [glass]);
 
   useEffect(() => {
     const row = rowRef.current;
@@ -350,7 +367,7 @@ function CategoryTabs({
   // 유리 면은 줄 위(앱 머리줄 뒤)와 아래로 넘쳐 그려지므로, 가로로 밀리는(넘침을 자르는) 칩 줄 바깥 상자에 둔다.
   return (
     <div className="sticky top-[var(--top-glass-offset)] z-10">
-      {glass ? <TopGlass below={8} /> : null}
+      {glass ? <TopGlass ref={glassRef} /> : null}
       <div
         ref={rowRef}
         className={cn(
