@@ -7,10 +7,6 @@ import {
   useOnLogout,
 } from "@/features/auth/presentation/auth-provider";
 import {
-  BalanceCollapsedBar,
-  COLLAPSED_BAR_OUT_MS,
-} from "@/features/community/presentation/balance/balance-collapsed-bar";
-import {
   readBalanceClock,
   readRemainingAtResponse,
 } from "@/features/community/presentation/balance/balance-countdown";
@@ -18,8 +14,6 @@ import { BalanceHeroBoard } from "@/features/community/presentation/balance/bala
 import { balanceVotedSince } from "@/features/community/presentation/balance/balance-voted-at";
 import { useBalanceVote } from "@/features/community/presentation/balance/use-balance-vote";
 import { useOpenBalanceDetail } from "@/features/community/presentation/balance/use-open-balance-detail";
-import { useStickyReveal } from "@/features/community/presentation/balance/use-sticky-reveal";
-import { prefersReducedMotion } from "@/features/community/presentation/use-presence-motion";
 import type { BalanceGame } from "@/features/community/domain/balance-game";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 
@@ -191,24 +185,13 @@ export function BalanceGameSection({
 }
 
 /**
- * 접힌 바를 누르면 맨 위로 올라가 게임을 다시 펼친다. 메인 피드는 문서가 스크롤된다.
- * 움직임 줄이기 설정이면 미끄러지지 않고 바로 옮긴다.
- */
-function scrollToTop() {
-  window.scrollTo({
-    top: 0,
-    behavior: prefersReducedMotion() ? "auto" : "smooth",
-  });
-}
-
-/**
  * 히어로 본체 — 게임이 있을 때만 마운트된다.
  *
  * 투표 훅이 game을 non-null로 받도록 한 겹 나눈다. 섹션에서 바로 부르면 게임이 없을 때도
  * 훅이 돌아야 해서(훅은 조건부 호출 불가) game 전체가 옵셔널로 오염된다.
  *
- * 홈 맨 위는 매트 스코어보드 히어로(#305)다. 히어로가 화면 위로 지나가면 전광판을 얇게 썬 접힌 바가
- * 늘 남는다 — 투표 여부와 상관없는 화면 구조의 일부라, 바를 누르면 맨 위로 올라가 판을 다시 펼친다.
+ * 홈 맨 위는 매트 스코어보드 히어로(#305)다. 피드가 담긴 흰 판이 이 위를 덮고 올라오고, 내리면 판 맨 위
+ * 칩 줄이 화면 위에 붙는다 — 접힌 바는 두지 않는다(칩 줄과 맨 위 자리를 다퉜다).
  */
 function BalanceGameBody({
   game,
@@ -227,42 +210,14 @@ function BalanceGameBody({
     from: "balance_card",
   });
   const openDetail = useOpenBalanceDetail("balance_card");
-  const { targetRef, passed } = useStickyReveal<HTMLDivElement>();
-
-  // 바는 보일 조건이 꺼져도 바로 빼지 않고 걷히는 동안 남겨 둔다.
-  // animationend 대신 타이머인 이유는 useLeavingKeys와 같다 — 끝 이벤트를 못 받으면 영영 남는다.
-  // 걷히는 도중 다시 보일 조건이 되면 타이머가 취소되고 바는 그대로 다시 내려온다.
-  const [barMounted, setBarMounted] = useState(passed);
-  if (passed && !barMounted) setBarMounted(true);
-  const barLeaving = barMounted && !passed;
-
-  useEffect(() => {
-    if (!barLeaving) return;
-    // 움직임 줄이기 설정이면 기다리지 않는다(다음 틱에 바로 뺀다).
-    const delay = prefersReducedMotion() ? 0 : COLLAPSED_BAR_OUT_MS;
-    const timer = window.setTimeout(() => setBarMounted(false), delay);
-    return () => window.clearTimeout(timer);
-  }, [barLeaving]);
 
   return (
-    <>
-      {/* 히어로가 피드와의 사이를 스스로 끝맺는다(아래 모서리만 둥근 판). */}
-      <div ref={targetRef}>
-        <BalanceHeroBoard
-          game={game}
-          onVote={vote}
-          onPressDetail={() => openDetail(game.contentId)}
-          onExpired={onExpired}
-          intro={intro}
-        />
-      </div>
-      {barMounted ? (
-        <BalanceCollapsedBar
-          game={game}
-          leaving={barLeaving}
-          onPress={scrollToTop}
-        />
-      ) : null}
-    </>
+    <BalanceHeroBoard
+      game={game}
+      onVote={vote}
+      onPressDetail={() => openDetail(game.contentId)}
+      onExpired={onExpired}
+      intro={intro}
+    />
   );
 }
