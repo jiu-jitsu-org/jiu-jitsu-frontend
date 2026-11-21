@@ -276,7 +276,9 @@ function useSheetReachedTop(sheetRef: RefObject<HTMLDivElement | null>) {
     const requestUpdate = () => {
       if (!frame) frame = requestAnimationFrame(update);
     };
-    requestUpdate();
+    // 처음 한 번은 다음 프레임을 기다리지 않고 바로 맞춘다 — 다시 마운트될 때(필터 주소 바뀜 · 새로고침) 옛 판이 지우며
+    // 보낸 null 뒤에 먹색이 한 프레임 늦게 가 앱 머리가 흰색으로 한 번 깜빡이지 않게.
+    update();
     // 띠가 뒤늦게 사라지거나(게임 마감 뒤 다음 판 없음) 높이가 바뀌어도 맞춘다.
     const observer = new ResizeObserver(requestUpdate);
     observer.observe(document.body);
