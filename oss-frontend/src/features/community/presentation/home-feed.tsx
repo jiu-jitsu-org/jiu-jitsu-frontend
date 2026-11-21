@@ -443,7 +443,8 @@ function CategoryTabs({
                 role="tab"
                 aria-selected={selected}
                 selected={selected}
-                tone="primary"
+                // 하나만 고르는 탭 줄 — 글쓰기 카테고리 칩과 같은 면 칩(테두리 칩은 여러 개 켜는 필터용).
+                tone="tint"
                 onClick={() => onSelect(tab.id)}
                 className="h-auto min-h-8 py-1 whitespace-nowrap"
               >
