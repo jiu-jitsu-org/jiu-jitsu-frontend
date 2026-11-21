@@ -7,6 +7,7 @@ export type {
   AuthLoginSuccessPayload,
   BridgeMessage,
   CompetitionAlertsEnabledPayload,
+  CompetitionAlertsResultPayload,
   CompetitionHeaderTintPayload,
   CompetitionRecordSavedPayload,
   HomeHeaderTintPayload,
@@ -55,11 +56,13 @@ export type { BridgePlatform } from "./native-bridge";
 export { useNativeLeaveGuard } from "./native-leave-guard";
 export { useIsExternalBrowser } from "./use-external-browser";
 export {
+  checkCompetitionAlertsEnabled,
   requestNativeConfirm,
   requestNativePhotos,
   requestNativeSelectSheet,
 } from "./native-dialog";
 export type {
+  CompetitionAlertsCheck,
   NativePhotosResult,
   NativeSelectSheetOutcome,
 } from "./native-dialog";

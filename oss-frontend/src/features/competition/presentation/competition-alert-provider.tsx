@@ -37,7 +37,7 @@ import {
   trackContentAlertToggle,
   type ContentAlertFrom,
 } from "@/shared/lib/analytics";
-import { notifyCompetitionAlertsEnabled } from "@/shared/lib/native-bridge";
+import { checkCompetitionAlertsEnabled } from "@/shared/lib/native-bridge";
 import { useToast } from "@/shared/ui";
 
 export type CompetitionAlerts = {
@@ -61,7 +61,27 @@ export type CompetitionAlerts = {
     competitionId: number,
     enabled: boolean,
   ) => Promise<CompetitionNoticeResult | null>;
+  /**
+   * 알림을 켰다고 앱에 알리고, 앱이 본 기기 알림 상태로 안내한다(#541). 켠 저장이 성공한 뒤 부른다.
+   * 기기 알림이 켜져 있거나 앱이 답을 주지 않는 곳(브라우저 · 옛 앱)이면 success를 띄우고, 꺼져 있으면 success 대신
+   * 꺼져 있다는 안내를 매번 띄운다(앱 알럿은 로그인 동안 한 번뿐이다). 앱이 답하지 않으면 아무것도 띄우지 않는다.
+   * success가 null이면(관심 등록) 답을 주지 않는 옛 앱에는 보내지 않는다 — 옛 앱은 받을 때마다 알럿을 띄운다.
+   * 결과를 기다리지 않고 돌아온다 — 권한 창이 떠 있는 동안 버튼을 막지 않는다.
+   */
+  confirmEnabled: (
+    target: CompetitionAlertTarget | null,
+    success: CompetitionAlertSuccess | null,
+  ) => void;
 };
+
+/** 알림을 켠 뒤 기기 알림이 켜져 있을 때의 안내 — 첫 시트는 success, 상세 종은 info(글 종과 같은 결). */
+export type CompetitionAlertSuccess = {
+  message: string;
+  tone: "success" | "info";
+};
+
+/** 알림을 켰는데 기기 알림이 꺼져 있을 때 — 서버 설정은 켜졌지만 이 기기로는 알림이 오지 않는다(#541). */
+export const DEVICE_ALERTS_OFF_MESSAGE = "기기 알림이 꺼져 있어 알림이 오지 않아요";
 
 const CompetitionAlertsContext = createContext<CompetitionAlerts | null>(null);
 
@@ -209,6 +229,28 @@ export function CompetitionAlertProvider({
     [available, promptLogin, toast],
   );
 
+  const confirmEnabled = useCallback(
+    (
+      target: CompetitionAlertTarget | null,
+      success: CompetitionAlertSuccess | null,
+    ) => {
+      // 대회 id는 숫자 문자열로 보낸다 — 이미 깔린 앱은 문자열만 받는다(messages.ts). 묻던 대회가 없어도 보낸다.
+      // 안내할 성공 문구가 없는 경로(관심 등록)는 답을 주는 앱에만 보낸다 — 옛 앱은 받을 때마다 꺼짐 알럿을 띄워
+      // 하트를 누를 때마다 알럿이 뜬다(원래 이 경로는 보내지 않았다).
+      void checkCompetitionAlertsEnabled(
+        target ? { competitionId: String(target.id) } : {},
+        { notifyLegacy: success !== null },
+      ).then((check) => {
+        if (check === "off") {
+          toast.show(DEVICE_ALERTS_OFF_MESSAGE, { tone: "info" });
+        } else if ((check === "on" || check === "unsupported") && success) {
+          toast.show(success.message, { tone: success.tone });
+        }
+      });
+    },
+    [toast],
+  );
+
   const closeSheet = () => setSheet((current) => ({ ...current, open: false }));
 
   const accept = async () => {
@@ -229,18 +271,17 @@ export function CompetitionAlertProvider({
         return;
       }
       if (!result.ok) throw new Error(result.reason);
-      toast.show("관심 대회 마감 전날 알려 드릴게요", { tone: "success" });
       trackContentAlertToggle(
         { type: "competition", id: target?.id },
         true,
         from,
       );
       // 켰다고 앱에 알린다 — 앱은 열린 설정 화면을 다시 읽고, 기기 알림이 꺼져 있으면 켜는 방법을 안내한다
-      // (jiu-jitsu-ios#257 · #281). 묻던 대회가 없어도 보낸다.
-      // 대회 id는 숫자 문자열로 보낸다 — 이미 깔린 앱은 문자열만 받는다(messages.ts).
-      notifyCompetitionAlertsEnabled(
-        target ? { competitionId: String(target.id) } : {},
-      );
+      // (jiu-jitsu-ios#257 · #281). 성공 토스트는 앱이 기기 알림을 확인한 뒤에 정한다(#541).
+      confirmEnabled(target, {
+        message: "관심 대회 마감 전날 알려 드릴게요",
+        tone: "success",
+      });
     } catch {
       setEnabledOverride(before);
       toast.show("알림을 켜지 못했어요. 다시 시도해 주세요", { tone: "error" });
@@ -267,8 +308,17 @@ export function CompetitionAlertProvider({
       askOnFirstInterest,
       alertsPassedToday,
       setNotice,
+      confirmEnabled,
     }),
-    [alertsPassedToday, ask, askOnFirstInterest, available, enabled, setNotice],
+    [
+      alertsPassedToday,
+      ask,
+      askOnFirstInterest,
+      available,
+      confirmEnabled,
+      enabled,
+      setNotice,
+    ],
   );
 
   return (

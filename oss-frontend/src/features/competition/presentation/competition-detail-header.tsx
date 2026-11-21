@@ -21,10 +21,7 @@ import {
 import { useCompetitionDetailInterest } from "@/features/competition/presentation/competition-detail-interest";
 import { trackContentAlertToggle } from "@/shared/lib/analytics";
 import { cn } from "@/shared/lib/cn";
-import {
-  notifyCompetitionAlertsEnabled,
-  useIsExternalBrowser,
-} from "@/shared/lib/native-bridge";
+import { useIsExternalBrowser } from "@/shared/lib/native-bridge";
 import { useToast } from "@/shared/ui";
 import { IconButton } from "@/shared/ui/icon-button";
 import {
@@ -90,7 +87,8 @@ export function CompetitionDetailHeader({
  * 끄기: 관심은 그대로 두고 이 대회 알림만 멈춘다 — 신청을 마친 대회처럼(DELETE /competitions/{id}/notice).
  * 켜기: PUT /competitions/{id}/notice — 관심이 없으면 서버가 관심도 함께 등록하고, 돌려준 관심 상태로 관심 버튼을 맞춘다.
  *   설정이 꺼져 있으면 마감 알림 시트를 다시 띄운다(#375).
- *   설정이 이미 켜져 있으면 앱에 켰다고 알린다(#541) — 시트의 '알림 받기'와 같이 앱이 기기 알림 상태를 보고 안내한다.
+ *   설정이 이미 켜져 있으면 앱에 켰다고 알린다(#541) — 시트의 '알림 받기'와 같이 앱이 기기 알림 상태를 보고 안내하고,
+ *   토스트는 그 확인 뒤에 정한다(꺼져 있으면 꺼져 있다는 안내).
  *   화면을 연 채 저녁 6시를 넘겨 오늘 알림이 이미 나갔으면 켜지 않고 그렇다고만 알린다(#548).
  * 비로그인은 글 상세처럼 종을 두지 않는다.
  */
@@ -173,10 +171,12 @@ function CompetitionAlertButton({
           "alert_bell",
         );
       }
-      toast.show("이 대회의 알림을 받아요", { tone: "info" });
       // 시트 없이 켰으니 여기서 앱에 알린다 — 기기 알림이 꺼져 있으면 앱이 안내하고, 아직 묻지 않았으면 권한을 묻는다.
-      // 대회 id는 숫자 문자열 — 이미 깔린 앱은 문자열만 받는다(messages.ts).
-      notifyCompetitionAlertsEnabled({ competitionId: String(target.id) });
+      // 토스트는 앱이 기기 알림을 확인한 뒤에 정한다 — 꺼져 있으면 "받아요" 대신 꺼져 있다고 알린다(#541).
+      alerts.confirmEnabled(target, {
+        message: "이 대회의 알림을 받아요",
+        tone: "info",
+      });
     } finally {
       setPending(false);
     }

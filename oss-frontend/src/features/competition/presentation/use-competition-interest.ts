@@ -220,11 +220,22 @@ export function useCompetitionInterest({
       const action = async () => {
         const next = !isInterested(target.id);
         if (
-          (await run(target.id, next, { from: context.from, regStatus })) &&
-          next
+          !(await run(target.id, next, { from: context.from, regStatus })) ||
+          !next ||
+          !alerts
         ) {
-          alerts?.askOnFirstInterest(target);
+          return;
         }
+        // 설정이 이미 켜져 있으면 서버가 이 대회 알림이 켜진 관심을 만든다 — 상세 종을 켤 때처럼 앱에 알려
+        // 기기 알림이 꺼져 있으면 안내한다(#541). 관심 등록은 원래 성공 토스트가 없어 꺼져 있을 때만 알린다.
+        // 오늘 알림이 이미 나가 받을 알림이 없으면 알리지 않는다(#548, 상세 종과 같다).
+        if (alerts.enabled) {
+          if (!alerts.alertsPassedToday(target)) {
+            alerts.confirmEnabled(target, null);
+          }
+          return;
+        }
+        alerts.askOnFirstInterest(target);
       };
       if (signedIn) void action();
       else
