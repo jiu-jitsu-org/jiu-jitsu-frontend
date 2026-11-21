@@ -1,10 +1,16 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
+
 import { AppBarShell } from "@/features/community/presentation/app-bar-shell";
 import { closeDetail } from "@/features/community/presentation/close-detail";
 import { Button } from "@/shared/ui/button";
 import { IconButton } from "@/shared/ui/icon-button";
 import { ChevronLeftIcon } from "@/shared/ui/icons";
+
+const subscribeNoop = () => () => {};
+const isClient = () => true;
+const isServer = () => false;
 
 /**
  * 알림함 앱바 (클라이언트 leaf) — 뒤로가기 / "알림함" / "모두 읽음".
@@ -31,10 +37,15 @@ export function InboxAppBar({
    */
   showBack?: boolean;
 }) {
+  // 서버가 그린 화면은 하이드레이션 전에도 보이지만 버튼은 아직 눌리지 않고, 앱은 그동안(PAGE_READY 전)
+  // 비상용 뒤로가기를 띄워 둔다. 이때 이 버튼까지 그리면 위치가 달라 둘이 어긋나 겹쳐 보인다(#644).
+  // 하이드레이션이 끝나 눌릴 수 있게 된 뒤에만 그린다.
+  const hydrated = useSyncExternalStore(subscribeNoop, isClient, isServer);
+
   return (
     <AppBarShell className="h-10 items-start px-4 pt-[calc(var(--safe-area-top)+12px)]">
       {/* 좌측 뒤로가기 — 터치 영역 = 둥근 사각(36). */}
-      {showBack ? (
+      {showBack && hydrated ? (
         <IconButton
           variant="tint"
           size="s"
