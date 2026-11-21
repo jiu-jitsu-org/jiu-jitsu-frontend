@@ -225,6 +225,11 @@
      레이어가 늘어난다(#317). 늦춰 둔 동안(spinner-in)은 backwards가 첫 장면(투명)으로 숨겨 둔다. */
   /* 짧은 등장(불러오는 중·목록 끝·다시 시도) — 제자리에서 옅게 나타난다. */
   --animate-fade-in: fade-in 200ms ease-out backwards;
+  /* 바텀시트 — 나타나는 순간 화면 아래에서 올라온다(iOS 시트 곡선). 감속이 앞에 몰린 ease-smooth-out 500ms는 처음 100ms에
+     2/3가 올라와 툭 뜨는 것처럼 보였다. 끝난 뒤엔 아무것도 남기지 않는다(backwards) — 닫힐 때 전환이 이어받는다. */
+  --animate-sheet-up: sheet-up 450ms cubic-bezier(0.32, 0.72, 0, 1) backwards;
+  /* 바텀시트 딤 — 시트와 함께 옅게 깔린다. */
+  --animate-scrim-in: fade-in 300ms ease-out backwards;
   /* 화면을 덮는 판(사진 크게 보기·자르기) — 천천히 덮는다. 0.2초는 빠르다는 피드백으로 0.35초. */
   --animate-overlay-in: fade-in 350ms ease-out backwards;
   /* 빈 화면 — 8px 아래에서 올라오며 나타난다. */
@@ -290,6 +295,12 @@
   @keyframes fade-in {
     from {
       opacity: 0;
+    }
+  }
+
+  @keyframes sheet-up {
+    from {
+      translate: 0 100%;
     }
   }
 
