@@ -29,8 +29,11 @@ export type HomeFeedPageData = {
   filter: FeedFilter;
   /** filter.competitionId의 대회. 없으면 null. */
   competition: FeedCompetition | null;
-  /** '대회' 탭에서 대회별로 골라 볼 목록 — 글쓰기 대회 고르기와 같은 목록. 대회 화면이 꺼졌으면 빈 목록. */
-  competitionOptions: CompetitionPickerOption[];
+  /**
+   * '대회' 탭에서 대회별로 골라 볼 목록 — 글쓰기 대회 고르기와 같은 목록. 대회 화면이 꺼졌으면 빈 목록.
+   * 기다리지 않고 약속(Promise)째 넘긴다 — 홈 첫 화면이 대회 백엔드 응답을 기다리지 않게. 실패해도 빈 목록으로 끝난다.
+   */
+  competitionOptions: Promise<CompetitionPickerOption[]>;
   /** 고르기 목록의 날짜를 올해면 연도 없이 쓰려고(KST). */
   currentYear: number;
   /** 첫 페이지. */
@@ -39,7 +42,7 @@ export type HomeFeedPageData = {
 
 /**
  * 홈 피드 Server Component용 페이지 쿼리(#590 · #598) — 카테고리 탭 · 고른 목록 첫 페이지 · 이 대회 이름 ·
- * '대회' 탭의 대회 고르기 목록(서버 메모리에 잠시 기억해 둔 값이라 거의 기다리지 않는다).
+ * '대회' 탭의 대회 고르기 목록(기다리지 않고 넘긴다 — 고르기 칸만 받는 대로 그린다).
  *
  * 세 조회를 나란히 한다(순서대로 부르면 첫 화면이 그만큼 늦다). 주소의 대회가 없거나 미공개면 서버가 목록을
  * 404로 돌려주므로(backend#269) 대회 조회 결과로 먼저 가려 전체 피드로 다시 읽는다 — "공개 안 된 대회 번호면 일반 피드".
@@ -63,12 +66,12 @@ export async function getHomeFeedPageData(
     categories,
   );
 
-  const [result, competition, competitionOptions] = await Promise.all([
+  const competitionOptions = loadPickableCompetitionOptions();
+  const [result, competition] = await Promise.all([
     getBoardListPageData(boardListQueryOf(requested), sampleBelts),
     requested.competitionId === null
       ? null
       : loadFeedCompetition(requested.competitionId),
-    loadPickableCompetitionOptions(),
   ]);
   const currentYear = Number(toKstDateKey(readServerNow()).slice(0, 4));
 

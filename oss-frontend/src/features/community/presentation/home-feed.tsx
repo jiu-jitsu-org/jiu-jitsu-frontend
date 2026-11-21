@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  Suspense,
+  use,
   useCallback,
   useEffect,
   useRef,
@@ -81,8 +83,8 @@ export function HomeFeed({
   initialFilter: FeedFilter;
   initialCompetition: FeedCompetition | null;
   initialResult: BoardListPageDataResult;
-  /** '대회' 탭에서 대회별로 골라 볼 목록(글쓰기 대회 고르기와 같은 목록). */
-  competitionOptions: CompetitionPickerOption[];
+  /** '대회' 탭에서 대회별로 골라 볼 목록(글쓰기 대회 고르기와 같은 목록). 서버가 기다리지 않고 넘긴다. */
+  competitionOptions: Promise<CompetitionPickerOption[]>;
   currentYear: number;
   /** 오늘의 밸런스 게임(서버가 그린 판). 어느 탭에서나 맨 위에 보인다. */
   balance: ReactNode;
@@ -220,32 +222,37 @@ export function HomeFeed({
           onSelect={selectCategory}
           rounded={!sheetReachedTop}
         />
-        {onCompetitionTab && (competition || competitionOptions.length > 0) ? (
-          <CompetitionFeedPicker
-            options={competitionOptions}
-            competition={competition}
-            currentYear={currentYear}
-            onPick={(picked) => {
-              track("feed_competition_filter", {
-                competition_id: contentIdOf("competition", picked.id),
-                action: "apply",
-                from: "picker",
-              });
-              select({
-                categoryId: filter.categoryId,
-                competitionId: picked.id,
-              });
-              setCompetition(picked);
-            }}
-            onClear={() => {
-              if (!competition) return;
-              track("feed_competition_filter", {
-                competition_id: contentIdOf("competition", competition.id),
-                action: "clear",
-              });
-              select({ categoryId: filter.categoryId, competitionId: null });
-            }}
-          />
+        {onCompetitionTab ? (
+          // 목록이 오기 전에는 칸을 비워 둔다 — 대개 서버가 기억해 둔 목록이라 바로 온다.
+          <Suspense fallback={null}>
+            <CompetitionFeedPicker
+              optionsPromise={competitionOptions}
+              competition={competition}
+              currentYear={currentYear}
+              onPick={(picked) => {
+                // 이미 보고 있는 대회면 그대로 — 시트가 닫히는 사이 연달아 눌러도 렌더를 기다리지 않는 최신값과 비교한다.
+                if (picked.id === filterRef.current.competitionId) return;
+                track("feed_competition_filter", {
+                  competition_id: contentIdOf("competition", picked.id),
+                  action: "apply",
+                  from: "picker",
+                });
+                select({
+                  categoryId: filter.categoryId,
+                  competitionId: picked.id,
+                });
+                setCompetition(picked);
+              }}
+              onClear={() => {
+                if (!competition) return;
+                track("feed_competition_filter", {
+                  competition_id: contentIdOf("competition", competition.id),
+                  action: "clear",
+                });
+                select({ categoryId: filter.categoryId, competitionId: null });
+              }}
+            />
+          </Suspense>
         ) : null}
         {/* 한 대회 글만 보는 중에는 '대회' 탭 전체에 건 써 볼 주제를 두지 않는다. */}
         {selectedCategory && !competition ? (
@@ -451,18 +458,21 @@ function CategoryIntro({
  * 잘리지 않게 "글만 보는 중" · "대회 보기"를 같은 줄에 두지 않는다. 대회 상세는 글마다 붙은 대회 카드로 간다.
  */
 function CompetitionFeedPicker({
-  options,
+  optionsPromise,
   competition,
   currentYear,
   onPick,
   onClear,
 }: {
-  options: CompetitionPickerOption[];
+  optionsPromise: Promise<CompetitionPickerOption[]>;
   competition: FeedCompetition | null;
   currentYear: number;
   onPick: (competition: CompetitionPickerOption) => void;
   onClear: () => void;
 }) {
+  const options = use(optionsPromise);
+  // 고를 대회가 하나도 없으면(대회 화면이 꺼진 배포 · 목록 읽기 실패) 칸을 두지 않는다.
+  if (!competition && options.length === 0) return null;
   // 고른 대회가 목록 밖(오래 지난 대회 · 검색으로 찾은 대회)이어도 칸에 이름이 보이게 맨 위에 둔다.
   const shown =
     competition && !options.some((option) => option.id === competition.id)
@@ -476,11 +486,10 @@ function CompetitionFeedPicker({
         value={competition?.id ?? null}
         currentYear={currentYear}
         placeholder="대회별로 모아 보기"
+        trackClicks={false}
         onChange={(_id, _pickedBy, option) => {
-          // 이미 보고 있는 대회를 다시 고르면 목록을 다시 읽지 않는다.
-          if (option) {
-            if (option.id !== competition?.id) onPick(option);
-          } else onClear();
+          if (option) onPick(option);
+          else onClear();
         }}
       />
     </section>

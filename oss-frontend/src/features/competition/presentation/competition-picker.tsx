@@ -35,6 +35,7 @@ export function CompetitionPicker({
   value,
   onChange,
   currentYear,
+  trackClicks = true,
   placeholder = (
     <>
       어떤 대회 이야기인가요?
@@ -56,6 +57,8 @@ export function CompetitionPicker({
   currentYear: number;
   /** 고르기 전 칸에 보이는 묻는 말. */
   placeholder?: ReactNode;
+  /** 이름 없는 누름 기록(data-ga) — 고르기 · 지우기에 이름 붙은 이벤트를 따로 남기는 화면(홈 피드)은 끈다. */
+  trackClicks?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -108,7 +111,7 @@ export function CompetitionPicker({
       <div className="flex h-11 items-center rounded-10 border border-chip-default-border bg-tag-chip-default-bg">
         <button
           type="button"
-          data-ga="competition_picker"
+          data-ga={trackClicks ? "competition_picker" : undefined}
           onClick={() => setOpen(true)}
           aria-haspopup="dialog"
           className={cn(
@@ -136,7 +139,7 @@ export function CompetitionPicker({
         {selected ? (
           <button
             type="button"
-            data-ga="competition_clear"
+            data-ga={trackClicks ? "competition_clear" : undefined}
             onClick={() => onChange(null)}
             aria-label={`${selected.name} 고른 것 지우기`}
             className={cn(
