@@ -18,7 +18,7 @@ import { cn } from "@/shared/lib/cn";
 import { CommentIcon } from "@/shared/ui/icons";
 
 /*
- * 스코어보드(#305) 조각 — 홈 히어로·상세 판(BalanceHeroBoard)과 접힌 바(BalanceCollapsedBar)가 함께 쓴다.
+ * 스코어보드(#305) 조각 — 홈 히어로와 상세 판(BalanceHeroBoard)이 함께 쓴다.
  */
 
 /** 스코어보드 입력. 조회·투표·카운트다운은 상위가 소유한다. */
@@ -109,7 +109,7 @@ export function BalanceClock({
 
 /**
  * 시·분·초 숫자 묶음 사이의 `:` 양옆에 숨 쉴 자리를 둔다(#310) — 숫자끼리는 자간을 좁혀 한 덩어리로 묶고,
- * `:`만 띄워 세 묶음이 갈려 읽힌다. 글자 크기를 따라가게 em으로 잡는다(접힌 바의 작은 시계도 같은 비율).
+ * `:`만 띄워 세 묶음이 갈려 읽힌다. 글자 크기를 따라가게 em으로 잡는다.
  * 카니트의 `:`는 숫자 높이 가운데보다 낮게 앉아 살짝 올린다.
  */
 function ClockDigits({ clock }: { clock: string }) {

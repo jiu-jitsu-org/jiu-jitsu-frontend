@@ -149,16 +149,12 @@ html:has(.toast-inset-bottom-bar-note) {
   --toast-bottom-inset: 113px;
 }
 
-/* 앱 머리줄이 홈 카테고리 칩을 그리면 웹 칩 줄은 숨기고, 카테고리를 골랐을 때만 칩 줄 아래 여백(12)을 남긴다
-   (전체면 밸런스 게임 카드가 머리줄에 바로 붙는다). 표시는 layout의 문서 시작 스크립트가 단다. */
-html[data-native-home-tabs] .home-category-tabs {
-  display: none;
-}
-.home-category-tabs-gap {
-  display: none;
-}
-html[data-native-home-tabs] .home-category-tabs-gap {
-  display: block;
+/* 홈 흰 판(칩 줄 + 목록)이 밸런스 게임 띠 바로 뒤면 둥근 위 모서리로 띠 아래쪽 20px을 덮고 올라온다 — 피드가 한 층
+   위로 읽히게. 띠가 없으면(게임 없음 · 못 읽음) 그냥 이어 붙는다. 띠는 덮이는 만큼 아래를 더 비워 둔다(pb-8). */
+.home-band + .home-sheet {
+  margin-top: -20px;
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
 }
 
 /* 앱의 당겨서 새로고침이 붙는 화면(커뮤니티 메인 피드·대회 탭·게시글 상세)에서만 오버스크롤 바운스 허용.

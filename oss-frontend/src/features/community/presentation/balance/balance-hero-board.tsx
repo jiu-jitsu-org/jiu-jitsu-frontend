@@ -55,7 +55,8 @@ import { CheckIcon, TimerIcon } from "@/shared/ui/icons";
  * 자리가 있다. 홈에서는 점수 자리에 숫자 대신 A/B를 두고 고르면 체크로 바뀐다 — 리스트는 투표율을
  * 그리지 않는 정책이라 점수판에 숫자를 지어내지 않는다. 상세에서는 투표했거나 마감되면 득표율이 뜬다.
  *
- * 홈 판은 아래 모서리만 둥글게 끝나 피드와 갈린다. 어두운 면은 이 판 하나뿐이다(앱에 다크 모드는 없다).
+ * 홈 판은 화면 끝까지 꽉 찬 바탕 띠다 — 피드가 담긴 흰 판이 둥근 위 모서리로 이 아래쪽을 덮고 올라와
+ * 피드가 한 층 위로 읽힌다. 덮이는 20px만큼 아래를 더 비운다(pb-3 → pb-8). 어두운 면은 이 판 하나뿐이다.
  *
  * 스포츠 중계 그래픽처럼 진영 블록의 오른쪽 변을 비스듬히 자른다. 제목은 블랙 한 산스, 경기 시계·A·B·득표율은
  * 카니트(balance-board-fonts).
@@ -240,7 +241,7 @@ export function BalanceHeroBoard({
   variant = "hero",
 }: BalanceHeroProps & {
   /**
-   * hero: 홈 맨 위 — 아래 모서리만 둥글고, 판 아무 데나 누르면 상세로, 댓글 링크가 붙는다.
+   * hero: 홈 맨 위 — 화면 끝까지 꽉 찬 띠(흰 판이 아래를 덮는다), 판 아무 데나 누르면 상세로, 댓글 링크가 붙는다.
    * detail: 상세 맨 위(#305 시안) — 네 모서리가 둥근 판, 투표했거나 마감되면 점수 자리에 득표율이 뜨고
    * 줄 바탕이 그만큼 진영 색으로 찬다. 댓글은 바로 아래 있어 링크를 두지 않는다.
    */
@@ -280,9 +281,10 @@ export function BalanceHeroBoard({
         "relative flex flex-col overflow-hidden px-4 pt-5",
         // 판이 안 보이면 안의 반복 움직임을 그 자리에 세운다(usePauseMotionWhenHidden).
         "data-[motion-paused]:[&_*]:[animation-play-state:paused]",
-        detail ? "rounded-[24px] pb-5" : "cursor-pointer rounded-b-[28px] pb-3",
+        detail
+          ? cn("rounded-[24px] pb-5", palette.shadow)
+          : "home-band isolate cursor-pointer pb-8",
         palette.bg,
-        palette.shadow,
         palette.text,
       )}
       aria-label="오늘의 밸런스 게임"
