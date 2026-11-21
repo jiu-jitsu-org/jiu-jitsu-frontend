@@ -275,7 +275,7 @@ export function CommentList({
   if (items.length === 0 && !hasMore && !focusedComment) return empty;
 
   return (
-    // 최신순 버튼 바텀↔첫 댓글 24 = 정렬 row pb-3(12) + 여기 pt-3(12). 하단 여유 pb-4.
+    // 제목·정렬 줄 바텀↔첫 댓글 24 = 그 줄 pb-3(12) + 여기 pt-3(12). 하단 여유 pb-4.
     // 묶음 사이 24(gap-6) — 알림 댓글 면 · 목록 · 「댓글 더보기」 사이도 같은 간격이다.
     <div className="flex flex-col gap-6 px-4 pb-4 pt-3">
       {focusedComment ? (

@@ -34,8 +34,12 @@ export function CommentSection({
 }) {
   return (
     <section className="flex flex-col">
-      {/* 댓글 수는 리액션바의 댓글 버튼이 카운트로 보여주므로 이 행에는 두지 않는다. */}
-      <div className="flex items-center px-4 py-3">
+      {/* 제목 "댓글"(왼쪽) + 정렬(오른쪽) — 아래 "○○의 다른 글"과 같은 제목(Body M Semibold, 좌 16)으로 구역을 읽히게 하고,
+          정렬은 회색 Label M으로 한 단계 낮춘다. 제목 글자 위 = 띠에서 24(pt-5 20 + 줄 32 안 가운데 4) — "다른 글" 제목과 같다.
+          오른쪽 16 = pr-3 12 + 정렬 버튼 안쪽 pr-1 4(화살표 끝이 화면 여백선에 선다).
+          댓글 수는 리액션바의 댓글 버튼이 카운트로 보여주므로 제목에 두지 않는다. */}
+      <div className="flex items-center justify-between pb-3 pl-4 pr-3 pt-5">
+        <h2 className="text-body-m font-semibold text-text-primary">댓글</h2>
         {/* useSearchParams() leaf — 정적 prerender에서 빠지도록 Suspense로 감싼다.
             fallback은 높이 32 자리만 유지해 레이아웃 시프트를 막는다. */}
         <Suspense fallback={<div className="h-8" />}>
