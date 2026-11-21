@@ -230,6 +230,7 @@ export function postNativeAnalyticsEvent(
 /**
  * 앱 홈 탭(피드)으로 가도록 요청한다(#366). 지원하지 않는 앱이면 false — 호출부가 다른 길로 연다.
  * payload에 대회 번호를 주면 앱이 홈 피드를 그 대회 글만으로 연다(#597 · jiu-jitsu-ios#437).
+ * 카테고리 번호를 주면 홈 피드를 그 카테고리 탭으로 연다(#643 · jiu-jitsu-ios#480).
  */
 export function openNativeHomeFeed(payload?: OpenHomeFeedPayload): boolean {
   if (!supportsNativeMessage(OutboundMessageType.OPEN_HOME_FEED)) return false;

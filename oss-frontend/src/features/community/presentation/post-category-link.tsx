@@ -6,13 +6,15 @@ import { categoryParam } from "@/features/community/presentation/post-analytics"
 import { entryPath, track } from "@/shared/lib/analytics";
 import {
   isNativeBridgeAvailable,
+  openNativeHomeFeed,
   openNativeSubview,
 } from "@/shared/lib/native-bridge";
 
 /**
  * 글 상세 메타 줄의 카테고리 이름 — 누르면 홈 목록을 그 카테고리 탭으로 연다.
  *
- * 상세 위에 새 화면으로 쌓는다(앱은 서브뷰, 웹은 주소 이동). 뒤로 가기 · 스와이프로 보던 글로 돌아온다.
+ * 앱은 `OPEN_HOME_FEED { categoryId }`로 상세를 닫고 홈 탭을 그 카테고리로 연다(#643 · jiu-jitsu-ios#480).
+ * 이 메시지를 모르는 앱은 지금처럼 홈 목록을 서브뷰로 쌓고, 웹은 주소를 옮긴다(뒤로 가기로 보던 글로 돌아온다).
  * 홈 목록의 글 카드에서는 카테고리 이름을 누르지 않는다 — 바로 위 탭 줄이 같은 일을 한다.
  */
 export function PostCategoryLink({
@@ -32,7 +34,8 @@ export function PostCategoryLink({
     const path = entryPath(`/?categoryId=${categoryId}`, "post_detail");
     if (isNativeBridgeAvailable()) {
       // 동일 origin 절대경로로 전달 → 새 웹뷰가 세션 쿠키 공유.
-      openNativeSubview(`${window.location.origin}${path}`);
+      if (!openNativeHomeFeed({ categoryId }))
+        openNativeSubview(`${window.location.origin}${path}`);
       return;
     }
     router.push(path);
