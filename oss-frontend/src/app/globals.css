@@ -157,6 +157,49 @@ html:has(.toast-inset-bottom-bar-note) {
   border-top-right-radius: 20px;
 }
 
+/* 앱 머리줄 뒤까지 깔린 웹(홈 · 대회 탭, jiu-jitsu-ios 상단 블러)의 위쪽 자리. 앱이 문서 시작 때 머리줄 높이(상태바 포함)를
+   --app-header-obscured-top으로 넣는다 — 맨 위를 그만큼 비우고(.top-glass-spacer) 붙는 줄을 그 아래에 붙인다.
+   앱이 넣지 않으면(옛 앱 · 브라우저) 0이라 지금 그대로다. */
+:root {
+  --top-glass-offset: var(--app-header-obscured-top, 0px);
+}
+
+.top-glass-spacer {
+  height: var(--top-glass-offset);
+}
+
+/* 붙는 줄(홈 칩 줄 · 대회 필터 줄) 뒤 유리 면(TopGlass) — 반투명 목록 바탕 + 흐림. 앱 머리줄 높이만큼 위로 늘여
+   머리줄 뒤까지 한 장으로 덮고, 아래 끝 16px은 완만한 곡선(ease)으로 지워 선 없이 목록으로 녹아든다(대회 필터 줄과 같은 곡선).
+   세기는 --top-glass-tint(바탕이 덮는 비율) · --top-glass-blur(흐림)로 정한다. 흐림이 없는 브라우저는 바탕만 남는다.
+   바탕은 중간(84%)으로 둔다 — 더 옅으면 검은 배너가 지날 때 머리줄까지 탁한 회색으로 번진다(대회 필터 줄에서 거절된 모습). */
+.top-glass {
+  --top-glass-tint: 84%;
+  --top-glass-blur: 24px;
+  position: absolute;
+  inset-inline: 0;
+  top: calc(-1 * var(--top-glass-offset));
+  pointer-events: none;
+  background-color: color-mix(
+    in srgb,
+    var(--surface-container) var(--top-glass-tint),
+    transparent
+  );
+  -webkit-backdrop-filter: blur(var(--top-glass-blur)) saturate(180%);
+  backdrop-filter: blur(var(--top-glass-blur)) saturate(180%);
+  --top-glass-fade: linear-gradient(
+    to bottom,
+    black calc(100% - 16px),
+    rgb(0 0 0 / 0.92) calc(100% - 13px),
+    rgb(0 0 0 / 0.75) calc(100% - 10px),
+    rgb(0 0 0 / 0.5) calc(100% - 7px),
+    rgb(0 0 0 / 0.27) calc(100% - 5px),
+    rgb(0 0 0 / 0.1) calc(100% - 2px),
+    transparent
+  );
+  -webkit-mask-image: var(--top-glass-fade);
+  mask-image: var(--top-glass-fade);
+}
+
 /* 앱의 당겨서 새로고침이 붙는 화면(커뮤니티 메인 피드·대회 탭·게시글 상세)에서만 오버스크롤 바운스 허용.
    목록은 문서 레벨로 스크롤되므로 해당 페이지가 떠 있을 때만 html/body의 차단을 해제한다.
    상세는 고정 셸 안에서 본문만 스크롤되지만, 맨 위에서 당기면 문서로 이어져 같은 띠가 보인다(#432). */
