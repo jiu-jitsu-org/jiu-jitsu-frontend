@@ -135,8 +135,12 @@ export default async function Home({
                 currentYear={feed.currentYear}
                 // 밸런스 카드는 피드가 정상일 때만 얹는다 — 에러·복구 화면 위에 얹으면 "무엇이 실패했는지"가
                 // 흐려진다. 진행 중인 판이 없거나 조회에 실패했으면(null) 아무것도 그리지 않는다.
+                // 한 대회 글만 보러 들어온 화면(대회 상세 '모두 보기' · 앱이 넘긴 대회 번호)에도 두지 않는다 —
+                // 그 대회 글을 보러 온 맥락이라 오늘의 게임은 군더더기다.
                 balance={
-                  feed.result.ok && balanceGame ? (
+                  feed.result.ok &&
+                  balanceGame &&
+                  feed.filter.competitionId === null ? (
                     <BalanceGameSection
                       initialGame={balanceGame}
                       intro={balanceIntro}
