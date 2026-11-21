@@ -9,6 +9,7 @@ import { isCompetitionPageEnabled } from "@/features/competition/application/is-
 import { CompetitionListPage } from "@/features/competition/presentation/competition-list-page";
 import { readSessionToken } from "@/shared/lib/auth";
 import { readServerNow } from "@/shared/lib/time";
+import { DevTabBar } from "@/shared/ui/dev-tab-bar";
 
 export const metadata: Metadata = {
   title: "대회",
@@ -31,6 +32,8 @@ export default async function CompetitionRoutePage() {
     <SessionHintProvider authenticated={signedIn}>
       <RefreshOnLogin />
       <CompetitionListPage data={data} />
+      {/* 테스트용 하단 탭 — 앱 밖 브라우저에서 커뮤니티로 돌아가는 임시 입구(이 화면은 개발 환경에서만 열림). */}
+      <DevTabBar enabled />
     </SessionHintProvider>
   );
 }

@@ -21,6 +21,8 @@ import { FeedScrollTopOnReload } from "@/features/community/presentation/feed/fe
 import { PostWriteFab } from "@/features/community/presentation/post-write-fab";
 import { readSessionToken } from "@/shared/lib/auth";
 import { readServerNow } from "@/shared/lib/time";
+import { isCompetitionPageEnabled } from "@/features/competition/application/is-competition-page-enabled";
+import { DevTabBar } from "@/shared/ui/dev-tab-bar";
 import { ServerClockProvider } from "@/shared/ui/server-clock";
 import { Spinner } from "@/shared/ui/spinner";
 
@@ -76,6 +78,9 @@ export default async function Home({
 
           {/* 게시글 작성 진입 FAB — 네이티브면 OPEN_SUBVIEW로 풀스크린 서브뷰, 웹 단독이면 라우터 이동. */}
           <PostWriteFab />
+
+          {/* 테스트용 하단 탭 — 앱 밖 브라우저에서 대회 탭으로 가는 임시 입구(개발 환경만). */}
+          <DevTabBar enabled={isCompetitionPageEnabled()} />
         </main>
       </ServerClockProvider>
     </SessionHintProvider>
