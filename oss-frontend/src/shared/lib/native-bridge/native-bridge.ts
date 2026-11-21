@@ -7,7 +7,7 @@ import {
   type CompetitionAlertsEnabledPayload,
   type CompetitionHeaderTintPayload,
   type ContentCreatedPayload,
-  type HomeCategoryTabsPayload,
+  type HomeHeaderTintPayload,
   type LoginPromptReason,
   type OpenCompetitionRecordPayload,
   type OpenHomeFeedPayload,
@@ -273,16 +273,17 @@ export function setNativeCompetitionHeaderTint(
 }
 
 /**
- * 앱 머리줄에 홈 카테고리 칩을 그리도록 칩 목록과 고른 칩을 알린다(HOME_CATEGORY_TABS).
- * 지원하지 않는 앱·브라우저에서는 보내지 않는다(웹이 칩 줄을 그대로 그린다).
+ * 앱의 홈 머리(로고 줄·상태바)를 이 색으로 칠하도록 요청한다. null이면 앱 기본색(흰 머리)으로 돌린다.
+ * 지원하지 않는 앱·브라우저에서는 보내지 않는다.
  */
-export function setNativeHomeCategoryTabs(
-  payload: HomeCategoryTabsPayload,
+export function setNativeHomeHeaderTint(
+  color: HomeHeaderTintPayload["color"],
 ): void {
-  if (!supportsNativeMessage(OutboundMessageType.HOME_CATEGORY_TABS)) {
-    return;
-  }
-  postToNative({ type: OutboundMessageType.HOME_CATEGORY_TABS, payload });
+  if (!supportsNativeMessage(OutboundMessageType.HOME_HEADER_TINT)) return;
+  postToNative({
+    type: OutboundMessageType.HOME_HEADER_TINT,
+    payload: { color },
+  });
 }
 
 /**

@@ -22,9 +22,11 @@ export default function Loading() {
   return (
     <main className="min-h-screen bg-surface-container" aria-hidden>
       <HomeOpenInAppBanner />
-      <CategoryTabsSkeleton />
       <BalanceGameSkeleton />
-      <FeedCardsSkeleton firstDelay={1} />
+      <div className="home-sheet relative bg-surface-container">
+        <CategoryTabsSkeleton />
+        <FeedCardsSkeleton firstDelay={1} />
+      </div>
     </main>
   );
 }

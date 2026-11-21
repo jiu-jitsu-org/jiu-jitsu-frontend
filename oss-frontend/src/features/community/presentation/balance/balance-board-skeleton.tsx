@@ -29,8 +29,9 @@ export function BalanceBoardSkeleton({
       className={cn(
         "flex flex-col px-4 pt-5 motion-safe:animate-pulse",
         BOARD_PALETTE.bg,
-        BOARD_PALETTE.shadow,
-        detail ? "rounded-[24px] pb-5" : "rounded-b-[28px] pb-3",
+        detail
+          ? cn("rounded-[24px] pb-5", BOARD_PALETTE.shadow)
+          : "home-band pb-8",
       )}
     >
       {/* 제목 · 진행 중(28) */}

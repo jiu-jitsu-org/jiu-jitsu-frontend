@@ -5,8 +5,8 @@ import {
   useEffect,
   useRef,
   useState,
-  useSyncExternalStore,
   type ReactNode,
+  type RefObject,
 } from "react";
 
 import type { BoardListPageDataResult } from "@/features/community/application/get-board-list-page-data";
@@ -36,13 +36,8 @@ import { useOpenPostWrite } from "@/features/community/presentation/use-open-pos
 import { WeeklyTopic } from "@/features/community/presentation/weekly-topic";
 import { useOpenCompetitionDetail } from "@/features/competition/presentation/competition-detail-link";
 import { contentIdOf, track } from "@/shared/lib/analytics";
-import {
-  InboundMessageType,
-  OutboundMessageType,
-  registerWebBridge,
-  setNativeHomeCategoryTabs,
-  supportsNativeMessage,
-} from "@/shared/lib/native-bridge";
+import { cn } from "@/shared/lib/cn";
+import { setNativeHomeHeaderTint } from "@/shared/lib/native-bridge";
 import { Button } from "@/shared/ui/button";
 import { Chip } from "@/shared/ui/chip";
 import { EmptyState } from "@/shared/ui/empty-state";
@@ -58,14 +53,17 @@ type FeedContent = {
 } | null;
 
 /**
- * 홈 피드 — 위 카테고리 탭 + (전체면 오늘의 밸런스 게임 · 카테고리면 설명과 이번 주 써 볼 주제) + 목록(#590 · #598).
+ * 홈 피드 — 맨 위 오늘의 밸런스 게임 띠 + 그 위를 덮고 올라오는 흰 판(카테고리 탭 + 카테고리 설명 · 이번 주 써 볼
+ * 주제 + 목록)(#590 · #598). 밸런스 게임은 어느 탭을 골라도 그대로 둔다 — 탭과 상관없는 바탕 층이라, 탭을 바꿔도
+ * 탭 줄이 제자리에 있다.
  *
  * 첫 화면은 서버가 주소(`/?categoryId=` · `/?competitionId=`)대로 그려 넘기고, 탭을 바꾸면 여기서 첫 페이지를
  * BFF로 읽어 목록만 갈아 끼운다 — 라우트를 다시 렌더하면 탭 줄까지 로딩 화면으로 덮여 깜빡인다.
  * 바꾼 탭은 주소에도 남긴다(history.replaceState — 뒤로 가기 기록은 쌓지 않는다). 새로고침 · 웹에서 상세를 보고
  * 돌아와도 같은 탭으로 열린다. 앱은 상세가 서브뷰로 덮였다 닫힐 뿐 이 웹뷰가 그대로라 탭 · 위치가 그대로다.
  *
- * 탭 줄은 붙박이(sticky)가 아니다 — 위로 지나가면 오늘의 밸런스 게임 접힌 바가 같은 자리(맨 위)에 뜬다.
+ * 탭 줄은 흰 판 맨 위에 붙박이(sticky)다 — 내리면 화면 맨 위에 붙어 남는다. 앱 머리는 밸런스 띠가 보이는 동안
+ * 띠와 같은 먹색, 흰 판이 위에 닿으면 흰색이다(useSheetReachedTop).
  */
 export function HomeFeed({
   categories,
@@ -78,14 +76,14 @@ export function HomeFeed({
   initialFilter: FeedFilter;
   initialCompetition: FeedCompetition | null;
   initialResult: BoardListPageDataResult;
-  /** 오늘의 밸런스 게임(서버가 그린 판). 전체 탭에서만 보인다. */
+  /** 오늘의 밸런스 게임(서버가 그린 판). 어느 탭에서나 맨 위에 보인다. */
   balance: ReactNode;
 }) {
   const [filter, setFilter] = useState(initialFilter);
   const [competition, setCompetition] = useState(initialCompetition);
   const [content, setContent] = useState<FeedContent>(null);
   const requestSeq = useRef(0);
-  const topRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
 
   const selectedCategory =
     filter.categoryId === null
@@ -122,8 +120,8 @@ export function HomeFeed({
           `${window.location.pathname}${feedFilterSearch(next)}`,
         );
       }
-      // 탭 줄이 위로 조금 지나간 채 탭을 바꾸면 새 목록의 맨 위(탭 줄)로 올린다.
-      const top = topRef.current?.getBoundingClientRect().top ?? 0;
+      // 목록을 내린 채(흰 판이 위로 지나감) 탭을 바꾸면 새 목록의 맨 위(탭 줄이 막 붙은 자리)로 올린다.
+      const top = sheetRef.current?.getBoundingClientRect().top ?? 0;
       if (top < 0) window.scrollTo({ top: window.scrollY + top });
       void load(next);
     },
@@ -198,89 +196,47 @@ export function HomeFeed({
       document.removeEventListener("visibilitychange", reloadAfterWrite);
     };
   }, [showsEmpty, filter, load]);
-  const isAll = filter.categoryId === null;
-
-  // 앱 머리줄이 칩을 그리면(HOME_CATEGORY_TABS) 칩 목록 · 고른 칩을 알리고, 앱 칩을 누르면 같은 길(탭)로 고른다.
-  const nativeTabs = useSyncExternalStore(
-    subscribeNoop,
-    supportsNativeHomeTabs,
-    () => false,
-  );
-  const selectCategoryRef = useRef(selectCategory);
-  useEffect(() => {
-    selectCategoryRef.current = selectCategory;
-  });
-  useEffect(() => {
-    if (!nativeTabs) return;
-    setNativeHomeCategoryTabs({
-      tabs: categoryTabsOf(categories),
-      selectedId: filter.categoryId,
-    });
-  }, [nativeTabs, categories, filter.categoryId]);
-  useEffect(() => {
-    if (!nativeTabs) return;
-    return registerWebBridge((message) => {
-      if (message.type !== InboundMessageType.HOME_CATEGORY_SELECT) return;
-      const id = message.payload?.categoryId;
-      // 전체(null)이거나 목록에 있는 카테고리만 고른다. 모르는 값은 무시한다.
-      if (id === null || categories.some((category) => category.id === id)) {
-        selectCategoryRef.current(id ?? null);
-      }
-      // 바뀌었든 안 바뀌었든 지금 고른 칩을 다시 알린다 — 앱은 이 답을 받아야 먼저 바꿔 둔 칩을 확정한다.
-      setNativeHomeCategoryTabs({
-        tabs: categoryTabsOf(categories),
-        selectedId: filterRef.current.categoryId,
-      });
-    });
-  }, [nativeTabs, categories]);
+  const sheetReachedTop = useSheetReachedTop(sheetRef);
 
   return (
     <>
-      <div ref={topRef}>
-        {/* 앱 머리줄이 칩을 그리면 웹 칩 줄은 숨긴다. 그리기 전에는 문서 시작 표시(globals.css)가, 뜬 뒤에는
-            nativeTabs가 숨긴다 — React가 화면을 처음부터 다시 그리면 <html>에 단 표시가 지워질 수 있어 둘 다 둔다. */}
-        {nativeTabs ? null : (
-          <CategoryTabs
-            categories={categories}
-            selectedId={filter.categoryId}
-            onSelect={selectCategory}
+      {balance}
+      {/* 흰 판 — 밸런스 띠(home-band) 바로 뒤면 둥근 위 모서리로 띠 아래쪽을 덮고 올라온다(globals.css). */}
+      <div ref={sheetRef} className="home-sheet relative bg-surface-container">
+        <CategoryTabs
+          categories={categories}
+          selectedId={filter.categoryId}
+          onSelect={selectCategory}
+          rounded={!sheetReachedTop}
+        />
+        {competition ? (
+          <CompetitionFilterBar
+            competition={competition}
+            onClear={() => {
+              track("feed_competition_filter", {
+                competition_id: contentIdOf("competition", competition.id),
+                action: "clear",
+              });
+              select({ categoryId: filter.categoryId, competitionId: null });
+            }}
           />
-        )}
-        {isAll ? null : (
-          <div
-            className={nativeTabs ? "h-3" : "home-category-tabs-gap h-3"}
+        ) : selectedCategory ? (
+          <CategoryIntro category={selectedCategory} />
+        ) : null}
+
+        {result === "loading" ? (
+          <FeedCardsSkeleton className="pt-3" />
+        ) : (
+          <FeedListContent
+            key={contentKey}
+            result={result}
+            filter={filter}
+            listUrl={listUrl}
+            onRetry={() => void load(filter)}
+            clientLoaded={content !== null}
           />
         )}
       </div>
-
-      {isAll ? balance : null}
-      {competition ? (
-        <CompetitionFilterBar
-          competition={competition}
-          onClear={() => {
-            track("feed_competition_filter", {
-              competition_id: contentIdOf("competition", competition.id),
-              action: "clear",
-            });
-            select({ categoryId: filter.categoryId, competitionId: null });
-          }}
-        />
-      ) : selectedCategory ? (
-        <CategoryIntro category={selectedCategory} />
-      ) : null}
-
-      {result === "loading" ? (
-        <FeedCardsSkeleton className="pt-3" />
-      ) : (
-        <FeedListContent
-          key={contentKey}
-          result={result}
-          filter={filter}
-          listUrl={listUrl}
-          onRetry={() => void load(filter)}
-          clientLoaded={content !== null}
-        />
-      )}
 
       {/* 게시글 작성 진입 FAB — 고른 카테고리(또는 이 대회)를 미리 골라 연다(#588). */}
       <PostWriteFab
@@ -291,11 +247,51 @@ export function HomeFeed({
   );
 }
 
-const subscribeNoop = () => () => {};
-const supportsNativeHomeTabs = () =>
-  supportsNativeMessage(OutboundMessageType.HOME_CATEGORY_TABS);
+/** 밸런스 띠 먹색 — BOARD_PALETTE.bg(--cool-gray-900)와 같은 값. 띠가 보이는 동안 앱 머리를 이 색으로 칠한다. */
+const BALANCE_BAND_HEX = "#292A2E";
 
-/** 칩 목록 — 맨 앞 '전체'(id null) + 서버 순서 카테고리. 웹 칩 줄과 앱 머리줄 칩이 같은 목록을 쓴다. */
+/**
+ * 흰 판이 화면 맨 위에 닿았는지. 닿기 전(밸런스 띠가 보임)에는 앱 머리를 띠와 같은 먹색으로 칠해 위쪽이 한 덩어리
+ * 바탕으로 읽히게 하고, 닿으면 앱 기본 흰 머리로 돌린다(HOME_HEADER_TINT). 띠가 없으면(게임이 없거나 못 읽음)
+ * 칠하지 않는다. 화면을 떠나면 기본색으로 돌린다.
+ */
+function useSheetReachedTop(sheetRef: RefObject<HTMLDivElement | null>) {
+  const [reached, setReached] = useState(false);
+  useEffect(() => {
+    const sheet = sheetRef.current;
+    if (!sheet) return;
+    let sent: string | null | undefined;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const hasBand =
+        sheet.previousElementSibling?.matches(".home-band") ?? false;
+      const next = !hasBand || sheet.getBoundingClientRect().top <= 0;
+      setReached(next);
+      const color = next ? null : BALANCE_BAND_HEX;
+      if (color === sent) return;
+      sent = color;
+      setNativeHomeHeaderTint(color);
+    };
+    const requestUpdate = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    requestUpdate();
+    // 띠가 뒤늦게 사라지거나(게임 마감 뒤 다음 판 없음) 높이가 바뀌어도 맞춘다.
+    const observer = new ResizeObserver(requestUpdate);
+    observer.observe(document.body);
+    window.addEventListener("scroll", requestUpdate, { passive: true });
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("scroll", requestUpdate);
+      cancelAnimationFrame(frame);
+      setNativeHomeHeaderTint(null);
+    };
+  }, [sheetRef]);
+  return reached;
+}
+
+/** 칩 목록 — 맨 앞 '전체'(id null) + 서버 순서 카테고리. */
 function categoryTabsOf(
   categories: PostCategory[],
 ): { id: number | null; name: string }[] {
@@ -306,17 +302,20 @@ function categoryTabsOf(
 }
 
 /**
- * 카테고리 탭 줄 — 전체 + 서버 순서 카테고리. 넘치면 가로로 밀린다(글쓰기 카테고리 칩 줄과 같은 칩 · 간격).
+ * 카테고리 탭 줄 — 흰 판 맨 위, 내리면 화면 위에 붙는다. 전체 + 서버 순서 카테고리. 넘치면 가로로 밀린다(글쓰기 카테고리 칩 줄과 같은 칩 · 간격).
  * 고른 탭은 밀려 있어도 보이게 줄을 민다. 큰 글씨에서도 잘리지 않게 칩 높이는 글자만큼 자란다.
  */
 function CategoryTabs({
   categories,
   selectedId,
   onSelect,
+  rounded,
 }: {
   categories: PostCategory[];
   selectedId: number | null;
   onSelect: (categoryId: number | null) => void;
+  /** 흰 판 맨 위에 있을 때 위 모서리를 둥글게. 화면 위에 붙으면 편다 — 밑으로 지나가는 글이 모서리로 비치지 않게. */
+  rounded: boolean;
 }) {
   const rowRef = useRef<HTMLDivElement>(null);
   const revealed = useRef(false);
@@ -335,7 +334,10 @@ function CategoryTabs({
   return (
     <div
       ref={rowRef}
-      className="home-category-tabs overflow-x-auto px-4 pt-3 pb-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className={cn(
+        "sticky top-0 z-10 overflow-x-auto bg-surface-container px-4 pt-3 pb-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+        rounded && "rounded-t-[20px]",
+      )}
     >
       <div role="tablist" aria-label="카테고리" className="flex w-max gap-2">
         {tabs.map((tab) => {

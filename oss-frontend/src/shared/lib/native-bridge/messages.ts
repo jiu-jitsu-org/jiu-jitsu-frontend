@@ -70,10 +70,9 @@ export const OutboundMessageType = {
   // 보내 앱 머리를 같은 색으로 칠해 이음매를 없앤다. 스크롤로 그라데이션이 올라가면 옅어진 색을 다시 보내고,
   // 다 사라지면 color:null(앱 기본색). 구버전 앱은 모르므로 지원 목록에 있을 때만 보낸다.
   COMPETITION_HEADER_TINT: "COMPETITION_HEADER_TINT",
-  // 홈 카테고리 칩(메인 머리줄 합치기). 지원하는 앱은 웹 홈 위 칩 줄 대신 앱 머리줄('홈' 자리)에 칩을 그린다.
-  // 웹은 홈 피드가 뜰 때와 고른 칩이 바뀔 때마다(앱 칩 · 카드의 카테고리 · 주소 맞추기) 칩 목록과 고른 칩을 보낸다.
-  // 앱이 이 이름을 지원 목록에 넣으면 웹은 문서 시작 때부터 자기 칩 줄을 숨긴다(layout의 data-native-home-tabs).
-  HOME_CATEGORY_TABS: "HOME_CATEGORY_TABS",
+  // 홈 머리 색(앱이 그리는 로고 줄과 상태바). 홈 맨 위 밸런스 게임 띠가 보이는 동안 그 먹색을 보내 앱 머리를 같은 색으로
+  // 칠하고, 피드가 담긴 흰 판이 화면 위에 닿으면 color:null(앱 기본 흰 머리). 구버전 앱은 모르므로 지원 목록에 있을 때만 보낸다.
+  HOME_HEADER_TINT: "HOME_HEADER_TINT",
   // 웹 시트 열림·닫힘(#465 · jiu-jitsu-ios#314). 웹 바텀 시트가 화면에 떠 있는 동안 open:true, 다 내려가면 false.
   // 앱은 열려 있는 동안 떠 있는 탭 바를 숨기고 가린 높이(obscuredContentInsets)를 0으로 돌려, 시트가 탭 바 자리까지
   // 내려오고 딤이 그 자리를 덮게 한다. 구버전 앱은 모르므로 지원 목록에 있을 때만 보낸다(useNativeSheetOpen).
@@ -118,9 +117,6 @@ export const InboundMessageType = {
   // jiu-jitsu-ios#397). 저장에 성공했을 때만 떠 있는 모든 웹뷰에 보낸다. 웹은 그 대회의 결과 남기기 배너 · 카드를 바로 닫고
   // 내 기록을 다시 읽어 다른 대회도 맞춘다. 이 메시지를 모르는 구버전 앱에서는 다음에 화면을 열 때 서버가 거른다.
   COMPETITION_RECORD_SAVED: "COMPETITION_RECORD_SAVED",
-  // 앱 머리줄의 홈 카테고리 칩을 눌렀음(HOME_CATEGORY_TABS 짝). 웹은 그 카테고리로 피드를 갈아 끼우고,
-  // 바뀐 고른 칩을 HOME_CATEGORY_TABS로 다시 알린다. categoryId null = 전체.
-  HOME_CATEGORY_SELECT: "HOME_CATEGORY_SELECT",
 } as const;
 export type InboundMessageType =
   (typeof InboundMessageType)[keyof typeof InboundMessageType];
@@ -318,15 +314,9 @@ export type CompetitionHeaderTintPayload = {
   color: string | null;
 };
 
-/** `HOME_CATEGORY_TABS` payload — 앱 머리줄에 그릴 칩(서버 순서, 맨 앞 '전체'는 id null)과 지금 고른 칩. */
-export type HomeCategoryTabsPayload = {
-  tabs: { id: number | null; name: string }[];
-  selectedId: number | null;
-};
-
-/** `HOME_CATEGORY_SELECT` payload — 앱에서 누른 칩. null = 전체. */
-export type HomeCategorySelectPayload = {
-  categoryId: number | null;
+/** `HOME_HEADER_TINT` payload — 앱 홈 머리를 칠할 색. "#RRGGBB" 이거나 null(앱 기본 머리색으로). */
+export type HomeHeaderTintPayload = {
+  color: string | null;
 };
 
 /**
@@ -451,8 +441,4 @@ export type InboundMessage =
   | {
       type: typeof InboundMessageType.COMPETITION_RECORD_SAVED;
       payload?: CompetitionRecordSavedPayload;
-    }
-  | {
-      type: typeof InboundMessageType.HOME_CATEGORY_SELECT;
-      payload?: HomeCategorySelectPayload;
     };
