@@ -37,13 +37,17 @@ import { WeeklyTopic } from "@/features/community/presentation/weekly-topic";
 import { useOpenCompetitionDetail } from "@/features/competition/presentation/competition-detail-link";
 import { contentIdOf, track } from "@/shared/lib/analytics";
 import { cn } from "@/shared/lib/cn";
-import { setNativeHomeHeaderTint } from "@/shared/lib/native-bridge";
+import {
+  setNativeHomeHeaderTint,
+  useNativeTopGlass,
+} from "@/shared/lib/native-bridge";
 import { Button } from "@/shared/ui/button";
 import { Chip } from "@/shared/ui/chip";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { IconButton } from "@/shared/ui/icon-button";
 import { ChevronLeftIcon, CloseIcon } from "@/shared/ui/icons";
 import { Spinner } from "@/shared/ui/spinner";
+import { TopGlass } from "@/shared/ui/top-glass";
 
 /** 목록 영역 — 서버가 그린 첫 목록(null)이거나, 탭을 바꿔 클라이언트가 읽은 목록. */
 type FeedContent = {
@@ -197,6 +201,7 @@ export function HomeFeed({
     };
   }, [showsEmpty, filter, load]);
   const sheetReachedTop = useSheetReachedTop(sheetRef);
+  const topGlass = useNativeTopGlass();
 
   return (
     <>
@@ -208,6 +213,7 @@ export function HomeFeed({
           selectedId={filter.categoryId}
           onSelect={selectCategory}
           rounded={!sheetReachedTop}
+          glass={topGlass && sheetReachedTop}
         />
         {competition ? (
           <CompetitionFilterBar
@@ -312,12 +318,15 @@ function CategoryTabs({
   selectedId,
   onSelect,
   rounded,
+  glass,
 }: {
   categories: PostCategory[];
   selectedId: number | null;
   onSelect: (categoryId: number | null) => void;
   /** 흰 판 맨 위에 있을 때 위 모서리를 둥글게. 화면 위에 붙으면 편다 — 밑으로 지나가는 글이 모서리로 비치지 않게. */
   rounded: boolean;
+  /** 화면 위에 붙어 앱 머리줄과 한 장의 유리 면으로 이어지는지(useNativeTopGlass). 띠가 보이는 동안은 앱 머리가 띠 색이라 끈다. */
+  glass: boolean;
 }) {
   const rowRef = useRef<HTMLDivElement>(null);
   const revealed = useRef(false);
@@ -333,31 +342,36 @@ function CategoryTabs({
 
   const tabs = categoryTabsOf(categories);
 
+  // 유리 면은 줄 위(앱 머리줄 뒤)와 아래로 넘쳐 그려지므로, 가로로 밀리는(넘침을 자르는) 칩 줄 바깥 상자에 둔다.
   return (
-    <div
-      ref={rowRef}
-      className={cn(
-        "sticky top-0 z-10 overflow-x-auto bg-surface-container px-4 pt-3 pb-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-        rounded && "rounded-t-[20px]",
-      )}
-    >
-      <div role="tablist" aria-label="카테고리" className="flex w-max gap-2">
-        {tabs.map((tab) => {
-          const selected = tab.id === selectedId;
-          return (
-            <Chip
-              key={tab.id ?? "all"}
-              role="tab"
-              aria-selected={selected}
-              selected={selected}
-              tone="primary"
-              onClick={() => onSelect(tab.id)}
-              className="h-auto min-h-8 py-1 whitespace-nowrap"
-            >
-              {tab.name}
-            </Chip>
-          );
-        })}
+    <div className="sticky top-0 z-10">
+      {glass ? <TopGlass below={8} /> : null}
+      <div
+        ref={rowRef}
+        className={cn(
+          "relative overflow-x-auto px-4 pt-3 pb-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+          glass ? null : "bg-surface-container",
+          rounded && "rounded-t-[20px]",
+        )}
+      >
+        <div role="tablist" aria-label="카테고리" className="flex w-max gap-2">
+          {tabs.map((tab) => {
+            const selected = tab.id === selectedId;
+            return (
+              <Chip
+                key={tab.id ?? "all"}
+                role="tab"
+                aria-selected={selected}
+                selected={selected}
+                tone="primary"
+                onClick={() => onSelect(tab.id)}
+                className="h-auto min-h-8 py-1 whitespace-nowrap"
+              >
+                {tab.name}
+              </Chip>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

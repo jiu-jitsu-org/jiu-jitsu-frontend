@@ -246,8 +246,10 @@ export function CompetitionTopTint({
           strength,
           height,
         );
+        html.dataset[TINT_PAINTED_FLAG] = "";
       } else {
         bar?.style.removeProperty("background");
+        delete html.dataset[TINT_PAINTED_FLAG];
       }
       if (top >= GLASS_CHIP_MIN) html.dataset[TINT_FLAG] = "";
       else delete html.dataset[TINT_FLAG];
@@ -270,6 +272,7 @@ export function CompetitionTopTint({
       probe.remove();
       bar?.style.removeProperty("background");
       delete html.dataset[TINT_FLAG];
+      delete html.dataset[TINT_PAINTED_FLAG];
       setNativeCompetitionHeaderTint(null);
     };
   }, [barRef, color, depth, height, ready]);
@@ -380,6 +383,8 @@ function tintGradient(
  * 반투명 흰 면이 묻혀 칩 모양이 사라진다.
  */
 const TINT_FLAG = "competitionTint";
+/** 필터 줄 바탕을 띠 색으로 칠한 동안 붙는 표시. 그동안은 앱 머리도 띠 색이라 줄 뒤 유리 면(TopGlass)을 숨긴다. */
+const TINT_PAINTED_FLAG = "competitionTintPainted";
 const GLASS_CHIP_MIN = 4;
 
 /** 계산된 색 문자열(rgb(…)·color(srgb …)) → "#RRGGBB". 읽지 못하거나 투명(대입이 무시됨)이면 null. */

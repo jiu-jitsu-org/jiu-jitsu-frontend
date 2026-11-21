@@ -84,6 +84,7 @@ import { useCompetitionInterest } from "@/features/competition/presentation/use-
 import { useMyBeltRank } from "@/features/competition/presentation/use-my-belt-rank";
 import { reportScreen, track } from "@/shared/lib/analytics";
 import { cn } from "@/shared/lib/cn";
+import { useNativeTopGlass } from "@/shared/lib/native-bridge";
 import {
   CalendarIcon,
   ChevronDownIcon,
@@ -96,6 +97,7 @@ import { Chip } from "@/shared/ui/chip";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { IconButton } from "@/shared/ui/icon-button";
 import { TAB_BAR_CLEARANCE } from "@/shared/ui/tab-bar-clearance";
+import { TopGlass } from "@/shared/ui/top-glass";
 
 /**
  * 대회 목록 + 위 필터 줄 (#334·#396) — 지금 달 · 지역 · 접수 중 (+ 관심 하트 · 목록/달력).
@@ -157,6 +159,8 @@ export function CompetitionListView({
   // 지나간 마지막 달이 필터 줄 왼쪽의 '지금 달'이다. 아무 달도 안 지났으면(맨 위) 첫 달.
   const filterBarRef = useRef<HTMLDivElement>(null);
   const filterBarBackgroundRef = useRef<HTMLDivElement>(null);
+  const topGlassRef = useRef<HTMLDivElement>(null);
+  const topGlass = useNativeTopGlass();
   const listRef = useRef<HTMLDivElement>(null);
   const [passedMonthIndex, setPassedMonthIndex] = useState<number | null>(null);
 
@@ -628,12 +632,14 @@ export function CompetitionListView({
         FILTER_BAR_FADE_OUTSIDE,
       );
       background.style.bottom = `${-reach}px`;
+      // 유리 면도 같은 만큼 내려와 지운다.
+      if (topGlassRef.current) topGlassRef.current.style.bottom = `${-reach}px`;
     };
     update();
     // 위 그라데이션이 같은 스크롤에서 줄 바탕을 다시 칠하기 전에(다음 프레임) 높이를 먼저 맞춘다.
     window.addEventListener("scroll", update, { passive: true });
     return () => window.removeEventListener("scroll", update);
-  }, []);
+  }, [topGlass]);
 
   // 배너에서 누른 대회는 상세로 바로 연다(#361) — 목록 줄을 누른 것과 같다.
   const openDetail = useOpenCompetitionDetail("competition_banner");
@@ -695,14 +701,24 @@ export function CompetitionListView({
       {/* 필터 줄: 좌우 16 · 칩 간격 8, 넘치면 가로 스크롤(스크롤바 숨김) — 글쓰기 카테고리 칩 줄과 같은 규격.
           바탕은 꽉 채워(띠 색이 깔려 있으면 그 자리의 그라데이션 구간 — CompetitionTopTint가 칠한다, 아니면 목록 바탕색) 아래로 지나가는 카드·배너가
           줄 뒤로 깔끔히 숨게 하고, 줄 아래 끝 16px(줄 안 8 + 밖 8)에서만 완만하게(ease) 지워 선 없이 목록으로 녹아들게 한다.
-          반투명 + 흐림으로 비치게 하면 검은 배너가 지날 때 줄 뒤에 탁한 회색 띠가 남아 쓰지 않는다.
+          앱이 유리 면을 알면(useNativeTopGlass) 띠 색이 걷힌 뒤에는 바탕을 비우고 유리 면(TopGlass)을 앱 머리줄 뒤까지 늘여 깐다 —
+          앱 머리줄과 한 장으로 이어져 목록이 흐리게 비친다. 띠 색이 깔린 동안은 띠 색 바탕이 유리 면을 덮는다.
           왼쪽 끝에 지금 달(#396), 앱이 머리 버튼을 모르면 오른쪽 끝에 관심 하트 · 목록 ↔ 달력(#339)을 고정해 둔다 —
           칩이 늘어 가로로 밀어도 늘 같은 자리에 있게. */}
       <div className="sticky top-0 z-10 [overflow-anchor:none]">
+        {topGlass ? (
+          <TopGlass
+            ref={topGlassRef}
+            className="[:root[data-competition-tint-painted]_&]:hidden"
+          />
+        ) : null}
         <div
           aria-hidden
           ref={filterBarBackgroundRef}
-          className="pointer-events-none absolute inset-x-0 top-0 bottom-0 bg-surface-container"
+          className={cn(
+            "pointer-events-none absolute inset-x-0 top-0 bottom-0",
+            topGlass ? null : "bg-surface-container",
+          )}
           style={{
             maskImage: FILTER_BAR_FADE,
             WebkitMaskImage: FILTER_BAR_FADE,
