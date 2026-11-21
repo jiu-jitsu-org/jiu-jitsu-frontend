@@ -28,6 +28,7 @@ import {
 } from "@/features/competition/presentation/actions/competition-alert-actions";
 import { retryAfterSessionRefresh } from "@/features/competition/presentation/retry-after-session-refresh";
 import { deadlineAlertClockAt } from "@/features/competition/presentation/competition-alert-clock";
+import { DEVICE_ALERTS_OFF_MESSAGE } from "@/features/competition/presentation/device-alerts-copy";
 import {
   CompetitionAlertSheet,
   DEADLINE_ALERT_PASSED_MESSAGE,
@@ -79,9 +80,6 @@ export type CompetitionAlertSuccess = {
   message: string;
   tone: "success" | "info";
 };
-
-/** 알림을 켰는데 기기 알림이 꺼져 있을 때 — 서버 설정은 켜졌지만 이 기기로는 알림이 오지 않는다(#541). */
-export const DEVICE_ALERTS_OFF_MESSAGE = "기기 알림이 꺼져 있어 알림이 오지 않아요";
 
 const CompetitionAlertsContext = createContext<CompetitionAlerts | null>(null);
 

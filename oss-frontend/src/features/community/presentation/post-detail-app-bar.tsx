@@ -25,6 +25,7 @@ import { POST_EDIT_FROM_DETAIL } from "@/features/community/presentation/post-ed
 import { useOpenPostEdit } from "@/features/community/presentation/use-open-post-edit";
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
 import {
+  announceNoticeBell,
   noticeBellToast,
   useShowNoticeBell,
 } from "@/features/community/presentation/notice-bell";
@@ -154,7 +155,8 @@ export function PostDetailAppBar({
 
       setAlarmOn(enabled);
       trackContentAlertToggle({ type: "post" }, enabled, "post_detail");
-      toast.show(noticeBellToast(enabled, isOwner), { tone: "info" });
+      // 켰으면 앱이 기기 알림을 확인한 뒤 안내를 정한다(#633).
+      announceNoticeBell(toast, { enabled, isOwner, contentId: postId });
     } catch {
       setAlarmOn(previous);
       toast.show("알림을 설정하지 못했어요", { tone: "error" });

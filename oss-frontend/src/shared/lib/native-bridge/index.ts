@@ -12,6 +12,8 @@ export type {
   CompetitionRecordSavedPayload,
   HomeHeaderTintPayload,
   ConfirmDialogPayload,
+  ContentAlertsEnabledPayload,
+  ContentAlertsResultPayload,
   ContentCreatedPayload,
   ConfirmDialogResult,
   ConfirmDialogTitleParts,
@@ -57,12 +59,13 @@ export { useNativeLeaveGuard } from "./native-leave-guard";
 export { useIsExternalBrowser } from "./use-external-browser";
 export {
   checkCompetitionAlertsEnabled,
+  checkContentAlertsEnabled,
   requestNativeConfirm,
   requestNativePhotos,
   requestNativeSelectSheet,
 } from "./native-dialog";
 export type {
-  CompetitionAlertsCheck,
+  DeviceAlertsCheck,
   NativePhotosResult,
   NativeSelectSheetOutcome,
 } from "./native-dialog";
