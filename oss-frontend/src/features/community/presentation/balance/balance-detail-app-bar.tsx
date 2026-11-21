@@ -8,6 +8,7 @@ import { REACTION_PRESS_MOTION } from "@/features/community/presentation/comment
 import { useIsDemoMode } from "@/features/community/presentation/community-demo-context";
 import { useLoginGuard } from "@/features/community/presentation/use-login-guard";
 import {
+  announceNoticeBell,
   noticeBellToast,
   useShowNoticeBell,
 } from "@/features/community/presentation/notice-bell";
@@ -110,7 +111,8 @@ export function BalanceDetailAppBar({
         enabled,
         "balance_detail",
       );
-      toast.show(noticeBellToast(enabled, false), { tone: "info" });
+      // 켰으면 앱이 기기 알림을 확인한 뒤 안내를 정한다(#633).
+      announceNoticeBell(toast, { enabled, isOwner: false, contentId });
     } catch {
       setAlarmOn(previous);
       toast.show("알림을 설정하지 못했어요", { tone: "error" });

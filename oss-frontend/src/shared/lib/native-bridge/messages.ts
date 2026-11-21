@@ -54,9 +54,15 @@ export const OutboundMessageType = {
   PICK_PHOTOS: "PICK_PHOTOS",
   // 관심 대회 알림 켬(jiu-jitsu-frontend#375 · jiu-jitsu-ios#257). 첫 관심 등록 시트에서 '알림 받기'를 고르면 보낸다.
   // 앱은 기기 알림이 꺼져 있을 때만 켜는 방법을 안내한다(권한 요청은 로그인 직후 앱이 이미 한다).
-  // 결과 회신은 없다 — 기기 알림을 켜지 않아도 관심 대회 알림 설정은 켜진 채다. 이 메시지를 모르는 구버전 앱은 무시한다.
+  // 기기 알림을 켜지 않아도 관심 대회 알림 설정은 켜진 채다. 이 메시지를 모르는 구버전 앱은 무시한다.
+  // 앱이 capability로 이 메시지를 알리면 requestId를 실어 보내고 COMPETITION_ALERTS_RESULT를 기다린다(#541 · jiu-jitsu-ios#395).
+  // 설정이 켜진 채 상세 종을 켤 때 · 관심 등록할 때도 보낸다(#541).
   // #335의 COMPETITION_INTEREST_FIRST_ADDED(관심 첫 등록 때 권한 창)를 대신한다.
   COMPETITION_ALERTS_ENABLED: "COMPETITION_ALERTS_ENABLED",
+  // 글 · 밸런스 게임 상세의 알림 종을 켰다(#633 · jiu-jitsu-ios#466). 앱은 기기 알림을 확인하고(미정이면 권한 창의 답까지)
+  // CONTENT_ALERTS_RESULT로 답하며, 꺼져 있으면 대회 쪽과 같은 안내를 띄운다(로그인 동안 한 번, 대회 쪽과 같이 센다).
+  // 답을 기다려야 해서 앱이 capability로 이 메시지를 알릴 때만 보낸다 — 없으면(옛 앱 · 브라우저) 보내지 않고 바로 토스트.
+  CONTENT_ALERTS_ENABLED: "CONTENT_ALERTS_ENABLED",
   // 홈 피드로 가기(jiu-jitsu-frontend#366 · jiu-jitsu-ios#250). 대회 상세의 "커뮤니티에서 더 보기"가 보낸다.
   // 피드는 앱 홈 탭이 띄우는 화면이라 웹이 서브뷰로 열면 탭 바·헤더 없는 피드가 쌓인다 — 앱이 열린 서브뷰를 닫고
   // 홈 탭으로 바꾼다. 구버전 앱은 모르므로 지원 목록에 있을 때만 보내고, 없으면 피드를 서브뷰로 연다.
@@ -117,6 +123,11 @@ export const InboundMessageType = {
   // jiu-jitsu-ios#397). 저장에 성공했을 때만 떠 있는 모든 웹뷰에 보낸다. 웹은 그 대회의 결과 남기기 배너 · 카드를 바로 닫고
   // 내 기록을 다시 읽어 다른 대회도 맞춘다. 이 메시지를 모르는 구버전 앱에서는 다음에 화면을 열 때 서버가 거른다.
   COMPETITION_RECORD_SAVED: "COMPETITION_RECORD_SAVED",
+  // COMPETITION_ALERTS_ENABLED { requestId }의 답 — 기기 알림이 켜져 있는지(#541 · jiu-jitsu-ios#395). 보낸 웹뷰에만 온다.
+  // 앱이 capability로 COMPETITION_ALERTS_ENABLED를 알릴 때만 requestId를 실어 보내므로, 옛 앱에서는 오지 않는다.
+  COMPETITION_ALERTS_RESULT: "COMPETITION_ALERTS_RESULT",
+  // CONTENT_ALERTS_ENABLED { requestId }의 답 — 기기 알림이 켜져 있는지(#633 · jiu-jitsu-ios#466). 보낸 웹뷰에만 온다.
+  CONTENT_ALERTS_RESULT: "CONTENT_ALERTS_RESULT",
 } as const;
 export type InboundMessageType =
   (typeof InboundMessageType)[keyof typeof InboundMessageType];
@@ -284,6 +295,37 @@ export type ShareSheetPayload = {
  */
 export type CompetitionAlertsEnabledPayload = {
   competitionId?: string;
+  /**
+   * 앱이 기기 알림 확인 결과를 돌려주길 원할 때만 싣는다(#541 · jiu-jitsu-ios#395). 앱이 capability(`AppBridgeCapabilities`)에
+   * `COMPETITION_ALERTS_ENABLED`를 알릴 때만 보낸다 — 앱은 권한 확인(미정이면 권한 창의 답) 뒤 `COMPETITION_ALERTS_RESULT`로 답한다.
+   * 없으면 앱은 답하지 않고 안내만 한다(옛 웹 · 옛 앱과 같은 모양).
+   */
+  requestId?: string;
+};
+
+/**
+ * `COMPETITION_ALERTS_RESULT` payload — `COMPETITION_ALERTS_ENABLED { requestId }`의 답(#541 · jiu-jitsu-ios#395).
+ * deviceEnabled는 기기 알림이 켜져 있는지(허용 · 방금 허용). false면 앱이 "기기 알림이 꺼져 있어요"를 띄우는데,
+ * 웹에서 온 요청에는 로그인 동안 한 번만 띄운다 — 그래서 웹은 false일 때마다 짧은 안내를 직접 띄운다.
+ */
+export type CompetitionAlertsResultPayload = {
+  requestId: string;
+  deviceEnabled: boolean;
+};
+
+/**
+ * `CONTENT_ALERTS_ENABLED` payload — 글 · 밸런스 게임 상세의 알림 종을 켰다(#633 · jiu-jitsu-ios#466).
+ * contentId는 앱 로그용 숫자 문자열(대회 쪽과 같은 모양). requestId는 늘 싣는다 — capability가 있을 때만 보내기 때문이다.
+ */
+export type ContentAlertsEnabledPayload = {
+  requestId: string;
+  contentId?: string;
+};
+
+/** `CONTENT_ALERTS_RESULT` payload — `CONTENT_ALERTS_ENABLED`의 답. 모양은 대회 쪽 답과 같다. */
+export type ContentAlertsResultPayload = {
+  requestId: string;
+  deviceEnabled: boolean;
 };
 
 /** `SET_SHEET_OPEN` payload — 웹 시트가 하나라도 떠 있으면 true, 마지막 시트가 다 내려가면 false. */
@@ -441,4 +483,12 @@ export type InboundMessage =
   | {
       type: typeof InboundMessageType.COMPETITION_RECORD_SAVED;
       payload?: CompetitionRecordSavedPayload;
+    }
+  | {
+      type: typeof InboundMessageType.COMPETITION_ALERTS_RESULT;
+      payload: CompetitionAlertsResultPayload;
+    }
+  | {
+      type: typeof InboundMessageType.CONTENT_ALERTS_RESULT;
+      payload: ContentAlertsResultPayload;
     };

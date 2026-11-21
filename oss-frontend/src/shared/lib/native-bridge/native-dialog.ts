@@ -1,7 +1,9 @@
 import {
   InboundMessageType,
   OutboundMessageType,
+  type CompetitionAlertsEnabledPayload,
   type ConfirmDialogPayload,
+  type ContentAlertsEnabledPayload,
   type ConfirmDialogResult,
   type ConfirmDialogResultPayload,
   type InboundMessage,
@@ -12,8 +14,10 @@ import {
 } from "./messages";
 import {
   isNativeBridgeAvailable,
+  notifyCompetitionAlertsEnabled,
   postToNative,
   registerWebBridge,
+  supportsNativeMessage,
 } from "./native-bridge";
 
 /**
@@ -21,7 +25,7 @@ import {
  *
  * WHY: 웹뷰는 자기 프레임 밖(GNB·하단 탭바)을 그릴 수 없어 풀스크린 딤이 필요한 표면은
  * 네이티브가 소유해야 한다. 웹은 "이 문구로 물어봐 달라"고 요청하고 결과만 받아 정책(API 호출)을 잇는다.
- * 사진 선택 화면(#264)도 같은 요청↔응답 모양이라 여기서 함께 짝짓는다.
+ * 사진 선택 화면(#264)도 같은 요청↔응답 모양이라 여기서 함께 짝짓는다. 관심 대회 알림의 기기 알림 확인(#541)도 같다.
  *
  * 기존 브릿지 메시지는 전부 단방향이라 요청↔응답을 짝지을 수단이 없었다. 알럿은 "확인이 눌렸는지"를
  * 받아야 하므로 요청마다 requestId를 발급하고, 응답이 오면 해당 대기자만 깨운다.
@@ -61,7 +65,9 @@ function ensureListener(): void {
     if (
       message.type !== InboundMessageType.CONFIRM_DIALOG_RESULT &&
       message.type !== InboundMessageType.SELECT_SHEET_RESULT &&
-      message.type !== InboundMessageType.PHOTOS_PICKED
+      message.type !== InboundMessageType.PHOTOS_PICKED &&
+      message.type !== InboundMessageType.COMPETITION_ALERTS_RESULT &&
+      message.type !== InboundMessageType.CONTENT_ALERTS_RESULT
     ) {
       return;
     }
@@ -265,3 +271,81 @@ export function requestNativePhotos(
 
 /** 결과 payload 타입을 좁혀 쓰기 위한 재노출(호출부 편의). */
 export type { ConfirmDialogResultPayload };
+
+/**
+ * 알림을 켠 뒤 앱이 본 기기 알림 상태(#541 · #633).
+ * - `on` · `off`: 앱이 답했다(권한 미정이었으면 권한 창의 답까지 본 뒤)
+ * - `unsupported`: 답을 줄 앱이 아니다(브라우저 · capability가 없는 옛 앱) — 지금처럼 바로 성공을 알린다
+ * - `no-answer`: 답을 줄 앱인데 안전망 시간 안에 답이 없었다 — 기기 상태를 모르니 약속하지 않는다
+ */
+export type DeviceAlertsCheck = "on" | "off" | "unsupported" | "no-answer";
+
+/**
+ * 알림 켬 메시지를 보내고 기기 알림 확인 답을 기다린다(대회 · 글 공통). 권한 창이 떠 있는 동안 기다려야 해서
+ * 짧게 자르지 않는다(5분 안전망은 알럿과 같다). 형식이 어긋난 답은 답이 없던 것과 같이 본다.
+ */
+async function requestDeviceAlertsCheck(
+  outboundType: string,
+  resultType: InboundMessageType,
+  payload: { requestId: string },
+): Promise<DeviceAlertsCheck> {
+  try {
+    return await requestFromNative<DeviceAlertsCheck>(
+      outboundType,
+      payload,
+      (message) => {
+        if (message.type !== resultType || !("payload" in message)) {
+          return "no-answer";
+        }
+        const deviceEnabled = (message.payload as { deviceEnabled?: unknown })
+          ?.deviceEnabled;
+        if (typeof deviceEnabled !== "boolean") return "no-answer";
+        return deviceEnabled ? "on" : "off";
+      },
+      "no-answer",
+    );
+  } catch {
+    // 브릿지가 없어졌다(supportsNativeMessage가 이미 걸렀으니 거의 없다) — 알릴 앱이 없다.
+    return "unsupported";
+  }
+}
+
+/**
+ * 관심 대회 알림을 켰다고 앱에 알리고, 앱이 지원하면 기기 알림 확인 결과를 기다린다(#541).
+ *
+ * 앱이 capability로 `COMPETITION_ALERTS_ENABLED`를 알리면 requestId를 실어 `COMPETITION_ALERTS_RESULT`를 기다린다.
+ * capability가 없으면 지금처럼 requestId 없이 알리기만 한다(브라우저면 보내지도 않는다).
+ * notifyLegacy가 false면 그때 보내지 않는다 — 옛 앱은 받을 때마다 꺼짐 알럿을 띄워서, 자주 누르는 동작(관심 등록)에는
+ * 답을 주는 앱에만 보낸다.
+ */
+export async function checkCompetitionAlertsEnabled(
+  payload: Omit<CompetitionAlertsEnabledPayload, "requestId">,
+  { notifyLegacy = true }: { notifyLegacy?: boolean } = {},
+): Promise<DeviceAlertsCheck> {
+  if (!supportsNativeMessage(OutboundMessageType.COMPETITION_ALERTS_ENABLED)) {
+    if (notifyLegacy) notifyCompetitionAlertsEnabled(payload);
+    return "unsupported";
+  }
+  return requestDeviceAlertsCheck(
+    OutboundMessageType.COMPETITION_ALERTS_ENABLED,
+    InboundMessageType.COMPETITION_ALERTS_RESULT,
+    { ...payload, requestId: nextRequestId("competition-alerts") },
+  );
+}
+
+/**
+ * 글 · 밸런스 게임 알림 종을 켰다고 앱에 알리고 기기 알림 확인 결과를 기다린다(#633 · jiu-jitsu-ios#466).
+ * 앱이 capability로 `CONTENT_ALERTS_ENABLED`를 알릴 때만 보낸다 — 없으면 보내지 않고 `unsupported`(지금처럼 바로 토스트).
+ */
+export async function checkContentAlertsEnabled(
+  payload: Omit<ContentAlertsEnabledPayload, "requestId">,
+): Promise<DeviceAlertsCheck> {
+  if (!supportsNativeMessage(OutboundMessageType.CONTENT_ALERTS_ENABLED)) {
+    return "unsupported";
+  }
+  return requestDeviceAlertsCheck(
+    OutboundMessageType.CONTENT_ALERTS_ENABLED,
+    InboundMessageType.CONTENT_ALERTS_RESULT,
+    { ...payload, requestId: nextRequestId("content-alerts") },
+  );
+}

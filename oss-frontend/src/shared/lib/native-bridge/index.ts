@@ -7,10 +7,13 @@ export type {
   AuthLoginSuccessPayload,
   BridgeMessage,
   CompetitionAlertsEnabledPayload,
+  CompetitionAlertsResultPayload,
   CompetitionHeaderTintPayload,
   CompetitionRecordSavedPayload,
   HomeHeaderTintPayload,
   ConfirmDialogPayload,
+  ContentAlertsEnabledPayload,
+  ContentAlertsResultPayload,
   ContentCreatedPayload,
   ConfirmDialogResult,
   ConfirmDialogTitleParts,
@@ -55,11 +58,14 @@ export type { BridgePlatform } from "./native-bridge";
 export { useNativeLeaveGuard } from "./native-leave-guard";
 export { useIsExternalBrowser } from "./use-external-browser";
 export {
+  checkCompetitionAlertsEnabled,
+  checkContentAlertsEnabled,
   requestNativeConfirm,
   requestNativePhotos,
   requestNativeSelectSheet,
 } from "./native-dialog";
 export type {
+  DeviceAlertsCheck,
   NativePhotosResult,
   NativeSelectSheetOutcome,
 } from "./native-dialog";
