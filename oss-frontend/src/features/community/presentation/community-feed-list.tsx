@@ -114,6 +114,7 @@ export function CommunityFeedList({
   hideAuthor = false,
   authorLink = true,
   highlightWords,
+  showListEnd = true,
   className,
 }: {
   posts: PostSummary[];
@@ -130,6 +131,11 @@ export function CommunityFeedList({
   authorLink?: boolean;
   /** 검색 결과(#591) — 카드 제목 · 본문에서 이 단어가 든 자리를 표시한다. */
   highlightWords?: readonly string[];
+  /**
+   * 마지막 장 아래 '여기가 끝이에요, 오쓰!' 를 붙일지. 검색 결과는 위에 개수가 있어 끝을
+   * 따로 알릴 필요가 없다 — 결과가 한두 개일 때 문구만 덩그러니 남는다.
+   */
+  showListEnd?: boolean;
   /** 목록 바깥 여백. 기본은 메인 피드 스펙(위 24 · 아래 FAB 여유 91). */
   className?: string;
 }) {
@@ -451,7 +457,7 @@ export function CommunityFeedList({
 
       {status === "loading" ? <FeedLoadingMore /> : null}
       {status === "error" ? <FeedLoadMoreError onRetry={loadMore} /> : null}
-      {isLast ? <FeedListEnd /> : null}
+      {isLast && showListEnd ? <FeedListEnd /> : null}
       {blockDialog}
     </div>
   );

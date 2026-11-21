@@ -19,6 +19,7 @@ import {
   type ScreenFrom,
 } from "@/shared/lib/analytics";
 import { cn } from "@/shared/lib/cn";
+import { IMAGE_OUTLINE_CLASS } from "@/features/community/presentation/image-outline";
 import { ApiErrorCode } from "@/shared/lib/http/api-error";
 import { useViewportRect } from "@/features/community/presentation/use-viewport-rect";
 import {
@@ -1440,7 +1441,10 @@ export function PostWriteScreen({
                           width: THUMBNAIL_SIZE,
                           height: THUMBNAIL_SIZE,
                         }}
-                        className="block overflow-hidden rounded-2xl"
+                        className={cn(
+                          "relative block overflow-hidden rounded-2xl",
+                          IMAGE_OUTLINE_CLASS,
+                        )}
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
@@ -1476,7 +1480,10 @@ export function PostWriteScreen({
                             width: THUMBNAIL_SIZE,
                             height: THUMBNAIL_SIZE,
                           }}
-                          className="relative block overflow-hidden rounded-2xl"
+                          className={cn(
+                            "relative block overflow-hidden rounded-2xl",
+                            IMAGE_OUTLINE_CLASS,
+                          )}
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img

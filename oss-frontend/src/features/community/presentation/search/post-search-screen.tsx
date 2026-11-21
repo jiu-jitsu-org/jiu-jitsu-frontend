@@ -103,6 +103,7 @@ export function PostSearchScreen({
               isLast={state.list.isLast}
               listUrl={searchListUrl(state.keyword)}
               highlightWords={words}
+              showListEnd={false}
               className="pt-1 pb-[var(--safe-area-bottom)]"
             />
           </>

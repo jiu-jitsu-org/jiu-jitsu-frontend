@@ -30,6 +30,7 @@ import {
 } from "@/features/community/presentation/image-fallback";
 import { PostImageViewer } from "@/features/community/presentation/post-image-viewer";
 import { cn } from "@/shared/lib/cn";
+import { IMAGE_OUTLINE_CLASS } from "@/features/community/presentation/image-outline";
 import {
   FEED_IMAGE_TRANSFORM,
   resizeImageKitUrl,
@@ -205,6 +206,7 @@ function SingleImage({
       // 로드 전 자리 색(surface/secondary)은 버튼이 깐다 — 사진은 다 불러온 뒤 옅게 나타난다.
       className={cn(
         "relative block w-full overflow-hidden rounded-2xl bg-surface-secondary",
+        IMAGE_OUTLINE_CLASS,
         className,
       )}
     >
@@ -392,7 +394,10 @@ function CarouselSlide({
       onClick={onOpen}
       aria-label={label}
       // 로드 전 자리 색(surface/secondary)은 버튼이 깐다 — 사진은 다 불러온 뒤 옅게 나타난다.
-      className="relative h-full shrink-0 overflow-hidden rounded-2xl bg-surface-secondary"
+      className={cn(
+        "relative h-full shrink-0 overflow-hidden rounded-2xl bg-surface-secondary",
+        IMAGE_OUTLINE_CLASS,
+      )}
     >
       {preview.showPreview ? (
         <CoverPreview
