@@ -14,17 +14,17 @@ import { cn } from "@/shared/lib/cn";
 import {
   CalendarIcon,
   CheckIcon,
-  ChevronDownIcon,
   ClearIcon,
+  SearchIcon,
 } from "@/shared/ui/icons";
 import { SURFACE_PRESS } from "@/shared/ui/press-styles";
 import { SearchField } from "@/shared/ui/search-field";
 
 /**
- * 글쓰기 대회 고르기 (#367) — '대회' 카테고리를 골랐을 때 카테고리 칩 아래에 나오는 한 칸.
+ * 글쓰기 대회 고르기 (#367) — '대회' 카테고리를 골랐을 때 접힌 카테고리 칩 줄에서 '대회' 칩 오른쪽 남은 폭에 들어오는 한 칸.
  *
  * 고른 대회는 그 대회 상세의 '대회 이야기'에 이 글을 띄우는 데 쓴다. 대회 전반 질문도 있어 고르지 않아도 된다.
- * 칸은 흰 면에 카테고리 칩과 같은 테두리를 두르고(#467), 누르면 바텀시트에서 이름으로 찾아 고른다 — 고르면 바로 닫힌다.
+ * 칸은 검색칸과 같은 옅은 회색 면이고, 누르면 바텀시트에서 이름으로 찾아 고른다 — 고르면 바로 닫힌다.
  * 다가오는 대회가 가까운 순으로 먼저, 최근 끝난 대회(후기 글)가 그 뒤에 온다.
  * 이름을 치면 서버에서도 찾는다(#421) — 펼친 목록 밖의 지난 대회까지 나온다. 답이 오기 전에는 펼친 목록에서 거른다.
  *
@@ -36,10 +36,10 @@ export function CompetitionPicker({
   onChange,
   currentYear,
   trackClicks = true,
+  // 글쓰기 — 고르지 않아도 된다는 건 화면엔 빼고 읽어 줄 때만 붙인다.
   placeholder = (
     <>
-      어떤 대회 이야기인가요?
-      <span className="ml-1 text-text-tertiary">(선택)</span>
+      대회 찾기<span className="sr-only"> (선택)</span>
     </>
   ),
 }: {
@@ -106,34 +106,38 @@ export function CompetitionPicker({
 
   return (
     <>
-      {/* 흰 면 + 위 카테고리 칩과 같은 테두리 — 회색 면은 꺼진 칸처럼 보여서(#467), 눌러서 고르는 칸으로 보이게 한다.
-          누르는 칸 높이 44. 고르기 전에는 묻는 말을 또렷하게(보조 글색), 고르면 대회 이름을 굵게. */}
-      <div className="flex h-11 items-center rounded-10 border border-chip-default-border bg-tag-chip-default-bg">
+      {/* 옅은 회색 면(옆 안 고른 칩과 같은 surface-field — 검색칸의 surface-secondary는 칩 옆에서 짙어 보였다) — 누르면 이름으로 찾는 시트가 열린다. 옆 칩과 한 줄에 서도록 높이 32 · 둥근 끝.
+          고르기 전에는 돋보기 + 짧은 안내(고르지 않아도 된다), 고르면 달력 + 대회 이름을 굵게 + 지우기. */}
+      <div className="flex h-8 items-center rounded-full bg-surface-field">
         <button
           type="button"
           data-ga={trackClicks ? "competition_picker" : undefined}
           onClick={() => setOpen(true)}
           aria-haspopup="dialog"
+          // 고르기 전에는 칸 글자(묻는 말)를 그대로 읽는다.
+          aria-label={selected ? `${selected.name}, 대회 바꾸기` : undefined}
           className={cn(
-            "flex h-full min-w-0 flex-1 items-center gap-2 rounded-10 pr-3 pl-3 text-left text-[15px] leading-[21px]",
+            "flex h-full min-w-0 flex-1 items-center gap-1.5 rounded-full pr-3 pl-3 text-left text-[14px] leading-[20px]",
             SURFACE_PRESS,
           )}
         >
-          <CalendarIcon size={18} className="flex-none text-icon-secondary" />
           {selected ? (
-            <span className="min-w-0 flex-1 truncate font-semibold text-text-primary">
-              {selected.name}
-            </span>
+            <>
+              <CalendarIcon
+                size={16}
+                className="flex-none text-icon-secondary"
+              />
+              <span className="min-w-0 flex-1 truncate font-semibold text-text-primary">
+                {selected.name}
+              </span>
+            </>
           ) : (
-            <span className="min-w-0 flex-1 truncate text-text-secondary">
-              {placeholder}
-            </span>
-          )}
-          {selected ? null : (
-            <ChevronDownIcon
-              size={18}
-              className="flex-none text-icon-secondary"
-            />
+            <>
+              <SearchIcon size={16} className="flex-none text-icon-secondary" />
+              <span className="min-w-0 flex-1 truncate text-text-tertiary">
+                {placeholder}
+              </span>
+            </>
           )}
         </button>
         {selected ? (
@@ -143,11 +147,11 @@ export function CompetitionPicker({
             onClick={() => onChange(null)}
             aria-label={`${selected.name} 고른 것 지우기`}
             className={cn(
-              "flex size-11 flex-none items-center justify-center rounded-10 text-icon-secondary",
+              "flex h-full w-9 flex-none items-center justify-center rounded-full text-icon-secondary",
               SURFACE_PRESS,
             )}
           >
-            <ClearIcon size={18} />
+            <ClearIcon size={16} />
           </button>
         ) : null}
       </div>

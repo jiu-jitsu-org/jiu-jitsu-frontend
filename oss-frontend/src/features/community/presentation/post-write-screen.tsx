@@ -40,6 +40,7 @@ import { useNativeDialog } from "@/features/community/presentation/use-native-di
 import {
   BackArrowIcon,
   CheckIcon,
+  ChevronDownIcon,
   CloseIcon,
   HashIcon,
   ImageIcon,
@@ -117,6 +118,26 @@ const MAX_TAG_LENGTH = 12;
  * 완성형(가-힣) 외에 자모(ㄱ-ㅎ·ㅏ-ㅣ)도 허용해야 IME 조합 중인 글자가 지워지지 않는다.
  */
 const TAG_DISALLOWED_PATTERN = /[^0-9a-zA-Z가-힣ㄱ-ㅎㅏ-ㅣ]/g;
+/** 카테고리 칩 줄이 접히고 펼쳐지는 시간(ms) — 아래 칩 줄의 duration-500과 같게 둔다. */
+const CATEGORY_FOLD_MS = 500;
+/**
+ * 칩 줄 접힘 움직임(한 동작 500ms). 폭은 표준 곡선(천천히 출발 → 차분히 멈춤) — 처음에 확 줄고 꼬리가 길던
+ * ease-smooth-out은 고른 칩이 끝에 느릿느릿 기어갔다.
+ * 칩 크기(scale, 왼쪽 기준)도 폭과 같은 곡선 · 같은 시간으로 0 ↔ 1 — 칩이 늘 제 자리를 꼭 채워 글자가 잘리지 않고,
+ * 펼칠 때 자리가 벌어지는 만큼 칩이 함께 자라난다(늦게 툭 나타나지 않는다). 투명도는 짧게: 접힐 때 150ms, 펼칠 때 200ms.
+ * ▾·대회 칸은 칩이 거의 자리 잡은 뒤(200ms) 이어서 들어온다.
+ */
+/** 펼칠 때 대회 칸이 옅어지며 사라지는 시간(ms). */
+const FOLD_LEAVE_MS = 150;
+const FOLD_WIDTH_CLASS =
+  "ease-[cubic-bezier(0.4,0,0.2,1)] motion-safe:transition-[grid-template-columns] motion-safe:duration-500";
+const FOLD_CHIP_HIDDEN_CLASS =
+  "scale-0 opacity-0 motion-safe:[transition:scale_500ms_cubic-bezier(0.4,0,0.2,1),opacity_150ms_ease-out]";
+const FOLD_CHIP_SHOWN_CLASS =
+  "scale-100 opacity-100 motion-safe:[transition:scale_500ms_cubic-bezier(0.4,0,0.2,1),opacity_200ms_ease-out]";
+/** 들어오는 것(▾·대회 칸) — 칩이 거의 자리 잡은 뒤 이어서. */
+const FOLD_ENTER_CLASS =
+  "motion-safe:animate-[tab-panel-in_300ms_cubic-bezier(0.4,0,0.2,1)_200ms_backwards]";
 /** 하단 툴바 높이(px, safe-area 제외). 디자인 2026-09-16: 48. */
 const TOOLBAR_HEIGHT = 48;
 /** 툴바 사진·태그 버튼 아이콘 한 변(px) — 24는 화면 절반을 차지하던 큰 버튼 때 크기라 작은 버튼에 맞춰 줄인다(#397). */
@@ -288,13 +309,38 @@ export function PostWriteScreen({
   const [categoryId, setCategoryId] = useState<number | null>(
     initialCategoryId,
   );
-  // 미리 고른 카테고리(#588 · #433)가 줄 뒤쪽이면 가로로 밀려 안 보인다 — 처음 그릴 때 보이게 줄을 민다.
+  // 칩 줄 접기 — 하나를 고르면 나머지 칩이 스르륵 접혀 고른 칩만 남는다(위쪽을 한 줄로 단순하게).
+  // 남은 칩을 다시 누르면 고른 게 풀리고 전부 펼쳐진다(토글). 미리 고른 카테고리(#588 · #433)로 열리면 처음부터 접혀 있다.
+  // 펼치는 동안 대회 칸을 바로 지우지 않고 그 폭 그대로 옅어지며 밀려나게 잠깐 남겨 둔다(값 = 그때 폭, px).
+  // 폭을 붙잡지 않으면 줄이 w-max로 바뀌는 순간 칸이 글자 폭으로 확 줄어든다.
+  const [pickerLeavingWidth, setPickerLeavingWidth] = useState<number | null>(
+    null,
+  );
+  const pickerSlotRef = useRef<HTMLDivElement>(null);
+  const categoryCollapsed = categoryId !== null;
   const categoryRowRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const row = categoryRowRef.current;
-    const chip = row?.querySelector<HTMLElement>("[data-selected]");
-    if (row && chip) revealInRow(row, chip, "auto");
-  }, []);
+  function pickCategory(id: number) {
+    if (id === categoryId) {
+      // 고른 칩을 다시 누르면 풀고 펼친다. 방금 풀린 칩이 줄 뒤쪽이면 펼쳐진 뒤 보이게 줄만 옆으로 민다.
+      setCategoryId(null);
+      const width = pickerSlotRef.current?.offsetWidth;
+      if (width) {
+        setPickerLeavingWidth(width);
+        window.setTimeout(() => setPickerLeavingWidth(null), FOLD_LEAVE_MS);
+      }
+      window.setTimeout(() => {
+        const row = categoryRowRef.current;
+        const chip = row?.querySelector<HTMLElement>(
+          `[data-category-id="${id}"]`,
+        );
+        if (row && chip) revealInRow(row, chip);
+      }, CATEGORY_FOLD_MS);
+      return;
+    }
+    setCategoryId(id);
+    setCategoryMissing(false);
+    categoryRowRef.current?.scrollTo({ left: 0, behavior: "smooth" });
+  }
   // 고른 대회(#367). '대회' 카테고리일 때만 뜻이 있다 — 다른 카테고리로 바꾸면 보내지 않는다(고른 값은 남겨 둬
   // 다시 '대회'로 돌아오면 그대로 보인다).
   // 수정은 글 상세 응답의 competitionId로 시작한다(#417) — 고르기 칸이 없거나 대회를 건드리지 않았으면 그 값을 그대로 다시 보낸다.
@@ -1137,7 +1183,7 @@ export function PostWriteScreen({
         style={{ height: APP_BAR_HEIGHT }}
       >
         <IconButton
-          variant="tint"
+          variant="neutral"
           size="s"
           onClick={handleBack}
           aria-label="뒤로 가기"
@@ -1189,6 +1235,8 @@ export function PostWriteScreen({
           chip/default/text. 좌우 16(px-4)·좌우 패딩 12(px-3)·칩 간격 8(gap-2), 넘치면 가로 스크롤(스크롤바
           숨김). 스크롤 영역 밖(shrink-0)에 둬 본문을 아래로 길게 내려도 항상 헤더 아래 고정. */}
       {/* 빠진 채로 등록을 누르면 비선택 칩 테두리가 오류 색으로 바뀌고(#303) 칩 줄이 옆으로 살짝 한 번 흔들린다(#397). */}
+      {/* 하나를 고르면 나머지 칩은 폭이 0으로 접히며 옅어지고 고른 칩만 남는다(500ms). 칩 간격(8)도 칩마다 오른쪽에 붙여 함께 접힌다.
+          '대회'면 그 옆 남은 폭에 대회 고르기 칸(#367)이 들어와 위쪽이 한 줄로 끝난다. */}
       <div
         ref={categoryRowRef}
         className="shrink-0 overflow-x-auto px-4 pt-5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -1197,7 +1245,8 @@ export function PostWriteScreen({
           role="group"
           aria-label="카테고리 (필수)"
           className={cn(
-            "flex w-max gap-2",
+            "flex items-center",
+            categoryCollapsed ? "w-full" : "w-max",
             categoryNudge > 0 &&
               (categoryNudge % 2 === 1
                 ? "motion-safe:animate-nudge-x"
@@ -1206,26 +1255,96 @@ export function PostWriteScreen({
         >
           {categories.map((category) => {
             const selected = category.id === categoryId;
+            const folded = categoryCollapsed && !selected;
             return (
-              <Chip
+              <div
                 key={category.id}
-                selected={selected}
-                data-selected={selected || undefined}
-                // 고른 칩은 파란 선·글자로 켜진다(#397 — 고른 게 한눈에 보이게, 대회 필터 칩과 같은 켜짐).
-                tone="primary"
-                // 미선택으로 등록이 막혔으면(#303) 비선택 칩 테두리를 오류 색으로 — 고르는 순간 풀린다.
-                invalid={categoryMissing}
-                data-ga="category_chip"
-                onClick={() => {
-                  setCategoryId(category.id);
-                  setCategoryMissing(false);
-                }}
-                aria-pressed={selected}
+                inert={folded}
+                className={cn(
+                  "grid shrink-0",
+                  FOLD_WIDTH_CLASS,
+                  folded ? "grid-cols-[0fr]" : "grid-cols-[1fr]",
+                )}
               >
-                {category.name}
-              </Chip>
+                {/* 간격(pr-2)은 잘리는 상자 안쪽에 둔다 — 바깥에 두면 0fr로 접혀도 8씩 남는다. */}
+                <div className="min-w-0 overflow-hidden">
+                  <div
+                    className={cn(
+                      "flex w-max origin-left pr-2",
+                      folded ? FOLD_CHIP_HIDDEN_CLASS : FOLD_CHIP_SHOWN_CLASS,
+                    )}
+                  >
+                    <Chip
+                      selected={selected}
+                      data-selected={selected || undefined}
+                      data-category-id={category.id}
+                      // 하나만 고르는 줄이라 테두리 대신 면으로 — 안 고른 칩은 옅은 회색, 고른 칩은 옅은 파랑 + 파랑 글자.
+                      // (테두리 칩은 대회 필터처럼 여러 개를 켜는 옵션으로 읽혔다.)
+                      tone="tint"
+                      // 미선택으로 등록이 막혔으면(#303) 비선택 칩 테두리를 오류 색으로 — 고르는 순간 풀린다.
+                      invalid={categoryMissing}
+                      data-ga="category_chip"
+                      onClick={() => pickCategory(category.id)}
+                      aria-pressed={selected}
+                    >
+                      {category.name}
+                      {/* 접혀 혼자 남은 칩 — 눌러서 다시 고를 수 있다는 작은 ▾(누르면 풀리고 전부 펼쳐진다). */}
+                      {selected ? (
+                        // 폭은 칩 줄과 같은 곡선으로 벌어지고, 모양은 칩이 자리 잡은 뒤 나타난다.
+                        <span
+                          aria-hidden
+                          className={cn(
+                            "grid",
+                            FOLD_WIDTH_CLASS,
+                            categoryCollapsed
+                              ? "grid-cols-[1fr]"
+                              : "grid-cols-[0fr]",
+                          )}
+                        >
+                          <span className="min-w-0 overflow-hidden">
+                            {categoryCollapsed ? (
+                              <ChevronDownIcon
+                                size={14}
+                                className={cn("-mr-0.5 ml-0.5", FOLD_ENTER_CLASS)}
+                              />
+                            ) : null}
+                          </span>
+                        </span>
+                      ) : null}
+                    </Chip>
+                  </div>
+                </div>
+              </div>
             );
           })}
+          {competitionPicker &&
+          competitionCategorySelected &&
+          (categoryCollapsed || pickerLeavingWidth !== null) ? (
+            // 들어올 때는 칩이 자리 잡은 뒤 옆에서 밀려 나오고, 펼칠 때는 옅어지며 칩에 밀려난다.
+            // 채움은 backwards — 끝난 뒤 transform이 남으면 안쪽 바텀시트(fixed)가 이 칸 기준으로 그려져 칸 안에 갇힌다.
+            <div
+              ref={pickerSlotRef}
+              inert={!categoryCollapsed}
+              style={
+                categoryCollapsed
+                  ? undefined
+                  : { width: pickerLeavingWidth ?? undefined }
+              }
+              className={cn(
+                "[--tab-shift:12px]",
+                categoryCollapsed
+                  ? cn("min-w-0 flex-1", FOLD_ENTER_CLASS)
+                  : "shrink-0 opacity-0 motion-safe:transition-opacity motion-safe:duration-150 motion-safe:ease-out",
+              )}
+            >
+              <CompetitionPicker
+                options={competitionPicker.options}
+                value={competitionId}
+                onChange={changeCompetition}
+                currentYear={competitionPicker.currentYear}
+              />
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -1234,18 +1353,6 @@ export function PostWriteScreen({
       {topic ? (
         <div className="shrink-0 px-4 pt-3">
           <WeeklyTopic topic={topic} />
-        </div>
-      ) : null}
-
-      {/* '대회' 카테고리면 어떤 대회 이야기인지 고르는 칸(#367). 칩 줄과 같은 좌우 16, 칩 아래 12. */}
-      {competitionPicker && competitionCategorySelected ? (
-        <div className="shrink-0 px-4 pt-3">
-          <CompetitionPicker
-            options={competitionPicker.options}
-            value={competitionId}
-            onChange={changeCompetition}
-            currentYear={competitionPicker.currentYear}
-          />
         </div>
       ) : null}
 
@@ -1277,7 +1384,7 @@ export function PostWriteScreen({
           }
           maxLength={TITLE_MAX_LENGTH}
           rows={1}
-          placeholder="제목을 입력해주세요"
+          placeholder="제목을 적어 주세요"
           aria-label="제목"
           className={cn(
             "mt-6 w-full shrink-0 resize-none overflow-hidden text-display-1 outline-none",
@@ -1307,7 +1414,7 @@ export function PostWriteScreen({
           maxLength={BODY_MAX_LENGTH}
           rows={1}
           // 내용은 선택(#589) — 비워도 올라간다는 걸 안내 문구 끝에 붙여 알린다(칸 이름이 따로 없는 화면이라).
-          placeholder="더 하고 싶은 이야기 (선택)"
+          placeholder="이야기를 자유롭게 들려주세요"
           aria-label="내용 (선택)"
           className={cn(
             "mt-6 w-full shrink-0 resize-none overflow-hidden text-title-1 outline-none",
@@ -1371,7 +1478,8 @@ export function PostWriteScreen({
                   className={cn("text-body-s", TAG_HASH_IDLE_CLASS)}
                   style={{ order: tags.length * 2 }}
                 >
-                  #
+                  {/* 태그가 하나도 없을 때만 무엇을 하는 줄인지 적는다. 하나라도 달면 "#"만 남아 줄이 짧다. */}
+                  {tags.length === 0 ? `# 태그 달기 (최대 ${MAX_TAGS}개)` : "#"}
                 </button>
               )}
         </div>
@@ -1389,8 +1497,8 @@ export function PostWriteScreen({
         >
           <InfoIcon size={NOTICE_ICON_SIZE} className="shrink-0" />
           <span>
-            <span className="underline">커뮤니티 제한 사항</span> 위반 시
-            삭제될 수 있습니다.
+            <span className="underline">커뮤니티 제한 사항</span>을 어기면 글이
+            삭제될 수 있어요.
           </span>
         </p>
       </main>
