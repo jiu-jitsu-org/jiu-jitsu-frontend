@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { BottomSheetFrame } from "@/features/community/presentation/bottom-sheet-frame";
 import type { CompetitionPickerOption } from "@/features/competition/application/get-competition-picker-options";
@@ -27,21 +27,35 @@ import { SearchField } from "@/shared/ui/search-field";
  * 칸은 흰 면에 카테고리 칩과 같은 테두리를 두르고(#467), 누르면 바텀시트에서 이름으로 찾아 고른다 — 고르면 바로 닫힌다.
  * 다가오는 대회가 가까운 순으로 먼저, 최근 끝난 대회(후기 글)가 그 뒤에 온다.
  * 이름을 치면 서버에서도 찾는다(#421) — 펼친 목록 밖의 지난 대회까지 나온다. 답이 오기 전에는 펼친 목록에서 거른다.
+ *
+ * 홈 피드 '대회' 탭도 같은 칸으로 대회별 글을 고른다 — 고르기 전 묻는 말(placeholder)만 다르다.
  */
 export function CompetitionPicker({
   options,
   value,
   onChange,
   currentYear,
+  placeholder = (
+    <>
+      어떤 대회 이야기인가요?
+      <span className="ml-1 text-text-tertiary">(선택)</span>
+    </>
+  ),
 }: {
   options: CompetitionPickerOption[];
   value: number | null;
-  /** pickedBy: 펼친 목록에서 골랐나, 이름을 쳐서 찾아 골랐나 — 글 등록 기록(GA, #619)의 competition_pick. */
+  /**
+   * pickedBy: 펼친 목록에서 골랐나, 이름을 쳐서 찾아 골랐나 — 글 등록 기록(GA, #619)의 competition_pick.
+   * option: 고른 대회(지우면 없음) — 검색으로 찾은 대회도 이름 · 날짜를 알 수 있게.
+   */
   onChange: (
     competitionId: number | null,
     pickedBy?: "list" | "search",
+    option?: CompetitionPickerOption,
   ) => void;
   currentYear: number;
+  /** 고르기 전 칸에 보이는 묻는 말. */
+  placeholder?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -109,8 +123,7 @@ export function CompetitionPicker({
             </span>
           ) : (
             <span className="min-w-0 flex-1 truncate text-text-secondary">
-              어떤 대회 이야기인가요?
-              <span className="ml-1 text-text-tertiary">(선택)</span>
+              {placeholder}
             </span>
           )}
           {selected ? null : (
@@ -162,7 +175,11 @@ export function CompetitionPicker({
                     aria-pressed={on}
                     onClick={() => {
                       setPicked(option);
-                      onChange(option.id, searching ? "search" : "list");
+                      onChange(
+                        option.id,
+                        searching ? "search" : "list",
+                        option,
+                      );
                       close();
                     }}
                     className={cn(
