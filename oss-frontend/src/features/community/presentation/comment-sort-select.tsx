@@ -47,8 +47,8 @@ export function CommentSortSelect({ sort }: { sort: CommentSort }) {
 
   return (
     <div className="relative">
-      {/* 텍스트(Button S = 12 Semibold) + chevron 16, 간격 2(gap-0.5). 높이 32, 너비 콘텐츠 맞춤.
-          좌 8(pl-2)/우 4(pr-1). 색 comment-sort-select-default-text(아이콘은 currentColor로 동일).
+      {/* 텍스트(Label M = 12 Medium) + chevron 16, 간격 2(gap-0.5). 높이 32, 너비 콘텐츠 맞춤.
+          좌 8(pl-2)/우 4(pr-1). 색 text-secondary(아이콘은 currentColor로 동일) — 왼쪽 제목 "댓글"보다 한 단계 낮춘다.
           누르는 동안 comment-sort-select/pressed 면·글자색 — radius 10은 옆 반응 버튼(comment-reaction-styles)과 맞춘다. */}
       <button
         type="button"
@@ -56,7 +56,7 @@ export function CommentSortSelect({ sort }: { sort: CommentSort }) {
         onClick={() => setOpen((value) => !value)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="inline-flex h-8 items-center gap-0.5 rounded-10 pl-2 pr-1 text-button-s text-comment-sort-select-default-text active:bg-comment-sort-select-pressed-bg active:text-comment-sort-select-pressed-text"
+        className="inline-flex h-8 items-center gap-0.5 rounded-10 pl-2 pr-1 text-label-m text-text-secondary active:bg-comment-sort-select-pressed-bg active:text-comment-sort-select-pressed-text"
       >
         {current.label}
         {/* 메뉴가 열려 있는 동안 위를 향한다 — 살짝 넘쳤다 돌아오는 스프링으로 돌려 열림/닫힘을 손에 느끼게. */}
@@ -71,7 +71,7 @@ export function CommentSortSelect({ sort }: { sort: CommentSort }) {
 
       {open ? (
         <MenuBox
-          placement="bottom-left"
+          placement="bottom-right"
           role="listbox"
           onClose={() => setOpen(false)}
         >
