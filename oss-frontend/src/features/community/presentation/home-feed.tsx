@@ -134,10 +134,15 @@ export function HomeFeed({
       setFilter(next);
       if (next.competitionId === null) setCompetition(null);
       if (options.syncUrl !== false) {
+        // 서브뷰 표시(view=subview)는 남긴다 — 빠지면 웹뷰가 다시 읽힐 때 셸 · 뒤로가기 없이 상태바 밑으로 잘린다.
+        const search = feedFilterSearch(next);
+        const kept = subview
+          ? `${search ? `${search}&` : "?"}view=subview`
+          : search;
         window.history.replaceState(
           null,
           "",
-          `${window.location.pathname}${feedFilterSearch(next)}`,
+          `${window.location.pathname}${kept}`,
         );
       }
       // 목록을 내린 채(흰 판이 위로 지나감) 탭을 바꾸면 새 목록의 맨 위(탭 줄이 막 붙은 자리)로 올린다.
@@ -223,13 +228,14 @@ export function HomeFeed({
       document.removeEventListener("visibilitychange", reloadAfterWrite);
     };
   }, [showsEmpty, filter, load]);
-  const sheetReachedTop = useSheetReachedTop(sheetRef);
-  const topGlass = useNativeTopGlass();
+  // 서브뷰는 앱 홈 머리줄 위가 아닌 따로 쌓인 웹뷰라 머리 색 · 유리 면을 앱에 알리지 않는다(밑의 홈 머리를 건드리지 않게).
+  const sheetReachedTop = useSheetReachedTop(sheetRef, !subview);
+  const topGlass = useNativeTopGlass(!subview);
 
   return (
     <>
       {/* 앱 머리줄 뒤까지 깔린 웹이면 맨 위를 머리줄 높이만큼 비운다(밸런스 띠가 보이는 동안 앱 머리는 띠 색). */}
-      <div aria-hidden className="top-glass-spacer" />
+      {subview ? null : <div aria-hidden className="top-glass-spacer" />}
       {balance}
       {/* 흰 판 — 밸런스 띠(home-band) 바로 뒤면 둥근 위 모서리로 띠 아래쪽을 덮고 올라온다(globals.css). */}
       <div ref={sheetRef} className="home-sheet relative bg-surface-container">
@@ -313,11 +319,14 @@ const BALANCE_BAND_HEX = "#292A2E";
  * 바탕으로 읽히게 하고, 닿으면 앱 기본 흰 머리로 돌린다(HOME_HEADER_TINT). 띠가 없으면(게임이 없거나 못 읽음)
  * 칠하지 않는다. 화면을 떠나면 기본색으로 돌린다.
  */
-function useSheetReachedTop(sheetRef: RefObject<HTMLDivElement | null>) {
+function useSheetReachedTop(
+  sheetRef: RefObject<HTMLDivElement | null>,
+  enabled: boolean,
+) {
   const [reached, setReached] = useState(false);
   useEffect(() => {
     const sheet = sheetRef.current;
-    if (!sheet) return;
+    if (!sheet || !enabled) return;
     let sent: string | null | undefined;
     let frame = 0;
     const update = () => {
@@ -348,7 +357,7 @@ function useSheetReachedTop(sheetRef: RefObject<HTMLDivElement | null>) {
       cancelAnimationFrame(frame);
       setNativeHomeHeaderTint(null);
     };
-  }, [sheetRef]);
+  }, [sheetRef, enabled]);
   return reached;
 }
 
