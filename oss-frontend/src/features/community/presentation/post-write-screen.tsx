@@ -199,7 +199,8 @@ const THUMBNAIL_STATUS_SIZE = 24;
 const THUMBNAIL_REMOVE_BG_CLASS = "bg-image-delete-button-bg";
 /** 제목·본문 입력칸 색(textfield_display/filled/text · default/placeholder-text · cursor · counter-text · counter-text-limit). */
 const TEXTFIELD_TEXT_CLASS = "text-textfield-display-filled-text";
-const TEXTFIELD_PLACEHOLDER_CLASS = "placeholder:text-textfield-display-default-placeholder-text";
+const TEXTFIELD_PLACEHOLDER_CLASS =
+  "placeholder:text-textfield-display-default-placeholder-text";
 const TEXTFIELD_CARET_CLASS = "caret-textfield-display-cursor";
 /**
  * 글자 수·커뮤니티 제한 안내는 입력 내용보다 한 단계 물러나 있어야 한다(#397) — 토큰(text/tertiary = Cool gray 300)보다
@@ -214,7 +215,8 @@ const NOTICE_TEXT_CLASS = "text-post-editor-guide-text";
 const NOTICE_ICON_SIZE = 12;
 /** 태그 입력줄 색(textfield_tag/filled/tag-text · focused/hash-text · default/placeholder-text). */
 const TAG_TEXT_CLASS = "text-textfield-tag-filled-tag-text";
-const TAG_HASH_FOCUSED_CLASS = "group-focus-within:text-textfield-tag-focused-hash-text";
+const TAG_HASH_FOCUSED_CLASS =
+  "group-focus-within:text-textfield-tag-focused-hash-text";
 const TAG_HASH_IDLE_CLASS = "text-textfield-tag-default-placeholder-text";
 const TAG_INPUT_TEXT_CLASS = "text-text-primary";
 
@@ -319,22 +321,34 @@ export function PostWriteScreen({
   const pickerSlotRef = useRef<HTMLDivElement>(null);
   const categoryCollapsed = categoryId !== null;
   const categoryRowRef = useRef<HTMLDivElement>(null);
+  // 펼침 뒤처리 타이머 — 다시 고르거나 화면을 떠나면 지운다(접힌 줄을 엉뚱하게 밀거나 떠난 뒤 상태를 바꾸지 않게).
+  const foldTimersRef = useRef<number[]>([]);
+  function clearFoldTimers() {
+    foldTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+    foldTimersRef.current = [];
+  }
+  useEffect(() => clearFoldTimers, []);
   function pickCategory(id: number) {
+    clearFoldTimers();
+    setPickerLeavingWidth(null);
     if (id === categoryId) {
       // 고른 칩을 다시 누르면 풀고 펼친다. 방금 풀린 칩이 줄 뒤쪽이면 펼쳐진 뒤 보이게 줄만 옆으로 민다.
       setCategoryId(null);
       const width = pickerSlotRef.current?.offsetWidth;
       if (width) {
         setPickerLeavingWidth(width);
-        window.setTimeout(() => setPickerLeavingWidth(null), FOLD_LEAVE_MS);
+        foldTimersRef.current.push(
+          window.setTimeout(() => setPickerLeavingWidth(null), FOLD_LEAVE_MS),
+        );
       }
-      window.setTimeout(() => {
+      const revealTimer = window.setTimeout(() => {
         const row = categoryRowRef.current;
         const chip = row?.querySelector<HTMLElement>(
           `[data-category-id="${id}"]`,
         );
         if (row && chip) revealInRow(row, chip);
       }, CATEGORY_FOLD_MS);
+      foldTimersRef.current.push(revealTimer);
       return;
     }
     setCategoryId(id);
@@ -525,7 +539,9 @@ export function PostWriteScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const attachmentKey = attachments.map((item) => item.localId).join(",");
-  const hasUploadingImage = attachments.some((item) => item.status === "uploading");
+  const hasUploadingImage = attachments.some(
+    (item) => item.status === "uploading",
+  );
   useEffect(() => {
     const waitingKey = submitAfterUploadRef.current;
     if (waitingKey === null || hasUploadingImage) return;
@@ -667,7 +683,9 @@ export function PostWriteScreen({
   function sanitizeTagInput(value: string): string {
     const allowed = value.replace(TAG_DISALLOWED_PATTERN, "");
     if (allowed.length > MAX_TAG_LENGTH) {
-      toast.show(`태그는 ${MAX_TAG_LENGTH}자까지 입력할 수 있어요`, { tone: "warning" });
+      toast.show(`태그는 ${MAX_TAG_LENGTH}자까지 입력할 수 있어요`, {
+        tone: "warning",
+      });
       return allowed.slice(0, MAX_TAG_LENGTH);
     }
     return allowed;
@@ -726,9 +744,7 @@ export function PostWriteScreen({
       >
         #
       </span>
-      <span
-        className={cn("grid", isEditingInPlace ? "min-w-[1ch]" : "flex-1")}
-      >
+      <span className={cn("grid", isEditingInPlace ? "min-w-[1ch]" : "flex-1")}>
         {isEditingInPlace && (
           <span
             aria-hidden
@@ -868,10 +884,7 @@ export function PostWriteScreen({
   // 스와이프 백(#263): 쓰던 내용이 있거나 화면 안 시트·편집·상세가 떠 있으면 네이티브가 바로 닫지 않고
   // BACK_PRESSED로 넘긴다 → 앱바 뒤로가기와 같은 handleBack. 아무것도 없으면 스와이프로 바로 닫힌다.
   useNativeLeaveGuard(
-    isDirty ||
-      photoSheetOpen ||
-      editingId !== null ||
-      viewerImageId !== null,
+    isDirty || photoSheetOpen || editingId !== null || viewerImageId !== null,
     handleBack,
   );
 
@@ -1305,7 +1318,10 @@ export function PostWriteScreen({
                             {categoryCollapsed ? (
                               <ChevronDownIcon
                                 size={14}
-                                className={cn("-mr-0.5 ml-0.5", FOLD_ENTER_CLASS)}
+                                className={cn(
+                                  "-mr-0.5 ml-0.5",
+                                  FOLD_ENTER_CLASS,
+                                )}
                               />
                             ) : null}
                           </span>
@@ -1525,10 +1541,17 @@ export function PostWriteScreen({
           rect?.keyboardOpen ? "pb-0" : "pb-[var(--safe-area-bottom)]",
         )}
       >
-        {hasThumbnails && (!rect?.keyboardOpen || rect.height >= THUMBNAILS_WITH_KEYBOARD_MIN_HEIGHT) ? (
+        {hasThumbnails &&
+        (!rect?.keyboardOpen ||
+          rect.height >= THUMBNAILS_WITH_KEYBOARD_MIN_HEIGHT) ? (
           <>
             {!isEdit && hasOutOfAspect && !rect?.keyboardOpen ? (
-              <p className={cn("px-4 pt-1 text-label-m leading-3.5", NOTICE_TEXT_CLASS)}>
+              <p
+                className={cn(
+                  "px-4 pt-1 text-label-m leading-3.5",
+                  NOTICE_TEXT_CLASS,
+                )}
+              >
                 비율이 긴 사진은 일부만 보여요. 사진을 탭해 보일 영역을
                 정해보세요.
               </p>
@@ -1571,7 +1594,10 @@ export function PostWriteScreen({
                     const isFailed = image.status === "failed";
                     const isUploading = image.status === "uploading";
                     return (
-                      <li key={image.localId} {...thumbnailMotion(image.localId)}>
+                      <li
+                        key={image.localId}
+                        {...thumbnailMotion(image.localId)}
+                      >
                         <button
                           type="button"
                           data-ga="photo_thumbnail"
@@ -1671,7 +1697,10 @@ export function PostWriteScreen({
             data-ga="photo_add"
             onClick={
               isEdit
-                ? () => toast.show(EDIT_PHOTO_UNAVAILABLE_MESSAGE, { tone: "warning" })
+                ? () =>
+                    toast.show(EDIT_PHOTO_UNAVAILABLE_MESSAGE, {
+                      tone: "warning",
+                    })
                 : openPhotoSheet
             }
             aria-disabled={isEdit}
@@ -1703,7 +1732,11 @@ export function PostWriteScreen({
             type="button"
             data-ga="tag_add"
             onClick={focusTagInput}
-            className={cn(TOOLBAR_PILL_CLASS, TOOLBAR_TEXT_CLASS, SURFACE_PRESS)}
+            className={cn(
+              TOOLBAR_PILL_CLASS,
+              TOOLBAR_TEXT_CLASS,
+              SURFACE_PRESS,
+            )}
           >
             {/* 본문 아래 태그 줄이 "#"으로 쓰이므로 같은 기호로 통일(#397, 예전엔 꼬리표 모양). */}
             <HashIcon size={TOOLBAR_ICON_SIZE} />
