@@ -36,6 +36,7 @@ import {
 import { HighlightedText } from "@/features/community/presentation/search/highlighted-text";
 import { usePopOnActivate } from "@/features/community/presentation/use-pop-on-activate";
 import { cn } from "@/shared/lib/cn";
+import { IMAGE_OUTLINE_CLASS } from "@/features/community/presentation/image-outline";
 import {
   AVATAR_IMAGE_TRANSFORM,
   FEED_IMAGE_TRANSFORM,
@@ -620,6 +621,7 @@ function FeedCardCover({
     <div
       className={cn(
         "relative overflow-hidden rounded-2xl bg-surface-secondary",
+        IMAGE_OUTLINE_CLASS,
         className,
       )}
     >
