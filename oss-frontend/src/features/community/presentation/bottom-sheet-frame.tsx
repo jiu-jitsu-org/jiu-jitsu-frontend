@@ -31,6 +31,13 @@ export function BottomSheetFrame({
   children: ReactNode;
 }) {
   const [mounted, setMounted] = useState(open);
+  // 내려가는 도중(아직 붙어 있음)에 다시 열렸나 — 그때는 키프레임으로 맨 아래부터 다시 올리지 않고 그 자리에서 전환으로 올린다.
+  const [prevOpen, setPrevOpen] = useState(open);
+  const [resumed, setResumed] = useState(false);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) setResumed(mounted);
+  }
   // 내려가는 동안까지(mounted) 앱 탭 바를 숨겨 둔다 — 시트가 화면 맨 아래까지 내려와 탭 바 자리에 색 면이 안 생긴다.
   useNativeSheetOpen(open || mounted);
   // 키보드 위 '실제 보이는 영역'에 시트를 맞춘다(visualViewport). 이 WKWebView에선 키보드가 떠도 fixed inset-0가
@@ -72,9 +79,11 @@ export function BottomSheetFrame({
         onClick={onDismiss}
         className={cn(
           "absolute inset-0 bg-bottom-sheet-selected-container-scrim",
-          open
-            ? "opacity-100 motion-safe:animate-scrim-in"
-            : "opacity-0 transition-opacity duration-200",
+          !open
+            ? "opacity-0 transition-opacity duration-200"
+            : resumed
+              ? "opacity-100 transition-opacity duration-300"
+              : "opacity-100 motion-safe:animate-scrim-in",
         )}
       />
 
@@ -92,9 +101,11 @@ export function BottomSheetFrame({
           rect?.keyboardOpen
             ? "pb-5"
             : "pb-[calc(1.25rem+var(--safe-area-bottom))]",
-          open
-            ? "translate-y-0 motion-safe:animate-sheet-up"
-            : "translate-y-full motion-safe:transition-[translate] motion-safe:duration-200 motion-safe:ease-in",
+          !open
+            ? "translate-y-full motion-safe:transition-[translate] motion-safe:duration-200 motion-safe:ease-in"
+            : resumed
+              ? "translate-y-0 motion-safe:transition-[translate] motion-safe:duration-450 motion-safe:ease-[cubic-bezier(0.32,0.72,0,1)]"
+              : "translate-y-0 motion-safe:animate-sheet-up",
         )}
       >
         {/* 핸들바: 상단 여백 8, 폭 40 높이 4 */}
