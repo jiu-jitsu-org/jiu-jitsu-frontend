@@ -5,9 +5,6 @@ import { useEffect, useSyncExternalStore } from "react";
 import { OutboundMessageType, type TopGlassPayload } from "./messages";
 import { postToNative, supportsNativeMessage } from "./native-bridge";
 
-/** 유리 면을 그리는 동안 루트에 붙는 표시 — 줄 바탕을 비워 유리 면이 비치게 하는 스타일이 본다. */
-const TOP_GLASS_FLAG = "topGlass";
-
 function send(active: boolean): void {
   postToNative({
     type: OutboundMessageType.SET_TOP_GLASS,
@@ -32,11 +29,14 @@ export function useNativeTopGlass(): boolean {
   );
   useEffect(() => {
     if (!active) return;
-    const html = document.documentElement;
-    html.dataset[TOP_GLASS_FLAG] = "";
     send(true);
+    // 뒤로 가기 캐시에서 돌아온 문서는 효과가 다시 돌지 않는데 앱은 새 문서마다 머리줄을 되돌려 둔다 — 다시 알린다.
+    const resend = (event: PageTransitionEvent) => {
+      if (event.persisted) send(true);
+    };
+    window.addEventListener("pageshow", resend);
     return () => {
-      delete html.dataset[TOP_GLASS_FLAG];
+      window.removeEventListener("pageshow", resend);
       send(false);
     };
   }, [active]);
