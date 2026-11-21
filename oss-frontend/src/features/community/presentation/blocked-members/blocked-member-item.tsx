@@ -20,11 +20,7 @@ export function BlockedMemberItem({
 }) {
   return (
     <li className="flex items-center gap-3 px-4 py-2.5">
-      <Avatar
-        src={member.profileImageUrl}
-        className="size-10"
-        iconSize={24}
-      />
+      <Avatar src={member.profileImageUrl} className="size-10" />
       <span className="min-w-0 flex-1 truncate text-body-m text-text-primary">
         {member.nickname}
       </span>

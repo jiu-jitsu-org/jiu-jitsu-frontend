@@ -1,7 +1,7 @@
 export { DEFAULT_ICON_SIZE, type IconProps } from "./types";
 export { IconBase } from "./icon-base";
 
-export { PersonIcon } from "./person-icon";
+export { BeltCharacterIcon } from "./belt-character-icon";
 export { CommentIcon } from "./comment-icon";
 export { ChatBubbleIcon } from "./chat-bubble-icon";
 export { HeartIcon } from "./heart-icon";

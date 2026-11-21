@@ -39,7 +39,7 @@ import {
   CommentIcon,
   HeartIcon,
   MoreVerticalIcon,
-  PersonIcon,
+  BeltCharacterIcon,
 } from "@/shared/ui/icons";
 import { RelativeTime } from "@/shared/ui/relative-time";
 
@@ -222,9 +222,9 @@ export function FeedCard({
 }
 
 /**
- * 카드 헤더 아바타 (size-6, 폴백 아이콘 16).
+ * 카드 헤더 아바타 (size-6, 폴백 아이콘은 동그라미를 꽉 채움).
  *
- * src가 없거나 이미지 로드에 실패하면(onError) 기본 아이콘(PersonIcon)으로 폴백한다 — 엑박 방지.
+ * src가 없거나 이미지 로드에 실패하면(onError) 기본 아이콘(BeltCharacterIcon)으로 폴백한다 — 엑박 방지.
  * SSR로 그려진 <img>는 하이드레이션 전에 error가 나 onError를 놓칠 수 있어, 마운트 시
  * 이미 로드 실패한(complete && naturalWidth===0) 상태를 직접 감지해 폴백 처리한다.
  */
@@ -252,7 +252,7 @@ function FeedCardAvatar({
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-feed-card-header-avatar-bg text-icon-subtle",
+        "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-feed-card-header-avatar-bg text-icon-tertiary",
         className,
       )}
     >
@@ -274,8 +274,8 @@ function FeedCardAvatar({
           onError={() => setFailed(true)}
         />
       ) : (
-        // 동그라미 배경은 유지하고 기본 아이콘만 16x16으로(가운데 정렬은 span이 담당)
-        <PersonIcon size={16} />
+        // 기본 아이콘은 동그라미를 꽉 채우고, 몸통 아래는 동그라미 경계에서 잘린다
+        <BeltCharacterIcon className="size-full" />
       )}
     </span>
   );

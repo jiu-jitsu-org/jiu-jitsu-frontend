@@ -82,7 +82,7 @@ export function MyActivityHeader({
               "translateY(calc(var(--p) * 28px)) scale(calc(1 - var(--p) * 0.5))",
           }}
         >
-          <Avatar src={profile.avatarUrl} className="size-16" iconSize={40} />
+          <Avatar src={profile.avatarUrl} className="size-16" />
         </div>
         <p
           className="absolute top-3 right-4 left-[92px] flex h-16 origin-left items-center will-change-transform"

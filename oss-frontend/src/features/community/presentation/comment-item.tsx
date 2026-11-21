@@ -117,7 +117,7 @@ export function CommentItem({
         className="flex shrink-0 self-start"
       >
         <BeltAvatar belt={comment.author.belt ?? null} size="card">
-          <Avatar src={comment.author.avatarUrl} className="size-full" iconSize={16} />
+          <Avatar src={comment.author.avatarUrl} className="size-full" />
         </BeltAvatar>
       </AuthorProfileLink>
       <div className="flex min-w-0 flex-1 flex-col">

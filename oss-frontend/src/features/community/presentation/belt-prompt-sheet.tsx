@@ -84,7 +84,7 @@ function BeltPromptBody({
   const [rank, setRank] = useState<BeltRank>("white");
   const [grau, setGrau] = useState<BeltGrau>(0);
 
-  const photo = <Avatar className="size-full" iconSize={32} />;
+  const photo = <Avatar className="size-full" />;
 
   return (
     <>
