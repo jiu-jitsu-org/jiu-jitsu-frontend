@@ -11,12 +11,7 @@ import {
 import { searchCompetitionPickerAction } from "@/features/competition/presentation/actions/search-competition-picker-action";
 import { longDateLabel } from "@/features/competition/presentation/competition-detail-format";
 import { cn } from "@/shared/lib/cn";
-import {
-  CalendarIcon,
-  CheckIcon,
-  ClearIcon,
-  SearchIcon,
-} from "@/shared/ui/icons";
+import { CheckIcon, ChevronDownIcon, CloseIcon } from "@/shared/ui/icons";
 import { SURFACE_PRESS } from "@/shared/ui/press-styles";
 import { SearchField } from "@/shared/ui/search-field";
 
@@ -98,6 +93,19 @@ export function CompetitionPicker({
           ),
     [found, options, query],
   );
+  // 목록 위 · 아래로 더 내릴 줄이 있나 — 끝을 흐리게 지울지 정한다. 시트는 연 뒤 한 프레임 늦게 붙으므로 목록이 붙는 순간,
+  // 키보드로 목록 키가 줄 때(ResizeObserver는 붙자마자 한 번 부른다), 거른 목록이 바뀔 때 다시 잰다.
+  const [list, setList] = useState<HTMLUListElement | null>(null);
+  const [edges, setEdges] = useState<ScrollEdges>({
+    top: false,
+    bottom: false,
+  });
+  useEffect(() => {
+    if (!list) return;
+    const observer = new ResizeObserver(() => setEdges(scrollEdges(list)));
+    observer.observe(list);
+    return () => observer.disconnect();
+  }, [list, shown]);
 
   function close() {
     setOpen(false);
@@ -106,9 +114,15 @@ export function CompetitionPicker({
 
   return (
     <>
-      {/* 옅은 회색 면(옆 안 고른 칩과 같은 surface-field — 검색칸의 surface-secondary는 칩 옆에서 짙어 보였다) — 누르면 이름으로 찾는 시트가 열린다. 옆 칩과 한 줄에 서도록 높이 32 · 둥근 끝.
-          고르기 전에는 돋보기 + 짧은 안내(고르지 않아도 된다), 고르면 달력 + 대회 이름을 굵게 + 지우기. */}
-      <div className="flex h-8 items-center rounded-full bg-surface-field">
+      {/* 칩처럼 글자만큼의 폭 · 높이 32 · 둥근 끝 — 줄을 꽉 채운 회색 칸은 검색칸에 글자를 친 것처럼 읽혔다.
+          고르기 전: 옅은 회색 면(안 고른 칩과 같은 surface-field) + 묻는 말 + 펼침 표시(▾) — 목록에서 고르는 칸임을 보인다.
+          고른 뒤: 고른 칩(Chip tone="tint")과 같은 옅은 파랑 면 + 파랑 굵은 이름 + 지우기(✕) — 목록에서 고른 값으로 읽힌다. */}
+      <div
+        className={cn(
+          "inline-flex h-8 max-w-full items-center rounded-full align-top",
+          selected ? "bg-surface-primary-subtle-strong" : "bg-surface-field",
+        )}
+      >
         <button
           type="button"
           data-ga={trackClicks ? "competition_picker" : undefined}
@@ -117,26 +131,26 @@ export function CompetitionPicker({
           // 고르기 전에는 칸 글자(묻는 말)를 그대로 읽는다.
           aria-label={selected ? `${selected.name}, 대회 바꾸기` : undefined}
           className={cn(
-            "flex h-full min-w-0 flex-1 items-center gap-1.5 rounded-full pr-3 pl-3 text-left text-[14px] leading-[20px]",
-            SURFACE_PRESS,
+            "flex h-full min-w-0 items-center gap-1 rounded-full text-left text-[14px] leading-[20px]",
+            PRESS_COLOR,
+            selected
+              ? "pr-1 pl-3 active:bg-surface-primary-subtle-strong-pressed"
+              : "pr-2.5 pl-3 active:bg-surface-container-pressed",
           )}
         >
           {selected ? (
+            <span className="min-w-0 truncate font-semibold text-primary">
+              {selected.name}
+            </span>
+          ) : (
             <>
-              <CalendarIcon
+              <span className="min-w-0 truncate text-text-secondary">
+                {placeholder}
+              </span>
+              <ChevronDownIcon
                 size={16}
                 className="flex-none text-icon-secondary"
               />
-              <span className="min-w-0 flex-1 truncate font-semibold text-text-primary">
-                {selected.name}
-              </span>
-            </>
-          ) : (
-            <>
-              <SearchIcon size={16} className="flex-none text-icon-secondary" />
-              <span className="min-w-0 flex-1 truncate text-text-tertiary">
-                {placeholder}
-              </span>
             </>
           )}
         </button>
@@ -147,11 +161,11 @@ export function CompetitionPicker({
             onClick={() => onChange(null)}
             aria-label={`${selected.name} 고른 것 지우기`}
             className={cn(
-              "flex h-full w-9 flex-none items-center justify-center rounded-full text-icon-secondary",
-              SURFACE_PRESS,
+              "flex h-full w-8 flex-none items-center justify-center rounded-full text-primary active:bg-surface-primary-subtle-strong-pressed",
+              PRESS_COLOR,
             )}
           >
-            <ClearIcon size={16} />
+            <CloseIcon size={14} />
           </button>
         ) : null}
       </div>
@@ -166,8 +180,17 @@ export function CompetitionPicker({
           className="mt-1"
         />
         {/* 목록 높이는 고정 — 검색으로 결과가 줄어도 시트 키가 그대로라 검색칸이 손가락 밑에서 내려가지 않는다(#467).
-            키보드가 떠서 보이는 영역이 모자라면 시트가 줄어드는 만큼 이 목록이 줄어든다(min-h-0). */}
-        <ul className="-mx-2 mt-2 h-[50dvh] min-h-0 overflow-y-auto overscroll-contain">
+            키보드가 떠서 보이는 영역이 모자라면 시트가 줄어드는 만큼 이 목록이 줄어든다(min-h-0).
+            더 내릴 게 있으면 아래 끝을, 내려 왔으면 위 끝을 흐리게 지운다 — 칸 끝에서 줄이 딱 끊겨 목록이 끝난 것처럼 보였다. */}
+        <ul
+          ref={setList}
+          onScroll={(event) => setEdges(scrollEdges(event.currentTarget))}
+          style={{
+            WebkitMaskImage: fadeMask(edges),
+            maskImage: fadeMask(edges),
+          }}
+          className="-mx-2 mt-3 h-[50dvh] min-h-0 overflow-y-auto overscroll-contain"
+        >
           {shown.length === 0 ? (
             <li className="py-8 text-center text-[14px] leading-[20px] text-text-secondary">
               찾는 대회가 없어요
@@ -190,11 +213,11 @@ export function CompetitionPicker({
                       close();
                     }}
                     className={cn(
-                      "flex min-h-14 w-full items-center gap-3 rounded-10 px-2 py-2 text-left",
+                      "flex min-h-16 w-full items-center gap-3 rounded-10 px-2 py-3.5 text-left",
                       SURFACE_PRESS,
                     )}
                   >
-                    <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="flex min-w-0 flex-1 flex-col gap-1">
                       <span
                         className={cn(
                           "text-[15px] leading-[21px] font-semibold break-keep",
@@ -230,3 +253,22 @@ export function CompetitionPicker({
 
 /** 치는 동안 서버를 매 글자 부르지 않게 잠깐 기다린다(ms). */
 const SEARCH_DELAY_MS = 300;
+
+/** 칸 색이 바뀔 때의 짧은 전환 — 눌림 면은 호출부가 면 색에 맞춰 고른다. */
+const PRESS_COLOR = "motion-safe:transition-colors motion-safe:duration-120";
+
+type ScrollEdges = { top: boolean; bottom: boolean };
+
+/** 위로 · 아래로 더 내릴 줄이 있나. 1px 오차는 끝으로 친다. */
+function scrollEdges(list: HTMLElement): ScrollEdges {
+  return {
+    top: list.scrollTop > 1,
+    bottom: list.scrollTop + list.clientHeight < list.scrollHeight - 1,
+  };
+}
+
+/** 더 있는 쪽 끝만 흐리게 — 위 16px · 아래 48px(다음 줄이 반쯤 비쳐 보이는 높이). */
+function fadeMask({ top, bottom }: ScrollEdges) {
+  if (!top && !bottom) return undefined;
+  return `linear-gradient(to bottom, ${top ? "transparent" : "black"}, black 16px, black calc(100% - 48px), ${bottom ? "transparent" : "black"})`;
+}
