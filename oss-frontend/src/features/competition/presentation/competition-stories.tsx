@@ -29,13 +29,13 @@ const STORIES_SECTION_ID = "competition-stories";
 /**
  * 대회 이야기 (#366 · #597) — 커뮤니티에서 이 대회를 고른 글.
  *
- * 위에서부터: 쓰기(글이 있든 없든 늘) → 최신 글 최대 5개 → '커뮤니티에서 N개 모두 보기'.
+ * 위에서부터: 쓰기(글이 있든 없든 늘) → 최신 글 최대 5개 → '이 대회 이야기 모아 보기'.
  * - 쓰기: 대회 전엔 이야기(질문만이 아니라 준비 · 동행 · 체급 이야기 등), 끝난 뒤엔 후기로 이끈다. 회색 보통 굵기로 두어
  *   굵은 검정인 글 제목과 같은 위계로 읽히지 않게 한다.
  *   누르면 글쓰기가 '대회' 카테고리와 이 대회를 고른 채 열린다(#433 · #588, 피드 글쓰기와 같은 길: 비로그인은 로그인 안내,
  *   앱은 서브뷰, 웹은 이동). 내용은 선택이라(#589) 제목만으로도 올라간다.
  * - 글을 누르면 게시글 상세(피드 카드와 같은 길). 줄마다 닉네임 · 시간 · 댓글 수.
- * - 모두 보기: 홈 피드 '대회' 탭을 이 대회 글만으로 연다(#598 · jiu-jitsu-ios#437).
+ * - 모아 보기: 홈 피드 '대회' 탭을 이 대회 글만으로 연다(#598 · jiu-jitsu-ios#437).
  * 글을 올리고 상세로 돌아오면 상세가 다시 읽어 새 글과 수가 보인다.
  */
 export function CompetitionStories({
@@ -104,11 +104,11 @@ export function CompetitionStories({
             type="button"
             onClick={() => openFeed(totalCount)}
             className={cn(
-              "-mx-2 mt-1 flex min-h-11 w-[calc(100%+16px)] items-center justify-center gap-0.5 rounded-10 text-[14px] leading-[20px] font-semibold text-text-secondary tabular-nums",
+              "-mx-2 mt-1 flex min-h-11 w-[calc(100%+16px)] items-center justify-center gap-0.5 rounded-10 text-[14px] leading-[20px] font-semibold text-text-secondary",
               SURFACE_PRESS,
             )}
           >
-            커뮤니티에서 {totalCount.toLocaleString("ko-KR")}개 모두 보기
+            이 대회 이야기 모아 보기
             <ChevronLeftIcon size={16} className="rotate-180" />
           </button>
         </>
@@ -162,7 +162,7 @@ export function scrollToCompetitionStories() {
 }
 
 /**
- * '모두 보기' — 홈 피드 '대회' 탭을 이 대회 글만으로 연다(#598). 웹은 `/?competitionId=`로 이동하고,
+ * '모아 보기' — 홈 피드 '대회' 탭을 이 대회 글만으로 연다(#598). 웹은 `/?competitionId=`로 이동하고,
  * 앱은 홈 탭으로 바꿔 달라며 대회 번호를 함께 보낸다(jiu-jitsu-ios#437 — 번호를 모르는 앱은 지금처럼 피드만).
  * 그 신호를 모르는 더 옛 앱은 같은 주소를 서브뷰로 연다.
  */
