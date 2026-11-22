@@ -6,6 +6,7 @@ import {
   type ClipboardEvent,
   type KeyboardEvent,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -118,23 +119,47 @@ const MAX_TAG_LENGTH = 12;
  * 완성형(가-힣) 외에 자모(ㄱ-ㅎ·ㅏ-ㅣ)도 허용해야 IME 조합 중인 글자가 지워지지 않는다.
  */
 const TAG_DISALLOWED_PATTERN = /[^0-9a-zA-Z가-힣ㄱ-ㅎㅏ-ㅣ]/g;
-/** 카테고리 칩 줄이 접히고 펼쳐지는 시간(ms) — 아래 칩 줄의 duration-500과 같게 둔다. */
-const CATEGORY_FOLD_MS = 500;
 /**
- * 칩 줄 접힘 움직임(한 동작 500ms). 폭은 표준 곡선(천천히 출발 → 차분히 멈춤) — 처음에 확 줄고 꼬리가 길던
- * ease-smooth-out은 고른 칩이 끝에 느릿느릿 기어갔다.
- * 칩 크기(scale, 왼쪽 기준)도 폭과 같은 곡선 · 같은 시간으로 0 ↔ 1 — 칩이 늘 제 자리를 꼭 채워 글자가 잘리지 않고,
- * 펼칠 때 자리가 벌어지는 만큼 칩이 함께 자라난다(늦게 툭 나타나지 않는다). 투명도는 짧게: 접힐 때 150ms, 펼칠 때 200ms.
- * ▾·대회 칸은 칩이 거의 자리 잡은 뒤(200ms) 이어서 들어온다.
+ * 칩 줄 접기·펼치기 움직임(한 동작 500ms). 칸 배치(누가 줄에 남는지)는 누르는 순간 한 번에 바꾸고,
+ * 눈에 보이는 움직임은 위치(transform)와 투명도만 쓴다 — 칩마다 폭을 매 프레임 다시 재던 이전 방식
+ * (grid 0fr↔1fr)은 프레임마다 줄 전체 배치를 다시 계산해 끊겼다.
+ * 남는 칩은 원래 자리에서 새 자리로 미끄러지고(표준 곡선 500ms), 사라지는 칩·대회 칸은 제자리에서 옅어진다.
  */
-/** 펼칠 때 대회 칸이 옅어지며 사라지는 시간(ms). */
-const FOLD_LEAVE_MS = 150;
-const FOLD_WIDTH_CLASS =
-  "ease-[cubic-bezier(0.4,0,0.2,1)] motion-safe:transition-[grid-template-columns] motion-safe:duration-500";
-const FOLD_CHIP_HIDDEN_CLASS =
-  "scale-0 opacity-0 motion-safe:[transition:scale_500ms_cubic-bezier(0.4,0,0.2,1),opacity_150ms_ease-out]";
-const FOLD_CHIP_SHOWN_CLASS =
-  "scale-100 opacity-100 motion-safe:[transition:scale_500ms_cubic-bezier(0.4,0,0.2,1),opacity_200ms_ease-out]";
+const FOLD_SLIDE_MS = 500;
+const FOLD_EASE = "cubic-bezier(0.4, 0, 0.2, 1)";
+/** 사라지는 칩·대회 칸이 옅어지는 시간(ms). */
+const FOLD_OUT_MS = 150;
+/**
+ * 펼칠 때 다른 칩이 나타나는 시간·늦춤(ms). 대회 칸이 먼저 빠진 뒤(150) 들어오고, 고른 칩이 지나가는 길 위의 칩은
+ * 칩이 거의 지나간 뒤(300) 나타난다 — 함께 나타나면 미끄러지는 칩이 다른 칩들 위로 겹쳐 지나가 어수선했다.
+ */
+const FOLD_IN_MS = 200;
+const FOLD_IN_DELAY_MS = 150;
+const FOLD_IN_PATH_DELAY_MS = 300;
+function prefersReducedMotion() {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+/** 칩 줄에서 움직이는 것(칩 · 대회 칸)을 이름(칩 id · "picker")으로 찾는다. */
+function foldItemsIn(group: HTMLElement | null) {
+  const items = new Map<string, HTMLElement>();
+  group
+    ?.querySelectorAll<HTMLElement>("[data-fold-item]")
+    .forEach((el) => items.set(el.dataset.foldItem ?? "", el));
+  return items;
+}
+/** 하던 칩 줄 움직임을 멈추고 띄워 둔 자리를 지운다(다시 고를 때 · 끝났을 때). */
+function stopFoldMotion(
+  animations: { current: Animation[] },
+  group: HTMLElement | null,
+) {
+  animations.current.forEach((animation) => animation.cancel());
+  animations.current = [];
+  foldItemsIn(group).forEach((el) => {
+    el.style.left = "";
+    el.style.top = "";
+    el.style.width = "";
+  });
+}
 /** 들어오는 것(▾·대회 칸) — 칩이 거의 자리 잡은 뒤 이어서. */
 const FOLD_ENTER_CLASS =
   "motion-safe:animate-[tab-panel-in_300ms_cubic-bezier(0.4,0,0.2,1)_200ms_backwards]";
@@ -313,48 +338,130 @@ export function PostWriteScreen({
   );
   // 칩 줄 접기 — 하나를 고르면 나머지 칩이 스르륵 접혀 고른 칩만 남는다(위쪽을 한 줄로 단순하게).
   // 남은 칩을 다시 누르면 고른 게 풀리고 전부 펼쳐진다(토글). 미리 고른 카테고리(#588 · #433)로 열리면 처음부터 접혀 있다.
-  // 펼치는 동안 대회 칸을 바로 지우지 않고 그 폭 그대로 옅어지며 밀려나게 잠깐 남겨 둔다(값 = 그때 폭, px).
-  // 폭을 붙잡지 않으면 줄이 w-max로 바뀌는 순간 칸이 글자 폭으로 확 줄어든다.
-  const [pickerLeavingWidth, setPickerLeavingWidth] = useState<number | null>(
-    null,
-  );
-  const pickerSlotRef = useRef<HTMLDivElement>(null);
+  // 움직임은 FLIP — 누르기 직전 화면 자리를 재 두고(before), 배치를 한 번에 바꾼 뒤(useLayoutEffect) 옛 자리에서
+  // 새 자리로 transform만 움직인다. 사라지는 것(접을 땐 다른 칩, 펼칠 땐 대회 칸)은 옅어지는 동안만
+  // 제자리에 띄워(absolute) 두었다가 뺀다 — 줄 배치에 끼지 않아 남는 칩을 밀지 않는다.
   const categoryCollapsed = categoryId !== null;
   const categoryRowRef = useRef<HTMLDivElement>(null);
-  // 펼침 뒤처리 타이머 — 다시 고르거나 화면을 떠나면 지운다(접힌 줄을 엉뚱하게 밀거나 떠난 뒤 상태를 바꾸지 않게).
-  const foldTimersRef = useRef<number[]>([]);
-  function clearFoldTimers() {
-    foldTimersRef.current.forEach((timer) => window.clearTimeout(timer));
-    foldTimersRef.current = [];
-  }
-  useEffect(() => clearFoldTimers, []);
+  const categoryGroupRef = useRef<HTMLDivElement>(null);
+  const [foldExit, setFoldExit] = useState<"chips" | "picker" | null>(null);
+  const [foldTick, setFoldTick] = useState(0);
+  const foldPlanRef = useRef<{
+    kind: "fold" | "unfold";
+    chipId: number;
+    before: Map<string, DOMRect>;
+  } | null>(null);
+  const foldAnimsRef = useRef<Animation[]>([]);
+  useEffect(
+    () => () => foldAnimsRef.current.forEach((animation) => animation.cancel()),
+    [],
+  );
   function pickCategory(id: number) {
-    clearFoldTimers();
-    setPickerLeavingWidth(null);
-    if (id === categoryId) {
-      // 고른 칩을 다시 누르면 풀고 펼친다. 방금 풀린 칩이 줄 뒤쪽이면 펼쳐진 뒤 보이게 줄만 옆으로 민다.
+    const unfolding = id === categoryId;
+    // 움직이는 중에 다시 눌러도 지금 보이는 자리(중간 자리)에서 이어 가게 멈추기 전에 잰다.
+    const before = new Map<string, DOMRect>();
+    foldItemsIn(categoryGroupRef.current).forEach((el, key) =>
+      before.set(key, el.getBoundingClientRect()),
+    );
+    stopFoldMotion(foldAnimsRef, categoryGroupRef.current);
+    foldPlanRef.current = {
+      kind: unfolding ? "unfold" : "fold",
+      chipId: id,
+      before,
+    };
+    setFoldTick((tick) => tick + 1);
+    if (unfolding) {
+      // 고른 칩을 다시 누르면 풀고 펼친다. 대회 칸이 있었으면 옅어지는 동안만 제자리에 남긴다.
+      setFoldExit(
+        before.has("picker") && !prefersReducedMotion() ? "picker" : null,
+      );
       setCategoryId(null);
-      const width = pickerSlotRef.current?.offsetWidth;
-      if (width) {
-        setPickerLeavingWidth(width);
-        foldTimersRef.current.push(
-          window.setTimeout(() => setPickerLeavingWidth(null), FOLD_LEAVE_MS),
-        );
-      }
-      const revealTimer = window.setTimeout(() => {
-        const row = categoryRowRef.current;
-        const chip = row?.querySelector<HTMLElement>(
-          `[data-category-id="${id}"]`,
-        );
-        if (row && chip) revealInRow(row, chip);
-      }, CATEGORY_FOLD_MS);
-      foldTimersRef.current.push(revealTimer);
       return;
     }
+    // '동작 줄이기'면 움직임 없이 바로 바뀐다 — 띄워 둘 것도 없다.
+    setFoldExit(prefersReducedMotion() ? null : "chips");
     setCategoryId(id);
     setCategoryMissing(false);
-    categoryRowRef.current?.scrollTo({ left: 0, behavior: "smooth" });
   }
+  useLayoutEffect(() => {
+    const plan = foldPlanRef.current;
+    foldPlanRef.current = null;
+    const row = categoryRowRef.current;
+    const group = categoryGroupRef.current;
+    if (!plan || !row || !group) return;
+    const items = foldItemsIn(group);
+    const chipKey = String(plan.chipId);
+    const chip = items.get(chipKey);
+    // 접으면 줄이 처음으로, 펼치면 풀린 칩이 보이게 줄만 옆으로 — 움직임은 아래 FLIP이 이어 준다.
+    if (plan.kind === "fold") row.scrollLeft = 0;
+    else if (chip) revealInRow(row, chip, "instant");
+    if (prefersReducedMotion()) return;
+    const groupRect = group.getBoundingClientRect();
+    const animations: Animation[] = [];
+    const chipBefore = plan.before.get(chipKey);
+    const chipAfter = chip?.getBoundingClientRect();
+    // 고른 칩이 미끄러지며 지나가는 가로 구간
+    const pathLeft = Math.min(chipBefore?.left ?? 0, chipAfter?.left ?? 0);
+    const pathRight = Math.max(chipBefore?.right ?? 0, chipAfter?.right ?? 0);
+    if (chip && chipBefore && chipAfter) {
+      const dx = chipBefore.left - chipAfter.left;
+      animations.push(
+        chip.animate(
+          [{ transform: `translateX(${dx}px)` }, { transform: "none" }],
+          { duration: FOLD_SLIDE_MS, easing: FOLD_EASE },
+        ),
+      );
+    }
+    items.forEach((el, key) => {
+      if (key === chipKey) return;
+      const leaving =
+        plan.kind === "fold" ? key !== "picker" : key === "picker";
+      const before = plan.before.get(key);
+      if (leaving && before) {
+        el.style.left = `${before.left - groupRect.left}px`;
+        el.style.top = `${before.top - groupRect.top}px`;
+        el.style.width = `${before.width}px`;
+        animations.push(
+          el.animate(
+            [
+              { opacity: 1, transform: "none" },
+              { opacity: 0, transform: "scale(0.9)" },
+            ],
+            { duration: FOLD_OUT_MS, easing: "ease-out", fill: "forwards" },
+          ),
+        );
+      } else if (plan.kind === "unfold") {
+        const rect = el.getBoundingClientRect();
+        const onPath = rect.right > pathLeft && rect.left < pathRight;
+        animations.push(
+          el.animate(
+            [
+              { opacity: 0, transform: "scale(0.9)" },
+              { opacity: 1, transform: "none" },
+            ],
+            {
+              duration: FOLD_IN_MS,
+              delay: onPath ? FOLD_IN_PATH_DELAY_MS : FOLD_IN_DELAY_MS,
+              easing: "ease-out",
+              fill: "backwards",
+            },
+          ),
+        );
+      }
+    });
+    foldAnimsRef.current = animations;
+    // 끝나면(우리 말고 다른 이유로 멈춰도) 옅어진 것을 먼저 빼고(같은 프레임) 움직임을 지운다 —
+    // 순서가 바뀌면 한 프레임 다시 보인다. 다시 눌러 멈춘 건 이미 다음 움직임으로 넘어가 건너뛴다.
+    const settle = () => {
+      if (foldAnimsRef.current !== animations) return;
+      flushSync(() => setFoldExit(null));
+      stopFoldMotion(foldAnimsRef, group);
+    };
+    Promise.all(animations.map((animation) => animation.finished)).then(
+      settle,
+      settle,
+    );
+  }, [foldTick]);
   // 고른 대회(#367). '대회' 카테고리일 때만 뜻이 있다 — 다른 카테고리로 바꾸면 보내지 않는다(고른 값은 남겨 둬
   // 다시 '대회'로 돌아오면 그대로 보인다).
   // 수정은 글 상세 응답의 competitionId로 시작한다(#417) — 고르기 칸이 없거나 대회를 건드리지 않았으면 그 값을 그대로 다시 보낸다.
@@ -1248,17 +1355,18 @@ export function PostWriteScreen({
           chip/default/text. 좌우 16(px-4)·좌우 패딩 12(px-3)·칩 간격 8(gap-2), 넘치면 가로 스크롤(스크롤바
           숨김). 스크롤 영역 밖(shrink-0)에 둬 본문을 아래로 길게 내려도 항상 헤더 아래 고정. */}
       {/* 빠진 채로 등록을 누르면 비선택 칩 테두리가 오류 색으로 바뀌고(#303) 칩 줄이 옆으로 살짝 한 번 흔들린다(#397). */}
-      {/* 하나를 고르면 나머지 칩은 폭이 0으로 접히며 옅어지고 고른 칩만 남는다(500ms). 칩 간격(8)도 칩마다 오른쪽에 붙여 함께 접힌다.
+      {/* 하나를 고르면 나머지 칩은 제자리에서 옅어지고 고른 칩이 줄 맨 앞으로 미끄러진다(500ms). 칩 간격(8)은 칩마다 오른쪽에 붙인다.
           '대회'면 그 옆 남은 폭에 대회 고르기 칸(#367)이 들어와 위쪽이 한 줄로 끝난다. */}
       <div
         ref={categoryRowRef}
         className="shrink-0 overflow-x-auto px-4 pt-5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         <div
+          ref={categoryGroupRef}
           role="group"
           aria-label="카테고리 (필수)"
           className={cn(
-            "flex items-center",
+            "relative flex items-center",
             categoryCollapsed ? "w-full" : "w-max",
             categoryNudge > 0 &&
               (categoryNudge % 2 === 1
@@ -1270,87 +1378,60 @@ export function PostWriteScreen({
             const selected = category.id === categoryId;
             const folded = categoryCollapsed && !selected;
             return (
+              // 접힌 칩은 줄에서 빠진다 — 옅어지는 동안만 제자리에 띄워 둔다(자리는 pickCategory 움직임이 잡는다).
+              // 고른 칩은 옅어지는 칩 위로 지나가게 위에 그린다.
               <div
                 key={category.id}
+                data-fold-item={category.id}
                 inert={folded}
                 className={cn(
-                  "grid shrink-0",
-                  FOLD_WIDTH_CLASS,
-                  folded ? "grid-cols-[0fr]" : "grid-cols-[1fr]",
+                  "flex shrink-0 origin-left pr-2",
+                  selected && "relative z-10",
+                  folded &&
+                    (foldExit === "chips"
+                      ? "pointer-events-none absolute"
+                      : "hidden"),
                 )}
               >
-                {/* 간격(pr-2)은 잘리는 상자 안쪽에 둔다 — 바깥에 두면 0fr로 접혀도 8씩 남는다. */}
-                <div className="min-w-0 overflow-hidden">
-                  <div
-                    className={cn(
-                      "flex w-max origin-left pr-2",
-                      folded ? FOLD_CHIP_HIDDEN_CLASS : FOLD_CHIP_SHOWN_CLASS,
-                    )}
-                  >
-                    <Chip
-                      selected={selected}
-                      data-selected={selected || undefined}
-                      data-category-id={category.id}
-                      // 하나만 고르는 줄이라 테두리 대신 면으로 — 안 고른 칩은 옅은 회색, 고른 칩은 옅은 파랑 + 파랑 글자.
-                      // (테두리 칩은 대회 필터처럼 여러 개를 켜는 옵션으로 읽혔다.)
-                      tone="tint"
-                      // 미선택으로 등록이 막혔으면(#303) 비선택 칩 테두리를 오류 색으로 — 고르는 순간 풀린다.
-                      invalid={categoryMissing}
-                      data-ga="category_chip"
-                      onClick={() => pickCategory(category.id)}
-                      aria-pressed={selected}
-                    >
-                      {category.name}
-                      {/* 접혀 혼자 남은 칩 — 눌러서 다시 고를 수 있다는 작은 ▾(누르면 풀리고 전부 펼쳐진다). */}
-                      {selected ? (
-                        // 폭은 칩 줄과 같은 곡선으로 벌어지고, 모양은 칩이 자리 잡은 뒤 나타난다.
-                        <span
-                          aria-hidden
-                          className={cn(
-                            "grid",
-                            FOLD_WIDTH_CLASS,
-                            categoryCollapsed
-                              ? "grid-cols-[1fr]"
-                              : "grid-cols-[0fr]",
-                          )}
-                        >
-                          <span className="min-w-0 overflow-hidden">
-                            {categoryCollapsed ? (
-                              <ChevronDownIcon
-                                size={14}
-                                className={cn(
-                                  "-mr-0.5 ml-0.5",
-                                  FOLD_ENTER_CLASS,
-                                )}
-                              />
-                            ) : null}
-                          </span>
-                        </span>
-                      ) : null}
-                    </Chip>
-                  </div>
-                </div>
+                <Chip
+                  selected={selected}
+                  data-selected={selected || undefined}
+                  data-category-id={category.id}
+                  // 하나만 고르는 줄이라 테두리 대신 면으로 — 안 고른 칩은 옅은 회색, 고른 칩은 옅은 파랑 + 파랑 글자.
+                  // (테두리 칩은 대회 필터처럼 여러 개를 켜는 옵션으로 읽혔다.)
+                  tone="tint"
+                  // 미선택으로 등록이 막혔으면(#303) 비선택 칩 테두리를 오류 색으로 — 고르는 순간 풀린다.
+                  invalid={categoryMissing}
+                  data-ga="category_chip"
+                  onClick={() => pickCategory(category.id)}
+                  aria-pressed={selected}
+                >
+                  {category.name}
+                  {/* 접혀 혼자 남은 칩 — 눌러서 다시 고를 수 있다는 작은 ▾(누르면 풀리고 전부 펼쳐진다).
+                      칩 폭은 처음부터 ▾까지 잡고, 모양은 칩이 거의 자리 잡은 뒤 나타난다. */}
+                  {selected && categoryCollapsed ? (
+                    <ChevronDownIcon
+                      size={14}
+                      className={cn("-mr-0.5 ml-0.5", FOLD_ENTER_CLASS)}
+                    />
+                  ) : null}
+                </Chip>
               </div>
             );
           })}
           {competitionPicker &&
-          competitionCategorySelected &&
-          (categoryCollapsed || pickerLeavingWidth !== null) ? (
-            // 들어올 때는 칩이 자리 잡은 뒤 옆에서 밀려 나오고, 펼칠 때는 옅어지며 칩에 밀려난다.
+          ((categoryCollapsed && competitionCategorySelected) ||
+            foldExit === "picker") ? (
+            // 들어올 때는 칩이 자리 잡은 뒤 옆에서 밀려 나오고, 펼칠 때는 제자리에 띄운 채 옅어진다.
             // 채움은 backwards — 끝난 뒤 transform이 남으면 안쪽 바텀시트(fixed)가 이 칸 기준으로 그려져 칸 안에 갇힌다.
             <div
-              ref={pickerSlotRef}
+              data-fold-item="picker"
               inert={!categoryCollapsed}
-              style={
-                categoryCollapsed
-                  ? undefined
-                  : { width: pickerLeavingWidth ?? undefined }
-              }
               className={cn(
                 "[--tab-shift:12px]",
                 categoryCollapsed
                   ? cn("min-w-0 flex-1", FOLD_ENTER_CLASS)
-                  : "shrink-0 opacity-0 motion-safe:transition-opacity motion-safe:duration-150 motion-safe:ease-out",
+                  : "pointer-events-none absolute",
               )}
             >
               <CompetitionPicker
