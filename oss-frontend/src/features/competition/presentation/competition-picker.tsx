@@ -102,13 +102,23 @@ export function CompetitionPicker({
   });
   useEffect(() => {
     if (!list) return;
-    const observer = new ResizeObserver(() => setEdges(scrollEdges(list)));
+    const observer = new ResizeObserver(() => measureEdges(list));
     observer.observe(list);
     return () => observer.disconnect();
   }, [list, shown]);
 
+  // 끝이 그대로면 같은 값을 둬 다시 그리지 않는다 — 스크롤마다 목록 전체가 다시 그려지지 않게.
+  function measureEdges(target: HTMLElement) {
+    const next = scrollEdges(target);
+    setEdges((prev) =>
+      prev.top === next.top && prev.bottom === next.bottom ? prev : next,
+    );
+  }
+
   function close() {
     setOpen(false);
+    // 다음에 열 때 지난번 흐림이 한 번 비치지 않게 처음 값으로 돌린다(목록은 닫히면 맨 위로 돌아간다).
+    setEdges({ top: false, bottom: false });
     setQuery("");
   }
 
@@ -184,7 +194,7 @@ export function CompetitionPicker({
             더 내릴 게 있으면 아래 끝을, 내려 왔으면 위 끝을 흐리게 지운다 — 칸 끝에서 줄이 딱 끊겨 목록이 끝난 것처럼 보였다. */}
         <ul
           ref={setList}
-          onScroll={(event) => setEdges(scrollEdges(event.currentTarget))}
+          onScroll={(event) => measureEdges(event.currentTarget)}
           style={{
             WebkitMaskImage: fadeMask(edges),
             maskImage: fadeMask(edges),
