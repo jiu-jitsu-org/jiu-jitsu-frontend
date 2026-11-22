@@ -1,8 +1,5 @@
 import type { Competition } from "@/features/competition/domain/competition";
-import {
-  detailStatusOn,
-  type CompetitionDetailStatus,
-} from "@/features/competition/domain/competition-schedule";
+import { detailStatusOn } from "@/features/competition/domain/competition-schedule";
 
 /**
  * 대회 상태 링크 (#469 · #470).
@@ -131,24 +128,6 @@ export function isClubEntryOnly(
   return (
     competition.clubEntryOnly === true &&
     (competition.status === "upcoming" || competition.status === "open")
-  );
-}
-
-/**
- * 참가비 아래 "신청과 결제는 대회 공지에서 해요"를 붙일지 — 공지 주소가 있고, 상태 칩이 접수 예정 · 접수 중이고,
- * 도장을 통해 신청하는 대회가 아니고, 아래 바에 신청하기가 없을 때(바가 신청 자리를 맡는다).
- * 마감 · 당일 · 종료면 신청할 일이 없어 붙이지 않는다.
- */
-export function pointsToNoticeForEntry(
-  competition: Pick<Competition, "noticeUrl" | "clubEntryOnly">,
-  status: CompetitionDetailStatus | null,
-  shownLinks: readonly CompetitionEntryLink[],
-): boolean {
-  return (
-    isWebUrl(competition.noticeUrl) &&
-    !competition.clubEntryOnly &&
-    (status?.kind === "upcoming" || status?.kind === "open") &&
-    !shownLinks.some((link) => link.kind === "register")
   );
 }
 

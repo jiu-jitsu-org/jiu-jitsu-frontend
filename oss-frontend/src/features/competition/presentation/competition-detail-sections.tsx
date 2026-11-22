@@ -10,7 +10,6 @@ import {
   shortDateLabel,
 } from "@/features/competition/presentation/competition-detail-format";
 import { divisionLabels } from "@/features/competition/presentation/competition-month-section";
-import { isWebUrl } from "@/features/competition/domain/competition-entry-link";
 import { isDateKey } from "@/features/competition/domain/competition-registration";
 import { cn } from "@/shared/lib/cn";
 import { WonCoinIcon } from "@/shared/ui/icons";
@@ -119,35 +118,24 @@ export function CompetitionInfoSection({
 
 /**
  * 참가비 (#364) — 단계별 금액. 기한이 지난 단계는 흐리게 두고 읽어 주는 글에 "기한 지남"을 붙인다.
- * 얼리버드가 없으면 기본 참가비 한 줄만 나온다. 대회 공지 주소가 있으면 안내 줄 아래에 신청 · 결제는 대회 공지에서
- * 한다고 덧붙인다 — 공지 링크는 바로 아래 정보 기준 줄에 있다(#471). 붙일지는 domain pointsToNoticeForEntry가 정한다
- * (대한체육회 대회 · 바에 신청하기가 있는 대회 · 마감 뒤에는 붙이지 않는다).
+ * 얼리버드가 없으면 기본 참가비 한 줄만 나온다. 신청 · 결제 안내 줄은 두지 않는다 — 아래 바의 대회사 사이트 버튼과
+ * 바로 아래 정보 기준 줄의 '대회 공지' 링크가 같은 말을 해서, 설명이 세 줄로 길어지기만 했다.
  */
 export function CompetitionFeeSection({
   fees,
   feeNote,
-  noticeUrl,
-  showNoticePaymentNote,
   currentYear,
 }: {
   fees: CompetitionFeeItem[];
   /** 참가비 기준 한 줄(서버). 없으면 성인 1종목 기준으로 적는다. */
   feeNote?: string;
-  noticeUrl?: string;
-  /** "신청과 결제는 대회 공지에서 해요"를 붙일지 — 공지 주소가 있어야 붙는다. */
-  showNoticePaymentNote: boolean;
   currentYear: number;
 }) {
   if (fees.length === 0) return null;
   // 서버 글이 비었거나 "·"·마침표뿐이면 기본 문구로 채운다.
   const parsedNote = feeNote ? feeNoteLines(feeNote) : [];
-  const baseLines =
-    parsedNote.length > 0 ? parsedNote : ["성인 1종목 기준이에요"];
-  // 다른 조각처럼 한 줄을 따로 쓴다 — 서버 글 끝에 이어 붙이면 문장 중간에서 줄이 꺾인다.
   const noteLines =
-    isWebUrl(noticeUrl) && showNoticePaymentNote
-      ? [...baseLines, "신청과 결제는 대회 공지에서 해요"]
-      : baseLines;
+    parsedNote.length > 0 ? parsedNote : ["성인 1종목 기준이에요"];
   return (
     <DetailSection title="참가비" icon={<WonCoinIcon size={20} />}>
       <ul className="flex flex-col">

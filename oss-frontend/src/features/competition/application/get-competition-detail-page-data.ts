@@ -12,7 +12,6 @@ import type { CompetitionAlertSettings } from "@/features/competition/domain/com
 import {
   entryLinksOn,
   isClubEntryOnly,
-  pointsToNoticeForEntry,
   type CompetitionEntryLink,
 } from "@/features/competition/domain/competition-entry-link";
 import {
@@ -43,8 +42,6 @@ export type CompetitionDetailPageData =
       entryLinks: CompetitionEntryLink[];
       /** 도장(감독 · 코치)을 통해 신청하는 대회라고 알릴지(#470) */
       clubEntryOnly: boolean;
-      /** 참가비 아래 "신청과 결제는 대회 공지에서 해요"를 붙일지(#471) */
-      noticePaymentNote: boolean;
       /** 오늘 — 응답의 today, 한국 날짜 "YYYY-MM-DD" */
       today: string;
       currentYear: number;
@@ -137,7 +134,6 @@ export async function getCompetitionDetailPageData({
     fees: feeItemsOn(competition.fees, today),
     entryLinks,
     clubEntryOnly: isClubEntryOnly(competition),
-    noticePaymentNote: pointsToNoticeForEntry(competition, status, entryLinks),
     today,
     currentYear: Number(today.slice(0, 4)),
     interested: competition.interested,
