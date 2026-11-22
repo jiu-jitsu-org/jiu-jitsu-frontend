@@ -57,14 +57,31 @@ export function LinkedText({
 
 /** 링크를 연 기록 — 어느 글에서(content_type) 어느 사이트로(link_host). 주소 전체는 싣지 않는다. */
 function trackLinkOpen(href: string): void {
-  let host: string | undefined;
-  try {
-    host = new URL(href).hostname;
-  } catch {
-    host = undefined;
-  }
   track("link_open", {
     content_type: contentOfPath(window.location.pathname)?.type,
-    link_host: host,
+    link_host: linkHostKind(href),
   });
+}
+
+/** 사전 값 네 가지(#653) — 호스트를 그대로 실으면 하위 주소마다 값이 흩어지고 개인 도메인이 남는다. */
+type LinkHostKind = "youtube" | "instagram" | "naver" | "other";
+
+const LINK_HOST_KINDS: readonly [LinkHostKind, readonly string[]][] = [
+  ["youtube", ["youtube.com", "youtu.be"]],
+  ["instagram", ["instagram.com"]],
+  ["naver", ["naver.com", "naver.me"]],
+];
+
+function linkHostKind(href: string): LinkHostKind {
+  let host: string;
+  try {
+    host = new URL(href).hostname.toLowerCase();
+  } catch {
+    return "other";
+  }
+  // 하위 도메인까지(m.youtube.com · blog.naver.com). 꼬리만 같은 남의 도메인(notyoutube.com)은 빼려고 점까지 본다.
+  const kind = LINK_HOST_KINDS.find(([, domains]) =>
+    domains.some((domain) => host === domain || host.endsWith(`.${domain}`)),
+  );
+  return kind?.[0] ?? "other";
 }

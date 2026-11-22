@@ -6,6 +6,7 @@
 //   reportScreen만 쓴다.
 // - 이름 없는 누름: 요소에 data-ga="요소"만 단다 — instrumentation-client가 ui-click.ts로 위임을 설치한다(#584).
 export {
+  ANALYTICS_MAX_VALUE_LENGTH,
   isValidAnalyticsName,
   sanitizeAnalyticsParams,
   track,

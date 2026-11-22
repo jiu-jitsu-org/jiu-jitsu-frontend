@@ -26,7 +26,8 @@ export type AnalyticsParamValue = string | number | boolean | null | undefined;
 export type AnalyticsParams = Record<string, AnalyticsParamValue>;
 
 const MAX_NAME_LENGTH = 40;
-const MAX_VALUE_LENGTH = 100;
+/** 꼬리표 값 최대 길이(GA · 앱 검사와 같음). 넘는 문자열은 잘린다. */
+export const ANALYTICS_MAX_VALUE_LENGTH = 100;
 /** 앱 · 웹 태그가 `surface`를 하나 더 붙이므로 웹이 보내는 꼬리표는 24개까지(GA 25개 제한). */
 const MAX_PARAM_COUNT = 24;
 const RESERVED_PREFIXES = ["firebase_", "google_", "ga_"];
@@ -67,7 +68,7 @@ export function sanitizeAnalyticsParams(
     }
     let cleaned: string | number | undefined;
     if (typeof value === "string") {
-      cleaned = value.slice(0, MAX_VALUE_LENGTH);
+      cleaned = value.slice(0, ANALYTICS_MAX_VALUE_LENGTH);
     } else if (typeof value === "boolean") {
       cleaned = value ? "true" : "false";
     } else if (typeof value === "number") {
