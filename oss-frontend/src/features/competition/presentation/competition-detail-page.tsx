@@ -131,8 +131,6 @@ export function CompetitionDetailPage({
             <CompetitionFeeSection
               fees={data.fees}
               feeNote={competition.feeNote}
-              noticeUrl={competition.noticeUrl}
-              showNoticePaymentNote={data.noticePaymentNote}
               currentYear={currentYear}
             />
             <CompetitionInfoBasis
