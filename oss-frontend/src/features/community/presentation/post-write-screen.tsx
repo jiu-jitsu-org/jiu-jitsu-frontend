@@ -1505,7 +1505,7 @@ export function PostWriteScreen({
           }
           maxLength={TITLE_MAX_LENGTH}
           rows={1}
-          placeholder="제목을 적어 주세요"
+          placeholder="제목을 입력해주세요"
           aria-label="제목"
           className={cn(
             "mt-6 w-full shrink-0 resize-none overflow-hidden text-display-1 outline-none",
@@ -1534,8 +1534,8 @@ export function PostWriteScreen({
           }
           maxLength={BODY_MAX_LENGTH}
           rows={1}
-          // 내용은 선택(#589) — 비워도 올라간다는 걸 안내 문구 끝에 붙여 알린다(칸 이름이 따로 없는 화면이라).
-          placeholder="이야기를 자유롭게 들려주세요"
+          // 내용은 선택(#589)이지만 안내 문구는 제목 칸과 같은 어미로 맞춘다(제목만으로 등록 가능).
+          placeholder="내용을 입력해주세요"
           aria-label="내용 (선택)"
           className={cn(
             "mt-6 w-full shrink-0 resize-none overflow-hidden text-title-1 outline-none",
@@ -1599,8 +1599,7 @@ export function PostWriteScreen({
                   className={cn("text-body-s", TAG_HASH_IDLE_CLASS)}
                   style={{ order: tags.length * 2 }}
                 >
-                  {/* 태그가 하나도 없을 때만 무엇을 하는 줄인지 적는다. 하나라도 달면 "#"만 남아 줄이 짧다. */}
-                  {tags.length === 0 ? `# 태그 달기 (최대 ${MAX_TAGS}개)` : "#"}
+                  #
                 </button>
               )}
         </div>
@@ -1618,8 +1617,8 @@ export function PostWriteScreen({
         >
           <InfoIcon size={NOTICE_ICON_SIZE} className="shrink-0" />
           <span>
-            <span className="underline">커뮤니티 제한 사항</span>을 어기면 글이
-            삭제될 수 있어요.
+            <span className="underline">커뮤니티 제한 사항</span> 위반 시
+            삭제될 수 있습니다.
           </span>
         </p>
       </main>
