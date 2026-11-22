@@ -19,7 +19,7 @@ import {
   openNativeSubview,
 } from "@/shared/lib/native-bridge";
 import { Button } from "@/shared/ui/button";
-import { ChevronLeftIcon, PeopleIcon } from "@/shared/ui/icons";
+import { ChevronLeftIcon, EditIcon, PeopleIcon } from "@/shared/ui/icons";
 import { SURFACE_PRESS } from "@/shared/ui/press-styles";
 import { RelativeTime } from "@/shared/ui/relative-time";
 
@@ -30,7 +30,8 @@ const STORIES_SECTION_ID = "competition-stories";
  * 대회 이야기 (#366 · #597) — 커뮤니티에서 이 대회를 고른 글.
  *
  * 위에서부터: 쓰기(글이 있든 없든 늘) → 최신 글 최대 5개 → '커뮤니티에서 N개 모두 보기'.
- * - 쓰기: 대회 전엔 이야기(질문만이 아니라 준비 · 동행 · 체급 이야기 등), 끝난 뒤엔 후기로 이끈다. 아래 줄에 글이 커뮤니티 '대회' 카테고리에 올라간다고 미리 알린다.
+ * - 쓰기: 대회 전엔 이야기(질문만이 아니라 준비 · 동행 · 체급 이야기 등), 끝난 뒤엔 후기로 이끈다. 회색 보통 굵기로 두어
+ *   굵은 검정인 글 제목과 같은 위계로 읽히지 않게 한다.
  *   누르면 글쓰기가 '대회' 카테고리와 이 대회를 고른 채 열린다(#433 · #588, 피드 글쓰기와 같은 길: 비로그인은 로그인 안내,
  *   앱은 서브뷰, 웹은 이동). 내용은 선택이라(#589) 제목만으로도 올라간다.
  * - 글을 누르면 게시글 상세(피드 카드와 같은 길). 줄마다 닉네임 · 시간 · 댓글 수.
@@ -70,16 +71,18 @@ export function CompetitionStories({
       className="scroll-mt-[calc(var(--safe-area-top)+44px)]"
     >
       <div className="flex items-center gap-3 py-1">
-        <div className="min-w-0 flex-1">
-          <p className="text-[15px] leading-[21px] font-semibold break-keep text-text-primary">
-            {ended ? "대회 후기를 남겨 주세요" : "이 대회 이야기를 나눠 보세요"}
-          </p>
-          <p className="mt-0.5 text-[13px] leading-[18px] break-keep text-text-secondary">
-            커뮤니티 &lsquo;대회&rsquo; 카테고리에 올라가요
-          </p>
-        </div>
+        <p className="min-w-0 flex-1 text-[15px] leading-[21px] break-keep text-text-secondary">
+          {ended ? "대회 후기를 남겨 주세요" : "이 대회 이야기를 나눠 보세요"}
+        </p>
         {/* 회색 구역 바탕 위라 옅은 파랑(tint)은 묻혀서, 꽉 찬 파랑으로 둔다. */}
-        <Button variant="filled" size="s" onClick={openWrite}>
+        {/* 펜 아이콘은 버튼 안에 — 쓰기 동작을 그림으로도 알린다(피드 글쓰기 버튼과 같은 아이콘). 아이콘 쪽 여백을 줄여 눈으로 가운데. */}
+        <Button
+          variant="filled"
+          size="s"
+          onClick={openWrite}
+          className="gap-1 pl-2.5"
+        >
+          <EditIcon size={16} />
           {ended ? "후기 쓰기" : "글쓰기"}
         </Button>
       </div>
