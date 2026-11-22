@@ -8,6 +8,10 @@ import type {
   CompetitionRepository,
 } from "@/features/competition/domain/competition-repository";
 import type { CompetitionRegion } from "@/features/competition/domain/competition-region";
+import {
+  type AuthorBeltDto,
+  toBelt,
+} from "@/features/community/infrastructure/belt-dto";
 import type { CompetitionStoryList } from "@/features/competition/domain/competition-story";
 import {
   COMPETITION_NOT_FOUND_CODE,
@@ -45,9 +49,16 @@ const REGIONS_REVALIDATE_SECONDS = 300;
 type CompetitionStoryDto = {
   id: number;
   title: string;
+  body: string | null;
   commentCount: number | null;
   createdAt: string;
-  author: { nickname: string | null } | null;
+  imageList: { imageUrl: string }[] | null;
+  author:
+    | (AuthorBeltDto & {
+        nickname: string | null;
+        profileImage: { imageUrl: string | null } | null;
+      })
+    | null;
 };
 
 export class ExternalCompetitionRepository implements CompetitionRepository {
@@ -113,7 +124,11 @@ export class ExternalCompetitionRepository implements CompetitionRepository {
     const stories = (response.data?.stories ?? []).map((dto) => ({
       postId: dto.id,
       title: dto.title,
+      body: dto.body ?? "",
       author: dto.author?.nickname ?? "",
+      authorAvatarUrl: dto.author?.profileImage?.imageUrl ?? null,
+      authorBelt: toBelt(dto.author),
+      imageUrl: dto.imageList?.[0]?.imageUrl ?? null,
       comments: dto.commentCount ?? 0,
       createdAt: toKstIso(dto.createdAt),
     }));

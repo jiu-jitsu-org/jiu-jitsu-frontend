@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
+import { Avatar } from "@/features/community/presentation/avatar";
+import { BeltAvatar } from "@/features/community/presentation/belt-avatar";
 import { clearPostCreated } from "@/features/community/presentation/dirty-posts";
 import { useOpenPostDetail } from "@/features/community/presentation/use-open-post-detail";
 import { useOpenPostWrite } from "@/features/community/presentation/use-open-post-write";
@@ -13,6 +15,7 @@ import type {
 import { DetailSection } from "@/features/competition/presentation/competition-detail-sections";
 import { contentIdOf, entryPath, track } from "@/shared/lib/analytics";
 import { cn } from "@/shared/lib/cn";
+import { resizeImageKitUrl } from "@/shared/lib/image-resize";
 import {
   isNativeBridgeAvailable,
   openNativeHomeFeed,
@@ -29,12 +32,13 @@ const STORIES_SECTION_ID = "competition-stories";
 /**
  * 대회 이야기 (#366 · #597) — 커뮤니티에서 이 대회를 고른 글.
  *
- * 위에서부터: 쓰기(글이 있든 없든 늘) → 최신 글 최대 5개 → '이 대회 이야기 모아 보기'.
+ * 위에서부터: 쓰기(글이 있든 없든 늘) → 최신 글 3개 → '이 대회 이야기 모아 보기'.
  * - 쓰기: 대회 전엔 이야기(질문만이 아니라 준비 · 동행 · 체급 이야기 등), 끝난 뒤엔 후기로 이끈다. 회색 보통 굵기로 두어
  *   굵은 검정인 글 제목과 같은 위계로 읽히지 않게 한다.
  *   누르면 글쓰기가 '대회' 카테고리와 이 대회를 고른 채 열린다(#433 · #588, 피드 글쓰기와 같은 길: 비로그인은 로그인 안내,
  *   앱은 서브뷰, 웹은 이동). 내용은 선택이라(#589) 제목만으로도 올라간다.
- * - 글을 누르면 게시글 상세(피드 카드와 같은 길). 줄마다 닉네임 · 시간 · 댓글 수.
+ * - 글은 댓글처럼 보인다(기획: 이 대회에 댓글 달듯이) — 띠 아바타 · 닉네임 · 시간 줄 아래에 제목과 내용 두 줄, 사진이 있으면
+ *   작은 정사각형 하나. 좋아요 · 댓글 수는 두지 않는다(간소하게). 누르면 게시글 상세(피드 카드와 같은 길).
  * - 모아 보기: 홈 피드 '대회' 탭을 이 대회 글만으로 연다(#598 · jiu-jitsu-ios#437).
  * 글을 올리고 상세로 돌아오면 상세가 다시 읽어 새 글과 수가 보인다.
  */
@@ -117,7 +121,10 @@ export function CompetitionStories({
   );
 }
 
-/** 글 한 줄 — 제목, 아래에 닉네임 · 시간 · 댓글 수. */
+/** 글 사진 — 64 정사각형 칸의 3배 */
+const STORY_IMAGE_TRANSFORM = "w-192,h-192";
+
+/** 글 한 줄 — 글 상세 댓글과 같은 띠 아바타 · 닉네임 줄 아래에 제목과 내용 두 줄, 사진. */
 function StoryRow({
   story,
   onPress,
@@ -130,21 +137,48 @@ function StoryRow({
       type="button"
       onClick={onPress}
       className={cn(
-        "flex w-full flex-col rounded-10 px-2 py-2.5 text-left",
+        "flex w-full gap-1 rounded-10 px-2 py-3 text-left",
         SURFACE_PRESS,
       )}
     >
-      <span className="w-full truncate text-[15px] leading-[21px] font-semibold text-text-primary">
-        {story.title}
+      {/* 댓글과 같이 사진 24 + 띠 = 32(띠가 없으면 회색 점선). 화면 아래쪽이라 첫 사진 뒤로 미룬다. */}
+      <span className="flex shrink-0 self-start">
+        <BeltAvatar belt={story.authorBelt} size="card">
+          <Avatar
+            src={story.authorAvatarUrl}
+            className="size-full"
+            iconSize={16}
+            lowPriority
+          />
+        </BeltAvatar>
       </span>
-      <span className="mt-0.5 flex w-full min-w-0 text-[12px] leading-[16px] text-text-tertiary tabular-nums">
-        {story.author ? (
-          <span className="min-w-0 truncate">{story.author} ·&nbsp;</span>
-        ) : null}
-        <span className="shrink-0 whitespace-pre">
-          <RelativeTime iso={story.createdAt} />
-          {` · 댓글 ${story.comments.toLocaleString("ko-KR")}`}
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="flex h-8 min-w-0 items-center gap-1.5">
+          <span className="min-w-0 truncate text-body-s text-text-primary">
+            {story.author}
+          </span>
+          <span className="shrink-0 text-[12px] leading-[16px] text-text-tertiary">
+            <RelativeTime iso={story.createdAt} />
+          </span>
         </span>
+        <span className="line-clamp-1 text-[15px] leading-[21px] font-semibold wrap-anywhere text-text-primary">
+          {story.title}
+        </span>
+        {story.body ? (
+          <span className="mt-0.5 line-clamp-2 text-[14px] leading-[20px] wrap-anywhere whitespace-pre-line text-text-secondary">
+            {story.body}
+          </span>
+        ) : null}
+        {story.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            // 보이는 크기(64)의 3배까지만 받는다.
+            src={resizeImageKitUrl(story.imageUrl, STORY_IMAGE_TRANSFORM)}
+            alt=""
+            loading="lazy"
+            className="mt-2 size-16 rounded-10 object-cover"
+          />
+        ) : null}
       </span>
     </button>
   );
