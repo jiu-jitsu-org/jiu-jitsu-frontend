@@ -139,6 +139,14 @@ const FOLD_IN_PATH_DELAY_MS = 300;
 function prefersReducedMotion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
+/** 누르기 직전 화면 자리 · 진하기(움직이는 중이면 그 중간 값). */
+type FoldRect = {
+  left: number;
+  right: number;
+  top: number;
+  width: number;
+  opacity: number;
+};
 /** 칩 줄에서 움직이는 것(칩 · 대회 칸)을 이름(칩 id · "picker")으로 찾는다. */
 function foldItemsIn(group: HTMLElement | null) {
   const items = new Map<string, HTMLElement>();
@@ -349,37 +357,53 @@ export function PostWriteScreen({
   const foldPlanRef = useRef<{
     kind: "fold" | "unfold";
     chipId: number;
-    before: Map<string, DOMRect>;
+    animate: boolean;
+    before: Map<string, FoldRect>;
   } | null>(null);
   const foldAnimsRef = useRef<Animation[]>([]);
   useEffect(
-    () => () => foldAnimsRef.current.forEach((animation) => animation.cancel()),
+    () => () => {
+      const animations = foldAnimsRef.current;
+      foldAnimsRef.current = [];
+      animations.forEach((animation) => animation.cancel());
+    },
     [],
   );
   function pickCategory(id: number) {
     const unfolding = id === categoryId;
-    // 움직이는 중에 다시 눌러도 지금 보이는 자리(중간 자리)에서 이어 가게 멈추기 전에 잰다.
-    const before = new Map<string, DOMRect>();
-    foldItemsIn(categoryGroupRef.current).forEach((el, key) =>
-      before.set(key, el.getBoundingClientRect()),
-    );
-    stopFoldMotion(foldAnimsRef, categoryGroupRef.current);
+    const group = categoryGroupRef.current;
+    // 고르라고 흔들던 줄(nudge)은 멈춘다 — 흔들린 만큼 자리가 어긋나게 재지 않게.
+    group?.getAnimations().forEach((animation) => animation.cancel());
+    // 움직이는 중에 다시 눌러도 지금 보이는 자리 · 진하기(중간 값)에서 이어 가게 멈추기 전에 잰다.
+    const before = new Map<string, FoldRect>();
+    foldItemsIn(group).forEach((el, key) => {
+      const rect = el.getBoundingClientRect();
+      before.set(key, {
+        left: rect.left,
+        right: rect.right,
+        // 줄어드는 중(scale)이어도 원래 크기로 — 크기는 레이아웃 값, 위는 가운데 기준으로 되돌린다.
+        top: rect.top + rect.height / 2 - el.offsetHeight / 2,
+        width: el.offsetWidth,
+        opacity: Number(getComputedStyle(el).opacity),
+      });
+    });
+    stopFoldMotion(foldAnimsRef, group);
+    // '동작 줄이기'면 움직임 없이 바로 바뀐다 — 띄워 둘 것도 없다. 한 번만 읽어 둘이 어긋나지 않게.
+    const animate = !prefersReducedMotion();
     foldPlanRef.current = {
       kind: unfolding ? "unfold" : "fold",
       chipId: id,
+      animate,
       before,
     };
     setFoldTick((tick) => tick + 1);
     if (unfolding) {
       // 고른 칩을 다시 누르면 풀고 펼친다. 대회 칸이 있었으면 옅어지는 동안만 제자리에 남긴다.
-      setFoldExit(
-        before.has("picker") && !prefersReducedMotion() ? "picker" : null,
-      );
+      setFoldExit(before.has("picker") && animate ? "picker" : null);
       setCategoryId(null);
       return;
     }
-    // '동작 줄이기'면 움직임 없이 바로 바뀐다 — 띄워 둘 것도 없다.
-    setFoldExit(prefersReducedMotion() ? null : "chips");
+    setFoldExit(animate ? "chips" : null);
     setCategoryId(id);
     setCategoryMissing(false);
   }
@@ -395,7 +419,7 @@ export function PostWriteScreen({
     // 접으면 줄이 처음으로, 펼치면 풀린 칩이 보이게 줄만 옆으로 — 움직임은 아래 FLIP이 이어 준다.
     if (plan.kind === "fold") row.scrollLeft = 0;
     else if (chip) revealInRow(row, chip, "instant");
-    if (prefersReducedMotion()) return;
+    if (!plan.animate) return;
     const groupRect = group.getBoundingClientRect();
     const animations: Animation[] = [];
     const chipBefore = plan.before.get(chipKey);
@@ -424,7 +448,7 @@ export function PostWriteScreen({
         animations.push(
           el.animate(
             [
-              { opacity: 1, transform: "none" },
+              { opacity: before.opacity, transform: "none" },
               { opacity: 0, transform: "scale(0.9)" },
             ],
             { duration: FOLD_OUT_MS, easing: "ease-out", fill: "forwards" },
