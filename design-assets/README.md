@@ -61,3 +61,12 @@ viewBox `-20 -20 296 296` (손 256 칸 + 테두리 여유 20). 만드는 스크�
 파일 이름은 `띠색-결과.png`(white·blue·purple·brown·black × gold·silver·bronze·participation). participation은 메달을 걸지 않은 그림이다. 앱 대회 기록 완료 화면용(iOS #220).
 
 파란띠는 로그인 캐릭터 몸통에 제미나이로 빨간 끈과 메달을 더했다. 나머지 4색은 파란띠 그림을 제미나이로 다시 칠해 기운 몸과 정면 얼굴을 맞췄고, 띠마다 기운 방향과 각도를 조금씩 달리했다. 초록 바탕을 뺀 뒤 로그인 화면의 눈을 얹었다.
+
+## character/hand-gestures — 손동작 반응 스티커 (그래피티 · 파란 오스)
+
+출처: 디자인 캔버스 "오스 손동작 모음" (https://claude.ai/artifact/H97ULeeCBAEqgnXgjAG7TS)
+커뮤니티 글 상세의 반응 시안이다. 반응 구성(손 몇 개 + 불꽃·웃음)은 아직 정하지 않았다.
+
+- `graffiti/` — 큰 스티커. 손 8개(`oss` 오스 · `fist` 주먹 · `one` 하나 · `v` 브이 · `three` 셋 · `four` 넷 · `high-five` 하이파이브 · `thumbs-up` 엄지 척)와 손 아닌 반응(`flame` 불꽃 · `laugh` 웃음)
+- `graffiti-bar/` — 댓글 입력칸 위 반응 바용. 선 굵기·색은 같고 둘레 여백만 좁다. 바에 들어가는 것만 있다(하트 포함)
+- `mockup.html` — 캔버스 원본 페이지. 각진 선·띠 장갑 그림체와 반응 시안이 다 들어 있다. 그림 생성 스크립트가 없어서 다시 뽑을 땐 이 파일에서 뽑는다
