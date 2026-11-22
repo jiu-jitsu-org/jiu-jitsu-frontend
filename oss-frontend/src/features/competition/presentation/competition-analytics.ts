@@ -10,6 +10,7 @@ import type { CompetitionRegion } from "@/features/competition/domain/competitio
 import type { CompetitionDetailStatus } from "@/features/competition/domain/competition-schedule";
 import { competitionDetailOpenCount } from "@/features/competition/presentation/competition-detail-link";
 import {
+  ANALYTICS_MAX_VALUE_LENGTH,
   contentIdOf,
   currentScreenFrom,
   track,
@@ -67,7 +68,10 @@ export function trackCompetitionInterest(
   });
 }
 
-/** 대회 목록 필터를 켜거나 끔(`competition_filter_apply`). 지역은 시트의 '적용' — 고른 지역을 쉼표로 이어 싣는다. */
+/**
+ * 대회 목록 필터를 켜거나 끔(`competition_filter_apply`). 지역은 시트의 '적용' — 고른 지역을 목록 순서로 쉼표로 이어 싣는다.
+ * 이은 값이 꼬리표 길이를 넘으면 `many` — 넘긴 채 보내면 끝 지역 이름이 중간에서 잘린 값이 쌓인다(#653).
+ */
 export function trackCompetitionFilter(
   change:
     | { filter: "open" | "interest"; on: boolean }
@@ -78,9 +82,7 @@ export function trackCompetitionFilter(
       filter: "region",
       state: change.regions.length > 0 ? "on" : "off",
       region:
-        change.regions.length > 0
-          ? change.regions.map(competitionRegionSlug).join(",")
-          : undefined,
+        change.regions.length > 0 ? regionParam(change.regions) : undefined,
     });
     return;
   }
@@ -88,6 +90,11 @@ export function trackCompetitionFilter(
     filter: change.filter,
     state: change.on ? "on" : "off",
   });
+}
+
+function regionParam(regions: readonly CompetitionRegion[]): string {
+  const joined = regions.map(competitionRegionSlug).join(",");
+  return joined.length > ANALYTICS_MAX_VALUE_LENGTH ? "many" : joined;
 }
 
 /** 목록 ↔ 달력, 달력의 달 이동 · 달 고르기 · 날짜 칸(`competition_view_change`). view는 바뀐 뒤 보기. */

@@ -20,6 +20,9 @@ export function searchListUrl(keyword: string): string {
   return `/api/community/board?boardListType=SEARCH&searchKeyword=${encodeURIComponent(keyword)}`;
 }
 
+/** 검색을 실행한 입구(GA `search`의 from, #653) — 최근 검색어를 누름 · 검색칸에 입력. */
+export type PostSearchFrom = "recent_search" | "community_search";
+
 export type PostSearchState =
   /** 아직 찾지 않음 — 최근 검색을 보인다. */
   | { status: "idle" }
@@ -65,18 +68,24 @@ export function usePostSearch({
   // 늦게 온 응답을 버리는 기준 — 마지막 검색 순번.
   const seqRef = useRef(0);
 
-  /** 읽은 첫 페이지를 결과로 바꾼다. 그사이 새 검색이 시작됐으면 버린다. */
+  /** 읽은 첫 페이지를 결과로 바꾼다. 그사이 새 검색이 시작됐으면 버린다. `from`이 있으면(사람이 찾음) 기록한다. */
   const settle = useCallback(
-    (seq: number, keyword: string, list: PostList | null, report: boolean) => {
+    (
+      seq: number,
+      keyword: string,
+      list: PostList | null,
+      from: PostSearchFrom | null,
+    ) => {
       if (seq !== seqRef.current) return;
       if (!list) {
         setState({ status: "error", keyword });
         return;
       }
       setState({ status: "done", keyword, list });
-      if (report) {
+      if (from) {
         track("search", {
           result_bucket: searchResultBucket(list.totalElements),
+          from,
         });
       }
     },
@@ -84,11 +93,11 @@ export function usePostSearch({
   );
 
   const run = useCallback(
-    (keyword: string, report: boolean) => {
+    (keyword: string, from: PostSearchFrom | null) => {
       const seq = ++seqRef.current;
       setState({ status: "loading", keyword });
       void fetchSearchFirstPage(keyword).then((list) =>
-        settle(seq, keyword, list, report),
+        settle(seq, keyword, list, from),
       );
     },
     [settle],
@@ -103,19 +112,19 @@ export function usePostSearch({
     const { keyword } = state;
     const seq = ++seqRef.current;
     void fetchSearchFirstPage(keyword).then((list) =>
-      settle(seq, keyword, list, false),
+      settle(seq, keyword, list, null),
     );
   }, [settle, state]);
 
-  /** 사람이 찾았다 — 주소를 바꿔 끼우고 첫 페이지를 읽는다. 빈 검색어는 요청하지 않는다. */
+  /** 사람이 찾았다 — 주소를 바꿔 끼우고 첫 페이지를 읽는다. 빈 검색어는 요청하지 않는다. `from`은 실행한 입구. */
   const search = useCallback(
-    (raw: string): string | null => {
+    (raw: string, from: PostSearchFrom): string | null => {
       const keyword = normalizeSearchKeyword(raw);
       if (!keyword) return null;
       const url = new URL(window.location.href);
       url.searchParams.set(SEARCH_QUERY_PARAM, keyword);
       window.history.replaceState(null, "", url);
-      run(keyword, true);
+      run(keyword, from);
       return keyword;
     },
     [run],
@@ -123,7 +132,7 @@ export function usePostSearch({
 
   /** 실패한 검색을 다시 읽는다(기록은 남기지 않는다). */
   const retry = useCallback(() => {
-    if (state.status === "error") run(state.keyword, false);
+    if (state.status === "error") run(state.keyword, null);
   }, [run, state]);
 
   return { state, search, retry };

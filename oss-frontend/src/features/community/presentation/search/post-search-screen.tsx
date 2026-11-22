@@ -12,6 +12,7 @@ import { PostSearchEmpty } from "@/features/community/presentation/search/post-s
 import { PostSearchRecent } from "@/features/community/presentation/search/post-search-recent";
 import { PostSearchResultsSkeleton } from "@/features/community/presentation/search/post-search-skeleton";
 import {
+  type PostSearchFrom,
   searchListUrl,
   usePostSearch,
 } from "@/features/community/presentation/search/use-post-search";
@@ -48,8 +49,8 @@ export function PostSearchScreen({
   const bodyRef = useRef<HTMLDivElement>(null);
 
   const submit = useCallback(
-    (raw: string) => {
-      const keyword = search(raw);
+    (raw: string, from: PostSearchFrom) => {
+      const keyword = search(raw, from);
       if (!keyword) return;
       setInput(keyword);
       add(keyword);
@@ -71,14 +72,14 @@ export function PostSearchScreen({
       <PostSearchAppBar
         value={input}
         onValueChange={setInput}
-        onSubmit={submit}
+        onSubmit={(raw) => submit(raw, "community_search")}
         autoFocus={state.status === "idle"}
       />
       <div ref={bodyRef}>
         {showRecent ? (
           <PostSearchRecent
             recent={recent}
-            onSelect={submit}
+            onSelect={(recentKeyword) => submit(recentKeyword, "recent_search")}
             onRemove={remove}
             onClear={clear}
           />
