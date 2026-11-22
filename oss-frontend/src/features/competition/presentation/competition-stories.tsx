@@ -154,9 +154,12 @@ function StoryRow({
       </span>
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="flex h-8 min-w-0 items-center gap-1.5">
-          <span className="min-w-0 truncate text-body-s text-text-primary">
-            {story.author}
-          </span>
+          {/* 닉네임이 빈 글(탈퇴 등)은 시간만 — 빈 칸이 자리를 차지하지 않게. */}
+          {story.author ? (
+            <span className="min-w-0 truncate text-body-s text-text-primary">
+              {story.author}
+            </span>
+          ) : null}
           <span className="shrink-0 text-[12px] leading-[16px] text-text-tertiary">
             <RelativeTime iso={story.createdAt} />
           </span>
@@ -165,7 +168,7 @@ function StoryRow({
           {story.title}
         </span>
         {story.body ? (
-          <span className="mt-0.5 line-clamp-2 text-[14px] leading-[20px] wrap-anywhere whitespace-pre-line text-text-secondary">
+          <span className="mt-0.5 line-clamp-2 text-[14px] leading-[20px] wrap-anywhere text-text-secondary">
             {story.body}
           </span>
         ) : null}

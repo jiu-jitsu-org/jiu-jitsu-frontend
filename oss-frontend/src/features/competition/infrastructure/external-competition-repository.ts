@@ -50,7 +50,6 @@ type CompetitionStoryDto = {
   id: number;
   title: string;
   body: string | null;
-  commentCount: number | null;
   createdAt: string;
   imageList: { imageUrl: string }[] | null;
   author:
@@ -128,8 +127,8 @@ export class ExternalCompetitionRepository implements CompetitionRepository {
       author: dto.author?.nickname ?? "",
       authorAvatarUrl: dto.author?.profileImage?.imageUrl ?? null,
       authorBelt: toBelt(dto.author),
-      imageUrl: dto.imageList?.[0]?.imageUrl ?? null,
-      comments: dto.commentCount ?? 0,
+      // 빈 주소("")면 사진 칸을 두지 않는다.
+      imageUrl: dto.imageList?.[0]?.imageUrl || null,
       createdAt: toKstIso(dto.createdAt),
     }));
     return {

@@ -19,7 +19,6 @@ export type CompetitionStory = {
   authorBelt: Belt | null;
   /** 첫 사진 — 없으면 null */
   imageUrl: string | null;
-  comments: number;
   /** 글을 올린 때 ISO 문자열 */
   createdAt: string;
 };
