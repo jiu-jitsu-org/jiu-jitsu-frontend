@@ -10,12 +10,14 @@ import { openNativeCompetitionRecord } from "@/shared/lib/native-bridge";
 import { useToast } from "@/shared/ui";
 import { Button } from "@/shared/ui/button";
 import { IconButton } from "@/shared/ui/icon-button";
-import { CloseIcon, EditIcon } from "@/shared/ui/icons";
+import { CloseIcon } from "@/shared/ui/icons";
 
 /**
  * 관심 대회가 끝난 뒤 대회 탭 배너 자리의 결과 남기기 배너 (#403).
  *
- * 곧 마감 배너와 짜임(네모·두 줄 글·✕ 자리)과 짙은 면이 같고, '남기기' 버튼을 더한다.
+ * 곧 마감 배너와 짙은 면·✕ 자리가 같다. 왼쪽 네모는 두지 않는다 — 대회 이름이 대개 길어 그 자리를 이름에 준다.
+ * 버튼은 글 아래 — 이름이 카드 너비를 다 써서 두 줄까지 보이고, 버튼 글('내 기록에 남기기')이 무엇을 하는지 말한다.
+ * 버튼 글은 상세 결과 배너(#368)와 같다.
  * 연한 파란 면은 대회 탭 위쪽 띠 색 그라데이션에 묻혀 같은 자리의 곧 마감 배너와 같은 짙은 면을 쓴다.
  * 한 장에 대회 하나만 — 끝난 관심 대회가 여럿이면 배너 자리가 대회마다 한 장씩 따로 띄운다.
  * ✕는 그 대회를 닫는다(호출부가 한다) — 상세 배너(#368)와 닫은 기록을 함께 써서 두 곳 모두 다시 뜨지 않는다.
@@ -49,7 +51,7 @@ export function CompetitionResultCard({
     toast.show("MY의 대회 기록에서 남길 수 있어요", { tone: "info" });
   }
 
-  // '남기기'를 누른 일은 로그인 안내가 떠도 남긴다(GA, #620) — 로그인 안내는 따로 기록된다.
+  // '내 기록에 남기기'를 누른 일은 로그인 안내가 떠도 남긴다(GA, #620) — 로그인 안내는 따로 기록된다.
   const pressRecord = (competition: Competition) => {
     const record = guard(
       () => leaveRecord(competition),
@@ -67,31 +69,22 @@ export function CompetitionResultCard({
 
   return (
     <aside aria-label="대회 결과 남기기" className="relative">
-      {/* 곧 마감 배너와 같은 짜임 — 왼쪽 44 네모, 작은 글 + 굵은 대회 이름, ✕ 자리(오른쪽 48)를 비운다.
-          할 일이 있는 배너라 이름 오른쪽에 '남기기' 버튼을 둬 바로 누르게 한다. */}
-      <div className="flex w-full items-center gap-3 rounded-20 bg-[var(--cool-gray-900)] py-3 pr-12 pl-4 text-text-on-dark">
-        <span
-          aria-hidden
-          className="flex size-11 flex-none items-center justify-center rounded-10 bg-[var(--opacity-white-20)]"
-        >
-          <EditIcon size={20} />
+      {/* 작은 글 + 굵은 대회 이름(두 줄까지), 그 아래 버튼. ✕ 자리(오른쪽 48)를 비운다. */}
+      <div className="flex w-full flex-col items-start rounded-20 bg-[var(--cool-gray-900)] py-3 pr-12 pl-4 text-text-on-dark">
+        <span className="text-[12px] leading-[16px] text-[var(--opacity-white-60)]">
+          {endedLabel(group.daysAgo)} 관심 대회
         </span>
-        <span className="flex min-w-0 flex-1 flex-col">
-          <span className="text-[12px] leading-[16px] text-[var(--opacity-white-60)]">
-            {endedLabel(group.daysAgo)} 관심 대회
-          </span>
-          <span className="truncate text-[16px] leading-[22px] font-bold">
-            {only.name}
-          </span>
+        <span className="line-clamp-2 text-[16px] leading-[22px] font-bold break-keep">
+          {only.name}
         </span>
         <Button
           variant="filled"
           size="s"
-          className="flex-none"
-          aria-label={`${only.name} 결과 남기기`}
+          className="mt-2.5"
+          aria-label={`${only.name} 결과를 내 기록에 남기기`}
           onClick={pressRecord(only)}
         >
-          남기기
+          내 기록에 남기기
         </Button>
       </div>
       <IconButton
