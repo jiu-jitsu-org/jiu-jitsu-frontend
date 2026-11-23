@@ -12,6 +12,7 @@ import { useLoginGuard } from "@/features/community/presentation/use-login-guard
 import { usePopOnActivate } from "@/features/community/presentation/use-pop-on-activate";
 import { useViewportRect } from "@/features/community/presentation/use-viewport-rect";
 import { cn } from "@/shared/lib/cn";
+import { useIsExternalBrowser } from "@/shared/lib/native-bridge";
 import { HeartIcon } from "@/shared/ui/icons";
 
 /**
@@ -96,4 +97,16 @@ export function PostLikeFab() {
       </button>
     </div>
   );
+}
+
+/**
+ * 스크롤 맨 끝 빈칸 60 — 떠 있는 좋아요 버튼(48 + 입력 바와 간격 12)이 마지막 글을 가리지 않게 비운다.
+ * 외부 브라우저에선 버튼도 입력 바도 없으니(PostDetailFooter) 비우지 않는다.
+ */
+export function PostLikeFabSpacer() {
+  const externalBrowser = useIsExternalBrowser();
+  if (externalBrowser) {
+    return null;
+  }
+  return <div aria-hidden className="h-15" />;
 }
