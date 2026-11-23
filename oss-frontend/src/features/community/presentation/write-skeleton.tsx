@@ -42,7 +42,7 @@ export function WriteSkeleton({
   showBack?: boolean;
 }) {
   return (
-    <div className="fixed inset-x-0 top-0 flex h-dvh flex-col overflow-hidden bg-[var(--bw-true-white)]">
+    <div className="fixed inset-x-0 top-0 mx-auto flex h-dvh w-full max-w-[var(--app-max-w)] flex-col overflow-hidden bg-[var(--bw-true-white)]">
       <AppBarShell
         className="items-start px-4"
         style={{ height: APP_BAR_HEIGHT }}

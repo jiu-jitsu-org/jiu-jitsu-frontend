@@ -38,7 +38,7 @@ export function PostWriteFab({
       aria-label="게시글 작성"
       // 반응 버튼과 같은 눌림·튐 + 놓을 때 연필이 좌우로 한 번 흔들린다.
       className={cn(
-        "fixed bottom-3 right-3 flex h-12 w-12 items-center justify-center rounded-full bg-button-filled-default-bg text-button-filled-default-text",
+        "fixed bottom-3 right-[calc(var(--app-gutter)_+_0.75rem)] flex h-12 w-12 items-center justify-center rounded-full bg-button-filled-default-bg text-button-filled-default-text",
         REACTION_PRESS_MOTION,
       )}
     >

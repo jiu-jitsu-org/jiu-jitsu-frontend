@@ -26,7 +26,7 @@ export function SubviewScrollShell({
   return (
     <main
       className={cn(
-        "fixed inset-0 overflow-y-auto overscroll-contain",
+        "fixed inset-0 mx-auto max-w-[var(--app-max-w)] overflow-y-auto overscroll-contain",
         className,
       )}
     >

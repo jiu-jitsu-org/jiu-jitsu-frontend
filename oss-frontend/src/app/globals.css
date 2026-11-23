@@ -120,7 +120,27 @@ html {
   --safe-area-bottom: var(--app-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
 }
 
+/* 화면 폭 상한 — 폴드 안쪽·가로·태블릿처럼 넓은 화면에서도 폰 폭 한 줄을 가운데 두고, 양옆은 바탕색으로 비운다.
+   폰(480 이하)에서는 상한에 닿지 않아 전과 똑같다. 화면 폭(vw)으로 크기를 재던 곳은 --app-col-w(한 줄 폭)를 쓴다.
+   fixed 요소는 body가 아니라 화면에 붙으므로 둘 중 하나로 줄에 맞춘다:
+   - 화면을 가로로 덮는 셸·시트: mx-auto max-w-[var(--app-max-w)]
+   - 가장자리에서 띄우는 버튼·토스트: --app-gutter(줄 바깥 양옆 빈 폭) + 여백. %라서 fixed 요소에만 쓴다(기준 = 화면 폭).
+   사진 크게 보기·사진 편집처럼 화면을 통째로 덮는 어두운 판은 그대로 화면 전체를 쓴다.
+   일부러 넓게 쓰는 화면(/ds, 약관·공지처럼 자체 폭 768을 쓰는 글 화면)은 .app-wide-page를 두면 상한이 풀린다. */
+:root {
+  --app-max-w: 480px;
+  --app-col-w: min(100vw, var(--app-max-w));
+  --app-gutter: max(0px, (100% - var(--app-max-w)) / 2);
+}
+
+html:has(.app-wide-page) {
+  --app-max-w: 100vw;
+}
+
 body {
+  width: 100%;
+  max-width: var(--app-max-w);
+  margin-inline: auto;
   background: var(--background-default);
   color: var(--text-primary);
   font-family: var(--font-sans);

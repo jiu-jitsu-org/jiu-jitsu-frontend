@@ -170,6 +170,12 @@ src/features/<feature>/
   같은 식으로 뽑는다(파일 상단 주석 참조).
 - 움직임은 `motion-safe:`로 감싸 "동작 줄이기" 설정을 존중한다.
 
+### 7. 화면 폭 상한은 480px 한 줄이다
+
+폴드·가로·태블릿 같은 넓은 화면에서도 body가 `--app-max-w`(480px) 폭으로 가운데 선다(`globals.css`).
+폭을 `100vw`로 재지 말고 `var(--app-col-w)`를 쓴다. `fixed` 요소는 화면 기준이라 `mx-auto max-w-[var(--app-max-w)]`
+또는 `var(--app-gutter)` + 여백으로 줄에 맞춘다(사진 크게 보기 같은 어두운 전체 판은 예외). 넓게 쓰는 화면은 `.app-wide-page`(현재 `/ds`, 약관 `/policies`, 공지 `/notices`).
+
 ## Clean Architecture 규칙
 
 의존 방향은 아래를 기준으로 유지한다.
@@ -405,6 +411,7 @@ Server Action은 UI 이벤트 adapter에 가깝다.
 - `VersionInfoPage` Client Component와 `useActionState` 기반 Server Action 갱신 예시
 - 개발/운영 `.env` 분리
 - `design-tokens/` 기반 컬러 디자인 토큰 파이프라인 (`npm run tokens`)
+- 화면 폭 상한 480px 한 줄(`globals.css`의 `--app-max-w`) — 넓은 화면에선 가운데 폰 폭, 폰에선 그대로
 - `design-system` feature — `/ds` 디자인 시스템 문서(로컬·개발 서버에서만, `is-design-system-page-enabled.ts`). 문서 목록·순서는 `presentation/doc-kit/doc-registry.ts`, 문서 틀(머리·견본 판·표·좋은 예/피할 것·실측)은 `doc-kit/`, 문서 내용은 `docs/`(기초·부품·패턴 한 장씩). 새 공용 부품을 만들면 여기에도 한 장 더한다
 
 ## 작업 전 체크
