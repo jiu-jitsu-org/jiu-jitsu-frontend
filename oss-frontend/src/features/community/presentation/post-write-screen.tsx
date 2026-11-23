@@ -1307,7 +1307,7 @@ export function PostWriteScreen({
     // WKWebView에서 키보드가 떠도 즉시 안 줄어 하단 바가 키보드 뒤로 가려지므로, visualViewport top/height에
     // 직접 맞춰 하단 바를 항상 키보드 위에 떨어뜨린다.
     <div
-      className="fixed left-0 right-0 flex flex-col overflow-hidden bg-[var(--bw-true-white)]"
+      className="fixed left-0 right-0 mx-auto flex max-w-[var(--app-max-w)] flex-col overflow-hidden bg-[var(--bw-true-white)]"
       style={
         rect
           ? { top: rect.top, height: rect.height }

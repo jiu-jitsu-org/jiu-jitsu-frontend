@@ -35,7 +35,7 @@ export function KeyboardAwareShell({
 
   return (
     <div
-      className="detail-pull-refresh fixed left-0 right-0 flex flex-col overflow-hidden bg-[var(--bw-true-white)]"
+      className="detail-pull-refresh fixed left-0 right-0 mx-auto flex max-w-[var(--app-max-w)] flex-col overflow-hidden bg-[var(--bw-true-white)]"
       style={
         rect
           ? { top, height: rect.height }

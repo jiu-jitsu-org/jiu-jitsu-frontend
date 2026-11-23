@@ -208,7 +208,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         // 하단 여백은 화면이 정한다(globals.css의 --toast-bottom-inset):
         // 기본 16, 댓글 입력 바가 있는 상세는 바 위(85). z는 최상단 —
         // 우하단 플로팅 버튼(FAB, z auto)과 시트·알럿(z-50)보다 위에 와야 한다.
-        <div className="pointer-events-none fixed inset-x-4 bottom-[calc(var(--toast-bottom-inset)_+_var(--safe-area-bottom))] z-[60]">
+        <div className="pointer-events-none fixed inset-x-[calc(var(--app-gutter)_+_1rem)] bottom-[calc(var(--toast-bottom-inset)_+_var(--safe-area-bottom))] z-[60]">
           {/* 최소 높이 58(여러 줄이면 늘어남) · 모서리 20 · 짙은 바탕 + 옅은 그림자 · Body S.
               아이콘↔글자 12, 글자↔버튼 8. */}
           <div
