@@ -699,6 +699,8 @@ export function CompetitionListView({
       <CompetitionTopTint
         rank={beltRank ?? "white"}
         shown={tintShown}
+        // 결과 남기기 자리는 다른 배너보다 높아 그라데이션을 길게 — ✕로 접히기 시작하면 함께 줄인다.
+        tall={banner?.kind === "result" && closingKey !== banner.key}
         barRef={filterBarBackgroundRef}
       />
       {/* 필터 줄: 좌우 16 · 칩 간격 8, 넘치면 가로 스크롤(스크롤바 숨김) — 글쓰기 카테고리 칩 줄과 같은 규격.

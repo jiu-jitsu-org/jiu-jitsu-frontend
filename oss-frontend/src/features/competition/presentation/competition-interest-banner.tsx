@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
 
 import type { BeltRank } from "@/features/community/domain/belt";
 import type { Competition } from "@/features/competition/domain/competition";
@@ -168,15 +168,20 @@ export function isReloadedDocument(): boolean {
 export function CompetitionTopTint({
   rank,
   shown,
+  tall = false,
   barRef,
 }: {
   rank: BeltRank;
   shown: boolean | null;
+  /** 결과 남기기처럼 높은 배너가 떠 있는 동안 — 그라데이션을 그 아래 첫 카드 줄 뒤까지 길게 깐다. */
+  tall?: boolean;
   /** 필터 줄 바탕 — 그 자리의 그라데이션 구간으로 칠한다. */
   barRef: RefObject<HTMLElement | null>;
 }) {
-  const { color, depth, height } = TINT[rank];
+  const { color, depth, height: baseHeight, tallHeight } = TINT[rank];
+  const height = tall ? tallHeight : baseHeight;
   const layerRef = useRef<HTMLDivElement>(null);
+  const lastHeightRef = useRef(height);
   const requestUpdateRef = useRef<() => void>(() => {});
   const ready = shown !== null;
   const decidedOnceRef = useRef(false);
@@ -209,6 +214,20 @@ export function CompetitionTopTint({
     }
     requestUpdateRef.current();
   }, [shown]);
+
+  // 길이가 바뀌면(높은 배너가 들어오거나 닫힘) 옛 길이에서 새 길이로 0.5초에 걸쳐 늘거나 준다 — 배너 자리가
+  // 내려오고 접히는 박자와 같다. 그라데이션은 세로로 늘이면 같은 곡선의 다른 길이가 되어, 위치(transform)만 움직인다.
+  useLayoutEffect(() => {
+    const layer = layerRef.current;
+    const from = lastHeightRef.current;
+    lastHeightRef.current = height;
+    if (!layer || from === height || !ready) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    layer.animate(
+      [{ transform: `scaleY(${from / height})` }, { transform: "none" }],
+      { duration: 500, easing: smoothOutEasing() },
+    );
+  }, [height, ready]);
 
   useEffect(() => {
     const layer = layerRef.current;
@@ -282,7 +301,7 @@ export function CompetitionTopTint({
       ref={layerRef}
       aria-hidden
       // 앱 머리줄 뒤까지 깔린 웹이면 비워 둔 머리줄 자리(--top-glass-offset) 아래부터 칠한다 — 머리줄은 앱이 같은 색으로 칠한다.
-      className="pointer-events-none absolute inset-x-0 top-[var(--top-glass-offset)]"
+      className="pointer-events-none absolute inset-x-0 top-[var(--top-glass-offset)] origin-top"
       style={{
         height,
         opacity: 0,
@@ -306,6 +325,11 @@ export function smoothOutEasing() {
  * 띠처럼 끊겨 보이지 않게 넉넉히 잡는다.
  */
 const TINT_HEIGHT = 420;
+/**
+ * 결과 남기기 자리가 떠 있을 때의 그라데이션 높이 — 그 자리가 다른 배너보다 120px쯤 높아, 그만큼 길게 깔아
+ * 첫 카드 줄 뒤에서 다 옅어지게 한다(시안 A2). 흰띠는 짧은 그대로 둔다(아래 WHITE_BELT_TINT_HEIGHT 이유).
+ */
+const RESULT_TINT_HEIGHT = 540;
 /**
  * 흰띠(먹색) 그라데이션 높이 — 먹색은 색이 없어 옅어지는 구간이 회색 카드(cool-gray-25)와 같은 밝기가 되면
  * 카드 테두리가 바탕에 묻힌다. 필터 줄 뒤에서 다 옅어지게 짧게 잡아 카드는 늘 맨 바탕 위에 둔다.
@@ -422,34 +446,40 @@ function toHex(value: string): string | null {
  * depth: TINT_STOPS 곡선에 곱하는 진하기 — 먹색은 색이 없어 같은 비율이면 옅은 회색 막으로만 보여 조금 짙게
  * 깔되, 다섯 띠를 나란히 놓았을 때 혼자 무겁지 않을 만큼만.
  * height: 그라데이션이 다 옅어지는 높이(px) — 흰띠만 짧다(WHITE_BELT_TINT_HEIGHT).
+ * tallHeight: 결과 남기기 자리가 떠 있을 때의 높이 — 흰띠는 짧게 둔 이유가 같아 그대로다.
  */
 const TINT: Record<
   BeltRank,
-  { color: string; depth: number; height: number }
+  { color: string; depth: number; height: number; tallHeight: number }
 > = {
   white: {
     color: "var(--my-profile-header-bg-black)",
     depth: 1.3,
     height: WHITE_BELT_TINT_HEIGHT,
+    tallHeight: WHITE_BELT_TINT_HEIGHT,
   },
   blue: {
     color: "var(--my-profile-header-bg-blue)",
     depth: 1,
     height: TINT_HEIGHT,
+    tallHeight: RESULT_TINT_HEIGHT,
   },
   purple: {
     color: "var(--my-profile-header-bg-purple)",
     depth: 1,
     height: TINT_HEIGHT,
+    tallHeight: RESULT_TINT_HEIGHT,
   },
   brown: {
     color: "var(--my-profile-header-bg-brown)",
     depth: 1,
     height: TINT_HEIGHT,
+    tallHeight: RESULT_TINT_HEIGHT,
   },
   black: {
     color: "var(--red-belt-bar)",
     depth: 1,
     height: TINT_HEIGHT,
+    tallHeight: RESULT_TINT_HEIGHT,
   },
 };
