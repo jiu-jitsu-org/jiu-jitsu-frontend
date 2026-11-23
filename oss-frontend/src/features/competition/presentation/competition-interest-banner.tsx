@@ -19,7 +19,7 @@ import { CloseIcon } from "@/shared/ui/icons";
  *
  * 작은 진한 카드: 왼쪽에 남은 날 네모(D-n, 당일은 '오늘'), 오른쪽에 작은 글(종류별 문구)과 굵은 대회 이름.
  * 카드를 누르면 상세가 열린다. ✕로 닫으면 이 기기에서 그 대회의 그 날짜 배너는 다시 뜨지 않는다(닫기는 호출부가 한다).
- * 결과 남기기 배너와 모서리·안쪽 여백·✕ 자리가 같다.
+ * 결과 남기기 자리와 ✕ 자리가 같다.
  */
 export function DeadlineSoonBanner({
   kind = "deadline",
