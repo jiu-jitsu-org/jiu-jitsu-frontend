@@ -114,8 +114,8 @@ export function CompetitionResultCard({
         </div>
         <Button
           variant="filled"
-          size="l"
-          className="w-full rounded-full text-button-l"
+          size="m"
+          className="w-full rounded-full"
           aria-label={`${only.name} 내 결과 남기기`}
           onClick={pressRecord(only)}
         >
