@@ -136,79 +136,37 @@ function addDays(date: string, days: number): string {
 }
 
 /**
- * 결과 남기기 안내를 ✕로 닫은 기록 — 대회 하나에 하나, 대회 탭 카드와 상세 배너가 함께 쓴다.
+ * 결과 남기기 안내를 ✕로 닫은 기록 — 대회 하나에 마지막으로 닫은 한국 날짜 하나. 대회 탭 카드와 상세 배너가 함께 쓴다.
  *
- * 처음 닫으면 그날만 쉰다 — 다음 날 카드 기간 안이면 한 번 더 묻는다. 다시 떴을 때 또 닫으면 그 대회는 더 묻지 않는다.
- * 하루 뒤 한 번 더 묻는 이유: 대회 다음 날은 지쳐서 닫기 쉬운데, 그대로 끝나면 기록을 남길 때를 놓친다.
+ * ✕는 늘 그날만 숨긴다 — 다음 날 카드 기간 안이면 다시 뜬다. 기간이 끝나거나 앱에서 기록을 남기면(#545) 더 뜨지 않는다.
+ * 영영 닫는 ✕는 없다: 대회 다음 날은 지쳐서 닫기 쉬운데, 그대로 끝나면 기록을 남길 때를 놓친다.
  */
-export type ResultPromptCloseRecord = {
-  /** 닫은 횟수 — 1이면 닫은 날만 숨기고, 2면 그 대회는 다시 묻지 않는다. */
-  count: 1 | 2;
-  /** 마지막으로 닫은 한국 날짜 "YYYY-MM-DD". */
-  date: string;
-};
 
-/** 이 횟수만큼 닫으면 그 대회는 더 묻지 않는다. */
-export const RESULT_PROMPT_CLOSE_LIMIT = 2;
-
-/** 오늘 이 대회의 결과 남기기 안내를 숨길지 — 두 번 닫았거나, 오늘(이후) 닫았으면 숨긴다. */
+/** 오늘 이 대회의 결과 남기기 안내를 숨길지 — 오늘 닫았을 때만. 다른 날(앞이든 뒤든) 닫은 기록이면 다시 띄운다. */
 export function isResultPromptClosedOn(
-  record: ResultPromptCloseRecord | null,
+  closedOn: string | null,
   today: string,
 ): boolean {
-  if (!record) return false;
-  return record.count >= RESULT_PROMPT_CLOSE_LIMIT || record.date >= today;
+  return closedOn === today;
 }
 
 /**
- * 오늘 ✕를 누른 뒤의 기록. 같은 날 또 닫으면(다른 화면에 남아 있던 안내 등) 횟수를 늘리지 않는다
- * — '두 번째'는 다음 날 다시 떴을 때 누른 ✕다.
+ * 저장된 값 → 마지막으로 닫은 날. 없거나 알아볼 수 없으면 null(닫지 않은 것으로 본다).
+ * 전에 쓰던 "1"(한 번 닫으면 영영 숨김)은 언제 닫았는지 몰라, 이 규칙으로 처음 읽는 오늘 닫은 것으로 본다
+ * — 닫은 바로 그날 다시 뜨는 일 없이, 다음 날 카드 기간 안이면 다시 뜬다.
  */
-export function closeResultPromptOn(
-  record: ResultPromptCloseRecord | null,
-  today: string,
-): ResultPromptCloseRecord {
-  if (!record) return { count: 1, date: today };
-  if (record.count >= RESULT_PROMPT_CLOSE_LIMIT || record.date >= today) {
-    return record;
-  }
-  return { count: 2, date: today };
-}
-
-/**
- * 저장된 값 → 닫은 기록. 없거나 알아볼 수 없으면 null(닫지 않은 것으로 본다).
- * 전에 쓰던 "1"(한 번 닫으면 영영 숨김)은 날짜가 없어, 이 규칙으로 처음 읽는 오늘 처음 닫은 것으로 본다
- * — 닫은 바로 그날 다시 뜨는 일 없이, 다음 날 카드 기간 안이면 한 번 더 묻는다.
- */
-export function parseResultPromptClose(
+export function parseResultPromptClosedOn(
   raw: string | null,
   today: string,
-): ResultPromptCloseRecord | null {
-  if (raw === null) return null;
-  if (raw === LEGACY_CLOSED) return { count: 1, date: today };
-  try {
-    const value: unknown = JSON.parse(raw);
-    if (typeof value !== "object" || value === null) return null;
-    const { count, date } = value as { count?: unknown; date?: unknown };
-    if (typeof count !== "number" || !Number.isInteger(count) || count < 1) {
-      return null;
-    }
-    if (typeof date !== "string" || !isDateKey(date)) return null;
-    return { count: count >= RESULT_PROMPT_CLOSE_LIMIT ? 2 : 1, date };
-  } catch {
-    return null;
-  }
+): string | null {
+  if (raw === LEGACY_CLOSED) return today;
+  if (raw === null || !isDateKey(raw)) return null;
+  return raw;
 }
 
-/** 전에 쓰던 저장 값인지 — 읽은 김에 날짜를 붙여 다시 써 둔다. */
+/** 전에 쓰던 저장 값인지 — 읽은 김에 오늘 날짜로 다시 써 둔다. */
 export function isLegacyResultPromptClose(raw: string | null): boolean {
   return raw === LEGACY_CLOSED;
-}
-
-export function serializeResultPromptClose(
-  record: ResultPromptCloseRecord,
-): string {
-  return JSON.stringify({ count: record.count, date: record.date });
 }
 
 /** #368 ~ #670 때 쓰던 값 — 한 번 닫으면 그 대회는 다시 뜨지 않았다. */

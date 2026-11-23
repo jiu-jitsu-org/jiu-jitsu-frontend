@@ -89,7 +89,7 @@ export function CompetitionBannerSlot({
 
 /**
  * ✕로 닫은 배너를 이 기기에 기억한다 — 종류마다 원래 쓰던 닫은 기록을 그대로 쓴다.
- * 결과 남기기는 처음 닫으면 그날만 숨고 다음 날 한 번 더 뜬다(domain `closeResultPromptOn`).
+ * 결과 남기기는 닫으면 그날만 숨고 다음 날 카드 기간 안이면 다시 뜬다(domain `isResultPromptClosedOn`).
  */
 export function dismissBannerSlotItem(item: BannerSlotItem, today: string) {
   switch (item.kind) {
