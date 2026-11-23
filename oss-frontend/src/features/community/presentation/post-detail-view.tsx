@@ -17,6 +17,7 @@ import { PostDetailBody } from "@/features/community/presentation/post-detail-bo
 import { PostDetailFooter } from "@/features/community/presentation/post-detail-footer";
 import { PostDetailHeader } from "@/features/community/presentation/post-detail-header";
 import { PostDetailImages } from "@/features/community/presentation/post-detail-images";
+import { PostLikeFab } from "@/features/community/presentation/post-like-fab";
 import { PostDetailReturnListener } from "@/features/community/presentation/post-detail-return-listener";
 import { PostTags } from "@/features/community/presentation/post-tags";
 import { KeyboardAwareShell } from "@/features/community/presentation/keyboard-aware-shell";
@@ -90,6 +91,7 @@ export function PostDetailView({
             // 외부 브라우저에서는 입력 바를 감춘다(#72) — 세션이 없어 전송이 반드시 실패한다.
             footer={
               <PostDetailFooter
+                likeFab={<PostLikeFab />}
                 inputBar={
                   <CommentInputBar
                     contentId={post.id}
@@ -161,6 +163,8 @@ export function PostDetailView({
               </div>
 
               {footerSection}
+              {/* 맨 끝까지 내려도 떠 있는 좋아요 버튼(48 + 입력 바와 간격 12)이 마지막 글을 가리지 않게 비운다. */}
+              <div aria-hidden className="h-15" />
             </>
           </KeyboardAwareShell>
         </PostActionsProvider>
