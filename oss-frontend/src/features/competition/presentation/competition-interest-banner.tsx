@@ -217,16 +217,32 @@ export function CompetitionTopTint({
 
   // 길이가 바뀌면(높은 배너가 들어오거나 닫힘) 옛 길이에서 새 길이로 0.5초에 걸쳐 늘거나 준다 — 배너 자리가
   // 내려오고 접히는 박자와 같다. 그라데이션은 세로로 늘이면 같은 곡선의 다른 길이가 되어, 위치(transform)만 움직인다.
+  // 필터 줄·앱 머리 칠하기는 아래 효과를 다시 돌리지 않고 새 길이로 다시 칠만 한다 — 다시 돌리면 정리하며 앱 머리 색을
+  // 한 번 지웠다 다시 보내 깜빡일 수 있다.
   useLayoutEffect(() => {
     const layer = layerRef.current;
     const from = lastHeightRef.current;
     lastHeightRef.current = height;
-    if (!layer || from === height || !ready) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    layer.animate(
-      [{ transform: `scaleY(${from / height})` }, { transform: "none" }],
+    if (!layer || from === height) return;
+    requestUpdateRef.current();
+    if (!ready || window.matchMedia("(prefers-reduced-motion: reduce)").matches)
+      return;
+    // 늘거나 주는 도중에 또 바뀌면 지금 보이는 길이에서 이어 간다(옛 길이로 튀지 않게).
+    const stretching = layer
+      .getAnimations()
+      .filter((running) => scaleAnimations.has(running));
+    const scale = stretching.length
+      ? new DOMMatrixReadOnly(getComputedStyle(layer).transform).d
+      : 1;
+    for (const running of stretching) running.cancel();
+    const animation = layer.animate(
+      [
+        { transform: `scaleY(${(scale * from) / height})` },
+        { transform: "none" },
+      ],
       { duration: 500, easing: smoothOutEasing() },
     );
+    scaleAnimations.add(animation);
   }, [height, ready]);
 
   useEffect(() => {
@@ -256,6 +272,7 @@ export function CompetitionTopTint({
       const layerTop = layer.getBoundingClientRect().top;
       const barRect = bar?.getBoundingClientRect();
       const from = barRect ? barRect.top - layerTop : window.scrollY;
+      const height = lastHeightRef.current;
       const top = tintAt(from, height) * strength;
       if (bar && barRect && top > 0) {
         bar.style.background = tintGradient(
@@ -294,7 +311,7 @@ export function CompetitionTopTint({
       delete html.dataset[TINT_PAINTED_FLAG];
       setNativeCompetitionHeaderTint(null);
     };
-  }, [barRef, color, depth, height, ready]);
+  }, [barRef, color, depth, ready]);
 
   return (
     <div
@@ -310,6 +327,9 @@ export function CompetitionTopTint({
     />
   );
 }
+
+/** 그라데이션 길이를 늘이고 주는 움직임 — 처음 옅게 들어오는 움직임(opacity)과 가려 이것만 이어 받는다. */
+const scaleAnimations = new WeakSet<Animation>();
 
 /** --ease-smooth-out 값 — 스크립트 애니메이션도 CSS 모션 토큰과 같은 곡선을 쓴다. */
 export function smoothOutEasing() {
