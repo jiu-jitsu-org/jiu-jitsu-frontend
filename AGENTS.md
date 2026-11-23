@@ -174,7 +174,7 @@ src/features/<feature>/
 
 폴드·가로·태블릿 같은 넓은 화면에서도 body가 `--app-max-w`(480px) 폭으로 가운데 선다(`globals.css`).
 폭을 `100vw`로 재지 말고 `var(--app-col-w)`를 쓴다. `fixed` 요소는 화면 기준이라 `mx-auto max-w-[var(--app-max-w)]`
-또는 `var(--app-gutter)` + 여백으로 줄에 맞춘다(사진 크게 보기 같은 어두운 전체 판은 예외). 넓게 쓰는 화면은 `.app-wide-page`(현재 `/ds`).
+또는 `var(--app-gutter)` + 여백으로 줄에 맞춘다(사진 크게 보기 같은 어두운 전체 판은 예외). 넓게 쓰는 화면은 `.app-wide-page`(현재 `/ds`, 약관 `/policies`, 공지 `/notices`).
 
 ## Clean Architecture 규칙
 

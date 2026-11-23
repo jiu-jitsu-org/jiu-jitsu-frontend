@@ -17,7 +17,7 @@ export function AnnouncementDetailPage({
   announcement: AnnouncementDetail;
 }) {
   return (
-    <main className="min-h-screen bg-white px-6 py-12 text-zinc-900">
+    <main className="app-wide-page min-h-screen bg-white px-6 py-12 text-zinc-900">
       <article className="mx-auto w-full max-w-3xl">
         <Link
           href="/notices"

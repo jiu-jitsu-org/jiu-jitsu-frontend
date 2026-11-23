@@ -36,7 +36,7 @@ const POLICY_LINKS: PolicyLink[] = [
  */
 export function PoliciesIndexPage() {
   return (
-    <main className="min-h-screen bg-white px-6 py-12 text-zinc-900">
+    <main className="app-wide-page min-h-screen bg-white px-6 py-12 text-zinc-900">
       <div className="mx-auto w-full max-w-3xl">
         <header className="border-b border-zinc-200 pb-6">
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
