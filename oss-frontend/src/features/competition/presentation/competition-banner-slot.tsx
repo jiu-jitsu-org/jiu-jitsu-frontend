@@ -87,11 +87,17 @@ export function CompetitionBannerSlot({
   }
 }
 
-/** ✕로 닫은 배너를 이 기기에 기억한다 — 종류마다 원래 쓰던 닫은 기록을 그대로 쓴다. */
-export function dismissBannerSlotItem(item: BannerSlotItem) {
+/**
+ * ✕로 닫은 배너를 이 기기에 기억한다 — 종류마다 원래 쓰던 닫은 기록을 그대로 쓴다.
+ * 결과 남기기는 처음 닫으면 그날만 숨고 다음 날 한 번 더 뜬다(domain `closeResultPromptOn`).
+ */
+export function dismissBannerSlotItem(item: BannerSlotItem, today: string) {
   switch (item.kind) {
     case "result":
-      dismissResultPrompt(item.group.competitions.map(({ id }) => id));
+      dismissResultPrompt(
+        item.group.competitions.map(({ id }) => id),
+        today,
+      );
       return;
     case "deadline":
       dismissDeadlineBanner(item.deadline);
@@ -115,13 +121,16 @@ export function dismissBannerSlotItem(item: BannerSlotItem) {
  * 닫은 기록이 이 기기의 브라우저 저장소에만 있어, 서버 그림과 첫 그림에서는 아직 정하지 않는다(ready: false).
  * 결과 남기기는 앱 웹뷰에서만 띄운다 — '내 기록에 남기기'가 앱 화면을 여는 일이라서다(상세 배너와 같다).
  */
-export function useBannerSlot(queue: readonly BannerSlotItem[]): {
+export function useBannerSlot(
+  queue: readonly BannerSlotItem[],
+  today: string,
+): {
   ready: boolean;
   item: BannerSlotItem | null;
 } {
   const snapshot = useSyncExternalStore(
     subscribeDismissed,
-    () => slotSnapshot(queue),
+    () => slotSnapshot(queue, today),
     () => PENDING,
   );
   if (snapshot === PENDING) return { ready: false, item: null };
@@ -148,22 +157,26 @@ let decided: { key: string | null } | null = null;
  * 지금 보일 배너 — "이름" 또는 결과 남기기면 "이름\n아직 닫지 않은 대회 id들". 보일 배너가 없으면 "".
  * 문자열이라 값이 같으면 다시 그리지 않는다.
  */
-function slotSnapshot(queue: readonly BannerSlotItem[]): string {
+function slotSnapshot(queue: readonly BannerSlotItem[], today: string): string {
   const inApp = isNativeBridgeAvailable();
   const usable = queue.filter((item) => item.kind !== "result" || inApp);
-  const key = decideKey(usable);
+  const key = decideKey(usable, today);
   const item = usable.find((candidate) => candidate.key === key);
-  if (!item || !isOpen(item)) return "";
+  if (!item || !isOpen(item, today)) return "";
   if (item.kind !== "result") return item.key;
-  return `${item.key}\n${openResultIds(item.group).join(",")}`;
+  return `${item.key}\n${openResultIds(item.group, today).join(",")}`;
 }
 
-function decideKey(queue: readonly BannerSlotItem[]): string | null {
+function decideKey(
+  queue: readonly BannerSlotItem[],
+  today: string,
+): string | null {
+  const open = (item: BannerSlotItem) => isOpen(item, today);
   // 정한 배너가 대기열에서 빠졌거나(관심을 끔·다른 계정), 띄울 게 없었는데 새 배너가 생기면 다시 정한다.
   if (decided) {
     const kept =
       decided.key === null
-        ? !queue.some(isOpen)
+        ? !queue.some(open)
         : queue.some((item) => item.key === decided?.key);
     if (kept) return decided.key;
     decided = null;
@@ -172,12 +185,12 @@ function decideKey(queue: readonly BannerSlotItem[]): string | null {
   if (queue.length === 0) return null;
   const byKey = new Map(queue.map((item) => [item.key, item]));
   const key =
-    (!isReloadedDocument() && randomOpenResult(queue)) ||
+    (!isReloadedDocument() && randomOpenResult(queue, open)) ||
     nextBannerSlotKey(
       queue.map((item) => item.key),
       (candidate) => {
         const item = byKey.get(candidate);
-        return item ? isOpen(item) : false;
+        return item ? open(item) : false;
       },
       isReloadedDocument() ? readRotation() : null,
     );
@@ -187,16 +200,21 @@ function decideKey(queue: readonly BannerSlotItem[]): string | null {
 }
 
 /** 처음 들어올 때 띄울 결과 남기기 — 끝난 관심 대회가 여럿이면 매번 같은 대회만 묻지 않게 무작위로 한 장. */
-function randomOpenResult(queue: readonly BannerSlotItem[]): string | null {
-  const open = queue.filter((item) => item.kind === "result" && isOpen(item));
+function randomOpenResult(
+  queue: readonly BannerSlotItem[],
+  isOpenItem: (item: BannerSlotItem) => boolean,
+): string | null {
+  const open = queue.filter(
+    (item) => item.kind === "result" && isOpenItem(item),
+  );
   if (open.length === 0) return null;
   return open[Math.floor(Math.random() * open.length)].key;
 }
 
-function isOpen(item: BannerSlotItem): boolean {
+function isOpen(item: BannerSlotItem, today: string): boolean {
   switch (item.kind) {
     case "result":
-      return openResultIds(item.group).length > 0;
+      return openResultIds(item.group, today).length > 0;
     case "deadline":
       return !isDeadlineBannerDismissed(item.deadline);
     case "event":
@@ -204,9 +222,9 @@ function isOpen(item: BannerSlotItem): boolean {
   }
 }
 
-function openResultIds(group: ResultCardGroup): number[] {
+function openResultIds(group: ResultCardGroup, today: string): number[] {
   return group.competitions
-    .filter(({ id }) => !isResultPromptDismissed(id))
+    .filter(({ id }) => !isResultPromptDismissed(id, today))
     .map(({ id }) => id);
 }
 

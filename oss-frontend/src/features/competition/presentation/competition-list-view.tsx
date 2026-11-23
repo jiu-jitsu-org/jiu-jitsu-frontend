@@ -482,7 +482,7 @@ export function CompetitionListView({
     signedIn,
     today,
   ]);
-  const bannerSlot = useBannerSlot(bannerQueue);
+  const bannerSlot = useBannerSlot(bannerQueue, today);
   const bannerDecided = bannerSlot.item !== null;
   // 배너는 목록보다 반 박자 늦게 들어온다 — 목록이 다 보인 뒤 배너 자리가 열리며 내려와 눈이 그리로 간다.
   // 화면이 실제로 보일 때부터 센다: 앱은 대회 탭 웹을 안 보이는 채로 미리 불러 두고(#271), 처음 불러올 때는
@@ -589,7 +589,7 @@ export function CompetitionListView({
       window.matchMedia("(prefers-reduced-motion: reduce)").matches
     ) {
       trackBannerDismiss(item);
-      dismissBannerSlotItem(item);
+      dismissBannerSlotItem(item, today);
       return;
     }
     // 접히는 중에 ✕를 또 누르면 무시한다(움직임이 겹쳐 쌓이지 않게).
@@ -616,7 +616,7 @@ export function CompetitionListView({
     const dismiss = () => {
       if (dismissed) return;
       dismissed = true;
-      dismissBannerSlotItem(item);
+      dismissBannerSlotItem(item, today);
     };
     collapse.onfinish = dismiss;
     collapse.oncancel = dismiss;
