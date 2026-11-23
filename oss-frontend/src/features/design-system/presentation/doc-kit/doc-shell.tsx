@@ -60,7 +60,7 @@ export function DocShell({ docs }: { docs: Record<string, ReactNode> }) {
   const activeDoc = findDoc(active);
 
   return (
-    <div className="min-h-dvh bg-surface-container">
+    <div className="app-wide-page min-h-dvh bg-surface-container">
       {/* 좁은 화면 — 위에 붙은 문서 바. 누르면 문서 목록이 펼쳐진다. */}
       <div className="sticky top-0 z-30 bg-surface-container/95 pt-[var(--safe-area-top)] backdrop-blur lg:hidden">
         <button
