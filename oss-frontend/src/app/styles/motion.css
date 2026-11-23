@@ -91,6 +91,47 @@
     1
   );
 
+  /* ζ=0.55 — 한 번 살짝(최대 1.13) 넘치고 차분히 자리 잡는다. 바닥에서 솟는 덩어리(결과 남기기 단상)에. */
+  --ease-spring-soft: linear(
+    0,
+    0.034,
+    0.123,
+    0.246,
+    0.386,
+    0.53,
+    0.667,
+    0.789,
+    0.894,
+    0.978,
+    1.041,
+    1.085,
+    1.112,
+    1.125,
+    1.126,
+    1.118,
+    1.105,
+    1.088,
+    1.07,
+    1.052,
+    1.036,
+    1.021,
+    1.009,
+    0.999,
+    0.992,
+    0.988,
+    0.985,
+    0.984,
+    0.984,
+    0.986,
+    0.988,
+    0.99,
+    0.992,
+    0.994,
+    0.996,
+    0.998,
+    1
+  );
+
   /* ζ=0.7 — 거의 넘치지 않고(최대 1.05) 한 번에 자리 잡는다. 미끄러지는 위치 이동(탭 밑줄)에. */
   --ease-spring-gentle: linear(
     0,
@@ -216,6 +257,10 @@
   --animate-hot-swap-flame: hot-swap-flame 4000ms ease-in-out infinite;
   --animate-hot-swap-text: hot-swap-text 4000ms ease-in-out infinite;
 
+  /* 결과 남기기 단상 — 버튼(바닥) 아래에서 솟아오르며 살짝 튀고 자리 잡는다. 호출부가 칸마다 늦춰 2 → 1 → 3 순서로 솟게 한다.
+     늦춰 둔 동안은 backwards가 첫 장면(바닥 아래)으로 숨겨 두고, 끝난 뒤엔 아무것도 남기지 않는다. */
+  --animate-podium-rise: podium-rise 500ms var(--ease-spring-soft) backwards;
+
   /* 추가되는 작은 조각(사진 썸네일·태그 칩) — 작게 시작해 톡 부풀며 자리 잡는다. */
   --animate-pop-in: pop-in 400ms var(--ease-spring-bouncy) both;
   /* 지워지는 작은 조각 — 줄어들며 사라진다. 끝나면 호출부가 DOM에서 뺀다. */
@@ -271,6 +316,15 @@
     to {
       opacity: 1;
       transform: translateY(0);
+    }
+  }
+
+  @keyframes podium-rise {
+    from {
+      transform: translateY(105%);
+    }
+    to {
+      transform: none;
     }
   }
 

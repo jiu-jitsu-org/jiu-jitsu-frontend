@@ -56,7 +56,13 @@ export function CompetitionBannerSlot({
   };
   switch (item.kind) {
     case "result":
-      return <CompetitionResultCard group={item.group} onClose={onClose} />;
+      return (
+        <CompetitionResultCard
+          key={item.key}
+          group={item.group}
+          onClose={onClose}
+        />
+      );
     case "deadline":
       return (
         <DeadlineSoonBanner
