@@ -30,7 +30,11 @@ export function revealInRow(
       item.parentElement?.children ?? [],
       (el) => startOf(el) - edge,
     );
-    const left = chipStarts.find((start) => start >= needed) ?? needed;
+    // 칩이 줄보다 넓으면 다음 칩 자리까지 밀어 버리지 않게, 고른 칩 시작을 넘지 않는다.
+    const left = Math.min(
+      chipStarts.find((start) => start >= needed) ?? needed,
+      startOf(item) - edge,
+    );
     row.scrollTo({ left, behavior });
   }
 }
