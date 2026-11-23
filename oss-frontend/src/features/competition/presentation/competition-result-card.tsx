@@ -74,7 +74,7 @@ export function CompetitionResultCard({
         <span className="text-[12px] leading-[16px] text-[var(--opacity-white-60)]">
           {endedLabel(group.daysAgo)} 관심 대회
         </span>
-        <span className="line-clamp-2 text-[16px] leading-[22px] font-bold break-keep">
+        <span className="line-clamp-2 text-[16px] leading-[22px] font-bold break-keep [overflow-wrap:anywhere]">
           {only.name}
         </span>
         <Button
