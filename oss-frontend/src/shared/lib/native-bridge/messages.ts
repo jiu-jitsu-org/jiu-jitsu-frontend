@@ -82,7 +82,8 @@ export const OutboundMessageType = {
   HOME_HEADER_TINT: "HOME_HEADER_TINT",
   // 웹 시트 열림·닫힘(#465 · jiu-jitsu-ios#314). 웹 바텀 시트가 화면에 떠 있는 동안 open:true, 다 내려가면 false.
   // 앱은 열려 있는 동안 떠 있는 탭 바를 숨기고 가린 높이(obscuredContentInsets)를 0으로 돌려, 시트가 탭 바 자리까지
-  // 내려오고 딤이 그 자리를 덮게 한다. 구버전 앱은 모르므로 지원 목록에 있을 때만 보낸다(useNativeSheetOpen).
+  // 내려오고 딤이 그 자리를 덮게 한다. dimmed는 웹 딤이 깔린 동안만 true — 닫기 시작하면 open은 true인 채 dimmed만
+  // false로 먼저 알려, 앱 머리줄 딤이 웹 딤과 함께 걷힌다. 구버전 앱은 모르므로 지원 목록에 있을 때만 보낸다(useNativeSheetOpen).
   SET_SHEET_OPEN: "SET_SHEET_OPEN",
   // 머리줄 유리 면(jiu-jitsu-ios 상단 블러). 앱은 홈 · 대회 탭 웹뷰를 앱 머리줄(상태바 포함) 뒤까지 깔고, 그 높이를
   // `--app-header-obscured-top`으로 문서 시작 때 넣는다. 웹은 맨 위를 그만큼 비우고 붙는 줄(칩 · 필터 줄)을 그 아래에 붙이며,
@@ -334,9 +335,13 @@ export type ContentAlertsResultPayload = {
   deviceEnabled: boolean;
 };
 
-/** `SET_SHEET_OPEN` payload — 웹 시트가 하나라도 떠 있으면 true, 마지막 시트가 다 내려가면 false. */
+/**
+ * `SET_SHEET_OPEN` payload — 웹 시트가 하나라도 떠 있으면 open true, 마지막 시트가 다 내려가면 false.
+ * dimmed는 딤이 깔린 동안만 true(내려가기 시작하면 false).
+ */
 export type SheetOpenPayload = {
   open: boolean;
+  dimmed: boolean;
 };
 
 /** `SET_TOP_GLASS` payload — 웹이 머리줄 뒤까지 유리 면을 그리는 동안 true, 화면을 떠나면 false. */
