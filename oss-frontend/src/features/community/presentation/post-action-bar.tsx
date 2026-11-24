@@ -1,7 +1,5 @@
 "use client";
 
-import { createContext, useContext, type ReactNode } from "react";
-
 import { COMMENT_INPUT_ELEMENT_ID } from "@/features/community/presentation/comment-input-bar";
 import { ReactionBarButton } from "@/features/community/presentation/reaction-bar-button";
 import { shareCurrentPage } from "@/features/community/presentation/share-current-page";
@@ -15,55 +13,11 @@ import {
   ShareIcon,
 } from "@/shared/ui/icons";
 
-type PostActions = ReturnType<typeof usePostActions>;
-
-const PostActionsContext = createContext<PostActions | null>(null);
-
-/**
- * 상세 화면의 좋아요·북마크 상태 하나 — 액션바와 떠 있는 좋아요 버튼(PostLikeFab)이 같은 상태를 본다.
- * 둘이 따로 usePostActions를 쓰면 한쪽에서 누른 좋아요가 다른 쪽에 보이지 않는다.
- */
-export function PostActionsProvider({
-  postId,
-  initialLiked,
-  initialBookmarked,
-  initialLikes,
-  initialSaves,
-  children,
-}: {
-  postId: number;
-  initialLiked: boolean;
-  initialBookmarked: boolean;
-  initialLikes: number;
-  initialSaves?: number;
-  children: ReactNode;
-}) {
-  const actions = usePostActions(postId, {
-    liked: initialLiked,
-    bookmarked: initialBookmarked,
-    likes: initialLikes,
-    saves: initialSaves,
-  });
-  return (
-    <PostActionsContext.Provider value={actions}>
-      {children}
-    </PostActionsContext.Provider>
-  );
-}
-
-export function useDetailPostActions(): PostActions {
-  const actions = useContext(PostActionsContext);
-  if (!actions) {
-    throw new Error("PostActionsProvider 안에서만 쓴다.");
-  }
-  return actions;
-}
-
 /**
  * 상세 화면 액션바 (클라이언트 leaf).
  *
  * 댓글쓰기·공유가 추가되어 FeedCardReactions와 구성이 다르므로 별도 컴포넌트로 둔다.
- * 좋아요/북마크는 PostActionsProvider의 usePostActions로 낙관적 토글하고, 댓글은 서버가 준 상태를 표시만 한다.
+ * 좋아요/북마크는 usePostActions로 낙관적 토글하고, 댓글은 서버가 준 상태를 표시만 한다.
  * 비로그인은 토글 전에 로그인 알럿으로 막는다(useLoginGuard) — 상태는 비활성 그대로 남는다.
  * 공유는 카운트도 상태도 두지 않는다(정책) — 아이콘 탭으로 공유 시트를 여는 것이 전부다.
  * 시트를 여는 순서와 이유는 shareCurrentPage 참고(밸런스 게임 상세와 공용).
@@ -81,10 +35,20 @@ export function useDetailPostActions(): PostActions {
  * 1 이상이면 숫자를 노출한다. 서버가 내려주는 값만 쓰고 없는 값을 임의로 만들지 않는다.
  */
 export function PostActionBar({
+  postId,
+  initialLiked,
+  initialBookmarked,
+  initialLikes,
+  initialSaves,
   comments,
   commented = false,
   className,
 }: {
+  postId: number;
+  initialLiked: boolean;
+  initialBookmarked: boolean;
+  initialLikes: number;
+  initialSaves?: number;
   /**
    * commentCount. 다른 버튼과 같은 규칙 — 0이면 "댓글쓰기", 1 이상이면 숫자.
    * 낙관적 상태가 아니라 서버 렌더 값이다(댓글 등록 후 router.refresh로 갱신).
@@ -95,7 +59,12 @@ export function PostActionBar({
   className?: string;
 }) {
   const { liked, bookmarked, likes, saves, toggleLike, toggleBookmark } =
-    useDetailPostActions();
+    usePostActions(postId, {
+      liked: initialLiked,
+      bookmarked: initialBookmarked,
+      likes: initialLikes,
+      saves: initialSaves,
+    });
 
   // 로그인 기반 액션은 탭 시점에 가로챈다 — 외부 브라우저는 앱 안내, 앱 비로그인은 로그인 알럿(useLoginGuard 참고).
   // 공유는 로그인과 무관해 가로채지 않는다(#173).
