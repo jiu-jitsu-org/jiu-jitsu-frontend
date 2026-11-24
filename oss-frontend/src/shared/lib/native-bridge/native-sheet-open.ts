@@ -21,6 +21,21 @@ function sync(): void {
   postToNative({ type: OutboundMessageType.SET_SHEET_OPEN, payload: next });
 }
 
+let syncQueued = false;
+
+/**
+ * 같은 순간의 변화를 모아 한 번만 알린다. 시트가 열린 채 화면이 사라지면 딤·열림 정리가 연달아 돌아
+ * '딤만 걷힘'이 잠깐 끼어 나가던 것을, 마지막 상태 하나로 보낸다.
+ */
+function queueSync(): void {
+  if (syncQueued) return;
+  syncQueued = true;
+  queueMicrotask(() => {
+    syncQueued = false;
+    sync();
+  });
+}
+
 /**
  * 웹 시트가 떠 있는 동안 앱에 알린다(#465 · jiu-jitsu-ios#314).
  *
@@ -35,24 +50,24 @@ function sync(): void {
  * 다 내려간 뒤(`active` false)에 걷으면 앱 쪽만 한 박자 늦게 밝아진다. `dimmed`를 모르는 앱은 `open`만 본다.
  */
 export function useNativeSheetOpen(active: boolean, dimmed: boolean): void {
-  // 딤을 먼저 센다 — 열릴 때 열림·딤이 한 메시지로 나간다(시트 수가 0인 동안은 보내지 않는다).
+  // 열림·딤은 queueSync로 모아 한 메시지로 나간다.
   useEffect(() => {
     if (!dimmed) return;
     dimmedSheetCount += 1;
-    sync();
+    queueSync();
     return () => {
       dimmedSheetCount -= 1;
-      sync();
+      queueSync();
     };
   }, [dimmed]);
 
   useEffect(() => {
     if (!active) return;
     openSheetCount += 1;
-    sync();
+    queueSync();
     return () => {
       openSheetCount -= 1;
-      sync();
+      queueSync();
     };
   }, [active]);
 }
