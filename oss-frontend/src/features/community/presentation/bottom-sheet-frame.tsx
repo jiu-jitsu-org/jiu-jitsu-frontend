@@ -39,7 +39,8 @@ export function BottomSheetFrame({
     if (open) setResumed(mounted);
   }
   // 내려가는 동안까지(mounted) 앱 탭 바를 숨겨 둔다 — 시트가 화면 맨 아래까지 내려와 탭 바 자리에 색 면이 안 생긴다.
-  useNativeSheetOpen(open || mounted);
+  // 딤은 닫기 시작할 때(open false) 바로 알린다 — 앱 머리줄의 딤이 아래 웹 딤과 함께 걷힌다.
+  useNativeSheetOpen(open || mounted, open);
   // 키보드 위 '실제 보이는 영역'에 시트를 맞춘다(visualViewport). 이 WKWebView에선 키보드가 떠도 fixed inset-0가
   // 안 줄어, 바닥에 붙은 시트가 키보드 뒤로 깔린다 — 검색으로 목록이 짧아지면 시트 전체가 키보드에 가려졌다(#467).
   // 글쓰기 셸(post-write-screen)과 같은 기준이다. 키보드가 떠 있고 확대하지 않았을 때만 쓴다 — 브라우저에서 핀치 확대하면
@@ -72,7 +73,8 @@ export function BottomSheetFrame({
           : { top: 0, bottom: 0 }
       }
     >
-      {/* 딤(바깥 탭 시 닫기) — 웹뷰 영역까지만 덮이는 건 웹 표면의 한계다. */}
+      {/* 딤(바깥 탭 시 닫기) — 웹뷰 영역까지만 덮인다. 앱 머리줄은 앱이 같은 시간·곡선으로 덮으므로(jiu-jitsu-ios
+          WebSheetHeaderDim) 여기 시간·곡선을 바꾸면 앱도 함께 바꾼다. */}
       <button
         type="button"
         aria-label="닫기"
