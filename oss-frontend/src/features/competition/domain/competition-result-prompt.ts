@@ -134,3 +134,40 @@ function addDays(date: string, days: number): string {
   moved.setUTCDate(moved.getUTCDate() + days);
   return moved.toISOString().slice(0, 10);
 }
+
+/**
+ * 결과 남기기 안내를 ✕로 닫은 기록 — 대회 하나에 마지막으로 닫은 한국 날짜 하나. 대회 탭 카드와 상세 배너가 함께 쓴다.
+ *
+ * ✕는 늘 그날만 숨긴다 — 다음 날 카드 기간 안이면 다시 뜬다. 기간이 끝나거나 앱에서 기록을 남기면(#545) 더 뜨지 않는다.
+ * 영영 닫는 ✕는 없다: 대회 다음 날은 지쳐서 닫기 쉬운데, 그대로 끝나면 기록을 남길 때를 놓친다.
+ */
+
+/** 오늘 이 대회의 결과 남기기 안내를 숨길지 — 오늘 닫았을 때만. 다른 날(앞이든 뒤든) 닫은 기록이면 다시 띄운다. */
+export function isResultPromptClosedOn(
+  closedOn: string | null,
+  today: string,
+): boolean {
+  return closedOn === today;
+}
+
+/**
+ * 저장된 값 → 마지막으로 닫은 날. 없거나 알아볼 수 없으면 null(닫지 않은 것으로 본다).
+ * 전에 쓰던 "1"(한 번 닫으면 영영 숨김)은 언제 닫았는지 몰라, 이 규칙으로 처음 읽는 오늘 닫은 것으로 본다
+ * — 닫은 바로 그날 다시 뜨는 일 없이, 다음 날 카드 기간 안이면 다시 뜬다.
+ */
+export function parseResultPromptClosedOn(
+  raw: string | null,
+  today: string,
+): string | null {
+  if (raw === LEGACY_CLOSED) return today;
+  if (raw === null || !isDateKey(raw)) return null;
+  return raw;
+}
+
+/** 전에 쓰던 저장 값인지 — 읽은 김에 오늘 날짜로 다시 써 둔다. */
+export function isLegacyResultPromptClose(raw: string | null): boolean {
+  return raw === LEGACY_CLOSED;
+}
+
+/** #368 ~ #670 때 쓰던 값 — 한 번 닫으면 그 대회는 다시 뜨지 않았다. */
+const LEGACY_CLOSED = "1";

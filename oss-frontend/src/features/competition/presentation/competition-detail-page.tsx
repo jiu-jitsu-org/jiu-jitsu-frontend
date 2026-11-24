@@ -110,6 +110,7 @@ export function CompetitionDetailPage({
                 name={competition.name}
                 year={Number(competition.date.slice(0, 4))}
                 daysAgo={status.daysAgo}
+                today={data.today}
               />
             ) : null}
             <CompetitionDetailSummary

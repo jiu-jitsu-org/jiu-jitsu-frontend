@@ -22,7 +22,7 @@ import { CloseIcon } from "@/shared/ui/icons";
 /**
  * 끝난 대회의 결과 남기기 배너 (#368).
  *
- * 맨 위(앱바 아래)에 화면 흐름 안에 놓아 읽던 내용을 가리지 않는다. ✕로 닫으면 이 기기에서 같은 대회에 다시 뜨지 않는다
+ * 맨 위(앱바 아래)에 화면 흐름 안에 놓아 읽던 내용을 가리지 않는다. ✕로 닫으면 그날만 숨고 다음 날 다시 뜬다
  * — 대회 탭의 결과 남기기 카드(#403)와 닫은 기록을 함께 쓴다.
  * "내 기록에 남기기"는 앱의 대회 정보 추가를 이 대회로 채워 연다(jiu-jitsu-ios#252) — 결과 입력은 앱 화면이다.
  * 그래서 앱 밖 브라우저에서는 배너를 두지 않는다(위에 '앱으로 보기' 배너가 있다).
@@ -33,14 +33,17 @@ export function CompetitionResultBanner({
   name,
   year,
   daysAgo,
+  today,
 }: {
   competitionId: number;
   name: string;
   year: number;
   daysAgo: number;
+  /** 한국 날짜 "YYYY-MM-DD" — 응답의 today. 닫은 그날만 숨길 때 쓴다. */
+  today: string;
 }) {
   const externalBrowser = useIsExternalBrowser();
-  const dismissed = useResultPromptDismissed(competitionId);
+  const dismissed = useResultPromptDismissed(competitionId, today);
   const { guard } = useLoginGuard();
   const toast = useToast();
   useCloseResultPromptOnRecord();
@@ -99,7 +102,7 @@ export function CompetitionResultBanner({
         aria-label="결과 남기기 안내 닫기"
         onClick={() => {
           trackBannerClick(analytics, "dismiss");
-          dismissResultPrompt([competitionId]);
+          dismissResultPrompt([competitionId], today);
         }}
         className="-mt-1.5 flex-none text-icon-secondary"
       >
