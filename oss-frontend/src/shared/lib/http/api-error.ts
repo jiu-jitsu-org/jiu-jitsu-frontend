@@ -24,7 +24,7 @@ export const ApiErrorCode = {
   /** 404 존재하지 않는 게시글. */
   BOARD_NOT_FOUND: "C0002",
   /** 400 금칙어가 들어 있어 글·댓글 등록을 거절(backend#237). 어느 단어인지는 화면에 알리지 않는다. */
-  FORBIDDEN_WORD: "C0015",
+  FORBIDDEN_WORD: "C0016",
   /** 400 이미 신고한 게시글·댓글. 동일 대상 중복 신고를 서버가 막을 때. */
   ALREADY_REPORTED: "U0008",
   /** 403 만료된 액세스 토큰. 브라우저는 bffFetch가 네이티브 갱신·재시도로 처리한다. */

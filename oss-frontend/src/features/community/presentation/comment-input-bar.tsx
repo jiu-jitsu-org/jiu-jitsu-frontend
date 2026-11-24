@@ -399,7 +399,7 @@ export function CommentInputBar({
   );
 }
 
-/** 금칙어 거절 응답인지 — 400 + 업스트림 code `C0015`(#504). 상태코드만으론 일반 400과 구분되지 않는다. */
+/** 금칙어 거절 응답인지 — 400 + 업스트림 code `C0016`(#504). 상태코드만으론 일반 400과 구분되지 않는다. */
 async function isForbiddenWord(response: Response): Promise<boolean> {
   if (response.status !== 400) return false;
   const json = (await response.json().catch(() => null)) as {
