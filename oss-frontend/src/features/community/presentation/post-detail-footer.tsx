@@ -13,27 +13,13 @@ import { useIsExternalBrowser } from "@/shared/lib/native-bridge";
  *
  * 빈 자리에 '앱에서 댓글 남기기' 같은 하단 CTA는 두지 않기로 했다 — 참여 진입점은 상단 배너 하나로
  * 일원화한다(위아래 배너가 겹치면 과하다는 판단).
- *
- * 떠 있는 좋아요 버튼(likeFab)은 입력 바 위에 붙어 함께 감춘다 — 외부 브라우저에선 좋아요도 앱 안내뿐이라
- * 위쪽 배너 하나로 충분하다.
  */
-export function PostDetailFooter({
-  inputBar,
-  likeFab,
-}: {
-  inputBar: ReactNode;
-  likeFab?: ReactNode;
-}) {
+export function PostDetailFooter({ inputBar }: { inputBar: ReactNode }) {
   const externalBrowser = useIsExternalBrowser();
 
   if (externalBrowser) {
     return null;
   }
 
-  return (
-    <div className="relative">
-      {likeFab}
-      {inputBar}
-    </div>
-  );
+  return <>{inputBar}</>;
 }
