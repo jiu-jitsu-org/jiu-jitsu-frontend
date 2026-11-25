@@ -266,6 +266,9 @@ export function BalanceHeroBoard({
   // 득표율 — 상세는 투표했거나 마감되면, 홈은 마감된 판(00:00~00:30 교체 버퍼)일 때 보인다(#427).
   // 버퍼 동안 홈은 방금 끝난 판의 결과를 보여 주는 자리라, 투표하지 않은 사람에게도 결과를 연다.
   const showResult = detail || game.closed;
+  // 끝난 판 결과(어제 결과 · 끝난 판 상세) — 더 셀 시간이 없어 경기 시계를 걷고, 질문(타이틀)과 내 선택을 앞에 둔다.
+  // 교체 버퍼(result)는 다음 게임까지 세는 시계가 있어 그대로 둔다.
+  const settled = clock.phase === "closed";
   const palette = BOARD_PALETTE;
   const boardRef = usePauseMotionWhenHidden<HTMLElement>();
 
@@ -299,6 +302,13 @@ export function BalanceHeroBoard({
       )}
       aria-label={heading}
     >
+      {settled ? (
+        <SettledHeader
+          label={yesterday ? "어제의 밸런스 게임" : "지난 밸런스 게임"}
+          title={game.title}
+        />
+      ) : (
+      <>
       <header className={cn("flex items-center justify-between px-1", parts.header)}>
         <h2 className={cn(balanceTitleFont.className, "text-[22px] leading-7")}>
           {heading}
@@ -354,15 +364,17 @@ export function BalanceHeroBoard({
           below={() => <BoardClockLabel phase={clock.phase} />}
         />
       </div>
+      </>
+      )}
 
-      <div className="mt-6 flex flex-col gap-5">
+      <div className={cn("flex flex-col gap-5", settled ? "mt-7" : "mt-6")}>
         <BoardRow
           option={game.optionA}
           state={optionStateOf(game, "A")}
           interactive={interactive}
           intro={parts}
           detail={showResult}
-          result={showResult ? readOptionResult(game, "A") : null}
+          result={showResult ? settledResult(readOptionResult(game, "A"), settled && game.myVote === "A") : null}
           mine={game.closed && game.myVote === "A"}
           onPress={() => onVote("A")}
         />
@@ -372,7 +384,7 @@ export function BalanceHeroBoard({
           interactive={interactive}
           intro={parts}
           detail={showResult}
-          result={showResult ? readOptionResult(game, "B") : null}
+          result={showResult ? settledResult(readOptionResult(game, "B"), settled && game.myVote === "B") : null}
           mine={game.closed && game.myVote === "B"}
           onPress={() => onVote("B")}
         />
@@ -556,6 +568,26 @@ function BoardRow({
           ) : null}
         </span>
 
+        {/*
+          내 선택(#681) — 끝난 판에서 내가 고른 줄에 흰 테두리를 두르고, 줄 위 가장자리에 채운 알약을 건다.
+          득표율 옆 작은 글자로는 '내가 다수였나'를 한눈에 찾기 어려웠다. 진영 블록(왼쪽) 바로 오른쪽 위에 둔다.
+        */}
+        {result && mine ? (
+          <>
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-0 rounded-2xl ring-2 ring-[var(--bw-true-white)] ring-inset"
+            />
+            <span
+              aria-hidden
+              className="pointer-events-none absolute -top-3 left-[calc(var(--corner-w)+12px)] flex h-6 items-center gap-0.5 rounded-full bg-[var(--bw-true-white)] pr-2.5 pl-1.5 text-label-m font-semibold whitespace-nowrap text-[var(--cool-gray-900)] shadow-[0_2px_6px_rgba(0,0,0,0.25)]"
+            >
+              <CheckIcon size={14} />
+              내 선택
+            </span>
+          </>
+        ) : null}
+
         {/* 인트로 색 판 — 줄을 진영 색으로 꽉 채웠다가 빠진다. 평소엔 보이지 않는다(opacity 0). */}
         {intro.fill ? (
           <span
@@ -595,13 +627,8 @@ function BoardRow({
           )}
         >
           <span className={cn("flex items-center justify-center pr-2", result ? "w-16" : "w-10")}>
-            <span className={cn("flex flex-col items-center gap-1", intro.letter?.[key])}>
-              {result && mine ? (
-                <span className="rounded-full border border-[var(--opacity-white-60)] px-1.5 text-label-m whitespace-nowrap">
-                  내 선택
-                </span>
-              ) : null}
-              {result ? (
+            <span className={cn("flex", intro.letter?.[key])}>
+                  {result ? (
                 <span
                   className={cn(
                     balanceNumeralFont.className,
@@ -649,5 +676,47 @@ function BoardClockLabel({ phase }: { phase: BalanceClockPhase }) {
       <TimerIcon size={14} className="text-interactive-primary" />
       {BALANCE_CLOCK_LABEL[phase]}
     </span>
+  );
+}
+
+/**
+ * 끝난 판에서는 내가 고른 쪽 막대만 진하게 칠한다(#681) — 결과를 다시 보러 온 사람이 가장 먼저 찾는 것은
+ * '내 쪽이 몇 %였나'다. 진행 중 · 교체 버퍼의 규칙(readOptionResult)은 그대로 둔다.
+ */
+function settledResult(
+  result: BalanceOptionResult | null,
+  mineInSettled: boolean,
+): BalanceOptionResult | null {
+  if (!result || !mineInSettled) return result;
+  return { ...result, emphasized: true };
+}
+
+/**
+ * 끝난 판 머리(#681) — 경기 시계 대신 질문(타이틀)을 가운데 크게 둔다. 판이 끝났다는 표시는 알약이 아니라
+ * 그 위 작은 줄('어제의 밸런스 게임 · 투표 종료')로 낮춘다. 타이틀이 없는 판은 그 자리에 판 이름을 둔다.
+ */
+function SettledHeader({
+  label,
+  title,
+}: {
+  label: string;
+  title: string | null;
+}) {
+  const palette = BOARD_PALETTE;
+  return (
+    <header className="flex flex-col items-center gap-1.5 px-2 text-center">
+      <p className={cn("flex items-center gap-1.5 text-label-m", palette.muted)}>
+        <span aria-hidden className="size-1.5 rounded-full bg-current opacity-60" />
+        {title ? `${label} · 투표 종료` : "투표 종료"}
+      </p>
+      <h2
+        className={cn(
+          balanceTitleFont.className,
+          "text-[26px] leading-[34px] text-balance break-keep",
+        )}
+      >
+        {title ?? label}
+      </h2>
+    </header>
   );
 }
