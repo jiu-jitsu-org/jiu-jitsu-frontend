@@ -72,7 +72,6 @@ export function BalanceClock({
   onExpired,
   className,
   below,
-  above,
   label = "남은 시간",
 }: {
   /** 시계가 세는 끝 시각 — 마감만이 아니라 시작·다음 게임일 수도 있다(readBalanceClock). */
@@ -87,15 +86,12 @@ export function BalanceClock({
    * 넘겨 주므로, 남은 시간에 따라 움직일 것이 생겨도 카운트다운을 따로 구독하지 않는다(타이머가 둘이면 박자가 어긋난다).
    */
   below?: (remainMs: number) => ReactNode;
-  /** 시계 바로 위에 붙일 것 — 시계가 그려질 때만 함께 그린다(무엇을 세는지 알려 주는 머리말). */
-  above?: ReactNode;
 }) {
   const { remainMs } = useBalanceCountdown({ endAt, serverTime, onExpired });
   if (remainMs === null) return null;
 
   return (
     <>
-      {above}
       {/*
         매초 바뀌어 aria-live를 두지 않는다(role="timer"는 기본이 off). 굴러가는 숫자는 낭독기에서 숨기고,
         읽을 때는 "남은 시간 11:54:36" 한 덩어리로 읽힌다 — aria-label은 일반 span에서 무시되므로 숨은 글자로 둔다.

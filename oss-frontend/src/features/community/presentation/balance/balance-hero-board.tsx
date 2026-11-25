@@ -350,7 +350,7 @@ export function BalanceHeroBoard({
 
       {/*
         경기 시계 — 판의 주인공. 숫자가 자리마다 굴러간다. 끝난 판(어제 결과 · 끝난 판 상세)은 더 셀 시간이 없어 걷는다.
-        무엇을 세는지('남은 시간')는 시계 위 작은 글씨로 둔다 — 시계 밑 알약은 숫자 다음으로 눈에 띄어 판이 무거웠다.
+        무엇을 세는지('남은 시간')는 시계 밑 작은 회색 글씨로 둔다 — 알약이면 숫자 다음으로 눈에 띄어 판이 무거웠다.
       */}
       {settled ? null : (
         <div className={cn("flex flex-col items-center", game.title ? "mt-5" : "mt-4", parts.clock)}>
@@ -364,7 +364,7 @@ export function BalanceHeroBoard({
               balanceNumeralFont.className,
               "inline-block text-[60px] leading-[64px] tracking-[-1px]",
             )}
-            above={<BoardClockCaption phase={clock.phase} />}
+            below={() => <BoardClockCaption phase={clock.phase} />}
           />
         </div>
       )}
@@ -647,7 +647,7 @@ function BoardRow({
 }
 
 /**
- * 시계 위 "남은 시간" 글씨 — 시계가 무엇을 세는지 알려 주는 작은 머리말. 알약 · 파란 아이콘을 빼고 판의 옅은 글자색으로
+ * 시계 밑 "남은 시간" 글씨 — 시계가 무엇을 세는지 알려 주는 작은 꼬리말. 알약 · 파란 아이콘을 빼고 판의 옅은 글자색으로
  * 낮춘다(시계 숫자 다음으로 눈에 띄면 판이 무거워진다). 낭독기에는 숨긴다(시계가 이미 "남은 시간 …"으로 읽힌다).
  */
 function BoardClockCaption({ phase }: { phase: BalanceClockPhase }) {
@@ -656,7 +656,7 @@ function BoardClockCaption({ phase }: { phase: BalanceClockPhase }) {
   return (
     <span
       aria-hidden
-      className={cn("mb-0.5 flex items-center gap-1 text-label-m tracking-[0.5px]", palette.muted)}
+      className={cn("mt-1.5 flex items-center gap-1 text-label-m tracking-[0.5px]", palette.muted)}
     >
       <TimerIcon size={12} />
       {BALANCE_CLOCK_LABEL[phase]}
