@@ -239,6 +239,8 @@ export function BalanceHeroBoard({
   onExpired,
   intro = false,
   variant = "hero",
+  yesterday = false,
+  footer,
 }: BalanceHeroProps & {
   /**
    * hero: 홈 맨 위 — 화면 끝까지 꽉 찬 띠(흰 판이 아래를 덮는다), 판 아무 데나 누르면 상세로, 댓글 링크가 붙는다.
@@ -246,7 +248,15 @@ export function BalanceHeroBoard({
    * 줄 바탕이 그만큼 진영 색으로 찬다. 댓글은 바로 아래 있어 링크를 두지 않는다.
    */
   variant?: "hero" | "detail";
+  /**
+   * 홈에서 어제 판 결과를 먼저 보여 줄 때(#681) — 제목이 '어제의 밸런스 게임'이 된다. 판은 끝난 판이라
+   * 마감된 홈 판(교체 버퍼)과 같이 득표율 · 내 선택이 뜬다.
+   */
+  yesterday?: boolean;
+  /** 판 맨 아래(댓글 링크 밑)에 붙일 것 — 어제 결과의 '오늘의 밸런스 게임 보기' 버튼. */
+  footer?: ReactNode;
 }) {
+  const heading = yesterday ? "어제의 밸런스 게임" : "오늘의 밸런스 게임";
   const detail = variant === "detail";
   // 시작 전 판도 누를 수 없다(#427) — 눌리면 투표 훅이 "아직 시작 전"이라고 알린다.
   const interactive = !game.closed && game.started;
@@ -287,11 +297,11 @@ export function BalanceHeroBoard({
         palette.bg,
         palette.text,
       )}
-      aria-label="오늘의 밸런스 게임"
+      aria-label={heading}
     >
       <header className={cn("flex items-center justify-between px-1", parts.header)}>
         <h2 className={cn(balanceTitleFont.className, "text-[22px] leading-7")}>
-          오늘의 밸런스 게임
+          {heading}
         </h2>
         {/*
           경기 중 표시 — 중계 화면의 "생중계" 알약. 선수 줄과 같은 옅은 면에 홍 점을 두고, 점 둘레로 물결이
@@ -319,6 +329,16 @@ export function BalanceHeroBoard({
         </span>
       </header>
 
+      {/*
+        판 타이틀(#682) — 무엇을 고르는 판인지 묻는 한 줄. 제목('오늘의 밸런스 게임')은 판마다 같아, 판마다 바뀌는
+        질문은 그 밑에 둔다. 타이틀이 없는 판은 지금처럼 제목만.
+      */}
+      {game.title ? (
+        <p className={cn("mt-1 px-1 text-title-3 break-keep", parts.header)}>
+          {game.title}
+        </p>
+      ) : null}
+
       {/* 경기 시계 — 판의 주인공. 숫자가 자리마다 굴러간다. */}
       <div className={cn("mt-4 flex flex-col items-center", parts.clock)}>
         <BalanceClock
@@ -343,6 +363,7 @@ export function BalanceHeroBoard({
           intro={parts}
           detail={showResult}
           result={showResult ? readOptionResult(game, "A") : null}
+          mine={game.closed && game.myVote === "A"}
           onPress={() => onVote("A")}
         />
         <BoardRow
@@ -352,6 +373,7 @@ export function BalanceHeroBoard({
           intro={parts}
           detail={showResult}
           result={showResult ? readOptionResult(game, "B") : null}
+          mine={game.closed && game.myVote === "B"}
           onPress={() => onVote("B")}
         />
       </div>
@@ -361,6 +383,8 @@ export function BalanceHeroBoard({
           <BalanceHeroCommentLink game={game} onPress={onPressDetail} />
         </div>
       )}
+
+      {footer ? <div className="mt-3">{footer}</div> : null}
     </section>
   );
 }
@@ -372,6 +396,7 @@ function BoardRow({
   intro,
   detail,
   result,
+  mine,
   onPress,
 }: {
   option: BalanceGameOption;
@@ -382,6 +407,11 @@ function BoardRow({
   detail: boolean;
   /** 득표율(상세, 홈은 마감된 판만) — 있으면 줄이 통째로 켜지는 대신 득표율만큼 진영 색이 차고 점수 자리에 %가 뜬다. */
   result: BalanceOptionResult | null;
+  /**
+   * 끝난 판에서 내가 고른 쪽인지(#681) — 득표율 위에 '내 선택'을 단다. 마감되면 내 쪽 막대를 진하게 칠하지 않는
+   * 정책(readOptionResult)이라 캐릭터 크기만으로는 어느 쪽을 골랐는지 놓치기 쉽다.
+   */
+  mine: boolean;
   onPress: () => void;
 }) {
   const key = option.key;
@@ -519,7 +549,11 @@ function BoardRow({
             {option.text}
           </span>
           {/* 점수 자리는 낭독기에서 숨겨 두었으므로 득표율은 여기서 읽힌다. */}
-          {result ? <span className="sr-only">, {result.percent}%</span> : null}
+          {result ? (
+            <span className="sr-only">
+              , {result.percent}%{mine ? ", 내 선택" : ""}
+            </span>
+          ) : null}
         </span>
 
         {/* 인트로 색 판 — 줄을 진영 색으로 꽉 채웠다가 빠진다. 평소엔 보이지 않는다(opacity 0). */}
@@ -561,7 +595,12 @@ function BoardRow({
           )}
         >
           <span className={cn("flex items-center justify-center pr-2", result ? "w-16" : "w-10")}>
-            <span className={cn("flex", intro.letter?.[key])}>
+            <span className={cn("flex flex-col items-center gap-1", intro.letter?.[key])}>
+              {result && mine ? (
+                <span className="rounded-full border border-[var(--opacity-white-60)] px-1.5 text-label-m whitespace-nowrap">
+                  내 선택
+                </span>
+              ) : null}
               {result ? (
                 <span
                   className={cn(

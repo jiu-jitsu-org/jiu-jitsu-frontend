@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { readBeltAvatarSample } from "@/features/community/application/belt-avatar-sample";
-import { getBalanceGamePageData } from "@/features/community/application/get-balance-game-page-data";
+import { getBalanceHomePageData } from "@/features/community/application/get-balance-game-page-data";
 import { getHomeFeedPageData } from "@/features/community/application/get-home-feed-page-data";
 import { SessionHintProvider } from "@/features/auth/presentation/session-hint";
 import { AppClientHint } from "@/shared/lib/app-client/app-client-hint";
@@ -11,6 +11,10 @@ import {
   readBalanceIntroForced,
   shouldPlayBalanceIntro,
 } from "@/features/community/presentation/balance/balance-intro";
+import {
+  BALANCE_YESTERDAY_SEEN_COOKIE,
+  readYesterdaySeenDate,
+} from "@/features/community/presentation/balance/balance-yesterday";
 import { FeedScrollTopOnReload } from "@/features/community/presentation/feed/feed-scroll-top-on-reload";
 import { HomeOpenInAppBanner } from "@/features/community/presentation/feed/home-open-in-app-banner";
 import { feedFilterKey } from "@/features/community/domain/feed-filter";
@@ -93,22 +97,31 @@ export default async function Home({
   const beltSample = readBeltAvatarSample(params.belt);
   const balanceIntroForced = readBalanceIntroForced(params.intro);
   const subview = params.view === "subview";
-  const [feed, balanceGame, sessionToken, cookieStore, alertSettings] =
+  const now = readServerNow();
+  const cookieStore = await cookies();
+  const [feed, balance, sessionToken, alertSettings] =
     await Promise.all([
       getHomeFeedPageData(
         { categoryId: params.categoryId, competitionId: params.competitionId },
         beltSample,
       ),
       // 서브뷰(글 상세에서 연 카테고리 모아 보기)는 밸런스 띠를 그리지 않으니 읽지 않는다.
-      subview ? null : getBalanceGamePageData(),
+      // 로그인했으면 어제 투표한 판 결과(#681)도 함께 찾는다 — 이 기기에서 이미 봤으면(쿠키) 찾지 않는다.
+      subview
+        ? null
+        : getBalanceHomePageData({
+            now,
+            yesterdaySeenDate: readYesterdaySeenDate(
+              cookieStore.get(BALANCE_YESTERDAY_SEEN_COOKIE)?.value,
+            ),
+          }),
       readSessionToken(),
-      cookies(),
       // 글 속 대회 카드(#379)의 하트로 처음 관심 등록하면 마감 알림 시트를 띄운다 — 알림 설정도
       // 목록과 나란히 읽는다(#534). 따로 기다리면 로그인한 홈이 BE 왕복 한 번만큼 늦게 그려진다.
       // 비로그인이면 조회하지 않고(토큰이 없으면 null), 실패해도 null이라 홈은 그려진다.
       isCompetitionEnabled() ? loadCompetitionAlertSettings() : null,
     ]);
-  const now = readServerNow();
+  const balanceGame = balance?.game ?? null;
   // 그날 게임을 처음 볼 때만 히어로 인트로를 돌린다(balance-intro의 BALANCE_INTRO_COOKIE).
   const balanceIntro =
     balanceGame !== null &&
@@ -135,7 +148,11 @@ export default async function Home({
       // 그 대회 글을 보러 온 맥락이라 오늘의 게임은 군더더기다.
       balance={
         feed.result.ok && balanceGame && feed.filter.competitionId === null ? (
-          <BalanceGameSection initialGame={balanceGame} intro={balanceIntro} />
+          <BalanceGameSection
+            initialGame={balanceGame}
+            initialYesterday={balance?.yesterday ?? null}
+            intro={balanceIntro}
+          />
         ) : null
       }
     />

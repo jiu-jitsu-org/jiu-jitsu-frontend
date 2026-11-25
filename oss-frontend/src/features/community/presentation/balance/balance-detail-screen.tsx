@@ -70,7 +70,7 @@ export async function BalanceDetailScreen({
     );
   }
 
-  const { game, comments, focusedComment } = result.data;
+  const { game, comments, focusedComment, todayContentId } = result.data;
 
   return (
     <KeepDetailOnRefreshFailure contentId={contentId} ok>
@@ -78,6 +78,7 @@ export async function BalanceDetailScreen({
         game={game}
         comments={comments}
         focusedComment={focusedComment}
+        todayContentId={todayContentId}
         sort={sort}
       />
       {/* 다 그려지면 앱이 그림·글꼴을 다 받기 전에 로딩 덮개를 걷는다(jiu-jitsu-ios#261).

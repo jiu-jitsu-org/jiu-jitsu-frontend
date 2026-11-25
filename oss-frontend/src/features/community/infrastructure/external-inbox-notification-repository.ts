@@ -50,6 +50,7 @@ const KNOWN_TYPES: readonly InboxNotificationType[] = [
   "COMMENTS_LIKE",
   "COMPETITION_EARLY_BIRD_DEADLINE",
   "COMPETITION_REGISTRATION_DEADLINE",
+  "BALANCE_RESULT",
 ];
 
 export class ExternalInboxNotificationRepository implements InboxNotificationRepository {

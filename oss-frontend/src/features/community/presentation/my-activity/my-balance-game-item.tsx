@@ -72,6 +72,13 @@ export function MyBalanceGameItem({
         )}
       </span>
 
+      {/* 판 타이틀(#682) — 무엇을 고른 판이었는지. 없는 판(지난 판)은 줄째 뺀다. */}
+      {shown.title ? (
+        <span className="mt-1 text-body-m font-semibold break-keep text-text-primary">
+          {shown.title}
+        </span>
+      ) : null}
+
       {/* 날짜 행 아래 8, 선택지 사이 4 */}
       <span className="mt-2 flex w-full flex-col gap-1">
         <BalanceOptionButton
