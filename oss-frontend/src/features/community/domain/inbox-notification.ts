@@ -15,7 +15,12 @@ export type InboxNotificationType =
   /** 관심 대회 얼리버드 마감 전날(#422) */
   | "COMPETITION_EARLY_BIRD_DEADLINE"
   /** 관심 대회 접수 마감 전날(#422) */
-  | "COMPETITION_REGISTRATION_DEADLINE";
+  | "COMPETITION_REGISTRATION_DEADLINE"
+  /**
+   * 어제 투표한 밸런스 게임 결과(#683) — 다음 날 12시까지 결과를 안 본 참여자에게 서버가 보낸다. 누르면 끝난 판
+   * 상세(actionType BALANCE_DETAIL). 서버 계약 전이라 이름은 제안값이다 — 다르면 모르는 종류로 보고 서버 title로 그린다.
+   */
+  | "BALANCE_RESULT";
 
 /**
  * 셀을 탭했을 때 열 대상 — actionType + data를 해석한 결과.

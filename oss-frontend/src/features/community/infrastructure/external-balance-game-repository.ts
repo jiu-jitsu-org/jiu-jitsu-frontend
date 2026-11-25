@@ -36,6 +36,8 @@ type BalanceGameOptionDto = {
 
 type BalanceGameDto = {
   contentId: number;
+  /** 판 타이틀(#682). 서버 계약 전이라 이름은 제안값 — 없거나 빈 값이면 타이틀 없는 판. */
+  title?: string | null;
   endAt: string;
   serverTime: string;
   closed: boolean;
@@ -102,6 +104,7 @@ function toBalanceGameOption(dto: BalanceGameOptionDto): BalanceGameOption {
 function toBalanceGame(dto: BalanceGameDto): BalanceGame {
   return {
     contentId: dto.contentId,
+    title: dto.title?.trim() || null,
     endAt: dto.endAt,
     serverTime: dto.serverTime,
     closed: dto.closed,

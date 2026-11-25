@@ -5,6 +5,7 @@ import type { CommentSort } from "@/features/community/domain/post";
 import { BalanceDetailActionBar } from "@/features/community/presentation/balance/balance-detail-action-bar";
 import { BalanceDetailAppBar } from "@/features/community/presentation/balance/balance-detail-app-bar";
 import { BalanceDetailMetaRow } from "@/features/community/presentation/balance/balance-detail-meta-row";
+import { BalanceTodayLink } from "@/features/community/presentation/balance/balance-today-link";
 import { BalanceVotePanel } from "@/features/community/presentation/balance/balance-vote-panel";
 import { BeltPromptProvider } from "@/features/community/presentation/belt-prompt";
 import { CommentInputBar } from "@/features/community/presentation/comment-input-bar";
@@ -35,12 +36,15 @@ export function BalanceDetailView({
   game,
   comments,
   focusedComment = null,
+  todayContentId = null,
   sort,
 }: {
   game: BalanceGame;
   comments: CommentList;
   /** 알림에서 연 댓글(#596) — 댓글 목록 맨 위에 먼저 보인다. */
   focusedComment?: Comment | null;
+  /** 끝난 판으로 들어왔을 때 넘어갈 오늘의 판(#683). 있으면 메타 행 아래 '오늘의 밸런스 게임 보기'. */
+  todayContentId?: number | null;
   sort: CommentSort;
 }) {
   return (
@@ -79,7 +83,7 @@ export function BalanceDetailView({
               시간·선택지를 다 품으므로 원래 제목은 화면 낭독용으로만 남기고(sr-only), 조회수·날짜는 판 아래로 내린다.
             */}
             <section className="flex flex-col px-4 pt-5">
-              <h1 className="sr-only">오늘의 밸런스 게임</h1>
+              <h1 className="sr-only">{game.title ?? "오늘의 밸런스 게임"}</h1>
 
               <BalanceVotePanel initialGame={game} />
 
@@ -91,6 +95,10 @@ export function BalanceDetailView({
                 gameDate={game.gameDate}
                 className="mt-3 px-1"
               />
+
+              {todayContentId !== null ? (
+                <BalanceTodayLink todayContentId={todayContentId} className="mt-5" />
+              ) : null}
             </section>
 
             {/* 액션바: 조회수 줄 아래 40, 디바이더 없음, 우측 정렬 (게시글 상세는 13 — 별개 지정이다) */}

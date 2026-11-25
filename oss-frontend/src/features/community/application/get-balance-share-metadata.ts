@@ -8,7 +8,7 @@ export type BalanceShareMetadata = {
   description: string;
 };
 
-/** 밸런스 게임은 사용자 제목이 없어 상세 화면의 고정 제목을 그대로 쓴다. */
+/** 밸런스 게임은 사용자 제목이 없어 상세 화면의 고정 제목을 쓰고, 판 타이틀(#682)이 있으면 뒤에 붙인다. */
 const BALANCE_SHARE_TITLE = "오늘의 밸런스 게임";
 
 /**
@@ -28,7 +28,9 @@ export async function getBalanceShareMetadata(
     if (!game) return null;
 
     return {
-      title: BALANCE_SHARE_TITLE,
+      title: game.title
+        ? `${BALANCE_SHARE_TITLE} · ${game.title}`
+        : BALANCE_SHARE_TITLE,
       description: `${game.optionA.text} vs ${game.optionB.text}`,
     };
   } catch {

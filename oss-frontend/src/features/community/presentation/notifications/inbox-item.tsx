@@ -5,7 +5,7 @@ import { useId, type ReactNode } from "react";
 import type { InboxNotification } from "@/features/community/domain/inbox-notification";
 import { inboxTitle } from "@/features/community/presentation/notifications/inbox-copy";
 import { cn } from "@/shared/lib/cn";
-import { ChatBubbleIcon, HeartIcon } from "@/shared/ui/icons";
+import { ChatBubbleIcon, HeartIcon, TimerIcon } from "@/shared/ui/icons";
 import { RelativeTime } from "@/shared/ui/relative-time";
 
 /** 커뮤니티 알림 셀 — 종류별 아이콘·문구만 정하고 모양은 InboxItemShell이 그린다. */
@@ -19,17 +19,21 @@ export function InboxItem({
   const isLike =
     notification.type === "CONTENTS_LIKE" ||
     notification.type === "COMMENTS_LIKE";
+  // 밸런스 게임 결과(#683) — 결과는 서버 문구 그대로(타이틀 · 본문), 아이콘만 스코어보드 판과 같은 먹색 상자.
+  const isBalanceResult = notification.type === "BALANCE_RESULT";
   return (
     <InboxItemShell
       isRead={notification.isRead}
       icon={
-        isLike ? (
+        isBalanceResult ? (
+          <TimerIcon filled size={18} />
+        ) : isLike ? (
           <HeartIcon filled size={18} />
         ) : (
           <ChatBubbleIcon filled size={18} />
         )
       }
-      iconTone={isLike ? "like" : "comment"}
+      iconTone={isBalanceResult ? "balance" : isLike ? "like" : "comment"}
       title={inboxTitle(notification)}
       body={notification.body}
       createdAt={notification.createdAt}
@@ -40,7 +44,7 @@ export function InboxItem({
 
 /**
  * 아이콘 상자 색 — 종류마다 연한 바탕 + 꽉 찬 아이콘. 읽음 여부와 상관없이 같다(읽음은 줄 바탕으로만 가른다).
- * 댓글 = 파랑, 좋아요 = 연한 핑크 + 빨강 하트(리액션 바의 눌린 하트와 같은 색), 대회 마감 = 주황.
+ * 댓글 = 파랑, 좋아요 = 연한 핑크 + 빨강 하트(리액션 바의 눌린 하트와 같은 색), 대회 마감 = 주황, 밸런스 결과 = 먹색.
  * 상자 32 · 아이콘 18 — 꽉 찬 아이콘은 선 아이콘보다 무거워 보여 36·20에서 한 단계 줄였다.
  */
 export const INBOX_ICON_TONE = {
@@ -48,6 +52,8 @@ export const INBOX_ICON_TONE = {
   like: "bg-[var(--red-balance-50)] text-reaction-bar-active-like-icon",
   competition:
     "bg-[color-mix(in_srgb,var(--orange-500)_12%,var(--bw-true-white))] text-[var(--orange-500)]",
+  /** 밸런스 게임 결과(#683) — 홈 스코어보드 판(BOARD_PALETTE)과 같은 먹색에 흰 아이콘. */
+  balance: "bg-[var(--cool-gray-900)] text-text-on-dark",
 } as const;
 
 export type InboxIconTone = keyof typeof INBOX_ICON_TONE;

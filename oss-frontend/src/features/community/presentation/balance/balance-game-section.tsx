@@ -12,10 +12,13 @@ import {
 } from "@/features/community/presentation/balance/balance-countdown";
 import { BalanceHeroBoard } from "@/features/community/presentation/balance/balance-hero-board";
 import { balanceVotedSince } from "@/features/community/presentation/balance/balance-voted-at";
+import { markYesterdaySeen } from "@/features/community/presentation/balance/balance-yesterday";
 import { useBalanceVote } from "@/features/community/presentation/balance/use-balance-vote";
 import { useOpenBalanceDetail } from "@/features/community/presentation/balance/use-open-balance-detail";
+import type { BalanceYesterdayResult } from "@/features/community/application/get-balance-game-page-data";
 import type { BalanceGame } from "@/features/community/domain/balance-game";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
+import { Button } from "@/shared/ui/button";
 
 /** 시계가 0에 닿은 뒤 넘어가지 못했을 때 다시 읽는 간격과 횟수(#427). */
 const EXPIRY_RETRY_MS = 5_000;
@@ -57,16 +60,24 @@ const FRESH_SEED_MS = 30_000;
  * 않는다. 다음 복귀 때 어차피 다시 읽고, 실패한 조회를 계속 두드려봐야 화면에 보여줄 것이 없다.
  *
  * 조회 실패도 같은 취급(카드 미노출)이다 — 정책상 에러 UI가 없다.
+ *
+ * 어제 판 결과(#681): 서버가 어제 결과를 함께 주면 오늘 판보다 먼저 그 결과를 보여 주고, 판 아래
+ * '오늘의 밸런스 게임 보기'를 누르면 그 자리에서 오늘 판으로 바뀐다. 오늘 판은 그때 처음 붙어 인트로도 그때 돈다.
+ * 오늘 판은 뒤에서 그대로 갱신된다(마감 · 복귀 재조회) — 넘어갔을 때 낡은 판이 보이지 않게.
  */
 export function BalanceGameSection({
   initialGame,
+  initialYesterday = null,
   intro = false,
 }: {
   initialGame: BalanceGame;
+  /** 오늘 판보다 먼저 보여 줄 어제 판 결과(#681). 없으면 바로 오늘 판. */
+  initialYesterday?: BalanceYesterdayResult | null;
   /** 그날 게임을 처음 볼 때 히어로 인트로를 돌린다(#305 — balance-intro). */
   intro?: boolean;
 }) {
   const [game, setGame] = useState<BalanceGame | null>(initialGame);
+  const [yesterday, setYesterday] = useState(initialYesterday);
 
   // SSR이 다시 돌아 새 seed가 내려오면(세션 복구 후 router.refresh 등) 그 값으로 갈아탄다.
   // 클라이언트 인스턴스는 살아 있어 state가 알아서 바뀌지 않는다.
@@ -74,6 +85,9 @@ export function BalanceGameSection({
   if (seededGame !== initialGame) {
     setSeededGame(initialGame);
     setGame(initialGame);
+    // 새 seed에 어제 결과가 없으면(이미 '봤음'을 남겨서) 보던 어제 결과를 그대로 둔다 — 화면 갱신(router.refresh)이
+    // 누르지도 않은 '오늘 판으로 넘어가기'를 대신하면 안 된다. 로그아웃은 useOnLogout이 걷는다.
+    if (initialYesterday) setYesterday(initialYesterday);
   }
 
   // 재조회 중복 방지. 만료와 복귀가 같은 순간에 겹칠 수 있다.
@@ -146,8 +160,16 @@ export function BalanceGameSection({
     };
   }, []);
 
-  useOnLogin(() => void reload());
-  useOnLogout(() => void reload());
+  useOnLogin(() => {
+    // 다른 계정으로 바뀌었으면 앞 계정의 어제 결과다 — 걷는다(새 계정의 어제 결과는 서버가 다시 그릴 때 온다).
+    setYesterday(null);
+    void reload();
+  });
+  useOnLogout(() => {
+    // 어제 결과는 내 투표 기록이라 로그아웃하면 걷는다.
+    setYesterday(null);
+    void reload();
+  });
 
   useEffect(() => {
     // 앱은 스플래시 동안 홈 피드를 숨김 상태로 미리 불러 두고, 홈에 붙이는 순간 보이게 한다(#409).
@@ -173,6 +195,17 @@ export function BalanceGameSection({
   }, [reload]);
 
   if (!game) return null;
+
+  // 오늘 판이 결과(교체 버퍼)로 바뀌었으면 어제 결과를 접는다 — 버퍼 판이 곧 방금 끝난 판의 결과다.
+  if (yesterday && !game.closed) {
+    return (
+      <BalanceYesterdayBody
+        game={yesterday.game}
+        seenKey={yesterday.seenKey}
+        onNext={() => setYesterday(null)}
+      />
+    );
+  }
 
   return (
     <BalanceGameBody
@@ -218,6 +251,61 @@ function BalanceGameBody({
       onPressDetail={() => openDetail(game.contentId)}
       onExpired={onExpired}
       intro={intro}
+    />
+  );
+}
+
+/**
+ * 어제 판 결과(#681) — 끝난 판이라 투표는 없다. 판 · 선택지 · 댓글 링크는 모두 어제 판 상세로 가고,
+ * 판 아래 버튼이 오늘 판으로 넘긴다.
+ *
+ * 보인 순간 이 기기에 '봤음'을 남긴다 — 다음 홈 진입부터는 서버가 바로 오늘 판을 그린다. 앱이 홈을 숨긴 채
+ * 미리 그려 두는 동안(#409)은 본 것이 아니라 처음 보일 때 남긴다.
+ */
+function BalanceYesterdayBody({
+  game,
+  seenKey,
+  onNext,
+}: {
+  game: BalanceGame;
+  /** '봤음' 쿠키에 남길 값(어제 날짜 + 계정). */
+  seenKey: string;
+  onNext: () => void;
+}) {
+  const openDetail = useOpenBalanceDetail("balance_card");
+  const open = () => openDetail(game.contentId);
+
+  useEffect(() => {
+    if (document.visibilityState === "visible") {
+      markYesterdaySeen(seenKey);
+      return;
+    }
+    function handleVisibility() {
+      if (document.visibilityState !== "visible") return;
+      markYesterdaySeen(seenKey);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    }
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibility);
+  }, [seenKey]);
+
+  return (
+    <BalanceHeroBoard
+      game={game}
+      onVote={open}
+      onPressDetail={open}
+      yesterday
+      footer={
+        <Button
+          size="l"
+          data-ga="balance_yesterday_next"
+          onClick={onNext}
+          className="w-full bg-[var(--bw-true-white)] text-[var(--cool-gray-900)] not-disabled:active:bg-[var(--cool-gray-100)]"
+        >
+          오늘의 밸런스 게임 보기
+        </Button>
+      }
     />
   );
 }

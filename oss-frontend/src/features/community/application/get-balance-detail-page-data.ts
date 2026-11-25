@@ -3,6 +3,7 @@ import { cache } from "react";
 import {
   createGetBalanceGameDetailUseCase,
   createGetCommentsUseCase,
+  createGetCurrentBalanceGameUseCase,
 } from "@/features/community/application/community-use-case-factory";
 import type { BalanceGame } from "@/features/community/domain/balance-game";
 import { loadFocusedComment } from "@/features/community/application/load-focused-comment";
@@ -24,6 +25,11 @@ export type BalanceDetailPageData = {
   comments: CommentList;
   /** 알림에서 연 댓글(#596) — 게시글 상세와 같다. 없거나 못 읽으면 null. */
   focusedComment: Comment | null;
+  /**
+   * 끝난 판으로 들어왔을 때 넘어갈 오늘의 판(#683 — 결과 알림 · 내 활동 · 지난 판 링크). 진행 중인 판을 보거나,
+   * 오늘 판이 없거나(교체 버퍼 포함) 못 읽으면 null — '오늘의 밸런스 게임 보기'를 그리지 않는다.
+   */
+  todayContentId: number | null;
 };
 
 export type BalanceDetailPageDataResult =
@@ -92,6 +98,9 @@ export async function getBalanceDetailPageData(
         focusedComment: focusedThread
           ? focusedThreadComment(focusedThread)
           : null,
+        todayContentId: game.closed
+          ? await loadTodayContentId(game.contentId, accessToken)
+          : null,
       },
     };
   } catch (error) {
@@ -109,5 +118,23 @@ export async function getBalanceDetailPageData(
       code: apiError.code,
       error: apiError.message,
     };
+  }
+}
+
+/**
+ * 끝난 판에서 넘어갈 오늘의 판 번호(#683). 끝난 판을 볼 때만 부른다 — 진행 중인 판은 이 조회를 기다리지 않는다.
+ * 진행 중인 오늘 판만 친다: 교체 버퍼(00:00~00:30)엔 메인이 방금 끝난 판을 결과로 주는데, 그리로 보내면
+ * 또 끝난 판이다. 못 읽어도 상세는 그린다(버튼만 빠진다).
+ */
+async function loadTodayContentId(
+  closedContentId: number,
+  accessToken: string | null,
+): Promise<number | null> {
+  try {
+    const today = await createGetCurrentBalanceGameUseCase(accessToken).execute();
+    if (!today || today.closed || today.contentId === closedContentId) return null;
+    return today.contentId;
+  } catch {
+    return null;
   }
 }
