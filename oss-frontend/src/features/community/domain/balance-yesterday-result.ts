@@ -17,23 +17,20 @@ export const YESTERDAY_LOOKUP_SIZE = 2;
  * - 오늘 판이 진행 중일 때만: 교체 버퍼(closed)엔 홈이 이미 방금 끝난 판 결과를 보여 주고, 오늘 판이 없으면
  *   '오늘 판으로 넘어가기'가 갈 곳이 없다.
  * - 어제(yesterdayDate) 진행된 판 중 내가 투표했고 마감된 판. 진행 날짜(gameDate)가 없는 판은 어제인지 알 수 없어 뺀다.
- * - 이 기기에서 이미 본 날짜(seenDate)면 뺀다 — 다음 날 처음 들어왔을 때 한 번만.
+ *
+ * 이미 본 결과인지는 호출부가 가른다 — 봤으면 참여 목록을 읽지 않아(participated가 빈 목록) 여기서 null이 된다.
  */
 export function pickYesterdayResult({
   today,
   participated,
   yesterdayDate,
-  seenDate,
 }: {
   today: BalanceGame | null;
   participated: readonly BalanceGame[];
   /** 한국 날짜로 어제("YYYY-MM-DD"). */
   yesterdayDate: string;
-  /** 이 기기에서 어제 결과를 이미 본 판의 진행 날짜. */
-  seenDate: string | null;
 }): BalanceGame | null {
   if (!today || today.closed || !today.started) return null;
-  if (seenDate === yesterdayDate) return null;
 
   return (
     participated.find(

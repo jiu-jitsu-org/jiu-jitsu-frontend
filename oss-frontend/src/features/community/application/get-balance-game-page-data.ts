@@ -7,7 +7,7 @@ import {
   pickYesterdayResult,
   YESTERDAY_LOOKUP_SIZE,
 } from "@/features/community/domain/balance-yesterday-result";
-import { readSessionToken } from "@/shared/lib/auth";
+import { readSessionToken, readTokenSubject } from "@/shared/lib/auth";
 import { toApiError } from "@/shared/lib/http";
 import { toKstDateKey } from "@/shared/lib/time";
 
@@ -18,8 +18,25 @@ export type BalanceHomePageData = {
   /** 오늘의 게임(교체 버퍼엔 방금 끝난 판). 없거나 못 읽으면 null — 영역을 그리지 않는다. */
   game: BalanceGame | null;
   /** 오늘 판보다 먼저 보여 줄 어제 판 결과(#681). 없으면 null. */
-  yesterday: BalanceGame | null;
+  yesterday: BalanceYesterdayResult | null;
 };
+
+/** 어제 판 결과와, 보였을 때 '봤음' 쿠키에 남길 값(어제 날짜 + 계정). */
+export type BalanceYesterdayResult = {
+  game: BalanceGame;
+  seenKey: string;
+};
+
+/** 쿠키에 그대로 실을 수 있는 계정 표시 — 토큰 sub가 그런 글자로만 되어 있지 않으면 짧은 해시로 바꾼다. */
+const SAFE_SUBJECT = /^[A-Za-z0-9_-]{1,64}$/;
+
+function viewerKeyOf(accessToken: string): string {
+  const subject = readTokenSubject(accessToken) ?? "";
+  if (SAFE_SUBJECT.test(subject)) return subject;
+  let hash = 5381;
+  for (const char of subject) hash = ((hash * 33) ^ char.charCodeAt(0)) >>> 0;
+  return `h${hash.toString(36)}`;
+}
 
 /**
  * 메인 피드 Server Component용 밸런스 게임 쿼리.
@@ -32,35 +49,38 @@ export type BalanceHomePageData = {
  * 감지해 클라이언트 복구(SessionExpiredRecovery)로 넘기므로, 밸런스 게임이 복구를 중복해서
  * 요구할 이유가 없다. 복구 후 SSR이 다시 돌면 이 쿼리도 인증 상태로 함께 다시 실행된다.
  *
- * 어제 결과(#681)는 로그인했고 이 기기에서 어제 결과를 아직 보지 않았을 때만 찾는다 — 내가 투표한 판 목록을
+ * 어제 결과(#681)는 로그인했고 이 기기에서 **이 계정이** 어제 결과를 아직 보지 않았을 때만 찾는다 — '봤음' 쿠키에
+ * 어제 날짜와 계정(토큰 sub)을 함께 남겨, 같은 기기에서 계정을 바꾸면 그 계정은 다시 본다. 내가 투표한 판 목록을
  * 오늘의 게임과 **나란히** 읽어 기다림을 늘리지 않는다. 목록을 못 읽으면 어제 결과 없이 오늘 판만 그린다.
  */
 export async function getBalanceHomePageData({
   now,
-  yesterdaySeenDate,
+  yesterdaySeen,
 }: {
   /** 요청 시각(서버). 한국 날짜로 '어제'를 정한다. */
   now: number;
-  /** 이 기기에서 어제 결과를 이미 본 판의 진행 날짜(쿠키). */
-  yesterdaySeenDate: string | null;
+  /** 이 기기의 '봤음' 쿠키 값(본 날짜 + 계정). */
+  yesterdaySeen: string | null;
 }): Promise<BalanceHomePageData> {
   const accessToken = await readSessionToken();
   const yesterdayDate = toKstDateKey(now - DAY_MS);
-  const lookYesterday = yesterdaySeenDate !== yesterdayDate;
+  const seenKey = accessToken ? `${yesterdayDate}.${viewerKeyOf(accessToken)}` : null;
+  const lookYesterday = seenKey !== null && yesterdaySeen !== seenKey;
 
   const [game, participated] = await Promise.all([
     loadCurrentGame(accessToken),
     accessToken && lookYesterday ? loadRecentParticipated(accessToken) : [],
   ]);
 
+  const yesterday = pickYesterdayResult({
+    today: game,
+    participated,
+    yesterdayDate,
+  });
+
   return {
     game,
-    yesterday: pickYesterdayResult({
-      today: game,
-      participated,
-      yesterdayDate,
-      seenDate: yesterdaySeenDate,
-    }),
+    yesterday: yesterday && seenKey ? { game: yesterday, seenKey } : null,
   };
 }
 

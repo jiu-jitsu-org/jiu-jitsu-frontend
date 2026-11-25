@@ -13,7 +13,7 @@ import {
 } from "@/features/community/presentation/balance/balance-intro";
 import {
   BALANCE_YESTERDAY_SEEN_COOKIE,
-  readYesterdaySeenDate,
+  readYesterdaySeen,
 } from "@/features/community/presentation/balance/balance-yesterday";
 import { FeedScrollTopOnReload } from "@/features/community/presentation/feed/feed-scroll-top-on-reload";
 import { HomeOpenInAppBanner } from "@/features/community/presentation/feed/home-open-in-app-banner";
@@ -111,7 +111,7 @@ export default async function Home({
         ? null
         : getBalanceHomePageData({
             now,
-            yesterdaySeenDate: readYesterdaySeenDate(
+            yesterdaySeen: readYesterdaySeen(
               cookieStore.get(BALANCE_YESTERDAY_SEEN_COOKIE)?.value,
             ),
           }),

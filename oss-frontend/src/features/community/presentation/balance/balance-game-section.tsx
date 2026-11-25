@@ -15,6 +15,7 @@ import { balanceVotedSince } from "@/features/community/presentation/balance/bal
 import { markYesterdaySeen } from "@/features/community/presentation/balance/balance-yesterday";
 import { useBalanceVote } from "@/features/community/presentation/balance/use-balance-vote";
 import { useOpenBalanceDetail } from "@/features/community/presentation/balance/use-open-balance-detail";
+import type { BalanceYesterdayResult } from "@/features/community/application/get-balance-game-page-data";
 import type { BalanceGame } from "@/features/community/domain/balance-game";
 import { bffFetch } from "@/shared/lib/http/bff-fetch";
 import { Button } from "@/shared/ui/button";
@@ -71,7 +72,7 @@ export function BalanceGameSection({
 }: {
   initialGame: BalanceGame;
   /** 오늘 판보다 먼저 보여 줄 어제 판 결과(#681). 없으면 바로 오늘 판. */
-  initialYesterday?: BalanceGame | null;
+  initialYesterday?: BalanceYesterdayResult | null;
   /** 그날 게임을 처음 볼 때 히어로 인트로를 돌린다(#305 — balance-intro). */
   intro?: boolean;
 }) {
@@ -84,7 +85,9 @@ export function BalanceGameSection({
   if (seededGame !== initialGame) {
     setSeededGame(initialGame);
     setGame(initialGame);
-    setYesterday(initialYesterday);
+    // 새 seed에 어제 결과가 없으면(이미 '봤음'을 남겨서) 보던 어제 결과를 그대로 둔다 — 화면 갱신(router.refresh)이
+    // 누르지도 않은 '오늘 판으로 넘어가기'를 대신하면 안 된다. 로그아웃은 useOnLogout이 걷는다.
+    if (initialYesterday) setYesterday(initialYesterday);
   }
 
   // 재조회 중복 방지. 만료와 복귀가 같은 순간에 겹칠 수 있다.
@@ -157,7 +160,11 @@ export function BalanceGameSection({
     };
   }, []);
 
-  useOnLogin(() => void reload());
+  useOnLogin(() => {
+    // 다른 계정으로 바뀌었으면 앞 계정의 어제 결과다 — 걷는다(새 계정의 어제 결과는 서버가 다시 그릴 때 온다).
+    setYesterday(null);
+    void reload();
+  });
   useOnLogout(() => {
     // 어제 결과는 내 투표 기록이라 로그아웃하면 걷는다.
     setYesterday(null);
@@ -193,7 +200,8 @@ export function BalanceGameSection({
   if (yesterday && !game.closed) {
     return (
       <BalanceYesterdayBody
-        game={yesterday}
+        game={yesterday.game}
+        seenKey={yesterday.seenKey}
         onNext={() => setYesterday(null)}
       />
     );
@@ -256,30 +264,31 @@ function BalanceGameBody({
  */
 function BalanceYesterdayBody({
   game,
+  seenKey,
   onNext,
 }: {
   game: BalanceGame;
+  /** '봤음' 쿠키에 남길 값(어제 날짜 + 계정). */
+  seenKey: string;
   onNext: () => void;
 }) {
   const openDetail = useOpenBalanceDetail("balance_card");
   const open = () => openDetail(game.contentId);
-  const gameDate = game.gameDate;
 
   useEffect(() => {
-    if (!gameDate) return;
     if (document.visibilityState === "visible") {
-      markYesterdaySeen(gameDate);
+      markYesterdaySeen(seenKey);
       return;
     }
     function handleVisibility() {
-      if (document.visibilityState !== "visible" || !gameDate) return;
-      markYesterdaySeen(gameDate);
+      if (document.visibilityState !== "visible") return;
+      markYesterdaySeen(seenKey);
       document.removeEventListener("visibilitychange", handleVisibility);
     }
     document.addEventListener("visibilitychange", handleVisibility);
     return () =>
       document.removeEventListener("visibilitychange", handleVisibility);
-  }, [gameDate]);
+  }, [seenKey]);
 
   return (
     <BalanceHeroBoard

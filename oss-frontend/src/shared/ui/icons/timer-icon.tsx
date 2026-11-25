@@ -7,7 +7,7 @@ import { DEFAULT_ICON_SIZE, type IconProps } from "./types";
  * interactive-primary). viewBox가 16이라 공통 IconBase(24)를 쓰지 않고 독립 svg로 둔다.
  *
  * `filled`: 몸통을 칠하고 바늘을 파낸 모양(알림함 밸런스 결과 알림, #683). 다른 알림 아이콘(댓글 · 좋아요)이
- * 채운 모양이라 맞춘다. 파낸 자리는 마스크라 어떤 바탕 위에서도 바탕색이 비친다.
+ * 채운 모양이라 맞춘다. 바늘은 구멍이라 어떤 바탕 위에서도 바탕색이 비친다.
  */
 export function TimerIcon({
   filled = false,
@@ -25,25 +25,12 @@ export function TimerIcon({
         aria-hidden
         {...props}
       >
-        <defs>
-          <mask id="timer-icon-filled-hand">
-            <rect width="16" height="16" fill="white" />
-            <path
-              d="M8 9.33333L10.1 7.23333"
-              stroke="black"
-              strokeWidth={1.5}
-              strokeLinecap="round"
-            />
-            <circle cx="8" cy="9.33333" r="0.95" fill="black" />
-          </mask>
-        </defs>
         <rect x="6" y="0.7" width="4" height="1.8" rx="0.9" fill="currentColor" />
-        <circle
-          cx="8"
-          cy="9.33333"
-          r="5.9"
+        {/* 몸통 원에서 바늘(둥근 막대)을 evenodd로 뚫는다 — 마스크 id를 쓰지 않아 여러 개를 그려도 서로 엉키지 않는다. */}
+        <path
           fill="currentColor"
-          mask="url(#timer-icon-filled-hand)"
+          fillRule="evenodd"
+          d="M2.1 9.33333A5.9 5.9 0 1 0 13.9 9.33333A5.9 5.9 0 1 0 2.1 9.33333ZM8.566 9.899L10.666 7.799A0.8 0.8 0 0 0 9.534 6.667L7.434 8.767A0.8 0.8 0 0 0 8.566 9.899Z"
         />
       </svg>
     );
