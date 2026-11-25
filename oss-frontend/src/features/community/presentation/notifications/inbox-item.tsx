@@ -26,7 +26,7 @@ export function InboxItem({
       isRead={notification.isRead}
       icon={
         isBalanceResult ? (
-          <TimerIcon size={18} />
+          <TimerIcon filled size={18} />
         ) : isLike ? (
           <HeartIcon filled size={18} />
         ) : (

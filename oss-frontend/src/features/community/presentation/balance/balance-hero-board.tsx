@@ -302,16 +302,9 @@ export function BalanceHeroBoard({
       )}
       aria-label={heading}
     >
-      {settled ? (
-        <SettledHeader
-          label={yesterday ? "어제의 밸런스 게임" : "지난 밸런스 게임"}
-          title={game.title}
-        />
-      ) : (
-      <>
       <header className={cn("flex items-center justify-between px-1", parts.header)}>
         <h2 className={cn(balanceTitleFont.className, "text-[22px] leading-7")}>
-          {heading}
+          {settled ? (yesterday ? "어제의 밸런스 게임" : "지난 밸런스 게임") : heading}
         </h2>
         {/*
           경기 중 표시 — 중계 화면의 "생중계" 알약. 선수 줄과 같은 옅은 면에 홍 점을 두고, 점 둘레로 물결이
@@ -340,34 +333,43 @@ export function BalanceHeroBoard({
       </header>
 
       {/*
-        판 타이틀(#682) — 무엇을 고르는 판인지 묻는 한 줄. 제목('오늘의 밸런스 게임')은 판마다 같아, 판마다 바뀌는
-        질문은 그 밑에 둔다. 타이틀이 없는 판은 지금처럼 제목만.
+        판 타이틀(#682) — 판이 묻는 말이라 흰 말풍선에 담아 가운데 둔다. 제목('오늘의 밸런스 게임')과 글꼴로 다투지 않고
+        모양으로 갈린다. 타이틀이 없는 판은 지금처럼 제목만.
       */}
       {game.title ? (
-        <p className={cn("mt-1 px-1 text-title-3 break-keep", parts.header)}>
-          {game.title}
-        </p>
+        <div className={cn("mt-5 flex justify-center px-2", parts.header)}>
+          <p className="relative max-w-full rounded-2xl bg-[var(--bw-true-white)] px-5 py-2.5 text-center text-title-2 font-bold text-balance break-keep text-[var(--cool-gray-900)]">
+            {game.title}
+            <span
+              aria-hidden
+              className="absolute -bottom-1.5 left-1/2 size-3 -translate-x-1/2 rotate-45 rounded-[2px] bg-[var(--bw-true-white)]"
+            />
+          </p>
+        </div>
       ) : null}
 
-      {/* 경기 시계 — 판의 주인공. 숫자가 자리마다 굴러간다. */}
-      <div className={cn("mt-4 flex flex-col items-center", parts.clock)}>
-        <BalanceClock
-          endAt={clock.until}
-          serverTime={game.serverTime}
-          onExpired={onExpired}
-          label={BALANCE_CLOCK_LABEL[clock.phase]}
-          // 카니트 엑스트라볼드, 똑바로. 경기 시계가 판의 주인공이다.
-          className={cn(
-            balanceNumeralFont.className,
-            "inline-block text-[60px] leading-[64px] tracking-[-1px]",
-          )}
-          below={() => <BoardClockLabel phase={clock.phase} />}
-        />
-      </div>
-      </>
+      {/*
+        경기 시계 — 판의 주인공. 숫자가 자리마다 굴러간다. 끝난 판(어제 결과 · 끝난 판 상세)은 더 셀 시간이 없어 걷는다.
+        무엇을 세는지('남은 시간')는 시계 위 작은 글씨로 둔다 — 시계 밑 알약은 숫자 다음으로 눈에 띄어 판이 무거웠다.
+      */}
+      {settled ? null : (
+        <div className={cn("flex flex-col items-center", game.title ? "mt-5" : "mt-4", parts.clock)}>
+          <BalanceClock
+            endAt={clock.until}
+            serverTime={game.serverTime}
+            onExpired={onExpired}
+            label={BALANCE_CLOCK_LABEL[clock.phase]}
+            // 카니트 엑스트라볼드, 똑바로. 경기 시계가 판의 주인공이다.
+            className={cn(
+              balanceNumeralFont.className,
+              "inline-block text-[60px] leading-[64px] tracking-[-1px]",
+            )}
+            above={<BoardClockCaption phase={clock.phase} />}
+          />
+        </div>
       )}
 
-      <div className={cn("flex flex-col gap-5", settled ? "mt-7" : "mt-6")}>
+      <div className={cn("flex flex-col gap-5", settled && game.title ? "mt-7" : "mt-6")}>
         <BoardRow
           option={game.optionA}
           state={optionStateOf(game, "A")}
@@ -568,26 +570,6 @@ function BoardRow({
           ) : null}
         </span>
 
-        {/*
-          내 선택(#681) — 끝난 판에서 내가 고른 줄에 흰 테두리를 두르고, 줄 위 가장자리에 채운 알약을 건다.
-          득표율 옆 작은 글자로는 '내가 다수였나'를 한눈에 찾기 어려웠다. 진영 블록(왼쪽) 바로 오른쪽 위에 둔다.
-        */}
-        {result && mine ? (
-          <>
-            <span
-              aria-hidden
-              className="pointer-events-none absolute inset-0 rounded-2xl ring-2 ring-[var(--bw-true-white)] ring-inset"
-            />
-            <span
-              aria-hidden
-              className="pointer-events-none absolute -top-3 left-[calc(var(--corner-w)+12px)] flex h-6 items-center gap-0.5 rounded-full bg-[var(--bw-true-white)] pr-2.5 pl-1.5 text-label-m font-semibold whitespace-nowrap text-[var(--cool-gray-900)] shadow-[0_2px_6px_rgba(0,0,0,0.25)]"
-            >
-              <CheckIcon size={14} />
-              내 선택
-            </span>
-          </>
-        ) : null}
-
         {/* 인트로 색 판 — 줄을 진영 색으로 꽉 채웠다가 빠진다. 평소엔 보이지 않는다(opacity 0). */}
         {intro.fill ? (
           <span
@@ -627,8 +609,17 @@ function BoardRow({
           )}
         >
           <span className={cn("flex items-center justify-center pr-2", result ? "w-16" : "w-10")}>
-            <span className={cn("flex", intro.letter?.[key])}>
-                  {result ? (
+            <span className={cn("flex flex-col items-center gap-1", intro.letter?.[key])}>
+              {/*
+                내 선택(#681) — 끝난 판에서 내가 고른 줄의 득표율 위에 흰 채운 칩. 마감 뒤 결과를 보러 온 사람이 가장 먼저
+                찾는 것이 '내 쪽이 몇 %였나'라 막대도 내 쪽만 진하게 칠한다(settledResult).
+              */}
+              {result && mine ? (
+                <span className="flex h-5 items-center rounded-full bg-[var(--bw-true-white)] px-2 text-label-m font-semibold whitespace-nowrap text-[var(--cool-gray-900)]">
+                  내 선택
+                </span>
+              ) : null}
+              {result ? (
                 <span
                   className={cn(
                     balanceNumeralFont.className,
@@ -656,24 +647,18 @@ function BoardRow({
 }
 
 /**
- * 시계 밑 "남은 시간" 이름표 — 다른 화면의 남은 시간 표기와 같은 시계 아이콘을 앞에 둔다.
- * 선수 줄과 같은 옅은 면의 알약에 담아 시계 숫자 밑에 조용히 붙인다(아이콘만 앱 파랑).
- * 아이콘은 째깍이지 않는다(#310) — 바로 위 큰 숫자가 이미 매초 움직여, 아이콘까지 흔들면 시선이 둘로 갈린다.
- * 시계가 그려질 때만 함께 그린다(BalanceClock의 below). 낭독기에는 숨긴다(시계가 이미 "남은 시간 …"으로 읽힌다).
+ * 시계 위 "남은 시간" 글씨 — 시계가 무엇을 세는지 알려 주는 작은 머리말. 알약 · 파란 아이콘을 빼고 판의 옅은 글자색으로
+ * 낮춘다(시계 숫자 다음으로 눈에 띄면 판이 무거워진다). 낭독기에는 숨긴다(시계가 이미 "남은 시간 …"으로 읽힌다).
  */
-function BoardClockLabel({ phase }: { phase: BalanceClockPhase }) {
+function BoardClockCaption({ phase }: { phase: BalanceClockPhase }) {
   const palette = BOARD_PALETTE;
 
   return (
     <span
       aria-hidden
-      className={cn(
-        "mt-1.5 inline-flex h-6 items-center gap-1 rounded-full pr-2.5 pl-2 text-label-m tracking-[0.5px]",
-        palette.row,
-        palette.muted,
-      )}
+      className={cn("mb-0.5 flex items-center gap-1 text-label-m tracking-[0.5px]", palette.muted)}
     >
-      <TimerIcon size={14} className="text-interactive-primary" />
+      <TimerIcon size={12} />
       {BALANCE_CLOCK_LABEL[phase]}
     </span>
   );
@@ -689,34 +674,4 @@ function settledResult(
 ): BalanceOptionResult | null {
   if (!result || !mineInSettled) return result;
   return { ...result, emphasized: true };
-}
-
-/**
- * 끝난 판 머리(#681) — 경기 시계 대신 질문(타이틀)을 가운데 크게 둔다. 판이 끝났다는 표시는 알약이 아니라
- * 그 위 작은 줄('어제의 밸런스 게임 · 투표 종료')로 낮춘다. 타이틀이 없는 판은 그 자리에 판 이름을 둔다.
- */
-function SettledHeader({
-  label,
-  title,
-}: {
-  label: string;
-  title: string | null;
-}) {
-  const palette = BOARD_PALETTE;
-  return (
-    <header className="flex flex-col items-center gap-1.5 px-2 text-center">
-      <p className={cn("flex items-center gap-1.5 text-label-m", palette.muted)}>
-        <span aria-hidden className="size-1.5 rounded-full bg-current opacity-60" />
-        {title ? `${label} · 투표 종료` : "투표 종료"}
-      </p>
-      <h2
-        className={cn(
-          balanceTitleFont.className,
-          "text-[26px] leading-[34px] text-balance break-keep",
-        )}
-      >
-        {title ?? label}
-      </h2>
-    </header>
-  );
 }

@@ -72,10 +72,17 @@ export function MyBalanceGameItem({
         )}
       </span>
 
-      {/* 판 타이틀(#682) — 무엇을 고른 판이었는지. 없는 판(지난 판)은 줄째 뺀다. */}
+      {/*
+        판 타이틀(#682) — 무엇을 고른 판이었는지. 홈 판의 흰 말풍선과 같은 모양을 흰 화면에 맞게 먹색으로 뒤집는다.
+        없는 판(지난 판)은 줄째 뺀다.
+      */}
       {shown.title ? (
-        <span className="mt-1 text-body-m font-semibold break-keep text-text-primary">
+        <span className="relative mt-2.5 mb-1 self-start rounded-2xl bg-[var(--cool-gray-900)] px-3.5 py-1.5 text-body-m font-bold break-keep text-[var(--bw-true-white)]">
           {shown.title}
+          <span
+            aria-hidden
+            className="absolute -bottom-1 left-5 size-2.5 rotate-45 rounded-[2px] bg-[var(--cool-gray-900)]"
+          />
         </span>
       ) : null}
 

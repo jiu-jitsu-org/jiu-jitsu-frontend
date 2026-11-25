@@ -5,8 +5,50 @@ import { DEFAULT_ICON_SIZE, type IconProps } from "./types";
  *
  * 원본 stroke #0091FF → currentColor로 바꿔 부모의 색을 상속한다(밸런스 게임 잔여 시간에서는
  * interactive-primary). viewBox가 16이라 공통 IconBase(24)를 쓰지 않고 독립 svg로 둔다.
+ *
+ * `filled`: 몸통을 칠하고 바늘을 파낸 모양(알림함 밸런스 결과 알림, #683). 다른 알림 아이콘(댓글 · 좋아요)이
+ * 채운 모양이라 맞춘다. 파낸 자리는 마스크라 어떤 바탕 위에서도 바탕색이 비친다.
  */
-export function TimerIcon({ size = DEFAULT_ICON_SIZE, ...props }: IconProps) {
+export function TimerIcon({
+  filled = false,
+  size = DEFAULT_ICON_SIZE,
+  ...props
+}: IconProps & { filled?: boolean }) {
+  if (filled) {
+    return (
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 16 16"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden
+        {...props}
+      >
+        <defs>
+          <mask id="timer-icon-filled-hand">
+            <rect width="16" height="16" fill="white" />
+            <path
+              d="M8 9.33333L10.1 7.23333"
+              stroke="black"
+              strokeWidth={1.5}
+              strokeLinecap="round"
+            />
+            <circle cx="8" cy="9.33333" r="0.95" fill="black" />
+          </mask>
+        </defs>
+        <rect x="6" y="0.7" width="4" height="1.8" rx="0.9" fill="currentColor" />
+        <circle
+          cx="8"
+          cy="9.33333"
+          r="5.9"
+          fill="currentColor"
+          mask="url(#timer-icon-filled-hand)"
+        />
+      </svg>
+    );
+  }
+
   return (
     <svg
       width={size}
