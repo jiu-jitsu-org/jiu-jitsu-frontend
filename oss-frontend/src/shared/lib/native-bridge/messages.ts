@@ -118,8 +118,8 @@ export const InboundMessageType = {
   SELECT_SHEET_RESULT: "SELECT_SHEET_RESULT",
   // PICK_PHOTOS의 결과. 취소하면 files가 빈 배열이다.
   PHOTOS_PICKED: "PHOTOS_PICKED",
-  // 내 프로필(띠 등)을 앱에서 바꿨음(jiu-jitsu-frontend#413). 앱 MY 화면에서 띠를 저장한 뒤 떠 있는 모든 웹뷰에 보낸다.
-  // 웹은 내 띠를 다시 읽어 바뀌었으면 화면을 새로 그린다. payload 없음. 이 메시지가 없어도 웹뷰가 다시 보일 때
+  // 내 프로필(띠 · 닉네임 · 사진 등)을 앱에서 바꿨음(jiu-jitsu-frontend#413 · #686). 앱에서 저장한 뒤 떠 있는 모든 웹뷰에 보낸다.
+  // 웹은 내 띠를 다시 읽고, 띠가 그대로여도 화면을 한 번 새로 그린다(닉네임 · 사진). payload 없음. 이 메시지가 없어도 웹뷰가 다시 보일 때
   // 한 번 더 확인하므로(MyBeltWatcher) 구버전 앱에서도 결국 맞춰진다 — 이 메시지는 가려지지 않은 화면을 위한 것이다.
   PROFILE_UPDATED: "PROFILE_UPDATED",
   // 앱에서 회원 차단·해제가 바뀌었음(jiu-jitsu-frontend#488, 남의 프로필 ⋯ 메뉴 — jiu-jitsu-ios#328). 떠 있는 모든 웹뷰에 보낸다.

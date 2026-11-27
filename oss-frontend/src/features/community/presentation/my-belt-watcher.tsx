@@ -27,6 +27,7 @@ const MY_BELT_SAVED_EVENT = "oss:my-belt-saved";
  *
  * 띠가 바뀌었다는 신호가 오면 내 띠를 다시 읽고, 처음 본 값과 다르면 서버 렌더를 다시 돌리고(router.refresh)
  * 쌓아 둔 목록에도 알린다(useOnMyBeltChange). 띠가 그대로면 아무것도 하지 않는다.
+ * 단, 앱이 보낸 PROFILE_UPDATED는 닉네임 · 사진 저장에도 오므로 띠가 그대로여도 한 번 새로 그린다(#686).
  *
  * 신호(#542): 띠가 바뀌는 곳은 두 곳이고 둘 다 알린다 — 앱 MY 저장은 열린 웹뷰 모두에 PROFILE_UPDATED를,
  * 웹 띠 묻기 저장은 localStorage에 저장 시각(markMyBeltChanged)을 남긴다. 그래서 앱에서는 다시 보일 때
@@ -56,6 +57,13 @@ export function MyBeltWatcher() {
     let running = false;
     let again = false;
     let attempts = 0;
+    // 앱이 PROFILE_UPDATED를 보냈다 — 띠가 그대로여도 닉네임 · 사진이 바뀌었을 수 있어 한 번 새로 그린다(#686).
+    let profileUpdated = false;
+
+    function redraw() {
+      router.refresh();
+      window.dispatchEvent(new Event(MY_BELT_CHANGED_EVENT));
+    }
 
     async function check() {
       if (running) {
@@ -68,12 +76,16 @@ export function MyBeltWatcher() {
           again = false;
           const isFirst = attempts === 0;
           attempts += 1;
+          const forced = profileUpdated;
+          profileUpdated = false;
           // 읽기 전에 본 표시까지만 반영한 것으로 친다 — 읽는 사이 새로 저장했으면 다음에 또 읽는다.
           const markAt = readBeltChangedAt();
           const key = await readMyBeltKey();
           if (cancelled) return;
           if (key === null) {
             pending = true;
+            // 닉네임 · 사진은 띠 읽기와 상관없이 바뀌었다 — 띠를 못 읽어도 화면은 새로 그린다.
+            if (forced) redraw();
             continue;
           }
           pending = false;
@@ -83,13 +95,12 @@ export function MyBeltWatcher() {
 
           const previous = lastKeyRef.current;
           lastKeyRef.current = key;
-          if (previous === key) continue;
           // 처음 읽기는 기준값만 잡는다(이 화면은 방금 최신 띠로 그려졌다).
           // 처음 읽기가 실패해 기준값이 없던 채로 늦게 읽혔다면, 그사이 바뀌었을 수 있어 한 번 새로 그린다.
-          if (previous === null && isFirst) continue;
+          const beltChanged = previous !== key && !(previous === null && isFirst);
+          if (!beltChanged && !forced) continue;
 
-          router.refresh();
-          window.dispatchEvent(new Event(MY_BELT_CHANGED_EVENT));
+          redraw();
         } while (again && !cancelled);
       } finally {
         running = false;
@@ -134,7 +145,10 @@ export function MyBeltWatcher() {
     }
 
     const unregister = registerWebBridge((message) => {
-      if (message.type === InboundMessageType.PROFILE_UPDATED) void check();
+      if (message.type === InboundMessageType.PROFILE_UPDATED) {
+        profileUpdated = true;
+        void check();
+      }
     });
     document.addEventListener("visibilitychange", handleVisible);
     window.addEventListener("pageshow", handleVisible);
