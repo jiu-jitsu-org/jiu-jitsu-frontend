@@ -78,14 +78,15 @@ export function MyBeltWatcher() {
           attempts += 1;
           const forced = profileUpdated;
           profileUpdated = false;
+          // 닉네임 · 사진은 띠 읽기와 상관없이 바뀌었다 — 띠를 읽기 전에 먼저 새로 그려, 띠 읽기가 늦거나
+          // 실패해도 기다리지 않는다. 새로 그린 화면은 서버에서 띠도 새로 읽으므로 아래에서 또 그리지 않는다.
+          if (forced) redraw();
           // 읽기 전에 본 표시까지만 반영한 것으로 친다 — 읽는 사이 새로 저장했으면 다음에 또 읽는다.
           const markAt = readBeltChangedAt();
           const key = await readMyBeltKey();
           if (cancelled) return;
           if (key === null) {
             pending = true;
-            // 닉네임 · 사진은 띠 읽기와 상관없이 바뀌었다 — 띠를 못 읽어도 화면은 새로 그린다.
-            if (forced) redraw();
             continue;
           }
           pending = false;
@@ -98,7 +99,7 @@ export function MyBeltWatcher() {
           // 처음 읽기는 기준값만 잡는다(이 화면은 방금 최신 띠로 그려졌다).
           // 처음 읽기가 실패해 기준값이 없던 채로 늦게 읽혔다면, 그사이 바뀌었을 수 있어 한 번 새로 그린다.
           const beltChanged = previous !== key && !(previous === null && isFirst);
-          if (!beltChanged && !forced) continue;
+          if (!beltChanged || forced) continue;
 
           redraw();
         } while (again && !cancelled);
